@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { generateKeywords } from '@/lib/keywords';
 
 import {
   DialogContent,
@@ -124,7 +125,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
     if (!firestore || !verificationResult?.title) return;
     setIsCreating(true);
 
-    const slug = verificationResult.title.toLowerCase().replace(/\s+/g, '-');
+    const slug = verificationResult.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     const figureRef = doc(firestore, 'figures', slug);
 
     try {
@@ -141,19 +142,19 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         return;
       }
 
+      const keywords = generateKeywords(verificationResult.title);
+
       const figureData = {
         id: slug,
         name: verificationResult.title,
         imageUrl: verificationResult.imageUrl,
         imageHint: `portrait of ${verificationResult.title}`,
-        bio: '', // Se puede rellenar después
-        nationality: '', // Se puede rellenar después
+        nationality: '', // Can be filled later
         tags: [],
-        ratings: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
-        socials: {},
         isFeatured: false,
+        nameKeywords: keywords,
         createdAt: serverTimestamp(),
-        approved: false, // Los perfiles creados así pueden necesitar aprobación
+        approved: false, // Profiles may need approval
       };
       
       // Use the non-blocking fire-and-forget write function
@@ -192,7 +193,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
       <DialogHeader>
         <DialogTitle>Crear Perfil desde la Web</DialogTitle>
         <DialogDescription>
-          Verifica un personaje en Wikipedia para autocompletar su perfil.
+          Verifica un personaje en Wikipedia o Famous Birthdays para autocompletar su perfil.
         </DialogDescription>
       </DialogHeader>
 

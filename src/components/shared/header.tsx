@@ -15,11 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin } from '@/firebase';
 import { Gem, LogOut, User as UserIcon, UserPlus } from 'lucide-react';
-import { Input } from '../ui/input';
-import { Search } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
+import SearchBar from './search-bar';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
@@ -47,13 +46,8 @@ export default function Header() {
                 <Logo className="h-6 w-6 text-primary" />
                 <span className="font-headline text-primary">WikiStars5</span>
             </Link>
-            <div className="hidden md:block relative min-w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                type="search"
-                placeholder="Buscar perfiles o #hashtags"
-                className="w-full pl-9 pr-4 py-2 h-10 text-sm rounded-full bg-card border-border/60"
-                />
+            <div className="hidden md:block">
+              <SearchBar />
             </div>
         </div>
 

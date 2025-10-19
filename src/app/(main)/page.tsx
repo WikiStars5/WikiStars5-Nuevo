@@ -1,14 +1,13 @@
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import {
   Lightbulb,
   MessageSquare,
-  Search,
   Share2,
   Users,
 } from 'lucide-react';
+import SearchBar from '@/components/shared/search-bar';
 
 const features = [
   {
@@ -45,14 +44,7 @@ export default function HomePage() {
           Bienvenido a <span className="text-primary">WikiStars5</span>
         </h1>
         <div className="mt-8 max-w-lg mx-auto">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar perfiles o #hashtags"
-              className="w-full pl-12 pr-4 py-2 h-12 text-base rounded-full bg-card border-border"
-            />
-          </div>
+          <SearchBar />
           <p className="mt-3 text-sm text-muted-foreground">
             Escribe un nombre y presiona enter o haz clic en buscar.
           </p>

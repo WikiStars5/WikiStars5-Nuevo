@@ -80,11 +80,19 @@
         "isFeatured": {
           "type": "boolean",
           "description": "Indicates whether the public figure is featured on the homepage."
+        },
+        "nameKeywords": {
+            "type": "array",
+            "description": "An array of name prefixes for optimized search.",
+            "items": {
+                "type": "string"
+            }
         }
       },
       "required": [
         "id",
-        "name"
+        "name",
+        "nameKeywords"
       ]
     },
     "Comment": {

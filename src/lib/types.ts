@@ -6,4 +6,5 @@ export interface Figure {
   nationality: string;
   tags: string[];
   isFeatured?: boolean;
+  nameKeywords: string[];
 }
