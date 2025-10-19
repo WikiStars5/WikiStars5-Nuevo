@@ -18,6 +18,7 @@ import { useFirestore, useDoc } from '@/firebase';
 import { useMemo } from 'react';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import React from 'react';
 
 export default function FigureDetailPage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
