@@ -8,12 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { Flame, Medal, MessageSquare, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { collection, query, where } from "firebase/firestore";
 
 export default function ProfilePage() {
     const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
+
+    const commentsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(collection(firestore, 'comments'), where('userId', '==', user.uid));
+    }, [firestore, user]);
+
+    const { data: comments, isLoading: isLoadingComments } = useCollection(commentsQuery);
 
     if (isUserLoading) {
       return (
@@ -120,7 +129,11 @@ export default function ProfilePage() {
                                     <MessageSquare className="h-6 w-6 text-primary" />
                                     <span className="font-medium">Total Comments</span>
                                 </div>
-                                <span className="font-bold text-lg">0</span>
+                                {isLoadingComments ? (
+                                    <Skeleton className="h-6 w-8" />
+                                ) : (
+                                    <span className="font-bold text-lg">{comments?.length ?? 0}</span>
+                                )}
                             </div>
                              <Separator />
                             <div className="flex items-center justify-between">
