@@ -117,7 +117,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
                       <DropdownMenuItem asChild>
                           <Link href="/admin">
                           <Gem className="mr-2 h-4 w-4" />
-                          <span>Admin</span>
+                          <span>Panel de Administrador</span>
                           </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
