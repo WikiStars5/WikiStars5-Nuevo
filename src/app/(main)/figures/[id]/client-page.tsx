@@ -10,12 +10,12 @@ import ProfileHeader from '@/components/figure/ProfileHeader';
 
 function FigureDetailSkeleton() {
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8 md:py-16">
+    <div className="container mx-auto max-w-4xl px-4 py-8 md:py-16">
       <Card className="overflow-hidden">
         <CardContent className="p-6 md:p-8">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
             <Skeleton className="h-28 w-28 flex-shrink-0 rounded-full md:h-36 md:w-36" />
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 space-y-3 text-center md:text-left">
               <Skeleton className="h-8 w-3/4" />
             </div>
           </div>
@@ -48,26 +48,26 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
   }
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8 md:py-16">
+    <div className="container mx-auto max-w-4xl px-4 py-8 md:py-16">
       <ProfileHeader figure={figure} />
 
       <div className="mt-6">
         <Tabs defaultValue="actitud" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="informacion">
-              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
               Información
             </TabsTrigger>
             <TabsTrigger value="actitud">
-              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 -8.995 -9.28l.005 -.22a9 9 0 0 1 18 0a9 9 0 0 1 -8.995 9.28l-.005 -.22z" strokeWidth="0" fill="currentColor" /><path d="M9 12l2 2l4 -4" /></svg>
               Actitud
             </TabsTrigger>
             <TabsTrigger value="emocion">
-              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+             <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path dM15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
               Emoción
             </TabsTrigger>
             <TabsTrigger value="rachas">
-              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7.014a12.83 12.83 0 00-2.122 3.164A8.003 8.003 0 016.343 7.343c-2.286 2.286-2.286 6.014 0 8.3s6.014 2.286 8.3 0c.343-.343.636-.724.886-1.129a12.89 12.89 0 003.163-2.122C17.5 16 14 15.5 12 15c1 2 2.657 1.657 2.657 1.657z"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3.5 17.5c4.667 -6.667 6.333 -6.667 11 -2.5" /><path d="M3.5 12.5c4.667 -6.667 6.333 -6.667 11 -2.5" /><path d="M3.5 7.5c4.667 -6.667 6.333 -6.667 11 -2.5" /></svg>
               Top Rachas
             </TabsTrigger>
           </TabsList>
