@@ -72,16 +72,16 @@ export default async function FigureDetailPage({ params }: { params: { id: strin
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8 md:py-12">
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs defaultValue="actitud" className="w-full">
           <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto mb-8">
-            <TabsTrigger value="overview">Actitud</TabsTrigger>
+            <TabsTrigger value="actitud">Actitud</TabsTrigger>
             <TabsTrigger value="comments">Comentarios</TabsTrigger>
             <TabsTrigger value="streaks">Rachas</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
+          <TabsContent value="actitud">
+             <div className="grid grid-cols-1 gap-8">
+                <div className="space-y-8">
                     {/* Attitude Voting - Maintenance */}
                     <Card>
                         <CardHeader>
@@ -95,35 +95,6 @@ export default async function FigureDetailPage({ params }: { params: { id: strin
                             <Button variant="outline" size="lg" className="flex-1" disabled><ThumbsDown className="mr-2 h-4 w-4"/> Hater</Button>
                         </CardContent>
                     </Card>
-                </div>
-
-                <div className="space-y-8">
-                    {/* Ratings Summary */}
-                    <Card>
-                        <CardHeader><CardTitle>Resumen de Calificaciones</CardTitle></CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <StarRating rating={averageRating} starClassName="w-6 h-6"/>
-                                <span className="font-bold text-2xl">{averageRating.toFixed(1)}</span>
-                                <span className="text-muted-foreground">({totalRatings} calificaciones)</span>
-                            </div>
-                            <Separator />
-                            <div className="space-y-1 text-sm">
-                                {Object.entries(figure.ratings).reverse().map(([star, count]) => (
-                                    <div key={star} className="flex items-center gap-2">
-                                        <span className="w-12 text-muted-foreground">{star} estrellas</span>
-                                        <div className="flex-1 bg-muted rounded-full h-2">
-                                            <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${(count / totalRatings) * 100}%` }} />
-                                        </div>
-                                        <span className="w-10 text-right text-muted-foreground">{count}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                    
-                    {/* Emotion Chart */}
-                    <EmotionChart data={emotionVotes} />
                 </div>
             </div>
           </TabsContent>
