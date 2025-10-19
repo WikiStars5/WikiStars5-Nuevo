@@ -12,6 +12,7 @@ export default function ExplorePage() {
   const firestore = useFirestore();
   const figuresCollection = useMemo(() => {
     if (!firestore) return null;
+    // This query fetches documents from the 'figures' collection, ordered by name.
     return query(collection(firestore, 'figures'), orderBy('name', 'asc'));
   }, [firestore]);
 
@@ -59,5 +60,3 @@ export default function ExplorePage() {
     </div>
   );
 }
-
-    

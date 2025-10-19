@@ -1,41 +1,60 @@
+'use client';
 
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import {
-  getFigureById,
   getEmotionVotesByFigureId,
   getRelatedFigures,
 } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Star, Globe, Heart, ThumbsDown, Meh, UserCheck, MessageSquareWarning } from 'lucide-react';
+import { Globe, Heart, ThumbsDown, Meh, UserCheck } from 'lucide-react';
 import { Twitter, Instagram } from 'lucide-react';
-import { StarRating } from '@/components/shared/star-rating';
-import { Separator } from '@/components/ui/separator';
-import EmotionChart from '@/components/figure/emotion-chart';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CommentSection from '@/components/figure/comment-section';
-import FigureCard from '@/components/shared/figure-card';
 import TopStreaks from '@/components/figure/top-streaks';
+import { useFirestore, useDoc } from '@/firebase';
+import { useMemo } from 'react';
+import { doc } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function FigureDetailPage({ params }: { params: { id: string } }) {
-  const figure = await getFigureById(params.id);
-  if (!figure) {
-    notFound();
+export default function FigureDetailPage({ params }: { params: { id: string } }) {
+  const firestore = useFirestore();
+
+  const figureRef = useMemo(() => {
+    if (!firestore || !params.id) return null;
+    return doc(firestore, 'figures', params.id);
+  }, [firestore, params.id]);
+
+  const { data: figure, isLoading } = useDoc<any>(figureRef);
+
+  // For now, we will keep emotion votes and related figures from mock data
+  // as they are not the primary focus.
+  // const emotionVotes = await getEmotionVotesByFigureId(params.id);
+  // const relatedFigures = await getRelatedFigures(params.id);
+
+  if (isLoading) {
+    return (
+        <div className="container mx-auto px-4 py-8 md:py-12">
+            <Skeleton className="h-[400px] w-full mb-8" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 space-y-4">
+                    <Skeleton className="h-12 w-1/2" />
+                    <Skeleton className="h-8 w-1/3" />
+                </div>
+                <div className="space-y-4">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                </div>
+            </div>
+        </div>
+    );
   }
 
-  const emotionVotes = await getEmotionVotesByFigureId(params.id);
-  const relatedFigures = await getRelatedFigures(params.id);
-
-  const totalRatings = Object.values(figure.ratings).reduce((a, b) => a + b, 0);
-  const averageRating =
-    totalRatings > 0
-      ? Object.entries(figure.ratings).reduce(
-          (acc, [key, value]) => acc + parseInt(key, 10) * value,
-          0
-        ) / totalRatings
-      : 0;
+  if (!figure) {
+    return notFound();
+  }
 
   return (
     <div>
@@ -60,9 +79,9 @@ export default async function FigureDetailPage({ params }: { params: { id: strin
                 <div className="flex items-center gap-4 mt-2">
                     <p className="text-lg text-muted-foreground">{figure.nationality}</p>
                     <div className="flex items-center gap-2">
-                        {figure.socials.twitter && <a href={`https://twitter.com/${figure.socials.twitter}`} target="_blank" rel="noopener noreferrer"><Twitter className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
-                        {figure.socials.instagram && <a href={`https://instagram.com/${figure.socials.instagram}`} target="_blank" rel="noopener noreferrer"><Instagram className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
-                        {figure.socials.website && <a href={`https://${figure.socials.website}`} target="_blank" rel="noopener noreferrer"><Globe className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
+                        {figure.socials?.twitter && <a href={`https://twitter.com/${figure.socials.twitter}`} target="_blank" rel="noopener noreferrer"><Twitter className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
+                        {figure.socials?.instagram && <a href={`https://instagram.com/${figure.socials.instagram}`} target="_blank" rel="noopener noreferrer"><Instagram className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
+                        {figure.socials?.website && <a href={`https://${figure.socials.website}`} target="_blank" rel="noopener noreferrer"><Globe className="h-5 w-5 text-muted-foreground hovertext-primary transition-colors" /></a>}
                     </div>
                 </div>
             </div>
