@@ -19,7 +19,6 @@ import { useAuth, useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isUserLoading } = useUser();
@@ -158,8 +157,6 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     return (
-        <FirebaseClientProvider>
-            <AdminDashboardLayout>{children}</AdminDashboardLayout>
-        </FirebaseClientProvider>
+        <AdminDashboardLayout>{children}</AdminDashboardLayout>
     )
 }
