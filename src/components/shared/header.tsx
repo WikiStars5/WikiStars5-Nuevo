@@ -19,7 +19,7 @@ import { Input } from '../ui/input';
 import { Search } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger } from '../ui/dialog';
-import CreateProfileDialog from '../figure/create-profile-dialog';
+import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
@@ -108,7 +108,7 @@ export default function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <CreateProfileDialog onOpenChange={setIsCharacterDialogOpen} />
+              <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
             </Dialog>
           ) : (
             null
