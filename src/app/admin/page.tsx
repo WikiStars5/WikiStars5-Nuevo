@@ -34,7 +34,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle>Panel de Administración</CardTitle>
             <CardDescription>Resumen del estado de la aplicación WikiStars5. Datos de figuras desde Firestore.</CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent>
             <div className="p-6 rounded-lg bg-muted">
               <div>
@@ -55,7 +55,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Acciones Rápidas</CardTitle>
-          </Header>
+          </CardHeader>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button asChild>
               <Link href="/admin/figures">
