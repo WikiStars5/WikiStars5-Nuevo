@@ -6,7 +6,7 @@ import {
   getRelatedFigures,
 } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star, Globe, Heart, ThumbsDown, Meh, UserCheck, MessageSquareWarning } from 'lucide-react';
 import { Twitter, Instagram } from 'lucide-react';
