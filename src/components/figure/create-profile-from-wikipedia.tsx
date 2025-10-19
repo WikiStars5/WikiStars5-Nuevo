@@ -42,6 +42,7 @@ import {
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Label } from '../ui/label';
 
 const wikipediaSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
@@ -329,5 +330,3 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
     </DialogContent>
   );
 }
-
-    
