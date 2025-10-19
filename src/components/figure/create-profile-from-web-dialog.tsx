@@ -104,8 +104,8 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
       const figureData = {
         id: slug,
         name: verifiedDomain,
-        imageUrl: `https://picsum.photos/seed/${slug}/600/400`,
-        imageHint: `logo for ${verifiedDomain}`,
+        imageUrl: `https://www.google.com/s2/favicons?sz=128&domain_url=${verifiedDomain}`,
+        imageHint: `favicon for ${verifiedDomain}`,
         nationality: 'Web',
         tags: [verifiedDomain],
         isFeatured: false,
