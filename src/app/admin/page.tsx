@@ -4,14 +4,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { List, PlusCircle } from 'lucide-react';
-import { useFirestore, useCollection } from '@/firebase';
-import { useMemo } from 'react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
-  const figuresCollection = useMemo(() => {
+  const figuresCollection = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'figures');
   }, [firestore]);
@@ -35,7 +34,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle>Panel de Administración</CardTitle>
             <CardDescription>Resumen del estado de la aplicación WikiStars5. Datos de figuras desde Firestore.</CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent>
             <div className="p-6 rounded-lg bg-muted">
                 <div className='flex justify-between items-center mb-2'>
@@ -54,7 +53,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Acciones Rápidas</CardTitle>
-          </CardHeader>
+          </Header>
           <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button asChild>
               <Link href="/admin/figures">
