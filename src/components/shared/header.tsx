@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -26,8 +27,6 @@ export default function Header() {
   const { isAdmin } = useAdmin();
   const auth = useAuth();
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
-  const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
-
 
   const handleLogout = () => {
     if (auth) {
@@ -60,9 +59,6 @@ export default function Header() {
             <>
               <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
                 <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
-              </Dialog>
-              <Dialog open={isWebProfileDialogOpen} onOpenChange={setIsWebProfileDialogOpen}>
-                <CreateProfileFromWebDialog onProfileCreated={() => setIsWebProfileDialogOpen(false)} />
               </Dialog>
               
               <DropdownMenu>
@@ -101,9 +97,11 @@ export default function Header() {
                           <span>Crear Perfil de Personaje</span>
                       </DropdownMenuItem>
 
-                      <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin/figures/new">
                           <Globe className="mr-2 h-4 w-4" />
                           <span>Crear Perfil Web</span>
+                        </Link>
                       </DropdownMenuItem>
 
                       <DropdownMenuSeparator />

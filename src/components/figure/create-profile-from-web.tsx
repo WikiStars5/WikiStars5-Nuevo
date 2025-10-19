@@ -5,13 +5,6 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -29,10 +22,10 @@ const domainSchema = z.object({
 type DomainFormValues = z.infer<typeof domainSchema>;
 
 interface CreateProfileFromWebProps {
-  onProfileCreated: () => void;
+  onDomainVerified: (domain: string) => void;
 }
 
-export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateProfileFromWebProps) {
+export default function CreateProfileFromWeb({ onDomainVerified }: CreateProfileFromWebProps) {
   const { toast } = useToast();
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [verificationResult, setVerificationResult] = React.useState<{ domain: string; isValid: boolean; error: string | null } | null>(null);
@@ -53,11 +46,9 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
       if (result.isValid) {
         toast({
           title: 'Dominio Válido',
-          description: `El dominio ${data.domain} es accesible. Procediendo...`,
-          variant: 'default',
+          description: `El dominio ${data.domain} es accesible.`,
         });
-        // Automatically proceed to the next step on success
-        onProfileCreated();
+        onDomainVerified(data.domain);
       } else {
         toast({
           title: 'Error de Verificación',
@@ -82,66 +73,43 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
     }
   };
 
-  const resetVerification = () => {
-    setVerificationResult(null);
-    form.reset();
-  };
-
   return (
-    <DialogContent className="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle>Crear Perfil Web</DialogTitle>
-        <DialogDescription>
-          Verifica que un dominio es accesible antes de continuar con la creación del perfil.
-        </DialogDescription>
-      </DialogHeader>
-
-      <div className="space-y-4 py-4">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleVerifyDomain)} className="flex items-start gap-2">
-            <FormField
-              control={form.control}
-              name="domain"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input placeholder="ejemplo.com" {...field} disabled={isVerifying} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" disabled={isVerifying} className="w-[180px]">
-              {isVerifying ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <>
-                  <Globe className="mr-2" /> Verificar y Crear
-                </>
-              )}
-            </Button>
-          </form>
-        </Form>
-
-        {verificationResult && !verificationResult.isValid && (
-          <div className="mt-4">
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Verificación Fallida</AlertTitle>
-                <AlertDescription>
-                  {verificationResult.error || 'No se pudo verificar el dominio.'}
-                </AlertDescription>
-              </Alert>
-          </div>
-        )}
-      </div>
-
-       <DialogFooter className="justify-end gap-2">
-          <Button variant="ghost" onClick={resetVerification} disabled={isVerifying}>
-            Limpiar
+    <div className="space-y-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleVerifyDomain)} className="flex items-start gap-2">
+          <FormField
+            control={form.control}
+            name="domain"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input placeholder="ejemplo.com" {...field} disabled={isVerifying} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={isVerifying} className="w-[180px]">
+            {isVerifying ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <>
+                <Globe className="mr-2" /> Verificar Dominio
+              </>
+            )}
           </Button>
-        </DialogFooter>
+        </form>
+      </Form>
 
-    </DialogContent>
+      {verificationResult && !verificationResult.isValid && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Verificación Fallida</AlertTitle>
+          <AlertDescription>
+            {verificationResult.error || 'No se pudo verificar el dominio.'}
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
   );
 }

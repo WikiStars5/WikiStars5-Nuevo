@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,7 +52,12 @@ export default function AdminFiguresPage() {
             </div>
             <div className="flex gap-2">
                  <Button variant="destructive">Delete All</Button>
-                 <Button>Add Figure</Button>
+                 <Button asChild>
+                    <Link href="/admin/figures/new">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Figure
+                    </Link>
+                 </Button>
             </div>
         </div>
       </CardHeader>
