@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -214,7 +215,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                 )}
               />
               <Button type="submit" disabled={isVerifying} className="w-[150px]">
-                {isVerifying ? (
+                {isVerifying && !famousBirthdaysForm.formState.isSubmitting ? (
                   <Loader2 className="animate-spin" />
                 ) : (
                   <>
@@ -226,7 +227,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
           </Form>
 
           {verificationError && (
-            <div className="space-y-4">
+            <div className="space-y-4 pt-4">
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error de Verificación</AlertTitle>
@@ -262,7 +263,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                     )}
                   />
                   <Button type="submit" disabled={isVerifying} variant="secondary" className="w-[150px]">
-                    {isVerifying ? <Loader2 className="animate-spin" /> : 'Verificar URL'}
+                    {isVerifying && famousBirthdaysForm.formState.isSubmitting ? <Loader2 className="animate-spin" /> : 'Verificar URL'}
                   </Button>
                 </form>
               </Form>
