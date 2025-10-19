@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -63,16 +64,22 @@ export default async function AdminFiguresPage() {
             {figures.map((figure) => (
               <TableRow key={figure.id}>
                 <TableCell className="hidden sm:table-cell">
-                  <Image
-                    alt={figure.name}
-                    className="aspect-square rounded-md object-cover"
-                    height="64"
-                    src={figure.imageUrl}
-                    width="64"
-                    data-ai-hint={figure.imageHint}
-                  />
+                  <Link href={`/figures/${figure.id}`}>
+                    <Image
+                      alt={figure.name}
+                      className="aspect-square rounded-md object-cover"
+                      height="64"
+                      src={figure.imageUrl}
+                      width="64"
+                      data-ai-hint={figure.imageHint}
+                    />
+                  </Link>
                 </TableCell>
-                <TableCell className="font-medium">{figure.name}</TableCell>
+                <TableCell className="font-medium">
+                  <Link href={`/figures/${figure.id}`} className="hover:underline">
+                    {figure.name}
+                  </Link>
+                </TableCell>
                 <TableCell>{figure.nationality}</TableCell>
                 <TableCell className="hidden md:table-cell">
                     <div className="flex flex-wrap gap-1">
