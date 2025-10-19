@@ -23,8 +23,10 @@ export default function ProfilePage() {
     }, [firestore, user]);
 
     const { data: comments, isLoading: isLoadingComments } = useCollection(commentsQuery);
+    
+    const showAppLoadingState = isUserLoading || !firestore;
 
-    if (isUserLoading) {
+    if (showAppLoadingState) {
       return (
          <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
              <header className="mb-8">

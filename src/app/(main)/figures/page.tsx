@@ -20,6 +20,8 @@ export default function ExplorePage() {
 
   const { data: figures, isLoading } = useCollection<Figure>(figuresCollection);
 
+  const showLoadingState = isLoading || !firestore;
+
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
       <header className="mb-8">
@@ -28,7 +30,7 @@ export default function ExplorePage() {
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
-        {isLoading && Array.from({ length: 5 }).map((_, i) => (
+        {showLoadingState && Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="space-y-4">
                 <Skeleton className="h-[350px] w-full" />
                 <Skeleton className="h-4 w-3/4" />
@@ -40,7 +42,7 @@ export default function ExplorePage() {
         ))}
       </div>
 
-       {figures && figures.length === 0 && !isLoading && (
+       {figures && figures.length === 0 && !showLoadingState && (
         <div className="text-center col-span-full py-16">
           <p className="text-muted-foreground">Your database is ready. Add some data to see it here!</p>
         </div>
