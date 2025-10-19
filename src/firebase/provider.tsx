@@ -4,13 +4,13 @@ import React, { DependencyList, createContext, useContext, ReactNode, useMemo, u
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 interface FirebaseProviderProps {
   children: ReactNode;
-  firebaseApp: FirebaseApp;
-  firestore: Firestore;
-  auth: Auth;
+  firebaseApp: FirebaseApp | null; // Allow null during initialization
+  firestore: Firestore | null;   // Allow null during initialization
+  auth: Auth | null;             // Allow null during initialization
 }
 
 // Internal state for user authentication
@@ -54,6 +54,7 @@ export const FirebaseContext = createContext<FirebaseContextState | undefined>(u
 
 /**
  * FirebaseProvider manages and provides Firebase services and user authentication state.
+ * It now prevents children from rendering until core services are available.
  */
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
@@ -67,10 +68,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userError: null,
   });
 
+  const areServicesReady = !!(firebaseApp && firestore && auth);
+
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
-    if (!auth) { // If no Auth service instance, cannot determine user state
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not provided.") });
+    // Do not run the effect until the auth service is ready
+    if (!areServicesReady || !auth) {
+      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not available.") });
       return;
     }
 
@@ -87,21 +91,31 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
     return () => unsubscribe(); // Cleanup
-  }, [auth]); // Depends on the auth instance
+  }, [auth, areServicesReady]); // Rerun if auth instance changes or services become ready
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
-    const servicesAvailable = !!(firebaseApp && firestore && auth);
     return {
-      areServicesAvailable: servicesAvailable,
-      firebaseApp: servicesAvailable ? firebaseApp : null,
-      firestore: servicesAvailable ? firestore : null,
-      auth: servicesAvailable ? auth : null,
+      areServicesAvailable: areServicesReady,
+      firebaseApp: areServicesReady ? firebaseApp : null,
+      firestore: areServicesReady ? firestore : null,
+      auth: areServicesReady ? auth : null,
       user: userAuthState.user,
       isUserLoading: userAuthState.isUserLoading,
       userError: userAuthState.userError,
     };
-  }, [firebaseApp, firestore, auth, userAuthState]);
+  }, [firebaseApp, firestore, auth, userAuthState, areServicesReady]);
+
+  // CRITICAL CHANGE: Do not render children until Firebase services are initialized.
+  if (!areServicesReady) {
+    // You can render a global loader here if desired.
+    // This prevents any child component from attempting to use a null Firebase service.
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <p>Initializing Firebase...</p>
+        </div>
+    );
+  }
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -122,8 +136,10 @@ export const useFirebase = (): FirebaseServicesAndUser => {
     throw new Error('useFirebase must be used within a FirebaseProvider.');
   }
 
+  // Because of the guard in the Provider, these should now always be available.
   if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth) {
-    throw new Error('Firebase core services not available. Check FirebaseProvider props.');
+    // This error should theoretically not be hit if the provider's guard works correctly.
+    throw new Error('Firebase core services not available. This is an unexpected error.');
   }
 
   return {
