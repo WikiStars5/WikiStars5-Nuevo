@@ -95,16 +95,6 @@ export default async function FigureDetailPage({ params }: { params: { id: strin
                             <Button variant="outline" size="lg" className="flex-1" disabled><ThumbsDown className="mr-2 h-4 w-4"/> Hater</Button>
                         </CardContent>
                     </Card>
-
-                     {/* Related Profiles */}
-                    <Card>
-                        <CardHeader><CardTitle>Perfiles Relacionados</CardTitle></CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {relatedFigures.map(related => <FigureCard key={related.id} figure={related} />)}
-                            </div>
-                        </CardContent>
-                    </Card>
                 </div>
 
                 <div className="space-y-8">
