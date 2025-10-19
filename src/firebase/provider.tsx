@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -169,8 +170,6 @@ export const useFirebaseApp = (): FirebaseApp => {
   const { firebaseApp } = useFirebase();
   return firebaseApp;
 };
-
-type MemoFirebase <T> = T & {__memo?: boolean};
 
 /**
  * A wrapper around React.useMemo that "marks" the returned object.

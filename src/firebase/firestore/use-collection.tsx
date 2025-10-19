@@ -63,6 +63,8 @@ export function useCollection<T = any>(
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    // If the ref is null or undefined, we're not ready yet.
+    // Set loading to true (or keep it true) and wait.
     if (!memoizedTargetRefOrQuery) {
       setIsLoading(true);
       setData(null);
