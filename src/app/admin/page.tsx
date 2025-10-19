@@ -37,6 +37,7 @@ export default function AdminDashboard() {
           </Header>
           <CardContent>
             <div className="p-6 rounded-lg bg-muted">
+              <div>
                 <div className='flex justify-between items-center mb-2'>
                     <h3 className="text-sm font-medium text-muted-foreground">Total de Perfiles</h3>
                     <List className="h-4 w-4 text-muted-foreground" />
@@ -47,6 +48,7 @@ export default function AdminDashboard() {
                     <div className="text-4xl font-bold">{figures?.length ?? 0}</div>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">perfiles gestionados en Firestore</p>
+              </div>
             </div>
           </CardContent>
         </Card>
