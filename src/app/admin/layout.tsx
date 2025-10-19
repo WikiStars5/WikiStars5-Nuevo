@@ -30,18 +30,18 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     const isLoading = isUserLoading || isAdminLoading;
 
     useEffect(() => {
-      // Wait until loading is fully complete before running any logic.
+      // Rule 1: If still loading, do nothing. Wait for a final state.
       if (isLoading) {
         return;
       }
 
-      // If loading is done and there's no user, redirect to login.
+      // Rule 2: If loading is finished and there's no user, redirect to login.
       if (!user) {
         router.push('/login');
         return;
       }
 
-      // If loading is done, there is a user, but they are not an admin, redirect to home.
+      // Rule 3: If loading is finished, there IS a user, but they are NOT an admin, redirect to home.
       if (!isAdmin) {
         router.push('/');
       }
