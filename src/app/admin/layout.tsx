@@ -33,8 +33,9 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         if (!user) {
           router.push('/login');
         } else if (!isAdmin) {
-          // If the user is logged in but not an admin, send them to their profile.
-          router.push('/profile');
+          // If the user is logged in but not an admin, send them to the home page or a "not authorized" page.
+          // For simplicity, we'll send them home.
+          router.push('/');
         }
       }
     }, [user, isAdmin, isLoading, router]);
@@ -49,7 +50,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'A';
     }
     
-    if (isLoading || !isAdmin) {
+    if (isLoading || !user || !isAdmin) {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <p>Cargando o redirigiendo...</p>
@@ -124,13 +125,6 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
                       </>
                   )}
 
-                  <DropdownMenuItem asChild>
-                      <Link href="/profile">
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      <span>Perfil</span>
-                      </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Cerrar Sesión</span>
