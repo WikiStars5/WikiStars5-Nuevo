@@ -172,13 +172,29 @@ export const useFirebaseApp = (): FirebaseApp => {
 
 type MemoFirebase <T> = T & {__memo?: boolean};
 
-export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | (MemoFirebase<T>) {
+/**
+ * A wrapper around React.useMemo that "marks" the returned object.
+ * This allows hooks like useCollection to verify that their input has been correctly memoized,
+ * preventing accidental infinite loops caused by creating new query objects on every render.
+ * 
+ * @param factory The function that creates the value to be memoized.
+ * @param deps An array of dependencies.
+ * @returns The memoized value.
+ */
+export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
   const memoized = useMemo(factory, deps);
   
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
+  if (memoized && typeof memoized === 'object') {
+    // Add a non-enumerable property to "mark" this object as memoized by our hook.
+    Object.defineProperty(memoized, '__memo', {
+      value: true,
+      writable: false,
+      enumerable: false,
+      configurable: false,
+    });
+  }
   
-  return memoized;
+  return memoized as T;
 }
 
 /**
