@@ -1,11 +1,22 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getFigures } from '@/lib/data';
 import { List, PlusCircle } from 'lucide-react';
+import { useFirestore, useCollection } from '@/firebase';
+import { useMemo } from 'react';
+import { collection } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function AdminDashboard() {
-  const figures = await getFigures();
+export default function AdminDashboard() {
+  const firestore = useFirestore();
+  const figuresCollection = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'figures');
+  }, [firestore]);
+
+  const { data: figures, isLoading } = useCollection(figuresCollection);
 
   return (
     <>
@@ -31,8 +42,12 @@ export default async function AdminDashboard() {
                     <h3 className="text-sm font-medium text-muted-foreground">Total de Perfiles</h3>
                     <List className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <div className="text-4xl font-bold">{figures.length}</div>
-                <p className="text-xs text-muted-foreground">perfiles gestionados en Firestore</p>
+                {isLoading ? (
+                    <Skeleton className="h-9 w-1/4" />
+                ) : (
+                    <div className="text-4xl font-bold">{figures?.length ?? 0}</div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">perfiles gestionados en Firestore</p>
             </div>
           </CardContent>
         </Card>

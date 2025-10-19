@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import { doc } from 'firebase/firestore';
 import { useFirestore, useUser, useDoc } from '@/firebase';
-import { ADMIN_UIDS } from '@/lib/admins';
 
 export interface UseAdminResult {
   isAdmin: boolean;
@@ -40,14 +39,11 @@ export const useAdmin = (): UseAdminResult => {
       return false;
     }
     
-    // Check #1: Is the user's UID in the hardcoded "VIP list"? (Fast client-side check)
-    const isVip = ADMIN_UIDS.includes(user.uid);
-    
     // Check #2: Does the corresponding document exist in the `roles_admin` collection? (Slower server-side check)
     const hasAdminRoleDoc = !!adminDoc;
 
     // To be an admin, BOTH checks must pass.
-    return isVip && hasAdminRoleDoc;
+    return hasAdminRoleDoc;
   }, [user, adminDoc, isAdminLoading]);
 
   // Return the definitive admin status and loading state.
