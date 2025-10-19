@@ -29,14 +29,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminUsersPage() {
   const firestore = useFirestore();
   const usersCollection = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'users');
+    return query(collection(firestore, 'users'));
   }, [firestore]);
 
   const { data: users, isLoading } = useCollection<any>(usersCollection);
@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-             {isLoading && (
+             {(isLoading || !firestore) && (
               Array.from({ length: 3 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>

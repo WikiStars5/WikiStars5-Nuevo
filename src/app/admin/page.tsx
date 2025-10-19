@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { List, PlusCircle } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
   const figuresCollection = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'figures');
+    return query(collection(firestore, 'figures'));
   }, [firestore]);
 
   const { data: figures, isLoading } = useCollection(figuresCollection);
@@ -42,7 +43,7 @@ export default function AdminDashboard() {
                     <h3 className="text-sm font-medium text-muted-foreground">Total de Perfiles</h3>
                     <List className="h-4 w-4 text-muted-foreground" />
                 </div>
-                {isLoading ? (
+                {(isLoading || !firestore) ? (
                     <Skeleton className="h-9 w-1/4" />
                 ) : (
                     <div className="text-4xl font-bold">{figures?.length ?? 0}</div>

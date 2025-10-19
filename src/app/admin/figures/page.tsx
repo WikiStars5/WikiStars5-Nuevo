@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/table';
 import Image from 'next/image';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Figure } from '@/lib/types';
 
@@ -37,7 +37,7 @@ export default function AdminFiguresPage() {
   const firestore = useFirestore();
   const figuresCollection = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'figures');
+    return query(collection(firestore, 'figures'));
   }, [firestore]);
 
   const { data: figures, isLoading } = useCollection<Figure>(figuresCollection);
@@ -73,7 +73,7 @@ export default function AdminFiguresPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && (
+            {(isLoading || !firestore) && (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   <TableCell className="hidden sm:table-cell">
