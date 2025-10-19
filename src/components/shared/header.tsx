@@ -104,12 +104,7 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild>
-                <Link href="/login">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Iniciar Sesión
-                </Link>
-            </Button>
+            null
           )}
         </div>
       </div>
