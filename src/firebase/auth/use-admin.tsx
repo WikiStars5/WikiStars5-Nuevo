@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { doc } from 'firebase/firestore';
-import { useFirestore, useUser, useDoc } from '@/firebase';
+import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 
 export interface UseAdminResult {
   isAdmin: boolean;
@@ -20,8 +20,8 @@ export const useAdmin = (): UseAdminResult => {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
-  // Step 1: Memoize the Firestore document reference. It's null if there's no user.
-  const adminRoleDocRef = useMemo(() => {
+  // Step 1: Memoize the Firestore document reference. It's null if there's no user or firestore.
+  const adminRoleDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'roles_admin', user.uid);
   }, [firestore, user]);
@@ -42,7 +42,7 @@ export const useAdmin = (): UseAdminResult => {
     // Check #2: Does the corresponding document exist in the `roles_admin` collection? (Slower server-side check)
     const hasAdminRoleDoc = !!adminDoc;
 
-    // To be an admin, BOTH checks must pass.
+    // The user is an admin if the role document exists.
     return hasAdminRoleDoc;
   }, [user, adminDoc, isAdminLoading]);
 
