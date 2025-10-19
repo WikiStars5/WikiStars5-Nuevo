@@ -1,22 +1,24 @@
+
 'use client';
 
 import { useMemo } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
-import { useFirestore, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import FigureCard from '@/components/shared/figure-card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Figure } from '@/lib/types';
 
 export default function ExplorePage() {
   const firestore = useFirestore();
-  const figuresCollection = useMemo(() => {
+  const figuresCollection = useMemoFirebase(() => {
     if (!firestore) return null;
     // This query fetches documents from the 'figures' collection, ordered by name.
     return query(collection(firestore, 'figures'), orderBy('name', 'asc'));
   }, [firestore]);
 
-  const { data: figures, isLoading } = useCollection<any>(figuresCollection);
+  const { data: figures, isLoading } = useCollection<Figure>(figuresCollection);
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
