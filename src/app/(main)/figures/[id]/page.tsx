@@ -1,20 +1,24 @@
 'use client';
 
+import {
+  Flame,
+  Heart,
+  Info,
+  Share2,
+  Smile,
+} from 'lucide-react';
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Globe, Heart, ThumbsDown, Meh, UserCheck } from 'lucide-react';
-import { Twitter, Instagram } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import CommentSection from '@/components/figure/comment-section';
-import TopStreaks from '@/components/figure/top-streaks';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+} from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import React from 'react';
-import EmotionChart from '@/components/figure/emotion-chart';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export default function FigureDetailPage() {
   const firestore = useFirestore();
@@ -30,28 +34,21 @@ export default function FigureDetailPage() {
 
   if (isLoading) {
     return (
-        <div className="container mx-auto px-4 py-8 md:py-12">
-            <div className="relative h-[400px] md:h-[500px] w-full mb-24">
-                <Skeleton className="h-full w-full" />
-                 <div className="container mx-auto px-4 absolute bottom-0 left-0 right-0 pb-8">
-                    <div className="flex flex-col md:flex-row md:items-end md:gap-6">
-                       <Skeleton className="relative -mt-24 md:mt-0 w-40 h-40 md:w-48 md:h-48 rounded-lg shadow-2xl border-4 border-card shrink-0"/>
-                        <div className='space-y-2'>
-                           <Skeleton className="h-12 w-80" />
-                           <Skeleton className="h-6 w-40" />
-                        </div>
-                    </div>
-                </div>
+      <div className="container mx-auto max-w-2xl px-4 py-8 md:py-16">
+        <Card className="overflow-hidden">
+          <CardHeader className="p-6 md:p-8">
+            <div className="flex items-center gap-6">
+              <Skeleton className="h-24 w-24 rounded-full md:h-32 md:w-32" />
+              <div className="flex-1 space-y-3">
+                <Skeleton className="h-10 w-3/4" />
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                    <Skeleton className="h-48 w-full" />
-                </div>
-                <div className="space-y-4">
-                    <Skeleton className="h-96 w-full" />
-                </div>
-            </div>
+          </CardHeader>
+        </Card>
+        <div className="mt-6">
+          <Skeleton className="h-12 w-full" />
         </div>
+      </div>
     );
   }
 
@@ -59,82 +56,87 @@ export default function FigureDetailPage() {
     return notFound();
   }
 
-  const emotionData = [
-    { emotion: 'Joy', percentage: 75 },
-    { emotion: 'Envy', percentage: 10 },
-    { emotion: 'Neutral', percentage: 15 },
-    { emotion: 'Sadness', percentage: 0 },
-    { emotion: 'Anger', percentage: 0 },
-  ]
-
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="relative h-[400px] md:h-[500px] w-full">
-        <Image
-          src={figure.imageUrl}
-          alt={figure.name}
-          fill
-          className="object-cover"
-          priority
-          data-ai-hint={figure.imageHint}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
-        <div className="container mx-auto px-4 absolute bottom-0 left-0 right-0 pb-8">
-          <div className="flex flex-col md:flex-row md:items-end md:gap-6">
-            <div className="relative -mt-24 md:mt-0 w-40 h-40 md:w-48 md:h-48 rounded-lg overflow-hidden shadow-2xl border-4 border-card shrink-0">
-               <Image src={figure.imageUrl} alt={figure.name} fill className="object-cover" data-ai-hint={figure.imageHint}/>
+    <div className="container mx-auto max-w-2xl px-4 py-8 md:py-16">
+      <Card className="overflow-hidden">
+        <CardHeader className="p-6 md:p-8">
+          <div className="relative flex items-center gap-6">
+            <div className="relative h-24 w-24 flex-shrink-0 md:h-32 md:w-32">
+              <Image
+                src={figure.imageUrl}
+                alt={figure.name}
+                fill
+                className="rounded-full border-4 border-card object-cover shadow-lg"
+                data-ai-hint={figure.imageHint}
+              />
             </div>
-            <div>
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight font-headline mt-4">{figure.name}</h1>
-                <div className="flex items-center gap-4 mt-2">
-                    <p className="text-lg text-muted-foreground">{figure.nationality}</p>
-                    <div className="flex items-center gap-2">
-                        {figure.socials?.twitter && <a href={`https://twitter.com/${figure.socials.twitter}`} target="_blank" rel="noopener noreferrer"><Twitter className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
-                        {figure.socials?.instagram && <a href={`https://instagram.com/${figure.socials.instagram}`} target="_blank" rel="noopener noreferrer"><Instagram className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
-                        {figure.socials?.website && <a href={`https://${figure.socials.website}`} target="_blank" rel="noopener noreferrer"><Globe className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
-                    </div>
-                </div>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold tracking-tight md:text-5xl font-headline">
+                {figure.name}
+              </h1>
+            </div>
+            <div className="absolute right-0 top-0">
+              <Share2 className="h-5 w-5 text-muted-foreground" />
             </div>
           </div>
-        </div>
-      </section>
+        </CardHeader>
+      </Card>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="mt-6">
         <Tabs defaultValue="actitud" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto mb-8">
-            <TabsTrigger value="actitud">Actitud</TabsTrigger>
-            <TabsTrigger value="comments">Comentarios</TabsTrigger>
-            <TabsTrigger value="streaks">Rachas</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="informacion">
+              <Info className="mr-2 h-4 w-4" />
+              Información
+            </TabsTrigger>
+            <TabsTrigger value="actitud">
+              <Heart className="mr-2 h-4 w-4" />
+              Actitud
+            </TabsTrigger>
+            <TabsTrigger value="emocion">
+              <Smile className="mr-2 h-4 w-4" />
+              Emoción
+            </TabsTrigger>
+            <TabsTrigger value="rachas">
+              <Flame className="mr-2 h-4 w-4" />
+              Top Rachas
+            </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="actitud">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-8">
-                    {/* Attitude Voting - Maintenance */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">Votación de Actitud <Badge variant="destructive">En Mantenimiento</Badge></CardTitle>
-                            <CardDescription>¿Qué sientes por esta figura?</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap gap-4">
-                            <Button variant="outline" size="lg" className="flex-1" disabled><Heart className="mr-2 h-4 w-4"/> Fan</Button>
-                            <Button variant="outline" size="lg" className="flex-1" disabled><Meh className="mr-2 h-4 w-4"/> Neutral</Button>
-                            <Button variant="outline" size="lg" className="flex-1" disabled><UserCheck className="mr-2 h-4 w-4"/> Seguidor</Button>
-                            <Button variant="outline" size="lg" className="flex-1" disabled><ThumbsDown className="mr-2 h-4 w-4"/> Hater</Button>
-                        </CardContent>
-                    </Card>
-                </div>
-                <EmotionChart data={emotionData} />
-            </div>
+          <TabsContent value="informacion" className="mt-4">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground">
+                  Información sobre {figure.name} aparecerá aquí.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
-
-          <TabsContent value="comments">
-             <CommentSection figureId={figureId} />
+          <TabsContent value="actitud" className="mt-4">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground">
+                  La votación de actitud para {figure.name} aparecerá aquí.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
-          <TabsContent value="streaks">
-             <TopStreaks figureId={figureId} />
+          <TabsContent value="emocion" className="mt-4">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground">
+                  El análisis de emociones para {figure.name} aparecerá aquí.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="rachas" className="mt-4">
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground">
+                  Las mejores rachas para {figure.name} aparecerán aquí.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
