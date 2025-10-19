@@ -239,7 +239,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle className="font-bold text-yellow-300">Plan B: Verificación Manual</AlertTitle>
                 <AlertDescription className="text-yellow-300/90">
-                  No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manualmente.
+                  No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manually.
                 </AlertDescription>
               </Alert>
               
