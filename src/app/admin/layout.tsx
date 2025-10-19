@@ -26,12 +26,9 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     const auth = useAuth();
     const router = useRouter();
 
-    // Combined loading state: True if either user state or admin state is loading.
-    const isLoading = isUserLoading || isAdminLoading;
-
     useEffect(() => {
       // Rule 1: If still loading, do nothing. Wait for a final state.
-      if (isLoading) {
+      if (isAdminLoading) {
         return;
       }
 
@@ -45,7 +42,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       if (!isAdmin) {
         router.push('/');
       }
-    }, [user, isAdmin, isLoading, router]);
+    }, [user, isAdmin, isAdminLoading, router]);
 
     const handleLogout = () => {
         if (auth) {
@@ -58,7 +55,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     }
     
     // While loading, show a loading state. This is the primary guard.
-    if (isLoading) {
+    if (isAdminLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <p>Verificando permisos de administrador...</p>
