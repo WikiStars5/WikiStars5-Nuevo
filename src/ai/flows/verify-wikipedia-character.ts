@@ -150,8 +150,11 @@ const verifyWikipediaCharacterFlow = ai.defineFlow(
         };
       }
 
-      const hasInfobox = /{{\s*(ficha de persona|infobox)/i.test(wikitext);
-      if (!hasInfobox) {
+      // Improved infobox detection: Find any 'Ficha' and verify content.
+      const infoboxRegex = /{{\s*Ficha\s*([\s\S]*?)}}/i;
+      const infoboxMatch = wikitext.match(infoboxRegex);
+      
+      if (!infoboxMatch) {
         return {
           found: false,
           title: pageTitle,
@@ -161,18 +164,20 @@ const verifyWikipediaCharacterFlow = ai.defineFlow(
           source: 'Wikipedia',
         };
       }
-
-      const hasCharacterData =
-        /\|\s*nombre\s*=|\|\s*nacimiento\s*=|\|\s*información personal\s*=/i.test(wikitext);
+      
+      const infoboxContent = infoboxMatch[1];
+      const hasCharacterData = /\|\s*(nacimiento|información personal)\s*=/i.test(infoboxContent);
+      
       if (!hasCharacterData) {
         return {
           found: false,
           title: pageTitle,
           imageUrl: null,
-          verificationError: 'El cuadro de información no parece contener datos de un personaje.',
+          verificationError: 'El cuadro de información no parece contener datos de una persona.',
           source: 'Wikipedia',
         };
       }
+
 
       // 3. Get the main image URL
       const imageData = await fetchFromWikipedia({
