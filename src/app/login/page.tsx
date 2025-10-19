@@ -47,15 +47,19 @@ export default function LoginPage() {
     setError(null);
     try {
       if (!auth) return;
-      initiateEmailSignIn(auth, data.email, data.password);
+      await initiateEmailSignIn(auth, data.email, data.password);
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  const handleGuestLogin = () => {
+  const handleGuestLogin = async () => {
     if (!auth) return;
-    initiateAnonymousSignIn(auth);
+    try {
+      await initiateAnonymousSignIn(auth);
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
   
   if (isUserLoading || user) {

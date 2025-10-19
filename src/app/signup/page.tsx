@@ -58,7 +58,7 @@ export default function SignupPage() {
     
     try {
       if (!auth) return;
-      initiateEmailSignUp(auth, data.email, data.password);
+      await initiateEmailSignUp(auth, data.email, data.password);
       // We can later use the username to update the user's profile
     } catch (err: any) {
       setError(err.message);
