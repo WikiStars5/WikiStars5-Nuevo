@@ -1,6 +1,6 @@
 'use client';
 
-import { Flame, Heart, Info, Share2, Smile } from 'lucide-react';
+import { Flame, Info, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
@@ -78,19 +78,19 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
         <Tabs defaultValue="actitud" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="informacion">
-              <Info className="mr-2 h-4 w-4" />
+                <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               Información
             </TabsTrigger>
             <TabsTrigger value="actitud">
-              <Heart className="mr-2 h-4 w-4" />
+                <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
               Actitud
             </TabsTrigger>
             <TabsTrigger value="emocion">
-              <Smile className="mr-2 h-4 w-4" />
+                <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               Emoción
             </TabsTrigger>
             <TabsTrigger value="rachas">
-              <Flame className="mr-2 h-4 w-4" />
+                 <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7.014a12.83 12.83 0 00-2.122 3.164A8.003 8.003 0 016.343 7.343c-2.286 2.286-2.286 6.014 0 8.3s6.014 2.286 8.3 0c.343-.343.636-.724.886-1.129a12.89 12.89 0 003.163-2.122C17.5 16 14 15.5 12 15c1 2 2.657 1.657 2.657 1.657z"></path></svg>
               Top Rachas
             </TabsTrigger>
           </TabsList>
