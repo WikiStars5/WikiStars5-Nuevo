@@ -3,209 +3,242 @@
  * @version Prototyping
  *
  * @Core Philosophy:
- * This ruleset prioritizes secure access control based on user ownership and administrative roles.
- * It allows for rapid prototyping by focusing on authorization rather than strict data validation.
+ * This ruleset prioritizes secure access control with a focus on user-owned data and administrative privileges.
+ * It enforces strict ownership for user-specific data while allowing public read access to public figure profiles.
  *
  * @Data Structure:
- * - User data is nested under `/users/{userId}`.
- * - Public figure data is stored in `/figures/{figureId}`.
- * - Comments are stored in `/figures/{figureId}/comments/{commentId}`.
- * - Notifications are stored in `/users/{userId}/notifications/{notificationId}`.
- * - Streaks are stored in `/users/{userId}/streaks/{streakId}`.
- * - Achievements are stored in `/achievements/{achievementId}`.
- * - User Achievements are stored in `/users/{userId}/user_achievements/{userAchievementId}`.
- * - Related Figures relationships are stored in `/related_figures/{relatedFigureId}`.
- * - Admin roles are determined by the presence of a document in `/roles_admin/{userId}`.
+ * - User profiles are stored under `/users/{userId}`.
+ * - Public figure profiles are stored under `/figures/{figureId}`.
+ * - Comments are stored in a subcollection under each `PublicFigure` at `/figures/{figureId}/comments/{commentId}`.
+ * - Notifications are stored under `/users/{userId}/notifications/{notificationId}`.
+ * - Streaks are stored under `/users/{userId}/streaks/{streakId}`.
+ * - Achievements are stored in the `/achievements/{achievementId}` collection.
+ * - User achievements are managed under `/users/{userId}/user_achievements/{userAchievementId}`.
+ * - Related figures are stored in the `/related_figures/{relatedFigureId}` collection.
+ * - Admin roles are determined by the existence of a document in `/roles_admin/{userId}`.
  *
  * @Key Security Decisions:
- * - User listing is disallowed for privacy.
- * - Public figure profiles are publicly readable but only admins can modify them.
- * - All write operations are strictly controlled based on ownership or admin privileges.
+ * - User data is strictly controlled by the owning user (path-based ownership).
+ * - Public figure profiles are publicly readable but only writable by admins.
+ * - Comments are publicly readable and writable, but require authentication.
+ * - Notifications and streaks are user-specific and only accessible by the owning user.
+ * - User listing is disallowed.
  *
  * @Denormalization for Authorization:
- * - Comments denormalize `publicFigureId` to allow rules to be evaluated without `get()` calls.
- * - Streaks denormalize `publicFigureId` to allow rules to be evaluated without `get()` calls.
+ * - The `Comment` entity denormalizes `publicFigureId` for authorization independence, preventing `get()` calls.
+ * - The `Streak` entity denormalizes `publicFigureId` for authorization independence.
+ *
+ * @Structural Segregation:
+ * - Public figure data is stored in a top-level collection (`/figures`) to enable public read access.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is made by a signed-in user.
+     * @description Checks if the requesting user is signed in.
+     * @returns {boolean} True if the user is signed in, false otherwise.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the authenticated user's ID matches the provided userId.
+     * @description Checks if the requesting user is the owner of the resource.
+     * @param {string} userId - The user ID to compare against the request's authentication UID.
+     * @returns {boolean} True if the user is the owner, false otherwise.
      */
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the user is an existing owner of the document (authenticated, owns the doc, and doc exists).
+     * @description Checks if the requesting user is the owner of the resource and it exists.
+     * @param {string} userId - The user ID to compare against the resource's owner ID.
+     * @returns {boolean} True if the user is the owner and resource exists, false otherwise.
      */
     function isExistingOwner(userId) {
-        return isSignedIn() && isOwner(userId) && resource != null;
+      return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Checks if the user has admin privileges by verifying the existence
-     *              of a document in the /roles_admin/{userId} collection.
+     * @description Checks if the requesting user is an admin.
+     * @returns {boolean} True if the user is an admin, false otherwise.
      */
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    /**
-     * @description Rules for /users/{userId} collection.
-     * @path /users/{userId}
-     * @allow (create) - Authenticated user can create their own profile.
-     * @allow (get, update, delete) - Only the user themselves can access/modify their profile.
-     * @deny (create) - If the user tries to create a profile with a different ID.
-     * @deny (get, update, delete) - If a different user tries to access/modify this profile.
-     * @principle Enforces document ownership for user profiles.
-     */
-    match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
+    /******************** USERS ********************/
 
     /**
-     * @description Rules for /figures/{figureId} collection.
+     * @description Controls access to user profile information.
+     * @path /users/{userId}
+     * @allow (create) If the user is creating their own profile (userId matches auth.uid).
+     * @allow (get, update, delete) If the user is the owner of the profile or an admin.
+     * @deny (create) If the user is trying to create a profile for another user (userId does not match auth.uid).
+     * @deny (get, update, delete) If the user is not the owner or an admin.
+     * @principle Enforces document ownership for reads and writes.  Admins can also read and write.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if false; // No user listing.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) || isAdmin() && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId) || isAdmin();
+    }
+
+    /******************** FIGURES ********************/
+
+    /**
+     * @description Controls access to public figure profiles.
      * @path /figures/{figureId}
-     * @allow (get, list) - Anyone can read the public figure profiles.
-     * @allow (create, update, delete) - Only admins can create, update, or delete public figure profiles.
-     * @deny (create, update, delete) - Non-admins cannot modify public figure profiles.
-     * @principle Public read access with admin-only writes for public figure profiles.
+     * @allow (get, list) Public read access for all users.
+     * @allow (create, update, delete) Only admins can create, update, or delete public figure profiles.
+     * @deny (create, update, delete) If the user is not an admin.
+     * @principle Public read access with admin-only writes.
      */
     match /figures/{figureId} {
       allow get, list: if true;
       allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
+    /******************** COMMENTS ********************/
+
     /**
-     * @description Rules for /figures/{figureId}/comments/{commentId} collection.
+     * @description Controls access to comments associated with a specific public figure.
      * @path /figures/{figureId}/comments/{commentId}
-     * @allow (get, list) - Anyone can read the comments for a public figure.
-     * @allow (create) - Any signed-in user can create a comment.
-     * @allow (update, delete) - Only the comment's author can update or delete it.
-     * @deny (update, delete) - If a non-author tries to update or delete a comment.
-     * @principle Allows public reads, user-created comments, and ownership-based updates/deletes.
+     * @allow (get, list) Public read access for all users.
+     * @allow (create) Any signed-in user can create a comment.
+     * @allow (update, delete) Only the comment owner or an admin can update or delete the comment.
+     * @deny (create) If the user is not signed in.
+     * @deny (update, delete) If the user is not the owner or an admin.
+     * @principle Authenticated users can create comments.  Owners or admins can modify them.
      */
     match /figures/{figureId}/comments/{commentId} {
       allow get, list: if true;
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && resource != null;
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid && resource != null;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid || isAdmin();
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid || isAdmin();
     }
 
+    /******************** NOTIFICATIONS ********************/
+
     /**
-     * @description Rules for /users/{userId}/notifications/{notificationId} collection.
+     * @description Controls access to notifications for a specific user.
      * @path /users/{userId}/notifications/{notificationId}
-     * @allow (get) - Only the user can read their own notifications.
-     * @allow (list) - Only the user can list their own notifications.
-     * @allow (create) - Only the user can create their own notifications.
-     * @allow (update, delete) - Only the user can update or delete their own notifications.
-     * @deny (get, list, create, update, delete) - Other users cannot access these notifications.
-     * @principle Enforces user ownership for notifications.
+     * @allow (get, list) If the user is the owner of the notifications or an admin.
+     * @allow (create) If the user is creating their own notification (userId matches auth.uid).
+     * @allow (update, delete) If the user is the owner of the notification or an admin.
+     * @deny (create) If the user is trying to create a notification for another user.
+     * @deny (get, list, update, delete) If the user is not the owner or an admin.
+     * @principle Enforces document ownership for reads and writes.  Admins can also read and write.
      */
     match /users/{userId}/notifications/{notificationId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
 
+    /******************** STREAKS ********************/
+
     /**
-     * @description Rules for /users/{userId}/streaks/{streakId} collection.
+     * @description Controls access to streak data for a user.
      * @path /users/{userId}/streaks/{streakId}
-     * @allow (get) - Only the user can read their own streaks.
-     * @allow (list) - Only the user can list their own streaks.
-     * @allow (create) - Only the user can create their own streaks.
-     * @allow (update, delete) - Only the user can update or delete their own streaks.
-     * @deny (get, list, create, update, delete) - Other users cannot access these streaks.
-     * @principle Enforces user ownership for streaks.
+     * @allow (get, list) If the user is the owner of the streaks or an admin.
+     * @allow (create) If the user is creating their own streak (userId matches auth.uid).
+     * @allow (update, delete) If the user is the owner of the streak or an admin.
+     * @deny (create) If the user is trying to create a streak for another user.
+     * @deny (get, list, update, delete) If the user is not the owner or an admin.
+     * @principle Enforces document ownership for reads and writes.  Admins can also read and write.
      */
     match /users/{userId}/streaks/{streakId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
 
+    /******************** ACHIEVEMENTS ********************/
+
     /**
-     * @description Rules for /achievements/{achievementId} collection.
+     * @description Controls access to the master list of achievements.
      * @path /achievements/{achievementId}
-     * @allow (get, list) - Anyone can read the list of available achievements.
-     * @allow (create, update, delete) - Only admins can create, update, or delete achievements.
-     * @deny (create, update, delete) - Non-admins cannot modify the list of achievements.
-     * @principle Allows public reads, admin-only writes for achievements.
+     * @allow (get, list) Public read access for all users.
+     * @allow create: if isAdmin();
+     * @allow update: if isAdmin();
+     * @allow delete: if isAdmin();
+     * @deny (create, update, delete) If the user is not an admin.
+     * @principle Public read access with admin-only writes.
      */
     match /achievements/{achievementId} {
       allow get, list: if true;
       allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
+    /******************** USER ACHIEVEMENTS ********************/
+
     /**
-     * @description Rules for /users/{userId}/user_achievements/{userAchievementId} collection.
+     * @description Controls access to the association between a user and an achievement.
      * @path /users/{userId}/user_achievements/{userAchievementId}
-     * @allow (get) - Only the user can read their own user achievements.
-     * @allow (list) - Only the user can list their own user achievements.
-     * @allow (create) - Only the user can create their own user achievements.
-     * @allow (update, delete) - Only the user can update or delete their own user achievements.
-     * @deny (get, list, create, update, delete) - Other users cannot access these user achievements.
-     * @principle Enforces user ownership for user achievements.
+     * @allow (get, list) If the user is the owner of the user achievements or an admin.
+     * @allow (create) If the user is creating their own user achievement (userId matches auth.uid).
+     * @allow (update, delete) If the user is the owner of the user achievement or an admin.
+     * @deny (create) If the user is trying to create a user achievement for another user.
+     * @deny (get, list, update, delete) If the user is not the owner or an admin.
+     * @principle Enforces document ownership for reads and writes.  Admins can also read and write.
      */
     match /users/{userId}/user_achievements/{userAchievementId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
     }
 
+    /******************** RELATED FIGURES ********************/
+
     /**
-     * @description Rules for /related_figures/{relatedFigureId} collection.
+     * @description Controls access to relationships between public figures.
      * @path /related_figures/{relatedFigureId}
-     * @allow (get, list) - Anyone can read the relationships between related figures.
-     * @allow (create, update, delete) - Only admins can create, update, or delete related figure relationships.
-     * @deny (create, update, delete) - Non-admins cannot modify the related figure relationships.
-     * @principle Allows public reads, admin-only writes for related figures.
+     * @allow get, list: if true; //Allow public reads
+     * @allow create: if isAdmin();
+     * @allow update: if isAdmin();
+     * @allow delete: if isAdmin();
+     * @deny (create, update, delete) If the user is not an admin.
+     * @principle Public read access with admin-only writes.
      */
     match /related_figures/{relatedFigureId} {
       allow get, list: if true;
       allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
+        /******************** ADMIN ROLES ********************/
     /**
-     * @description Rules for /roles_admin/{userId} collection.
+     * @description Controls admin role documents.  Existence grants admin status.
      * @path /roles_admin/{userId}
-     * @allow get: if isOwner(userId);
+     * @allow get: if isAdmin();
      * @allow list: if false;
-     * @allow create: if false;
+     * @allow create: if isAdmin();
      * @allow update: if false;
-     * @allow delete: if false;
+     * @allow delete: if isAdmin();
+     * @principle Existence of a document grants admin status. Only admins can manage these documents.
      */
     match /roles_admin/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+        allow get: if isAdmin();
+        allow list: if false;
+        allow create: if isAdmin();
+        allow update: if false;
+        allow delete: if isAdmin();
     }
   }
 }
