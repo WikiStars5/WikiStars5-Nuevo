@@ -115,8 +115,17 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
     setVerificationError(null);
     setVerificationResult(null);
 
+    // We need the name from the wikipedia form to pass to the famous birthdays flow
+    const wikipediaName = wikipediaForm.getValues('name');
+    if (!wikipediaName) {
+        setVerificationError('Por favor, introduce un nombre en el campo de Wikipedia primero.');
+        setIsVerifying(false);
+        return;
+    }
+
+
     try {
-      const result = await verifyFamousBirthdaysCharacter({ url: data.url });
+      const result = await verifyFamousBirthdaysCharacter({ url: data.url, name: wikipediaName });
       if (result.found) {
         setVerificationResult(result);
         setShowPlanB(false);
@@ -239,7 +248,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle className="font-bold text-yellow-300">Plan B: Verificación Manual</AlertTitle>
                 <AlertDescription className="text-yellow-300/90">
-                  No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manually.
+                  {verificationError || "No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manualmente."}
                 </AlertDescription>
               </Alert>
               
