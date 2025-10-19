@@ -39,9 +39,6 @@ export default async function AdminUsersPage() {
                 <CardTitle>Users</CardTitle>
                 <CardDescription>Manage registered user accounts.</CardDescription>
             </div>
-            <Button asChild>
-                <a href="/signup">Create User</a>
-            </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -76,7 +73,7 @@ export default async function AdminUsersPage() {
                     {user.role}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">{user.country}</TableCell>
+                <TableCell className="hidden md-table-cell">{user.country}</TableCell>
                 <TableCell className="hidden md:table-cell">
                     {format(user.lastAccess, "MMMM d, yyyy")}
                 </TableCell>

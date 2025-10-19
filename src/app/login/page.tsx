@@ -10,10 +10,9 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser } from '@/firebase';
-import { initiateEmailSignIn, initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
+import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const loginSchema = z.object({
@@ -39,7 +38,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isUserLoading && user) {
-      router.push('/profile');
+      router.push('/admin');
     }
   }, [user, isUserLoading, router]);
 
@@ -49,16 +48,7 @@ export default function LoginPage() {
       if (!auth) return;
       await initiateEmailSignIn(auth, data.email, data.password);
     } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    if (!auth) return;
-    try {
-      await initiateAnonymousSignIn(auth);
-    } catch (err: any) {
-      setError(err.message);
+      setError('Failed to sign in. Please check your credentials.');
     }
   };
   
@@ -81,8 +71,8 @@ export default function LoginPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
-            <CardDescription>Introduce tu correo para acceder a tu cuenta.</CardDescription>
+            <CardTitle className="text-2xl">Admin Login</CardTitle>
+            <CardDescription>Enter your credentials to access the admin panel.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -94,7 +84,7 @@ export default function LoginPage() {
                     <FormItem>
                       <FormLabel>Correo Electrónico</FormLabel>
                       <FormControl>
-                        <Input placeholder="m@example.com" {...field} />
+                        <Input placeholder="admin@example.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -126,15 +116,6 @@ export default function LoginPage() {
                 </Button>
               </form>
             </Form>
-              <Button variant="outline" className="w-full mt-4" onClick={handleGuestLogin}>
-                Ingresar como Invitado
-              </Button>
-            <div className="mt-4 text-center text-sm">
-              ¿No tienes una cuenta?{' '}
-              <Link href="/signup" className="underline">
-                Regístrate
-              </Link>
-            </div>
           </CardContent>
         </Card>
       </div>

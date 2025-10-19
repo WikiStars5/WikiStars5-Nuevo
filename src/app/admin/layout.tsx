@@ -12,16 +12,15 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
-import { Bell, Download, Gem, Home, LogOut, User as UserIcon, LogIn } from 'lucide-react';
+import { Bell, Download, Gem, Home, LogOut, User as UserIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Search, Shield } from 'lucide-react';
 import { useAuth, useUser, useAdmin } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
 
-function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
+export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isUserLoading } = useUser();
     const { isAdmin, isAdminLoading } = useAdmin();
     const auth = useAuth();
@@ -32,7 +31,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     useEffect(() => {
       if (!isLoading) {
         if (!user) {
-          router.push('/signup');
+          router.push('/login');
         } else if (!isAdmin) {
           // If the user is logged in but not an admin, send them to their profile.
           router.push('/profile');
@@ -47,7 +46,6 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     };
 
     const getAvatarFallback = () => {
-        if (user?.isAnonymous) return 'G';
         return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'A';
     }
     
@@ -139,14 +137,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                   </DropdownMenuItem>
                   </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-                <Button asChild>
-                    <Link href="/login">
-                        <LogIn className="mr-2 h-4 w-4" />
-                        Iniciar Sesión
-                    </Link>
-                </Button>
-            )}
+            ) : null}
             </div>
         </div>
         </header>
@@ -159,15 +150,4 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
         </main>
     </div>
     );
-}
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    // FirebaseClientProvider is essential for providing Firebase context to child components.
-    // It initializes Firebase on the client side and makes auth and firestore instances
-    // available via hooks like useUser() and useFirestore().
-    return (
-        <FirebaseClientProvider>
-            <AdminDashboardLayout>{children}</AdminDashboardLayout>
-        </FirebaseClientProvider>
-    )
 }
