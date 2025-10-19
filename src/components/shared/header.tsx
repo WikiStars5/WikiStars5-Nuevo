@@ -11,41 +11,36 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { getUserById } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Gem, LogOut, User as UserIcon } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Search } from 'lucide-react';
 
 export default async function Header() {
   const user = await getUserById('user-1'); // Mock logged-in user
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-card">
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-          <Logo className="h-6 w-6 text-primary" />
-          <span className="font-headline">Starboard</span>
-        </Link>
-        <nav className="hidden items-center gap-4 text-sm font-medium md:flex">
-          <Link
-            href="/figures"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Explore
-          </Link>
-          {user?.role === 'admin' && (
-            <Link
-              href="/admin"
-              className="flex items-center gap-1 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Gem className="h-4 w-4 text-primary" />
-              Admin
+        <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-2 font-bold text-lg">
+                <Logo className="h-6 w-6 text-primary" />
+                <span className="font-headline text-primary">WikiStars5</span>
             </Link>
-          )}
-        </nav>
+            <div className="hidden md:block relative min-w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                type="search"
+                placeholder="Buscar perfiles o #hashtags"
+                className="w-full pl-9 pr-4 py-2 h-10 text-sm rounded-full bg-card border-border/60"
+                />
+            </div>
+        </div>
+
         <div className="flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 border-2 border-primary">
                   <AvatarImage src={user?.avatarUrl} alt={user?.name} data-ai-hint={user?.avatarHint} />
                   <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
                 </Avatar>
@@ -61,6 +56,17 @@ export default async function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+               {user?.role === 'admin' && (
+                <>
+                <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                    <Gem className="mr-2 h-4 w-4" />
+                    <span>Admin</span>
+                    </Link>
+                </DropdownMenuItem>
+                 <DropdownMenuSeparator />
+                 </>
+              )}
               <DropdownMenuItem asChild>
                 <Link href="/profile">
                   <UserIcon className="mr-2 h-4 w-4" />
