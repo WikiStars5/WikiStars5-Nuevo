@@ -19,22 +19,20 @@ import { useAuth, useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isUserLoading } = useUser();
     const auth = useAuth();
     const router = useRouter();
 
-    // This logic will be improved once we have custom claims for roles
     const isAdmin = user && !user.isAnonymous;
 
     useEffect(() => {
       if (!isUserLoading) {
         if (!user) {
-          // If no user is logged in at all, redirect to signup to create the first admin account.
           router.push('/signup');
         } else if (!isAdmin) {
-          // If a user is logged in but is not an admin (e.g., a guest), redirect to login.
           router.push('/login');
         }
       }
@@ -54,7 +52,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     if (isUserLoading || !isAdmin) {
         return (
             <div className="flex min-h-screen items-center justify-center">
-                <p>Loading or redirecting...</p>
+                <p>Cargando o redirigiendo...</p>
             </div>
         )
     }
@@ -162,7 +160,12 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    // FirebaseClientProvider is essential for providing Firebase context to child components.
+    // It initializes Firebase on the client side and makes auth and firestore instances
+    // available via hooks like useUser() and useFirestore().
     return (
-        <AdminDashboardLayout>{children}</AdminDashboardLayout>
+        <FirebaseClientProvider>
+            <AdminDashboardLayout>{children}</AdminDashboardLayout>
+        </FirebaseClientProvider>
     )
 }
