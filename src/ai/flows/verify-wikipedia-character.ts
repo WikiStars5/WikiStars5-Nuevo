@@ -166,7 +166,7 @@ const verifyWikipediaCharacterFlow = ai.defineFlow(
       }
       
       const infoboxContent = infoboxMatch[1];
-      const hasCharacterData = /\|\s*(nacimiento|información personal)\s*=/i.test(infoboxContent);
+      const hasCharacterData = /nacimiento|información personal/i.test(infoboxContent);
       
       if (!hasCharacterData) {
         return {
