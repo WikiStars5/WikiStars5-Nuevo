@@ -53,9 +53,11 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
       if (result.isValid) {
         toast({
           title: 'Dominio Válido',
-          description: `El dominio ${data.domain} es accesible.`,
+          description: `El dominio ${data.domain} es accesible. Procediendo...`,
           variant: 'default',
         });
+        // Automatically proceed to the next step on success
+        onProfileCreated();
       } else {
         toast({
           title: 'Error de Verificación',
@@ -114,24 +116,15 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
                 <Loader2 className="animate-spin" />
               ) : (
                 <>
-                  <Globe className="mr-2" /> Verificar Dominio
+                  <Globe className="mr-2" /> Verificar y Crear
                 </>
               )}
             </Button>
           </form>
         </Form>
 
-        {verificationResult && (
+        {verificationResult && !verificationResult.isValid && (
           <div className="mt-4">
-            {verificationResult.isValid ? (
-              <Alert variant="default" className="border-green-500/50 bg-green-950 text-green-200 [&>svg]:text-green-400">
-                <CheckCircle2 className="h-4 w-4" />
-                <AlertTitle className="font-bold text-green-300">¡Éxito!</AlertTitle>
-                <AlertDescription className="text-green-300/90">
-                  El dominio <strong>{verificationResult.domain}</strong> es válido y accesible.
-                </AlertDescription>
-              </Alert>
-            ) : (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Verificación Fallida</AlertTitle>
@@ -139,7 +132,6 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
                   {verificationResult.error || 'No se pudo verificar el dominio.'}
                 </AlertDescription>
               </Alert>
-            )}
           </div>
         )}
       </div>
@@ -147,9 +139,6 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
        <DialogFooter className="justify-end gap-2">
           <Button variant="ghost" onClick={resetVerification} disabled={isVerifying}>
             Limpiar
-          </Button>
-          <Button onClick={onProfileCreated} disabled={!verificationResult?.isValid}>
-            Siguiente
           </Button>
         </DialogFooter>
 
