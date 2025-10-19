@@ -14,10 +14,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin } from '@/firebase';
-import { Gem, LogOut, User as UserIcon, UserPlus } from 'lucide-react';
+import { Gem, Globe, LogOut, User as UserIcon, UserPlus } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
+import CreateProfileFromWebDialog from '../figure/create-profile-from-web';
 import SearchBar from './search-bar';
 
 export default function Header() {
@@ -25,6 +26,7 @@ export default function Header() {
   const { isAdmin } = useAdmin();
   const auth = useAuth();
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
+  const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
 
 
   const handleLogout = () => {
@@ -55,7 +57,14 @@ export default function Header() {
           {isUserLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
           ) : user ? (
-             <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
+            <>
+              <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
+                <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
+              </Dialog>
+              <Dialog open={isWebProfileDialogOpen} onOpenChange={setIsWebProfileDialogOpen}>
+                <CreateProfileFromWebDialog onProfileCreated={() => setIsWebProfileDialogOpen(false)} />
+              </Dialog>
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -86,12 +95,17 @@ export default function Header() {
                           <span>Panel de Administrador</span>
                           </Link>
                       </DropdownMenuItem>
-                       <DialogTrigger asChild>
-                          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsCharacterDialogOpen(true); }}>
-                              <UserPlus className="mr-2 h-4 w-4" />
-                              <span>Crear Perfil de Personaje</span>
-                          </DropdownMenuItem>
-                      </DialogTrigger>
+                       
+                      <DropdownMenuItem onSelect={() => setIsCharacterDialogOpen(true)}>
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          <span>Crear Perfil de Personaje</span>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
+                          <Globe className="mr-2 h-4 w-4" />
+                          <span>Crear Perfil Web</span>
+                      </DropdownMenuItem>
+
                       <DropdownMenuSeparator />
                       </>
                   )}
@@ -102,8 +116,7 @@ export default function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
-            </Dialog>
+            </>
           ) : (
             null
           )}
