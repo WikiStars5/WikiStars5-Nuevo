@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import {
   DropdownMenu,
@@ -10,13 +12,26 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
-import { getUserById } from '@/lib/data';
-import { Gem, LogOut, User as UserIcon } from 'lucide-react';
+import { useAuth, useUser } from '@/firebase';
+import { Gem, LogOut, User as UserIcon, LogIn } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Search } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 
-export default async function Header() {
-  const user = await getUserById('user-1'); // Mock logged-in user
+export default function Header() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+
+  const handleLogout = () => {
+    if (auth) {
+      auth.signOut();
+    }
+  };
+
+  const getAvatarFallback = () => {
+    if (user?.isAnonymous) return 'G';
+    return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U';
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,49 +52,55 @@ export default async function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10 border-2 border-primary">
-                  <AvatarImage src={user?.avatarUrl} alt={user?.name} data-ai-hint={user?.avatarHint} />
-                  <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-               {user?.role === 'admin' && (
-                <>
+          {isUserLoading ? (
+            <Skeleton className="h-10 w-10 rounded-full" />
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10 border-2 border-primary">
+                    <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User'} />
+                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.isAnonymous ? 'Guest User' : (user.displayName || user.email)}</p>
+                    {!user.isAnonymous && (
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                
+                {/* We'll implement admin logic later */}
+                {/* {user.role === 'admin' && ( ... )} */}
+
                 <DropdownMenuItem asChild>
-                    <Link href="/admin">
-                    <Gem className="mr-2 h-4 w-4" />
-                    <span>Admin</span>
-                    </Link>
+                  <Link href="/profile">
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <span>Perfil</span>
+                  </Link>
                 </DropdownMenuItem>
-                 <DropdownMenuSeparator />
-                 </>
-              )}
-              <DropdownMenuItem asChild>
-                <Link href="/profile">
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Cerrar Sesión</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild>
+                <Link href="/login">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Iniciar Sesión
                 </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Button>
+          )}
         </div>
       </div>
     </header>
