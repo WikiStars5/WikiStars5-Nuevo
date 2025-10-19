@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to verify if a domain is real and accessible.
@@ -20,14 +21,23 @@ const DomainVerificationOutputSchema = z.object({
 });
 export type DomainVerificationOutput = z.infer<typeof DomainVerificationOutputSchema>;
 
+function cleanDomain(input: string): string {
+    let domain = input;
+    // Remove protocol
+    domain = domain.replace(/^(https?:\/\/)?(www\.)?/, '');
+    // Remove path
+    domain = domain.split('/')[0];
+    return domain;
+}
+
 export async function verifyDomain(
   input: DomainVerificationInput
 ): Promise<DomainVerificationOutput> {
   try {
-    const url = `https://${input.domain}`;
+    const domainToVerify = cleanDomain(input.domain);
+    const url = `https://${domainToVerify}`;
 
     // We use a HEAD request for efficiency as we don't need the body content.
-    // We also set a timeout to avoid long waits for unresponsive servers.
     const response = await fetch(url, { method: 'HEAD' });
 
     // We consider any 2xx or 3xx status code as a success.

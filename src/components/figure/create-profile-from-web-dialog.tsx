@@ -16,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,14 +29,28 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 const domainSchema = z.object({
   domain: z
     .string()
-    .min(3, { message: 'El dominio debe tener al menos 3 caracteres.' })
-    .refine(val => !val.startsWith('http'), { message: 'Introduce solo el dominio, sin http:// o https://.' }),
+    .min(3, { message: 'El dominio debe tener al menos 3 caracteres.' }),
 });
 type DomainFormValues = z.infer<typeof domainSchema>;
 
 interface CreateProfileFromWebDialogProps {
   onProfileCreated: () => void;
 }
+
+/**
+ * Extracts and cleans the domain from a given string.
+ * "https://www.example.com/path" -> "example.com"
+ * "sub.example.co.uk" -> "sub.example.co.uk"
+ */
+function cleanDomain(input: string): string {
+    let domain = input;
+    // Remove protocol
+    domain = domain.replace(/^(https?:\/\/)?(www\.)?/, '');
+    // Remove path
+    domain = domain.split('/')[0];
+    return domain;
+}
+
 
 export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateProfileFromWebDialogProps) {
   const firestore = useFirestore();
@@ -58,15 +71,23 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
   const handleVerifyDomain = async (data: DomainFormValues) => {
     setIsVerifying(true);
     setVerificationError(null);
+    
+    const domainToVerify = cleanDomain(data.domain);
+
+    if (!domainToVerify) {
+        setVerificationError('Por favor, introduce un dominio válido.');
+        setIsVerifying(false);
+        return;
+    }
 
     try {
-      const result = await verifyDomain({ domain: data.domain });
+      const result = await verifyDomain({ domain: domainToVerify });
       if (result.isValid) {
         toast({
           title: 'Dominio Válido',
-          description: `El dominio ${data.domain} es accesible.`,
+          description: `El dominio ${domainToVerify} es accesible.`,
         });
-        setVerifiedDomain(data.domain);
+        setVerifiedDomain(domainToVerify);
         setCurrentStep('confirm');
       } else {
         setVerificationError(result.error || 'No se pudo verificar el dominio.');
@@ -164,7 +185,7 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
                 render={({ field }) => (
                   <FormItem className="flex-1">
                     <FormControl>
-                      <Input placeholder="ejemplo.com" {...field} disabled={isVerifying} />
+                      <Input placeholder="ejemplo.com o https://ejemplo.com" {...field} disabled={isVerifying} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
