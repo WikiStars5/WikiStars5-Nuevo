@@ -1,3 +1,76 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "figure-1",
+      "description": "Portrait of an artist",
+      "imageUrl": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc2MDgzNjQ2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "figure-2",
+      "description": "Portrait of a scientist",
+      "imageUrl": "https://images.unsplash.com/photo-1636377985931-898218afd306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjA4MzQ4MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "figure-3",
+      "description": "Portrait of a musician",
+      "imageUrl": "https://images.unsplash.com/photo-1543791824-56ebdd59aa3d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBtdXNpY3xlbnwwfHx8fDE3NjA4NTM3NDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person music"
+    },
+    {
+      "id": "figure-4",
+      "description": "Portrait of an actor",
+      "imageUrl": "https://images.unsplash.com/photo-1562337404-3044c84ac061?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx3b21hbiUyMHNtaWxlfGVufDB8fHx8MTc2MDg0NjI1Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smile"
+    },
+    {
+      "id": "figure-5",
+      "description": "Portrait of a writer",
+      "imageUrl": "https://images.unsplash.com/photo-1667489023374-ea7bf696829d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYW4lMjB3cml0aW5nfGVufDB8fHx8MTc2MDg4NjU3MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man writing"
+    },
+    {
+      "id": "figure-6",
+      "description": "Portrait of an athlete",
+      "imageUrl": "https://images.unsplash.com/photo-1506638794690-bbea5c6f0ab7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGVyc29uJTIwcnVubmluZ3xlbnwwfHx8fDE3NjA4NjI5MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person running"
+    },
+    {
+      "id": "figure-7",
+      "description": "Portrait of a chef",
+      "imageUrl": "https://images.unsplash.com/photo-1681270496598-13c5365730c8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y2hlZiUyMGNvb2tpbmd8ZW58MHx8fHwxNzYwODYxODIwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "chef cooking"
+    },
+    {
+      "id": "figure-8",
+      "description": "Portrait of a filmmaker",
+      "imageUrl": "https://images.unsplash.com/photo-1597008572703-78a00d1f344b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxwZXJzb24lMjBjYW1lcmF8ZW58MHx8fHwxNzYwODc5ODI0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person camera"
+    },
+    {
+      "id": "avatar-1",
+      "description": "User avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1728922137347-2fd111cbca49?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhYnN0cmFjdCUyMGZhY2V8ZW58MHx8fHwxNzYwODgyOTQxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract face"
+    },
+    {
+      "id": "avatar-2",
+      "description": "User avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1595411425732-e69c1abe2763?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHBhdHRlcm58ZW58MHx8fHwxNzYwODQ2MTU5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract pattern"
+    },
+    {
+      "id": "avatar-3",
+      "description": "User avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1746309226499-439cdf9d9270?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjb2xvcmZ1bCUyMGdlb21ldHJpY3xlbnwwfHx8fDE3NjA4ODY1NzF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "colorful geometric"
+    },
+    {
+      "id": "avatar-4",
+      "description": "User avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1512431923360-10338489e57c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxuYXR1cmUlMjBtYWNyb3xlbnwwfHx8fDE3NjA4ODY1NzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "nature macro"
+    }
+  ]
 }
