@@ -31,15 +31,24 @@ export default function FigureDetailPage() {
   if (isLoading) {
     return (
         <div className="container mx-auto px-4 py-8 md:py-12">
-            <Skeleton className="h-[400px] w-full mb-8" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2 space-y-4">
-                    <Skeleton className="h-12 w-1/2" />
-                    <Skeleton className="h-8 w-1/3" />
+            <div className="relative h-[400px] md:h-[500px] w-full mb-24">
+                <Skeleton className="h-full w-full" />
+                 <div className="container mx-auto px-4 absolute bottom-0 left-0 right-0 pb-8">
+                    <div className="flex flex-col md:flex-row md:items-end md:gap-6">
+                       <Skeleton className="relative -mt-24 md:mt-0 w-40 h-40 md:w-48 md:h-48 rounded-lg shadow-2xl border-4 border-card shrink-0"/>
+                        <div className='space-y-2'>
+                           <Skeleton className="h-12 w-80" />
+                           <Skeleton className="h-6 w-40" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                    <Skeleton className="h-48 w-full" />
                 </div>
                 <div className="space-y-4">
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-96 w-full" />
                 </div>
             </div>
         </div>
