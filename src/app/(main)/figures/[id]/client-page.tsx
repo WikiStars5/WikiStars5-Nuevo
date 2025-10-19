@@ -10,7 +10,7 @@ import ProfileHeader from '@/components/figure/ProfileHeader';
 
 function FigureDetailSkeleton() {
   return (
-    <div className="container mx-auto max-w-4xl px-4 pt-8 md:pt-16 pb-8 md:pb-16">
+    <div className="container mx-auto max-w-4xl px-4 pb-8 md:pb-16">
       <Card className="overflow-hidden">
         <CardContent className="p-6 md:p-8">
           <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
@@ -48,7 +48,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 pt-8 md:pt-16 pb-8 md:pb-16">
+    <div className="container mx-auto max-w-4xl px-4 pb-8 md:pb-16">
       <ProfileHeader figure={figure} />
 
       <div className="mt-6">
