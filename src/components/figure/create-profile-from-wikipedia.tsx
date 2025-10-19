@@ -33,7 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertCircle, ArrowRight, Check, CheckCircle2, Loader2, Search } from 'lucide-react';
 import {
   verifyWikipediaCharacter,
-  type VerifyWikipediaCharacterOutput,
+  type WikipediaVerificationOutput,
 } from '@/ai/flows/verify-wikipedia-character';
 import {
   verifyFamousBirthdaysCharacter,
@@ -68,7 +68,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
   const [showPlanB, setShowPlanB] = React.useState(false);
 
   const [verificationResult, setVerificationResult] = React.useState<
-    VerifyWikipediaCharacterOutput | VerifyFamousBirthdaysOutput | null
+    WikipediaVerificationOutput | VerifyFamousBirthdaysOutput | null
   >(null);
   const [verificationError, setVerificationError] = React.useState<string | null>(null);
 
@@ -90,8 +90,8 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
 
     try {
       const result = await verifyWikipediaCharacter({ name: data.name });
-      if (result.found) {
-        setVerificationResult(result);
+      if (result.found && result.title) {
+        setVerificationResult({ ...result, source: 'Wikipedia' });
       } else {
         setShowPlanB(true);
         setVerificationError(result.verificationError);
@@ -173,10 +173,10 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         isFeatured: false,
         nameKeywords: keywords,
         createdAt: serverTimestamp(),
-        approved: false, // Profiles may need approval
+        approved: false, // Profiles created from web need approval
       };
       
-      setDocumentNonBlocking(figureRef, figureData, {});
+      setDocumentNonBlocking(figureRef, figureData, { merge: false });
 
       toast({
         title: '¡Perfil Creado!',
@@ -244,11 +244,11 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
 
           {showPlanB && (
              <div className="space-y-4 pt-4">
-              <Alert variant="destructive" className="bg-yellow-900/20 border-yellow-700/50 text-yellow-200 [&>svg]:text-yellow-400">
+              <Alert variant="destructive" className="bg-yellow-900/20 border-yellow-700/50 text-yellow-200 [&gt;svg]:text-yellow-400">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle className="font-bold text-yellow-300">Plan B: Verificación Manual</AlertTitle>
                 <AlertDescription className="text-yellow-300/90">
-                  {verificationError || "No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manualmente."}
+                  {verificationError || "No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manually."}
                 </AlertDescription>
               </Alert>
               

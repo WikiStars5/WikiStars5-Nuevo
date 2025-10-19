@@ -7,4 +7,5 @@ export interface Figure {
   tags: string[];
   isFeatured?: boolean;
   nameKeywords: string[];
+  approved: boolean;
 }
