@@ -3,11 +3,19 @@
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { EmotionVote } from '@/lib/data';
-import { ChartTooltipContent } from '../ui/chart';
+import { ChartTooltipContent, ChartContainer, type ChartConfig } from '../ui/chart';
 
 type EmotionChartProps = {
   data: EmotionVote[];
 };
+
+const chartConfig = {
+  percentage: {
+    label: 'Percentage',
+    color: 'hsl(var(--primary))',
+  },
+} satisfies ChartConfig;
+
 
 export default function EmotionChart({ data }: EmotionChartProps) {
   return (
@@ -18,8 +26,13 @@ export default function EmotionChart({ data }: EmotionChartProps) {
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: -10, right: 40 }}>
+          <ChartContainer config={chartConfig} className="w-full h-full">
+            <BarChart
+              data={data}
+              layout="vertical"
+              margin={{ left: -10, right: 40 }}
+              accessibilityLayer
+            >
               <XAxis type="number" hide />
               <YAxis
                 dataKey="emotion"
@@ -46,7 +59,7 @@ export default function EmotionChart({ data }: EmotionChartProps) {
                 ))}
               </Bar>
             </BarChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         </div>
       </CardContent>
     </Card>
