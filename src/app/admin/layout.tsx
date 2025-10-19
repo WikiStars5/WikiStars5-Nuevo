@@ -29,10 +29,16 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     const isAdmin = user && !user.isAnonymous;
 
     useEffect(() => {
-      if (!isUserLoading && !isAdmin) {
-        router.push('/login');
+      if (!isUserLoading) {
+        if (!user) {
+          // If no user is logged in at all, redirect to signup to create the first admin account.
+          router.push('/signup');
+        } else if (!isAdmin) {
+          // If a user is logged in but is not an admin (e.g., a guest), redirect to login.
+          router.push('/login');
+        }
       }
-    }, [isAdmin, isUserLoading, router]);
+    }, [user, isAdmin, isUserLoading, router]);
 
     const handleLogout = () => {
         if (auth) {
