@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import * as React from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,15 +14,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin } from '@/firebase';
-import { Gem, LogOut, User as UserIcon } from 'lucide-react';
+import { Gem, LogOut, User as UserIcon, UserPlus } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Search } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
+import { Dialog, DialogTrigger } from '../ui/dialog';
+import CreateProfileDialog from '../figure/create-profile-dialog';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
   const { isAdmin } = useAdmin();
   const auth = useAuth();
+  const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
+
 
   const handleLogout = () => {
     if (auth) {
@@ -56,46 +61,55 @@ export default function Header() {
           {isUserLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
           ) : user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10 border-2 border-primary">
-                    <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User'} />
-                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.isAnonymous ? 'Guest User' : (user.displayName || user.email)}</p>
-                    {!user.isAnonymous && (
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
-                    )}
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                
-                {isAdmin && (
-                    <>
-                    <DropdownMenuItem asChild>
-                        <Link href="/admin">
-                        <Gem className="mr-2 h-4 w-4" />
-                        <span>Panel de Administrador</span>
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    </>
-                )}
+             <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10 border-2 border-primary">
+                      <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User'} />
+                      <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.isAnonymous ? 'Guest User' : (user.displayName || user.email)}</p>
+                      {!user.isAnonymous && (
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      )}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  {isAdmin && (
+                      <>
+                      <DropdownMenuItem asChild>
+                          <Link href="/admin">
+                          <Gem className="mr-2 h-4 w-4" />
+                          <span>Panel de Administrador</span>
+                          </Link>
+                      </DropdownMenuItem>
+                       <DialogTrigger asChild>
+                          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsCharacterDialogOpen(true); }}>
+                              <UserPlus className="mr-2 h-4 w-4" />
+                              <span>Crear Perfil de Personaje</span>
+                          </DropdownMenuItem>
+                      </DialogTrigger>
+                      <DropdownMenuSeparator />
+                      </>
+                  )}
 
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Cerrar Sesión</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Cerrar Sesión</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <CreateProfileDialog onOpenChange={setIsCharacterDialogOpen} />
+            </Dialog>
           ) : (
             null
           )}
