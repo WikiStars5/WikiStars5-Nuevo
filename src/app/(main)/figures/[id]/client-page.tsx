@@ -1,24 +1,53 @@
 'use client';
 
-import {
-  Flame,
-  Heart,
-  Info,
-  Share2,
-  Smile,
-} from 'lucide-react';
+import { Flame, Heart, Info, Share2, Smile } from 'lucide-react';
 import Image from 'next/image';
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from '@/components/ui/card';
+import { doc } from 'firebase/firestore';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { Figure } from '@/lib/types';
 
+function FigureDetailSkeleton() {
+  return (
+    <div className="container mx-auto max-w-2xl px-4 py-8 md:py-16">
+      <Card className="overflow-hidden">
+        <CardHeader className="p-6 md:p-8">
+          <div className="flex items-center gap-6">
+            <Skeleton className="h-24 w-24 flex-shrink-0 rounded-full md:h-32 md:w-32" />
+            <div className="flex-1 space-y-3">
+              <Skeleton className="h-8 w-3/4" />
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+      <div className="mt-6">
+        <Skeleton className="h-10 w-full" />
+        <Card className="mt-4">
+          <CardContent className="p-6">
+            <Skeleton className="h-24 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
 
-export default function FigureDetailClient({ figure }: { figure: Figure }) {
+export default function FigureDetailClient({ figureId }: { figureId: string }) {
+  const firestore = useFirestore();
+
+  const figureDocRef = useMemoFirebase(() => {
+    if (!firestore || !figureId) return null;
+    return doc(firestore, 'figures', figureId);
+  }, [firestore, figureId]);
+
+  const { data: figure, isLoading } = useDoc<Figure>(figureDocRef);
+
+  if (isLoading || !figure) {
+    return <FigureDetailSkeleton />;
+  }
+
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8 md:py-16">
       <Card className="overflow-hidden">
