@@ -11,7 +11,7 @@ type EmotionChartProps = {
 
 const chartConfig = {
   percentage: {
-    label: 'Percentage',
+    label: 'Porcentaje',
     color: 'hsl(var(--primary))',
   },
 } satisfies ChartConfig;
@@ -21,8 +21,8 @@ export default function EmotionChart({ data }: EmotionChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Emotional Response</CardTitle>
-        <CardDescription>What emotions does this figure evoke in people?</CardDescription>
+        <CardTitle>Respuesta Emocional</CardTitle>
+        <CardDescription>¿Qué emociones evoca esta figura en la gente?</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">

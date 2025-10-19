@@ -10,16 +10,16 @@ export default async function TopStreaks({ figureId }: { figureId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top Comment Streaks</CardTitle>
-        <CardDescription>Users with the longest daily comment streaks for this figure.</CardDescription>
+        <CardTitle>Mejores Rachas de Comentarios</CardTitle>
+        <CardDescription>Usuarios con las rachas diarias de comentarios más largas para esta figura.</CardDescription>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px]">Rank</TableHead>
-              <TableHead>User</TableHead>
-              <TableHead className="text-right">Streak</TableHead>
+              <TableHead className="w-[50px]">Rango</TableHead>
+              <TableHead>Usuario</TableHead>
+              <TableHead className="text-right">Racha</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -32,7 +32,7 @@ export default async function TopStreaks({ figureId }: { figureId: string }) {
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                          <AvatarImage src={user?.avatarUrl} alt={user?.name} data-ai-hint={user?.avatarHint} />
-                         <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
+                         <Fallback>{user?.name.charAt(0)}</Fallback>
                       </Avatar>
                       <span className="font-medium">{user?.name}</span>
                     </div>
@@ -40,7 +40,7 @@ export default async function TopStreaks({ figureId }: { figureId: string }) {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5 font-bold">
                       <Flame className="h-5 w-5 text-orange-500" />
-                      {streak.streak} days
+                      {streak.streak} días
                     </div>
                   </TableCell>
                 </TableRow>
@@ -49,7 +49,7 @@ export default async function TopStreaks({ figureId }: { figureId: string }) {
              {streaks.length === 0 && (
                 <TableRow>
                     <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
-                        No active streaks yet.
+                        Aún no hay rachas activas.
                     </TableCell>
                 </TableRow>
              )}

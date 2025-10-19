@@ -6,6 +6,7 @@ import { ThumbsUp, ThumbsDown, CornerDownRight } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
 import { StarRating } from '../shared/star-rating';
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 type CommentProps = {
   comment: CommentType;
@@ -44,7 +45,7 @@ async function Comment({ comment, allComments, level }: CommentProps) {
             </Button>
             {level < 3 && (
               <Button variant="ghost" size="sm" className="flex items-center gap-1.5 text-muted-foreground">
-                <CornerDownRight className="h-4 w-4" /> Reply
+                <CornerDownRight className="h-4 w-4" /> Responder
               </Button>
             )}
           </div>
@@ -68,10 +69,10 @@ async function NewCommentForm() {
                 <AvatarFallback>{currentUser?.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-                <Textarea placeholder="Add a comment and rate..." className="mb-2" />
+                <Textarea placeholder="Añade un comentario y califica..." className="mb-2" />
                  <div className="flex justify-between items-center">
                     <StarRating rating={0} starClassName="w-5 h-5 cursor-pointer" />
-                    <Button>Post Comment</Button>
+                    <Button>Publicar Comentario</Button>
                 </div>
             </div>
         </div>
@@ -85,8 +86,8 @@ export default async function CommentSection({ figureId }: { figureId: string })
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Community Opinions</CardTitle>
-        <CardDescription>See what others are saying about this figure.</CardDescription>
+        <CardTitle>Opiniones de la Comunidad</CardTitle>
+        <CardDescription>Mira lo que otros están diciendo sobre esta figura.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
         <NewCommentForm />
@@ -95,7 +96,7 @@ export default async function CommentSection({ figureId }: { figureId: string })
             <Comment key={comment.id} comment={comment} allComments={allComments} level={0} />
             ))}
             {rootComments.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">Be the first to leave a comment!</p>
+                <p className="text-center text-muted-foreground py-8">¡Sé el primero en dejar un comentario!</p>
             )}
         </div>
       </CardContent>

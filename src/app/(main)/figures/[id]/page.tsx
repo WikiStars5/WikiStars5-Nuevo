@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import {
@@ -73,9 +74,9 @@ export default async function FigureDetailPage({ params }: { params: { id: strin
       <div className="container mx-auto px-4 py-8 md:py-12">
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto mb-8">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="comments">Comments</TabsTrigger>
-            <TabsTrigger value="streaks">Streaks</TabsTrigger>
+            <TabsTrigger value="overview">Resumen</TabsTrigger>
+            <TabsTrigger value="comments">Comentarios</TabsTrigger>
+            <TabsTrigger value="streaks">Rachas</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -83,27 +84,27 @@ export default async function FigureDetailPage({ params }: { params: { id: strin
                 <div className="lg:col-span-2 space-y-8">
                     {/* Bio Card */}
                     <Card>
-                        <CardHeader><CardTitle>Biography</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Biografía</CardTitle></CardHeader>
                         <CardContent><p className="text-foreground/90 leading-relaxed">{figure.bio}</p></CardContent>
                     </Card>
 
                     {/* Attitude Voting - Maintenance */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">Attitude Voting <Badge variant="destructive">Under Maintenance</Badge></CardTitle>
-                            <CardDescription>How do you feel about this figure?</CardDescription>
+                            <CardTitle className="flex items-center gap-2">Votación de Actitud <Badge variant="destructive">En Mantenimiento</Badge></CardTitle>
+                            <CardDescription>¿Qué sientes por esta figura?</CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-wrap gap-4">
                             <Button variant="outline" size="lg" className="flex-1" disabled><Heart className="mr-2 h-4 w-4"/> Fan</Button>
                             <Button variant="outline" size="lg" className="flex-1" disabled><Meh className="mr-2 h-4 w-4"/> Neutral</Button>
-                            <Button variant="outline" size="lg" className="flex-1" disabled><UserCheck className="mr-2 h-4 w-4"/> Simp</Button>
+                            <Button variant="outline" size="lg" className="flex-1" disabled><UserCheck className="mr-2 h-4 w-4"/> Seguidor</Button>
                             <Button variant="outline" size="lg" className="flex-1" disabled><ThumbsDown className="mr-2 h-4 w-4"/> Hater</Button>
                         </CardContent>
                     </Card>
 
                      {/* Related Profiles */}
                     <Card>
-                        <CardHeader><CardTitle>Related Profiles</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Perfiles Relacionados</CardTitle></CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {relatedFigures.map(related => <FigureCard key={related.id} figure={related} />)}
@@ -115,18 +116,18 @@ export default async function FigureDetailPage({ params }: { params: { id: strin
                 <div className="space-y-8">
                     {/* Ratings Summary */}
                     <Card>
-                        <CardHeader><CardTitle>Ratings Summary</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Resumen de Calificaciones</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center gap-2">
                                 <StarRating rating={averageRating} starClassName="w-6 h-6"/>
                                 <span className="font-bold text-2xl">{averageRating.toFixed(1)}</span>
-                                <span className="text-muted-foreground">({totalRatings} ratings)</span>
+                                <span className="text-muted-foreground">({totalRatings} calificaciones)</span>
                             </div>
                             <Separator />
                             <div className="space-y-1 text-sm">
                                 {Object.entries(figure.ratings).reverse().map(([star, count]) => (
                                     <div key={star} className="flex items-center gap-2">
-                                        <span className="w-12 text-muted-foreground">{star} stars</span>
+                                        <span className="w-12 text-muted-foreground">{star} estrellas</span>
                                         <div className="flex-1 bg-muted rounded-full h-2">
                                             <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${(count / totalRatings) * 100}%` }} />
                                         </div>
