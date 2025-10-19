@@ -7,7 +7,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import {
   verifyWikipediaCharacter,
-  VerifyWikipediaCharacterOutputSchema,
+  type VerifyWikipediaCharacterOutput,
 } from './verify-wikipedia-character';
 
 const VerifyFamousBirthdaysInputSchema = z.object({
@@ -15,7 +15,7 @@ const VerifyFamousBirthdaysInputSchema = z.object({
 });
 export type VerifyFamousBirthdaysInput = z.infer<typeof VerifyFamousBirthdaysInputSchema>;
 
-export const VerifyFamousBirthdaysOutputSchema = z.object({
+const VerifyFamousBirthdaysOutputSchema = z.object({
   found: z.boolean().describe('Whether the character was found.'),
   title: z.string().nullable().describe('The name of the character.'),
   imageUrl: z.string().nullable().describe('The URL of the main image for the character.'),

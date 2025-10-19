@@ -74,7 +74,7 @@ const VerifyWikipediaCharacterInputSchema = z.object({
 });
 export type VerifyWikipediaCharacterInput = z.infer<typeof VerifyWikipediaCharacterInputSchema>;
 
-export const VerifyWikipediaCharacterOutputSchema = z.object({
+const VerifyWikipediaCharacterOutputSchema = z.object({
   found: z.boolean().describe('Whether the character was found.'),
   title: z.string().nullable().describe('The exact title of the Wikipedia page.'),
   imageUrl: z.string().nullable().describe('The URL of the main image for the character.'),
