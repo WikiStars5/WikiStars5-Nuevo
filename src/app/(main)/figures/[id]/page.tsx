@@ -74,7 +74,7 @@ export default async function FigureDetailPage({ params }: { params: { id: strin
       <div className="container mx-auto px-4 py-8 md:py-12">
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto mb-8">
-            <TabsTrigger value="overview">Resumen</TabsTrigger>
+            <TabsTrigger value="overview">Actitud</TabsTrigger>
             <TabsTrigger value="comments">Comentarios</TabsTrigger>
             <TabsTrigger value="streaks">Rachas</TabsTrigger>
           </TabsList>
@@ -82,12 +82,6 @@ export default async function FigureDetailPage({ params }: { params: { id: strin
           <TabsContent value="overview">
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
-                    {/* Bio Card */}
-                    <Card>
-                        <CardHeader><CardTitle>Biografía</CardTitle></CardHeader>
-                        <CardContent><p className="text-foreground/90 leading-relaxed">{figure.bio}</p></CardContent>
-                    </Card>
-
                     {/* Attitude Voting - Maintenance */}
                     <Card>
                         <CardHeader>
