@@ -1,3 +1,6 @@
+
+'use client';
+
 import Link from 'next/link';
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -24,11 +27,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { getFigures } from '@/lib/data';
 import Image from 'next/image';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function AdminFiguresPage() {
-  const figures = await getFigures();
+export default function AdminFiguresPage() {
+  const firestore = useFirestore();
+  const figuresCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'figures');
+  }, [firestore]);
+
+  const { data: figures, isLoading } = useCollection<any>(figuresCollection);
 
   return (
     <Card>
@@ -61,7 +72,21 @@ export default async function AdminFiguresPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {figures.map((figure) => (
+            {isLoading && (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  <TableCell className="hidden sm:table-cell">
+                    <Skeleton className="aspect-square rounded-md h-16 w-16" />
+                  </TableCell>
+                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                  <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-32" /></TableCell>
+                  <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-10" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                </TableRow>
+              ))
+            )}
+            {figures?.map((figure) => (
               <TableRow key={figure.id}>
                 <TableCell className="hidden sm:table-cell">
                   <Link href={`/figures/${figure.id}`}>
@@ -83,7 +108,7 @@ export default async function AdminFiguresPage() {
                 <TableCell>{figure.nationality}</TableCell>
                 <TableCell className="hidden md:table-cell">
                     <div className="flex flex-wrap gap-1">
-                        {figure.tags.map(tag => <Badge key={tag} variant="outline">{tag}</Badge>)}
+                        {figure.tags?.map((tag:string) => <Badge key={tag} variant="outline">{tag}</Badge>)}
                     </div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
@@ -110,6 +135,12 @@ export default async function AdminFiguresPage() {
             ))}
           </TableBody>
         </Table>
+         {figures?.length === 0 && !isLoading && (
+            <div className="text-center py-16 text-muted-foreground">
+                <p>No figures found in the database.</p>
+                <p className="text-sm">You can add one using the "Add Figure" button.</p>
+            </div>
+        )}
       </CardContent>
     </Card>
   );

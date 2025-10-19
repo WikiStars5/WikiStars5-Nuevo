@@ -1,3 +1,6 @@
+
+'use client';
+
 import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,13 +26,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { getUsers } from '@/lib/data';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function AdminUsersPage() {
-  const users = await getUsers();
-  const registeredUsers = users.filter(u => u.role !== 'guest');
+export default function AdminUsersPage() {
+  const firestore = useFirestore();
+  const usersCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'users');
+  }, [firestore]);
+
+  const { data: users, isLoading } = useCollection<any>(usersCollection);
+
+  const getAvatarFallback = (user: any) => {
+    return user.displayName?.charAt(0) || user.email?.charAt(0) || 'U';
+  }
 
   return (
     <Card>
@@ -46,7 +60,7 @@ export default async function AdminUsersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>User</TableHead>
-              <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
               <TableHead className="hidden md:table-cell">Country</TableHead>
               <TableHead className="hidden md:table-cell">Last Access</TableHead>
@@ -56,26 +70,38 @@ export default async function AdminUsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {registeredUsers.map((user) => (
+             {isLoading && (
+              Array.from({ length: 3 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-6 w-12" /></TableCell>
+                  <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
+                  <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                </TableRow>
+              ))
+            )}
+            {users?.map((user) => (
               <TableRow key={user.id}>
                 <TableCell>
                     <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
-                            <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint={user.avatarHint} />
-                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                            <AvatarImage src={user.photoURL} alt={user.displayName} />
+                            <AvatarFallback>{getAvatarFallback(user)}</AvatarFallback>
                         </Avatar>
-                        <div className="font-medium">{user.name}</div>
+                        <div className="font-medium">{user.displayName || 'N/A'}</div>
                     </div>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">{user.email}</TableCell>
+                <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>
-                    {user.role}
+                    {user.role || 'user'}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden md-table-cell">{user.country}</TableCell>
+                <TableCell className="hidden md-table-cell">{user.country || 'N/A'}</TableCell>
                 <TableCell className="hidden md:table-cell">
-                    {format(user.lastAccess, "MMMM d, yyyy")}
+                    {user.lastLogin ? format(new Date(user.lastLogin.seconds * 1000), "MMMM d, yyyy") : 'N/A'}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -87,7 +113,7 @@ export default async function AdminUsersPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                      <DropdownMenuItem>Make Admin</DropdownMenuItem>
                       <DropdownMenuItem>Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
