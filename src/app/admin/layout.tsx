@@ -15,7 +15,7 @@ import { Logo } from '@/components/icons';
 import { Bell, Download, Gem, Home, LogOut, User as UserIcon, LogIn } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Search, Shield } from 'lucide-react';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useAdmin } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -23,20 +23,22 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isUserLoading } = useUser();
+    const { isAdmin, isAdminLoading } = useAdmin();
     const auth = useAuth();
     const router = useRouter();
 
-    const isAdmin = user && !user.isAnonymous;
+    const isLoading = isUserLoading || isAdminLoading;
 
     useEffect(() => {
-      if (!isUserLoading) {
+      if (!isLoading) {
         if (!user) {
           router.push('/signup');
         } else if (!isAdmin) {
-          router.push('/login');
+          // If the user is logged in but not an admin, send them to their profile.
+          router.push('/profile');
         }
       }
-    }, [user, isAdmin, isUserLoading, router]);
+    }, [user, isAdmin, isLoading, router]);
 
     const handleLogout = () => {
         if (auth) {
@@ -49,7 +51,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
         return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'A';
     }
     
-    if (isUserLoading || !isAdmin) {
+    if (isLoading || !isAdmin) {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <p>Cargando o redirigiendo...</p>

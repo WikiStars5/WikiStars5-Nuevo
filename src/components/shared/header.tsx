@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useAdmin } from '@/firebase';
 import { Gem, LogOut, User as UserIcon, LogIn } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Search } from 'lucide-react';
@@ -20,6 +20,7 @@ import { Skeleton } from '../ui/skeleton';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
+  const { isAdmin } = useAdmin();
   const auth = useAuth();
 
   const handleLogout = () => {
@@ -77,8 +78,17 @@ export default function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 
-                {/* We'll implement admin logic later */}
-                {/* {user.role === 'admin' && ( ... )} */}
+                {isAdmin && (
+                    <>
+                    <DropdownMenuItem asChild>
+                        <Link href="/admin">
+                        <Gem className="mr-2 h-4 w-4" />
+                        <span>Admin</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    </>
+                )}
 
                 <DropdownMenuItem asChild>
                   <Link href="/profile">
