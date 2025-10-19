@@ -21,11 +21,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function FigureDetailPage({ params }: { params: { id: string } }) {
   const firestore = useFirestore();
+  const figureId = params.id;
 
   const figureRef = useMemo(() => {
-    if (!firestore || !params.id) return null;
-    return doc(firestore, 'figures', params.id);
-  }, [firestore, params.id]);
+    if (!firestore || !figureId) return null;
+    return doc(firestore, 'figures', figureId);
+  }, [firestore, figureId]);
 
   const { data: figure, isLoading } = useDoc<any>(figureRef);
 
