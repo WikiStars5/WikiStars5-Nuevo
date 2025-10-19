@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { doc, getDoc } from 'firebase-admin/firestore';
 import { getSdks } from '@/firebase/server';
 import FigureDetailClient from './client-page';
 import type { Figure } from '@/lib/types';
@@ -8,10 +7,11 @@ import type { Figure } from '@/lib/types';
 async function getFigure(id: string): Promise<Figure | null> {
   // We get a new instance of the server SDKs here.
   const { firestore } = getSdks();
-  const figureDocRef = doc(firestore, 'figures', id);
-  const figureDoc = await getDoc(figureDocRef);
+  // Use the admin SDK syntax: firestore.doc('collection/docId')
+  const figureDocRef = firestore.doc(`figures/${id}`);
+  const figureDoc = await figureDocRef.get();
 
-  if (!figureDoc.exists()) {
+  if (!figureDoc.exists) {
     return null;
   }
 
