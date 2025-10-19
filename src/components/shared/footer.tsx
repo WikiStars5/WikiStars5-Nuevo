@@ -14,10 +14,10 @@ export default function Footer() {
         </p>
         <nav className="flex items-center gap-4 text-sm font-medium">
           <Link
-            href="#"
+            href="/admin"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            Terms of Service
+            Admin Login
           </Link>
           <Link
             href="#"
