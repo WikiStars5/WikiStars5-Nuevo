@@ -1,11 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
-import {
-  getEmotionVotesByFigureId,
-  getRelatedFigures,
-} from '@/lib/data';
+import { notFound, useParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,9 +16,10 @@ import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import React from 'react';
 
-export default function FigureDetailPage({ params }: { params: { id: string } }) {
+export default function FigureDetailPage() {
   const firestore = useFirestore();
-  const figureId = params.id;
+  const params = useParams();
+  const figureId = params.id as string;
 
   const figureRef = useMemo(() => {
     if (!firestore || !figureId) return null;
@@ -30,11 +27,6 @@ export default function FigureDetailPage({ params }: { params: { id: string } })
   }, [firestore, figureId]);
 
   const { data: figure, isLoading } = useDoc<any>(figureRef);
-
-  // For now, we will keep emotion votes and related figures from mock data
-  // as they are not the primary focus.
-  // const emotionVotes = await getEmotionVotesByFigureId(params.id);
-  // const relatedFigures = await getRelatedFigures(params.id);
 
   if (isLoading) {
     return (
@@ -121,10 +113,10 @@ export default function FigureDetailPage({ params }: { params: { id: string } })
           </TabsContent>
 
           <TabsContent value="comments">
-             <CommentSection figureId={params.id} />
+             <CommentSection figureId={figureId} />
           </TabsContent>
           <TabsContent value="streaks">
-             <TopStreaks figureId={params.id} />
+             <TopStreaks figureId={figureId} />
           </TabsContent>
         </Tabs>
       </div>
