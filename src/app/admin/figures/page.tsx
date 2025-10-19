@@ -42,8 +42,6 @@ export default function AdminFiguresPage() {
 
   const { data: figures, isLoading } = useCollection<Figure>(figuresCollection);
   
-  const showLoadingState = isLoading || !firestore;
-
   return (
     <Card>
       <CardHeader>
@@ -75,7 +73,7 @@ export default function AdminFiguresPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {showLoadingState && (
+            {isLoading && (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   <TableCell className="hidden sm:table-cell">
@@ -138,7 +136,7 @@ export default function AdminFiguresPage() {
             ))}
           </TableBody>
         </Table>
-         {figures?.length === 0 && !showLoadingState && (
+         {figures?.length === 0 && !isLoading && (
             <div className="text-center py-16 text-muted-foreground">
                 <p>No figures found in the database.</p>
                 <p className="text-sm">You can add one using the "Add Figure" button.</p>

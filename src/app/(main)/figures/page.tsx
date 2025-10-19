@@ -14,13 +14,10 @@ export default function ExplorePage() {
   const firestore = useFirestore();
   const figuresCollection = useMemoFirebase(() => {
     if (!firestore) return null;
-    // This query fetches documents from the 'figures' collection, ordered by name.
     return query(collection(firestore, 'figures'), orderBy('name', 'asc'));
   }, [firestore]);
 
   const { data: figures, isLoading } = useCollection<Figure>(figuresCollection);
-
-  const showLoadingState = isLoading || !firestore;
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
@@ -30,7 +27,7 @@ export default function ExplorePage() {
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
-        {showLoadingState && Array.from({ length: 5 }).map((_, i) => (
+        {isLoading && Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="space-y-4">
                 <Skeleton className="h-[350px] w-full" />
                 <Skeleton className="h-4 w-3/4" />
@@ -42,7 +39,7 @@ export default function ExplorePage() {
         ))}
       </div>
 
-       {figures && figures.length === 0 && !showLoadingState && (
+       {figures && figures.length === 0 && !isLoading && (
         <div className="text-center col-span-full py-16">
           <p className="text-muted-foreground">Your database is ready. Add some data to see it here!</p>
         </div>

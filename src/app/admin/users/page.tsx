@@ -45,8 +45,6 @@ export default function AdminUsersPage() {
     return user.displayName?.charAt(0) || user.email?.charAt(0) || 'U';
   }
   
-  const showLoadingState = isLoading || !firestore;
-
   return (
     <Card>
       <CardHeader>
@@ -72,7 +70,7 @@ export default function AdminUsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-             {showLoadingState && (
+             {isLoading && (
               Array.from({ length: 3 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>

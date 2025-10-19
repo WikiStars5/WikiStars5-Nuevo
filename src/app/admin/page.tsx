@@ -17,7 +17,6 @@ export default function AdminDashboard() {
   }, [firestore]);
 
   const { data: figures, isLoading } = useCollection(figuresCollection);
-  const showLoadingState = isLoading || !firestore;
 
   return (
     <>
@@ -44,7 +43,7 @@ export default function AdminDashboard() {
                     <h3 className="text-sm font-medium text-muted-foreground">Total de Perfiles</h3>
                     <List className="h-4 w-4 text-muted-foreground" />
                 </div>
-                {showLoadingState ? (
+                {isLoading ? (
                     <Skeleton className="h-9 w-1/4" />
                 ) : (
                     <div className="text-4xl font-bold">{figures?.length ?? 0}</div>

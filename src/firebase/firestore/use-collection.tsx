@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -58,17 +59,19 @@ export function useCollection<T = any>(
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
+  const [isLoading, setIsLoading] = useState<boolean>(true); 
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
-    // If the query/ref is null or undefined, we're not ready yet.
-    // Set loading to true (or keep it true) and wait.
     if (!memoizedTargetRefOrQuery) {
       setIsLoading(true);
       setData(null);
       setError(null);
       return;
+    }
+    
+    if (!memoizedTargetRefOrQuery.__memo) {
+      console.warn('The query passed to useCollection was not properly memoized using useMemoFirebase. This can cause infinite loops and unexpected behavior.');
     }
 
     setIsLoading(true);
@@ -103,10 +106,6 @@ export function useCollection<T = any>(
 
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]);
-
-  if(memoizedTargetRefOrQuery && !memoizedTargetRefOrQuery.__memo) {
-    throw new Error('The query passed to useCollection was not properly memoized using useMemoFirebase. This can cause infinite loops and unexpected behavior.');
-  }
   
   return { data, isLoading, error };
 }
