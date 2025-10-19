@@ -30,7 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, ArrowRight, CheckCircle2, Loader2, Search } from 'lucide-react';
+import { AlertCircle, ArrowRight, Check, CheckCircle2, Loader2, Search } from 'lucide-react';
 import {
   verifyWikipediaCharacter,
   type VerifyWikipediaCharacterOutput,
@@ -64,6 +64,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
 
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
+  const [showPlanB, setShowPlanB] = React.useState(false);
 
   const [verificationResult, setVerificationResult] = React.useState<
     VerifyWikipediaCharacterOutput | VerifyFamousBirthdaysOutput | null
@@ -84,18 +85,24 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
     setIsVerifying(true);
     setVerificationError(null);
     setVerificationResult(null);
+    setShowPlanB(false);
 
     try {
       const result = await verifyWikipediaCharacter({ name: data.name });
       if (result.found) {
         setVerificationResult(result);
       } else {
-        setVerificationError(
-          result.verificationError || 'No se encontró un personaje coincidente en Wikipedia. Prueba con Famous Birthdays.'
-        );
+        setShowPlanB(true);
+        setVerificationError(result.verificationError);
+        toast({
+            title: "No Encontrado en Wikipedia",
+            description: "Se activó el Plan B. Inténtalo con un enlace de FamousBirthdays.",
+            variant: "destructive"
+        })
       }
     } catch (error) {
       console.error('Error verifying Wikipedia:', error);
+      setShowPlanB(true);
       setVerificationError('Ocurrió un error al verificar en Wikipedia. Inténtalo de nuevo.');
     } finally {
       setIsVerifying(false);
@@ -111,6 +118,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
       const result = await verifyFamousBirthdaysCharacter({ url: data.url });
       if (result.found) {
         setVerificationResult(result);
+        setShowPlanB(false);
       } else {
         setVerificationError(result.verificationError || 'No se pudo verificar la URL. Asegúrate de que sea correcta.');
       }
@@ -158,7 +166,6 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         approved: false, // Profiles may need approval
       };
       
-      // Use the non-blocking fire-and-forget write function
       setDocumentNonBlocking(figureRef, figureData, {});
 
       toast({
@@ -169,8 +176,6 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
       onProfileCreated();
 
     } catch (error) {
-      // This generic catch block might handle errors from getDoc, but the setDoc error
-      // is now handled non-blockingly and will be caught by the global error listener.
       console.error('Error during profile creation check:', error);
       toast({
         variant: 'destructive',
@@ -185,6 +190,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
   const resetVerification = () => {
     setVerificationResult(null);
     setVerificationError(null);
+    setShowPlanB(false);
     wikipediaForm.reset();
     famousBirthdaysForm.reset();
   };
@@ -215,7 +221,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                 )}
               />
               <Button type="submit" disabled={isVerifying} className="w-[150px]">
-                {isVerifying && !famousBirthdaysForm.formState.isSubmitting ? (
+                {isVerifying && wikipediaForm.formState.isSubmitting ? (
                   <Loader2 className="animate-spin" />
                 ) : (
                   <>
@@ -226,44 +232,48 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
             </form>
           </Form>
 
-          {verificationError && (
-            <div className="space-y-4 pt-4">
-              <Alert variant="destructive">
+          {showPlanB && (
+             <div className="space-y-4 pt-4">
+              <Alert variant="destructive" className="bg-yellow-900/20 border-yellow-700/50 text-yellow-200 [&>svg]:text-yellow-400">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error de Verificación</AlertTitle>
-                <AlertDescription>{verificationError}</AlertDescription>
+                <AlertTitle className="font-bold text-yellow-300">Plan B: Verificación Manual</AlertTitle>
+                <AlertDescription className="text-yellow-300/90">
+                  No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manualmente.
+                </AlertDescription>
               </Alert>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Plan B</span>
-                </div>
-              </div>
+              
               <Form {...famousBirthdaysForm}>
                 <form
                   onSubmit={famousBirthdaysForm.handleSubmit(handleVerifyFamousBirthdays)}
-                  className="flex items-start gap-2"
+                  className="space-y-3"
                 >
-                  <FormField
-                    control={famousBirthdaysForm.control}
-                    name="url"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input
-                            placeholder="https://es.famousbirthdays.com/people/..."
-                            {...field}
-                            disabled={isVerifying}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                 <div className="space-y-2">
+                    <Label htmlFor="url" className="text-sm font-medium">URL de FamousBirthdays.com</Label>
+                    <FormField
+                        control={famousBirthdaysForm.control}
+                        name="url"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormControl>
+                            <Input
+                                id="url"
+                                placeholder="https://es.famousbirthdays.com/people/..."
+                                {...field}
+                                disabled={isVerifying}
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                 </div>
+                  <Button type="submit" disabled={isVerifying} className="w-full">
+                    {isVerifying && famousBirthdaysForm.formState.isSubmitting ? <Loader2 className="animate-spin" /> : 
+                    (
+                        <>
+                        <Check className="mr-2 h-4 w-4" /> Verificar con URL
+                        </>
                     )}
-                  />
-                  <Button type="submit" disabled={isVerifying} variant="secondary" className="w-[150px]">
-                    {isVerifying && famousBirthdaysForm.formState.isSubmitting ? <Loader2 className="animate-spin" /> : 'Verificar URL'}
                   </Button>
                 </form>
               </Form>
@@ -319,3 +329,5 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
     </DialogContent>
   );
 }
+
+    
