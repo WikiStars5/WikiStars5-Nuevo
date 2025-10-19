@@ -19,7 +19,7 @@ import { Gem, Globe, LogOut, User as UserIcon, UserPlus } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
-import CreateProfileFromWebDialog from '../figure/create-profile-from-web';
+import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog';
 import SearchBar from './search-bar';
 
 export default function Header() {
@@ -27,6 +27,7 @@ export default function Header() {
   const { isAdmin } = useAdmin();
   const auth = useAuth();
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
+  const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
 
   const handleLogout = () => {
     if (auth) {
@@ -59,6 +60,10 @@ export default function Header() {
             <>
               <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
                 <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
+              </Dialog>
+
+               <Dialog open={isWebProfileDialogOpen} onOpenChange={setIsWebProfileDialogOpen}>
+                <CreateProfileFromWebDialog onProfileCreated={() => setIsWebProfileDialogOpen(false)} />
               </Dialog>
               
               <DropdownMenu>
@@ -97,11 +102,9 @@ export default function Header() {
                           <span>Crear Perfil de Personaje</span>
                       </DropdownMenuItem>
 
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin/figures/new">
-                          <Globe className="mr-2 h-4 w-4" />
-                          <span>Crear Perfil Web</span>
-                        </Link>
+                      <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
+                        <Globe className="mr-2 h-4 w-4" />
+                        <span>Crear Perfil Web</span>
                       </DropdownMenuItem>
 
                       <DropdownMenuSeparator />
