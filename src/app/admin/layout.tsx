@@ -14,35 +14,40 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { Bell, Download, Gem, Home, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Search, Shield } from 'lucide-react';
+import { Search, Shield, ShieldAlert } from 'lucide-react';
 import { useAuth, useUser, useAdmin } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+
+function AccessDenied() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // After showing the message for a moment, redirect to the home page.
+    const timer = setTimeout(() => {
+      router.push('/');
+    }, 3000); // 3-second delay before redirecting
+
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center">
+      <ShieldAlert className="h-16 w-16 text-destructive" />
+      <h1 className="text-3xl font-bold">Acceso Denegado</h1>
+      <p className="text-muted-foreground">No tienes permisos para acceder a esta página.</p>
+      <p className="text-sm text-muted-foreground">Serás redirigido a la página principal...</p>
+    </div>
+  );
+}
+
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isUserLoading } = useUser();
     const { isAdmin, isAdminLoading } = useAdmin();
     const auth = useAuth();
     const router = useRouter();
-
-    useEffect(() => {
-      // Rule 1: If still loading, do nothing. Wait for a final state.
-      if (isAdminLoading) {
-        return;
-      }
-
-      // Rule 2: If loading is finished and there's no user, redirect to login.
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      // Rule 3: If loading is finished, there IS a user, but they are NOT an admin, redirect to home.
-      if (!isAdmin) {
-        router.push('/');
-      }
-    }, [user, isAdmin, isAdminLoading, router]);
 
     const handleLogout = () => {
         if (auth) {
@@ -54,8 +59,10 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'A';
     }
     
-    // While loading, show a loading state. This is the primary guard.
-    if (isAdminLoading) {
+    // Step 1: Render a loading state until all checks are complete.
+    // This is the most critical part to prevent race conditions.
+    // We wait until BOTH user loading AND admin status loading are finished.
+    if (isUserLoading || isAdminLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <p>Verificando permisos de administrador...</p>
@@ -63,13 +70,13 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         )
     }
 
-    // After loading, if the user is not an admin, they will be redirected by the useEffect.
-    // We render null here to prevent a brief flash of the admin panel content.
-    if (!isAdmin) {
-        return null;
+    // Step 2: After loading, check for user existence and admin status.
+    // If there is no user logged in OR if the user is not an admin, render the AccessDenied component.
+    if (!user || !isAdmin) {
+      return <AccessDenied />;
     }
 
-    // Only render the full layout if loading is complete and the user is an admin.
+    // Step 3: Only if all checks pass, render the full admin layout.
     return (
     <div className="flex min-h-screen w-full flex-col">
        <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
