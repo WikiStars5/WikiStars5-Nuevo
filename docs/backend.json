@@ -1,0 +1,474 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the WikiStars5 platform, whether registered or anonymous.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "User's display name. Can be null for anonymous users."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address. Only applicable for registered users.",
+          "format": "email"
+        },
+        "country": {
+          "type": "string",
+          "description": "User's country of origin."
+        },
+        "gender": {
+          "type": "string",
+          "description": "User's gender identity."
+        },
+        "role": {
+          "type": "string",
+          "description": "User's role within the platform (e.g., 'user', 'admin')."
+        },
+        "lastLogin": {
+          "type": "string",
+          "description": "The last time the user logged in.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "PublicFigure": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PublicFigure",
+      "type": "object",
+      "description": "Represents a public figure whose profile is displayed on the platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the public figure entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the public figure."
+        },
+        "biography": {
+          "type": "string",
+          "description": "A biography or description of the public figure."
+        },
+        "nationality": {
+          "type": "string",
+          "description": "The nationality of the public figure."
+        },
+        "socialMediaLinks": {
+          "type": "array",
+          "description": "Links to the public figure's social media profiles.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags associated with the public figure.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Indicates whether the public figure is featured on the homepage."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Comment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Comment",
+      "type": "object",
+      "description": "Represents a user comment on a public figure's profile.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the comment entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who made the comment. (Relationship: User 1:N Comment)"
+        },
+        "publicFigureId": {
+          "type": "string",
+          "description": "Reference to the PublicFigure the comment is about. (Relationship: PublicFigure 1:N Comment)"
+        },
+        "parentId": {
+          "type": "string",
+          "description": "Reference to the parent comment, if this is a reply. Null if it's a top-level comment. (Relationship: Comment 1:N Comment)"
+        },
+        "text": {
+          "type": "string",
+          "description": "The text content of the comment."
+        },
+        "likes": {
+          "type": "number",
+          "description": "The number of likes the comment has received."
+        },
+        "dislikes": {
+          "type": "number",
+          "description": "The number of dislikes the comment has received."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the comment was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "publicFigureId",
+        "text"
+      ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for a registered user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the notification entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who the notification is for. (Relationship: User 1:N Notification)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of notification (e.g., 'comment_reply', 'comment_like')."
+        },
+        "message": {
+          "type": "string",
+          "description": "The message content of the notification."
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Indicates whether the notification has been read by the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the notification was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "message"
+      ]
+    },
+    "Streak": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Streak",
+      "type": "object",
+      "description": "Represents a user's commenting streak on a specific public figure.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the streak entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who has the streak. (Relationship: User 1:N Streak)"
+        },
+        "publicFigureId": {
+          "type": "string",
+          "description": "Reference to the PublicFigure the streak is for. (Relationship: PublicFigure 1:N Streak)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the streak.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the streak. If the streak is active, this will be the last day a comment was made.",
+          "format": "date-time"
+        },
+        "streakLength": {
+          "type": "number",
+          "description": "The length of the streak in days."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "publicFigureId",
+        "startDate",
+        "streakLength"
+      ]
+    },
+    "Achievement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Achievement",
+      "type": "object",
+      "description": "Represents an achievement that a registered user can unlock.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the achievement entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the achievement."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of how to unlock the achievement."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the image representing the achievement.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "UserAchievement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserAchievement",
+      "type": "object",
+      "description": "Represents the association between a user and an achievement, indicating that the user has unlocked the achievement.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user achievement entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who unlocked the achievement. (Relationship: User 1:N UserAchievement)"
+        },
+        "achievementId": {
+          "type": "string",
+          "description": "Reference to the Achievement that was unlocked. (Relationship: Achievement 1:N UserAchievement)"
+        },
+        "unlockedAt": {
+          "type": "string",
+          "description": "The timestamp when the achievement was unlocked by the user.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "achievementId"
+      ]
+    },
+    "RelatedFigure": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RelatedFigure",
+      "type": "object",
+      "description": "Represents a related figure relationship between two public figures.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the related figure entity."
+        },
+        "sourceFigureId": {
+          "type": "string",
+          "description": "Reference to the source PublicFigure. (Relationship: PublicFigure 1:N RelatedFigure)"
+        },
+        "targetFigureId": {
+          "type": "string",
+          "description": "Reference to the target PublicFigure that is related to the source figure. (Relationship: PublicFigure 1:N RelatedFigure)"
+        }
+      },
+      "required": [
+        "id",
+        "sourceFigureId",
+        "targetFigureId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information.  Path-based ownership ensures only the user or an admin can access it.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/public_figures/{publicFigureId}",
+        "definition": {
+          "entityName": "PublicFigure",
+          "schema": {
+            "$ref": "#/backend/entities/PublicFigure"
+          },
+          "description": "Stores public figure profiles.  Accessible for reading by all users, but write access is restricted to admins.",
+          "params": [
+            {
+              "name": "publicFigureId",
+              "description": "The unique identifier of the public figure."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/public_figures/{publicFigureId}/comments/{commentId}",
+        "definition": {
+          "entityName": "Comment",
+          "schema": {
+            "$ref": "#/backend/entities/Comment"
+          },
+          "description": "Stores comments associated with a specific public figure. Includes denormalized 'publicFigureId' for authorization independence.",
+          "params": [
+            {
+              "name": "publicFigureId",
+              "description": "The unique identifier of the public figure."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique identifier of the comment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notifications for a specific user. Path-based ownership ensures only the user or an admin can access it.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique identifier of the notification."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/streaks/{streakId}",
+        "definition": {
+          "entityName": "Streak",
+          "schema": {
+            "$ref": "#/backend/entities/Streak"
+          },
+          "description": "Stores streak data for a user. Includes denormalized 'publicFigureId' for efficient querying. Path-based ownership ensures only the user or an admin can access it.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "streakId",
+              "description": "The unique identifier of the streak."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/achievements/{achievementId}",
+        "definition": {
+          "entityName": "Achievement",
+          "schema": {
+            "$ref": "#/backend/entities/Achievement"
+          },
+          "description": "Stores the master list of achievements available in the platform.",
+          "params": [
+            {
+              "name": "achievementId",
+              "description": "The unique identifier of the achievement."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/user_achievements/{userAchievementId}",
+        "definition": {
+          "entityName": "UserAchievement",
+          "schema": {
+            "$ref": "#/backend/entities/UserAchievement"
+          },
+          "description": "Stores the association between a user and an achievement. Path-based ownership ensures only the user or an admin can access it.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "userAchievementId",
+              "description": "The unique identifier of the user achievement."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/related_figures/{relatedFigureId}",
+        "definition": {
+          "entityName": "RelatedFigure",
+          "schema": {
+            "$ref": "#/backend/entities/RelatedFigure"
+          },
+          "description": "Stores relationships between public figures.",
+          "params": [
+            {
+              "name": "relatedFigureId",
+              "description": "The unique identifier of the related figure relationship."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "role",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Used to grant admin privileges. Existence of a document in this collection grants admin rights to the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who is an admin."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the WikiStars5 application, focusing on user profiles, public figures, comments, notifications, streaks, and achievements. Key considerations include authorization independence, clarity of intent, and secure list operations. The structure utilizes path-based ownership for user-specific data and denormalization for collaborative data, ensuring that security rules can be written without complex `get()` calls.\n\n*   **Users:** User data is stored under `/users/{userId}`, providing secure and straightforward access to individual user profiles. This path-based ownership simplifies security rules. The `role` property within each user document determines administrative privileges.\n*   **Public Figures:** Public figure profiles are stored in the `/public_figures/{publicFigureId}` collection.  Featuring status is stored directly in the `PublicFigure` document.\n*   **Comments:** Comments are stored in a subcollection under each `PublicFigure` at `/public_figures/{publicFigureId}/comments/{commentId}`.  This structure facilitates efficient querying of comments for a specific public figure.  Denormalizing the `publicFigureId` into the comment document itself (even though it is implicit in the path) ensures authorization independence.\n*   **Notifications:** Notifications are stored under `/users/{userId}/notifications/{notificationId}`.  This path-based approach ensures that only the user can access their notifications. No denormalization is required here.\n*   **Streaks:** Streaks, representing a user's commenting activity on a public figure, are stored under `/users/{userId}/streaks/{streakId}`. This adheres to path-based ownership. The `publicFigureId` is stored within each `Streak` document.\n*   **Achievements:** The master list of achievements is stored in the `/achievements/{achievementId}` collection. User-specific achievements are stored in the `/users/{userId}/achievements/{achievementId}` collection, which maintains a record of unlocked achievements for each user.\n*   **User Achievements:** User achievements are managed under `/users/{userId}/user_achievements/{userAchievementId}`, linking users to their earned achievements.  The `achievementId` is stored to reference the specific achievement.\n*   **Related Figures:** Relationships between public figures are stored in the `/related_figures/{relatedFigureId}` collection. Each document includes `sourceFigureId` and `targetFigureId` to define the relationship.\n*   **Admin Roles:**  Admin status is checked by verifying the existence of a document in the `/roles_admin/{userId}` collection. This existence-based check is efficient and secure.\n\nThis structure supports the required QAPs by:\n\n*   **Authorization Independence:** Denormalizing authorization-relevant data into subcollections eliminates the need for `get()` calls in security rules.\n*   **Secure List Operations:** Segregating data based on access requirements (e.g., user-specific data under `/users/{userId}`) ensures that list operations can be secured effectively. Public figures are in a separate collection, allowing open read access while restricting write access to admins only."
+  }
+}
