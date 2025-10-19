@@ -31,6 +31,7 @@ import Image from 'next/image';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Figure } from '@/lib/types';
 
 export default function AdminFiguresPage() {
   const firestore = useFirestore();
@@ -39,7 +40,7 @@ export default function AdminFiguresPage() {
     return collection(firestore, 'figures');
   }, [firestore]);
 
-  const { data: figures, isLoading } = useCollection<any>(figuresCollection);
+  const { data: figures, isLoading } = useCollection<Figure>(figuresCollection);
 
   return (
     <Card>
