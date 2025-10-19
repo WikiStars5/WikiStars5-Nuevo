@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 import {
   DialogContent,
@@ -30,11 +31,11 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertCircle, ArrowRight, CheckCircle2, Loader2, Search } from 'lucide-react';
 import {
   verifyWikipediaCharacter,
-  VerifyWikipediaCharacterOutput,
+  type VerifyWikipediaCharacterOutput,
 } from '@/ai/flows/verify-wikipedia-character';
 import {
   verifyFamousBirthdaysCharacter,
-  VerifyFamousBirthdaysOutput,
+  type VerifyFamousBirthdaysOutput,
 } from '@/ai/flows/verify-famous-birthdays-character';
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
@@ -136,10 +137,12 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         });
         router.push(`/figures/${slug}`);
         onProfileCreated();
+        setIsCreating(false);
         return;
       }
 
       const figureData = {
+        id: slug,
         name: verificationResult.title,
         imageUrl: verificationResult.imageUrl,
         imageHint: `portrait of ${verificationResult.title}`,
@@ -152,8 +155,9 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         createdAt: serverTimestamp(),
         approved: false, // Los perfiles creados así pueden necesitar aprobación
       };
-
-      await setDoc(figureRef, figureData);
+      
+      // Use the non-blocking fire-and-forget write function
+      setDocumentNonBlocking(figureRef, figureData, {});
 
       toast({
         title: '¡Perfil Creado!',
@@ -161,12 +165,15 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
       });
       router.push(`/figures/${slug}`);
       onProfileCreated();
+
     } catch (error) {
-      console.error('Error creating profile:', error);
+      // This generic catch block might handle errors from getDoc, but the setDoc error
+      // is now handled non-blockingly and will be caught by the global error listener.
+      console.error('Error during profile creation check:', error);
       toast({
         variant: 'destructive',
-        title: 'Error de Creación',
-        description: 'No se pudo crear el perfil. Por favor, inténtalo de nuevo.',
+        title: 'Error de Verificación',
+        description: 'No se pudo comprobar si el perfil ya existe. Por favor, inténtalo de nuevo.',
       });
     } finally {
       setIsCreating(false);
