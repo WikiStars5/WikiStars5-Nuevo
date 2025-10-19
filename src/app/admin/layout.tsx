@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
-import { Bell, Download, Gem, Home, LogOut, User as UserIcon } from 'lucide-react';
+import { Bell, Download, Gem, Home, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Search, Shield } from 'lucide-react';
 import { useAuth, useUser, useAdmin } from '@/firebase';
@@ -29,14 +29,16 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     const isLoading = isUserLoading || isAdminLoading;
 
     useEffect(() => {
+      // Only run the effect once the loading is complete
       if (!isLoading) {
         if (!user) {
+          // If no user, redirect to login
           router.push('/login');
         } else if (!isAdmin) {
-          // If the user is logged in but not an admin, send them to the home page or a "not authorized" page.
-          // For simplicity, we'll send them home.
+          // If there is a user, but they are not an admin, redirect to home
           router.push('/');
         }
+        // If user exists and is an admin, do nothing and let the page render.
       }
     }, [user, isAdmin, isLoading, router]);
 
@@ -50,6 +52,8 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'A';
     }
     
+    // While loading, or if the user is not yet confirmed as an admin, show a loading state.
+    // This prevents the brief flash of the admin panel before a potential redirect.
     if (isLoading || !user || !isAdmin) {
         return (
             <div className="flex min-h-screen items-center justify-center">
