@@ -10,7 +10,7 @@ import ProfileHeader from '@/components/figure/ProfileHeader';
 
 function FigureDetailSkeleton() {
   return (
-    <div className="container mx-auto max-w-4xl px-4 pb-8 md:pb-16">
+    <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
       <Card className="overflow-hidden">
         <CardContent className="p-6 md:p-8">
           <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
@@ -48,7 +48,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 pb-8 md:pb-16">
+    <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
       <ProfileHeader figure={figure} />
 
       <div className="mt-6">
@@ -59,7 +59,9 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
               Información
             </TabsTrigger>
             <TabsTrigger value="actitud">
-              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 -8.995 -9.28l.005 -.22a9 9 0 0 1 18 0a9 9 0 0 1 -8.995 9.28l-.005 -.22z" strokeWidth="0" fill="currentColor" /><path d="M9 12l2 2l4 -4" /></svg>
+               <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="2" />
+              </svg>
               Actitud
             </TabsTrigger>
             <TabsTrigger value="emocion">
