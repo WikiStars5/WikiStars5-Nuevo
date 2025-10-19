@@ -26,19 +26,24 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     const auth = useAuth();
     const router = useRouter();
 
+    // Combined loading state: True if either user state or admin state is loading.
     const isLoading = isUserLoading || isAdminLoading;
 
     useEffect(() => {
-      // Only run the effect once the loading is complete
-      if (!isLoading) {
-        if (!user) {
-          // If no user, redirect to login
-          router.push('/login');
-        } else if (!isAdmin) {
-          // If there is a user, but they are not an admin, redirect to home
-          router.push('/');
-        }
-        // If user exists and is an admin, do nothing and let the page render.
+      // Wait until loading is fully complete before running any logic.
+      if (isLoading) {
+        return;
+      }
+
+      // If loading is done and there's no user, redirect to login.
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
+      // If loading is done, there is a user, but they are not an admin, redirect to home.
+      if (!isAdmin) {
+        router.push('/');
       }
     }, [user, isAdmin, isLoading, router]);
 
@@ -52,16 +57,22 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'A';
     }
     
-    // While loading, or if the user is not yet confirmed as an admin, show a loading state.
-    // This prevents the brief flash of the admin panel before a potential redirect.
-    if (isLoading || !user || !isAdmin) {
+    // While loading, show a loading state. This is the primary guard.
+    if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
-                <p>Cargando o redirigiendo...</p>
+                <p>Verificando permisos de administrador...</p>
             </div>
         )
     }
 
+    // After loading, if the user is not an admin, they will be redirected by the useEffect.
+    // We render null here to prevent a brief flash of the admin panel content.
+    if (!isAdmin) {
+        return null;
+    }
+
+    // Only render the full layout if loading is complete and the user is an admin.
     return (
     <div className="flex min-h-screen w-full flex-col">
        <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
