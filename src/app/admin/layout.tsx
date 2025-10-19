@@ -19,8 +19,9 @@ import { useAuth, useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
     const { user, isUserLoading } = useUser();
     const auth = useAuth();
     const router = useRouter();
@@ -153,4 +154,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </main>
     </div>
     );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <FirebaseClientProvider>
+            <AdminDashboardLayout>{children}</AdminDashboardLayout>
+        </FirebaseClientProvider>
+    )
 }
