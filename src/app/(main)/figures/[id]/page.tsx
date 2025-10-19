@@ -10,18 +10,18 @@ import { Twitter, Instagram } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CommentSection from '@/components/figure/comment-section';
 import TopStreaks from '@/components/figure/top-streaks';
-import { useFirestore, useDoc } from '@/firebase';
-import { useMemo } from 'react';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import React from 'react';
+import EmotionChart from '@/components/figure/emotion-chart';
 
 export default function FigureDetailPage() {
   const firestore = useFirestore();
   const params = useParams();
   const figureId = params.id as string;
 
-  const figureRef = useMemo(() => {
+  const figureRef = useMemoFirebase(() => {
     if (!firestore || !figureId) return null;
     return doc(firestore, 'figures', figureId);
   }, [firestore, figureId]);
@@ -50,6 +50,14 @@ export default function FigureDetailPage() {
     return notFound();
   }
 
+  const emotionData = [
+    { emotion: 'Joy', percentage: 75 },
+    { emotion: 'Envy', percentage: 10 },
+    { emotion: 'Neutral', percentage: 15 },
+    { emotion: 'Sadness', percentage: 0 },
+    { emotion: 'Anger', percentage: 0 },
+  ]
+
   return (
     <div>
       {/* Hero Section */}
@@ -75,7 +83,7 @@ export default function FigureDetailPage() {
                     <div className="flex items-center gap-2">
                         {figure.socials?.twitter && <a href={`https://twitter.com/${figure.socials.twitter}`} target="_blank" rel="noopener noreferrer"><Twitter className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
                         {figure.socials?.instagram && <a href={`https://instagram.com/${figure.socials.instagram}`} target="_blank" rel="noopener noreferrer"><Instagram className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
-                        {figure.socials?.website && <a href={`https://${figure.socials.website}`} target="_blank" rel="noopener noreferrer"><Globe className="h-5 w-5 text-muted-foreground hovertext-primary transition-colors" /></a>}
+                        {figure.socials?.website && <a href={`https://${figure.socials.website}`} target="_blank" rel="noopener noreferrer"><Globe className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" /></a>}
                     </div>
                 </div>
             </div>
@@ -93,7 +101,7 @@ export default function FigureDetailPage() {
           </TabsList>
 
           <TabsContent value="actitud">
-             <div className="grid grid-cols-1 gap-8">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-8">
                     {/* Attitude Voting - Maintenance */}
                     <Card>
@@ -109,6 +117,7 @@ export default function FigureDetailPage() {
                         </CardContent>
                     </Card>
                 </div>
+                <EmotionChart data={emotionData} />
             </div>
           </TabsContent>
 
