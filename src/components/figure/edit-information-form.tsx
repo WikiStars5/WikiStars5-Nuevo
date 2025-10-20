@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from './country-selector';
+import DateInput from './date-input';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -135,7 +136,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                              <Label>Vista Previa</Label>
                              <div className="aspect-square relative w-full max-w-[150px] rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
                                 {imageUrlWatcher && form.formState.errors.imageUrl === undefined ? (
-                                    <Image src={imageUrlWatcher} alt="Vista previa" layout="fill" objectFit="cover" />
+                                    <Image src={imageUrlWatcher} alt="Vista previa" fill objectFit="cover" />
                                 ) : (
                                     <span className="text-xs text-muted-foreground p-2 text-center">URL inválida o vacía</span>
                                 )}
@@ -190,10 +191,13 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             control={form.control}
                             name="birthDate"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex flex-col">
                                     <FormLabel>Fecha de Nacimiento</FormLabel>
                                     <FormControl>
-                                        <Input {...field} placeholder="Ej: 15 de agosto de 1990" />
+                                        <DateInput
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -203,10 +207,13 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             control={form.control}
                             name="deathDate"
                             render={({ field }) => (
-                               <FormItem>
+                               <FormItem className="flex flex-col">
                                     <FormLabel>Fecha de Fallecimiento</FormLabel>
                                     <FormControl>
-                                        <Input {...field} placeholder="Dejar en blanco si está vivo/a" />
+                                        <DateInput
+                                            value={field.value}
+                                            onChange={field.onChange}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

@@ -78,8 +78,9 @@ export default function DateInput({ value, onChange }: DateInputProps) {
   };
   
   const handleDayChange = (newDay: string) => {
-    setDay(newDay);
-    handleDateChange(era, year, month, newDay);
+    const validDay = newDay;
+    setDay(validDay);
+    handleDateChange(era, year, month, validDay);
   };
   
   const handleMonthChange = (newMonth: string) => {
