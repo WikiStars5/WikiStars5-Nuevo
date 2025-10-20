@@ -10,7 +10,6 @@ export interface Figure {
   approved: boolean;
   description?: string;
   photoUrl?: string;
-  biography?: string;
   gender?: 'Femenino' | 'Masculino';
   birthDate?: string;
   deathDate?: string;

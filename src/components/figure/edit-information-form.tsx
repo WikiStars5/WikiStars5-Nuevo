@@ -27,7 +27,6 @@ interface EditInformationFormProps {
 const editFormSchema = z.object({
   imageUrl: z.string().url('Por favor, introduce una URL válida para la imagen.'),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
-  biography: z.string().optional(),
   gender: z.enum(['Femenino', 'Masculino']).optional(),
   nationality: z.string().optional(),
   occupation: z.string().optional(),
@@ -46,7 +45,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     defaultValues: {
       imageUrl: figure.imageUrl || '',
       name: figure.name || '',
-      biography: figure.biography || '',
       gender: figure.gender,
       nationality: figure.nationality || '',
       occupation: figure.occupation || '',
@@ -67,8 +65,9 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       const dataToSave: Partial<EditFormValues> = {};
       Object.keys(data).forEach((key) => {
         const formKey = key as keyof EditFormValues;
-        if (data[formKey] !== undefined) {
-          (dataToSave as any)[formKey] = data[formKey];
+        const value = data[formKey];
+        if (value !== undefined && value !== null && value !== '') {
+          (dataToSave as any)[formKey] = value;
         }
       });
       
@@ -136,23 +135,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         </div>
                     </div>
                 </div>
-                 <FormField
-                    control={form.control}
-                    name="biography"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Biografía</FormLabel>
-                        <FormControl>
-                            <Textarea
-                            placeholder="Un breve resumen de los logros más importantes y datos de interés."
-                            className="resize-none"
-                            {...field}
-                            />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
                 {/* --- Personal Details Section --- */}
                 <div className="space-y-4">
                      <h3 className="text-lg font-medium flex items-center">
@@ -264,5 +246,3 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
-
-    
