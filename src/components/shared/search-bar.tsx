@@ -7,11 +7,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Figure } from '@/lib/types';
 import { searchFiguresByHashtag } from '@/app/actions/searchHashtagsAction';
-import { searchFiguresByName } from '@/app/actions/searchFiguresAction';
 import { cn, correctMalformedUrl } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { normalizeText } from '@/lib/keywords';
 
 // Debounce function
 function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
@@ -44,6 +44,52 @@ export default function SearchBar({
   const router = useRouter();
   const firestore = useFirestore();
 
+  const searchFiguresByName = async (searchTerm: string): Promise<Figure[]> => {
+    const normalizedSearchTerm = normalizeText(searchTerm);
+    if (normalizedSearchTerm.length < 1 || !firestore) {
+      return [];
+    }
+
+    try {
+      const figuresCollection = collection(firestore, 'figures');
+      const firestoreQuery = query(
+          figuresCollection,
+          where('nameKeywords', 'array-contains', normalizedSearchTerm),
+          limit(10)
+      );
+
+      const snapshot = await getDocs(firestoreQuery);
+
+      if (snapshot.empty) {
+        return [];
+      }
+      
+      const figures = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+              id: doc.id,
+              name: data.name,
+              imageUrl: data.imageUrl,
+              imageHint: data.imageHint,
+              nationality: data.nationality,
+              tags: data.tags,
+              isFeatured: data.isFeatured,
+              nameKeywords: data.nameKeywords,
+              approved: data.approved,
+              description: data.description,
+              photoUrl: data.photoUrl,
+          } as Figure;
+      });
+      
+      figures.sort((a, b) => a.name.localeCompare(b.name));
+
+      return figures;
+    } catch (error) {
+      console.error('Error searching figures by name:', error);
+      return [];
+    }
+  }
+
 
   const handleSearchSubmit = (searchTerm: string) => {
     const trimmedTerm = searchTerm.trim();
@@ -65,6 +111,11 @@ export default function SearchBar({
 
   const debouncedSearch = useCallback(
     debounce(async (searchTerm: string) => {
+      if (!firestore) {
+        setIsLoading(false);
+        return;
+      };
+
       const trimmedSearch = searchTerm.trim();
       if (trimmedSearch.length < 1) { // Allow search from 1 character
         setFigureResults([]);
@@ -80,8 +131,10 @@ export default function SearchBar({
         let figures: Figure[] = [];
         if (trimmedSearch.startsWith('#')) {
           const hashtagQuery = trimmedSearch.substring(1);
+          // This still uses a server action, which is fine.
           figures = await searchFiguresByHashtag(hashtagQuery);
         } else {
+          // This now uses the client-side function.
           figures = await searchFiguresByName(trimmedSearch);
         }
         setFigureResults(figures);
@@ -92,7 +145,7 @@ export default function SearchBar({
         setIsLoading(false);
       }
     }, 300), 
-    [firestore] // Add firestore to dependency array
+    [firestore] // Critical dependency
   );
 
   useEffect(() => {
