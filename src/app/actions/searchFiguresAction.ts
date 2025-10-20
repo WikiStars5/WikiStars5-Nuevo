@@ -17,8 +17,7 @@ function normalizeText(text: string): string {
 
 /**
  * Searches for public figures in Firestore based on a name query.
- * Uses a pre-computed `nameKeywords` array for efficient prefix searching
- * and only returns figures that have been approved.
+ * Uses a pre-computed `nameKeywords` array for efficient prefix searching.
  * @param searchTerm The user's search term.
  * @returns A promise that resolves to an array of matching Figure objects.
  */
@@ -33,10 +32,9 @@ export async function searchFiguresByName(searchTerm: string): Promise<Figure[]>
   try {
     const figuresCollection = firestore.collection('figures');
     
-    // This query uses an index on `nameKeywords` and `approved` for efficient searching.
+    // This query uses an index on `nameKeywords` for efficient searching.
     const firestoreQuery = figuresCollection
       .where('nameKeywords', 'array-contains', trimmedSearchTerm)
-      .where('approved', '==', true) // Only show approved figures
       .limit(10);
 
     const snapshot = await firestoreQuery.get();
