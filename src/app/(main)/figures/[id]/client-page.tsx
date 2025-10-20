@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Figure } from '@/lib/types';
 import ProfileHeader from '@/components/figure/ProfileHeader';
+import AttitudeVoting from '@/components/figure/attitude-voting';
 
 function FigureDetailSkeleton() {
   return (
@@ -69,7 +70,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
               Emoción
             </TabsTrigger>
             <TabsTrigger value="rachas">
-              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3.5 17.5c4.667 -6.667 6.333 -6.667 11 -2.5" /><path d="M3.5 12.5c4.667 -6.667 6.333 -6.667 11 -2.5" /><path d="M3.5 7.5c4.667 -6.667 6.333 -6.667 11 -2.5" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="I 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3.5 17.5c4.667 -6.667 6.333 -6.667 11 -2.5" /><path d="M3.5 12.5c4.667 -6.667 6.333 -6.667 11 -2.5" /><path d="M3.5 7.5c4.667 -6.667 6.333 -6.667 11 -2.5" /></svg>
               Top Rachas
             </TabsTrigger>
           </TabsList>
@@ -85,9 +86,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
           <TabsContent value="actitud" className="mt-4">
             <Card>
               <CardContent className="p-6">
-                <p className="text-muted-foreground">
-                  La votación de actitud para {figure.name} aparecerá aquí.
-                </p>
+                <AttitudeVoting figure={figure} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -114,3 +113,4 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </div>
   );
 }
+    

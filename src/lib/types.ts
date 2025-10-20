@@ -10,6 +10,12 @@ export interface Figure {
   approved: boolean;
   description?: string;
   photoUrl?: string;
+  attitude?: {
+    neutral: number;
+    fan: number;
+    simp: number;
+    hater: number;
+  };
 }
 
 export interface Hashtag {
@@ -17,3 +23,13 @@ export interface Hashtag {
     name: string;
     figureCount: number;
 }
+
+export interface AttitudeVote {
+    id: string;
+    userId: string;
+    figureId: string;
+    vote: 'neutral' | 'fan' | 'simp' | 'hater';
+    createdAt: any; // Firestore Timestamp
+}
+
+    
