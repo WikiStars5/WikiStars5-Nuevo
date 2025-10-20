@@ -1,0 +1,41 @@
+'use server';
+
+import { getFirestore } from 'firebase-admin/firestore';
+import { getSdks } from '@/firebase/server';
+
+const { firestore } = getSdks();
+
+/**
+ * Searches for hashtags that start with a given query string.
+ * This is used for the autocomplete functionality in the hashtag editor.
+ * @param query The string to search for.
+ * @returns A promise that resolves to an array of matching hashtag names.
+ */
+export async function searchHashtags(query: string): Promise<string[]> {
+  const normalizedQuery = query.toLowerCase().trim();
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  try {
+    const hashtagsRef = firestore.collection('hashtags');
+    // The \uf8ff character is a high-value Unicode character that acts as a "limit" for the query.
+    // This allows us to fetch all documents where the ID starts with the query string.
+    const snapshot = await hashtagsRef
+      .where(getFirestore().FieldPath.documentId(), '>=', normalizedQuery)
+      .where(getFirestore().FieldPath.documentId(), '<=', normalizedQuery + '\uf8ff')
+      .limit(10)
+      .get();
+
+    if (snapshot.empty) {
+      return [];
+    }
+
+    // We only need the document IDs, which are the hashtag names themselves.
+    return snapshot.docs.map(doc => doc.id);
+  } catch (error) {
+    console.error('Error searching hashtags:', error);
+    // In case of an error, return an empty array to prevent the client from crashing.
+    return [];
+  }
+}

@@ -5,6 +5,8 @@ export interface Figure {
   imageHint?: string;
   nationality: string;
   tags: string[];
+  tagsLower?: string[];
+  tagKeywords?: string[];
   isFeatured?: boolean;
   nameKeywords: string[];
   approved: boolean;

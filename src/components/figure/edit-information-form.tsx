@@ -15,11 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, X, Link as LinkIcon, CaseUpper, Globe, Bot } from 'lucide-react';
+import { Loader2, Save, X, Link as LinkIcon, Tag, Plus } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from './country-selector';
 import DateInput from './date-input';
 import { Slider } from '@/components/ui/slider';
+import { Badge } from '../ui/badge';
+import HashtagCombobox from './hashtag-combobox';
+import { generateKeywords, normalizeText } from '@/lib/keywords';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -55,18 +58,19 @@ const editFormSchema = z.object({
         return acc;
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 type EditFormValues = z.infer<typeof editFormSchema>;
 
-const isValidImageUrl = (url: string | undefined): boolean => {
+const isValidImageUrl = (url: string | undefined | null): boolean => {
     if (!url) return false;
     try {
         const urlObject = new URL(url);
         return urlObject.protocol === 'https:' && 
                (urlObject.hostname === 'upload.wikimedia.org' || urlObject.hostname === 'i.pinimg.com');
     } catch (e) {
-        return false; // Not a valid URL format
+        return false; 
     }
 };
 
@@ -88,11 +92,28 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       maritalStatus: figure.maritalStatus,
       height: figure.height || undefined,
       socialLinks: figure.socialLinks || {},
+      tags: figure.tags || [],
     },
   });
   
   const imageUrlWatcher = form.watch('imageUrl');
   const heightWatcher = form.watch('height');
+  const tagsWatcher = form.watch('tags') || [];
+
+  const [hashtagInput, setHashtagInput] = React.useState('');
+
+  const handleAddHashtag = (newTag?: string) => {
+    const tagToAdd = (newTag || hashtagInput).trim();
+    if (tagToAdd && !tagsWatcher.includes(tagToAdd)) {
+        form.setValue('tags', [...tagsWatcher, tagToAdd]);
+    }
+    setHashtagInput('');
+  };
+
+  const handleRemoveHashtag = (tagToRemove: string) => {
+    form.setValue('tags', tagsWatcher.filter(tag => tag !== tagToRemove));
+  };
+
 
   const onSubmit = async (data: EditFormValues) => {
     if (!firestore) return;
@@ -101,10 +122,8 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     const figureRef = doc(firestore, 'figures', figure.id);
 
     try {
-      // Create a deep copy to avoid modifying the original form data.
       const dataToSave: { [key: string]: any } = JSON.parse(JSON.stringify(data));
 
-      // Sanitize socialLinks: convert undefined/empty strings to null.
       if (dataToSave.socialLinks) {
         for (const key in dataToSave.socialLinks) {
           if (dataToSave.socialLinks[key] === undefined || dataToSave.socialLinks[key] === '') {
@@ -113,12 +132,21 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
         }
       }
       
-      // Sanitize top-level optional fields: convert empty strings to null.
       (Object.keys(dataToSave) as Array<keyof EditFormValues>).forEach((key) => {
          if (dataToSave[key] === '' && key !== 'name') {
           dataToSave[key] = null;
         }
       });
+      
+      // Generate hashtag keywords
+      if (data.tags) {
+        dataToSave.tagsLower = data.tags.map(tag => normalizeText(tag));
+        dataToSave.tagKeywords = generateKeywords(data.tags.join(' '));
+      } else {
+        dataToSave.tags = [];
+        dataToSave.tagsLower = [];
+        dataToSave.tagKeywords = [];
+      }
 
       await updateDoc(figureRef, dataToSave);
 
@@ -164,7 +192,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                     <FormItem>
                                         <FormLabel>URL de la Imagen</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="https://upload.wikimedia.org/..." {...field} />
+                                            <Input placeholder="https://upload.wikimedia.org/..." {...field} value={field.value || ''}/>
                                         </FormControl>
                                          <p className="text-xs text-muted-foreground pt-1">
                                             Solo se permiten URLs de `upload.wikimedia.org` y `i.pinimg.com`.
@@ -178,7 +206,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                              <Label>Vista Previa</Label>
                              <div className="aspect-square relative w-full max-w-[150px] rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
                                 {isValidImageUrl(imageUrlWatcher) ? (
-                                    <Image src={imageUrlWatcher} alt="Vista previa" fill objectFit="cover" />
+                                    <Image src={imageUrlWatcher!} alt="Vista previa" fill objectFit="cover" />
                                 ) : (
                                     <span className="text-xs text-muted-foreground p-2 text-center">URL inválida o vacía</span>
                                 )}
@@ -282,7 +310,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 <FormItem>
                                 <FormLabel>Ocupación</FormLabel>
                                 <FormControl>
-                                    <Input {...field} placeholder="Ej: Futbolista, Cantante" />
+                                    <Input {...field} placeholder="Ej: Futbolista, Cantante" value={field.value || ''} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -370,6 +398,42 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                     </div>
                  </div>
 
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium flex items-center">
+                        <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
+                            <Tag />
+                        </span>
+                        Editar Hashtags
+                    </h3>
+                    <div className="flex items-start gap-2">
+                        <HashtagCombobox
+                            inputValue={hashtagInput}
+                            onInputChange={setHashtagInput}
+                            onTagSelect={handleAddHashtag}
+                        />
+                        <Button
+                            type="button"
+                            onClick={() => handleAddHashtag()}
+                            disabled={!hashtagInput.trim()}
+                        >
+                            <Plus className="mr-2 h-4 w-4" /> Añadir
+                        </Button>
+                    </div>
+                     <div className="flex flex-wrap gap-2 pt-2">
+                        {tagsWatcher.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="pl-3 pr-1 py-1 text-sm">
+                            #{tag}
+                            <button
+                                type="button"
+                                onClick={() => handleRemoveHashtag(tag)}
+                                className="ml-2 rounded-full p-0.5 hover:bg-destructive/20 text-destructive"
+                            >
+                                <X className="h-3 w-3" />
+                            </button>
+                        </Badge>
+                        ))}
+                    </div>
+                </div>
 
             </CardContent>
             <CardFooter className="flex justify-end gap-2 p-6 border-t mt-6">
