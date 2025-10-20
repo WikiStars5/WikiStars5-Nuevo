@@ -26,13 +26,7 @@ interface EditInformationFormProps {
 }
 
 const editFormSchema = z.object({
-  imageUrl: z.string().url('Por favor, introduce una URL válida para la imagen.').refine(url => 
-    url.startsWith('https://upload.wikimedia.org') || 
-    url.startsWith('https://i.pinimg.com'), 
-    {
-      message: 'La URL debe ser de upload.wikimedia.org o i.pinimg.com.',
-    }
-  ),
+  imageUrl: z.string().optional(),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
   gender: z.enum(['Femenino', 'Masculino']).optional(),
   birthDate: z.string().optional(),
@@ -43,6 +37,17 @@ const editFormSchema = z.object({
 });
 
 type EditFormValues = z.infer<typeof editFormSchema>;
+
+const isValidImageUrl = (url: string | undefined): boolean => {
+    if (!url) return false;
+    try {
+        const urlObject = new URL(url);
+        return urlObject.protocol === 'https:' && 
+               (urlObject.hostname === 'upload.wikimedia.org' || urlObject.hostname === 'i.pinimg.com');
+    } catch (e) {
+        return false; // Not a valid URL format
+    }
+};
 
 export default function EditInformationForm({ figure, onFormClose }: EditInformationFormProps) {
   const firestore = useFirestore();
@@ -86,6 +91,16 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
           dataToSave[key] = null;
         }
       });
+
+      // Special check for imageUrl to ensure we only save valid ones
+      if (data.imageUrl && !isValidImageUrl(data.imageUrl)) {
+        toast({
+            variant: 'destructive',
+            title: 'URL de Imagen Inválida',
+            description: 'La URL de la imagen no es de una fuente permitida y no se guardará.',
+        });
+        delete dataToSave.imageUrl; // Don't save the invalid URL
+      }
       
       await updateDoc(figureRef, dataToSave);
 
@@ -141,8 +156,8 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         <div className="space-y-2">
                              <Label>Vista Previa</Label>
                              <div className="aspect-square relative w-full max-w-[150px] rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
-                                {imageUrlWatcher && form.formState.errors.imageUrl === undefined ? (
-                                    <Image src={imageUrlWatcher} alt="Vista previa" fill objectFit="cover" />
+                                {isValidImageUrl(imageUrlWatcher) ? (
+                                    <Image src={imageUrlWatcher!} alt="Vista previa" fill objectFit="cover" />
                                 ) : (
                                     <span className="text-xs text-muted-foreground p-2 text-center">URL inválida o vacía</span>
                                 )}
