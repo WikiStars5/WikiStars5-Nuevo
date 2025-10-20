@@ -130,17 +130,27 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                            {infoItems.map((item) => (
-                                item.value ? (
+                            {infoItems.map((item) => {
+                                if (!item.value) return null;
+
+                                return (
                                     <div key={item.label} className="flex items-start gap-3">
                                         <item.icon className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
                                         <div>
                                             <p className="font-semibold text-sm">{item.label}</p>
-                                            <p className="text-muted-foreground">{item.value}</p>
+                                            {item.label === 'Sexo' ? (
+                                                <div className="flex items-center gap-2 text-muted-foreground">
+                                                    <span>{item.value}</span>
+                                                    {item.value === 'Masculino' && <span className="text-blue-400 font-bold">♂</span>}
+                                                    {item.value === 'Femenino' && <span className="text-pink-400 font-bold">♀</span>}
+                                                </div>
+                                            ) : (
+                                                <p className="text-muted-foreground">{item.value}</p>
+                                            )}
                                         </div>
                                     </div>
-                                ) : null
-                            ))}
+                                );
+                            })}
                         </div>
                          {infoItems.every(item => !item.value) && (
                             <p className="text-muted-foreground text-center py-4">
