@@ -51,7 +51,7 @@ const editFormSchema = z.object({
   height: z.number().min(100).max(250).optional(),
   socialLinks: z.object(
     Object.keys(SOCIAL_MEDIA_CONFIG).reduce((acc, key) => {
-        acc[key as SocialPlatform] = z.string().url().or(z.literal('')).optional();
+        acc[key as SocialPlatform] = z.string().url("URL inválida.").or(z.literal('')).optional();
         return acc;
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
@@ -101,21 +101,25 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     const figureRef = doc(firestore, 'figures', figure.id);
 
     try {
-      const dataToSave: { [key: string]: any } = {};
+      // Create a deep copy to avoid modifying the original form data.
+      const dataToSave: { [key: string]: any } = JSON.parse(JSON.stringify(data));
+
+      // Sanitize socialLinks: convert undefined/empty strings to null.
+      if (dataToSave.socialLinks) {
+        for (const key in dataToSave.socialLinks) {
+          if (dataToSave.socialLinks[key] === undefined || dataToSave.socialLinks[key] === '') {
+            dataToSave.socialLinks[key] = null;
+          }
+        }
+      }
       
-      (Object.keys(data) as Array<keyof EditFormValues>).forEach((key) => {
-        const value = data[key];
-        // Only include fields that have a non-empty value.
-        // For optional fields, an empty string means we want to clear it.
-        if (value) {
-          dataToSave[key] = value;
-        } else if (figure[key as keyof Figure]) {
-           // If the form value is empty/undefined, but it exists on the original figure,
-           // set it to null to delete it from Firestore.
+      // Sanitize top-level optional fields: convert empty strings to null.
+      (Object.keys(dataToSave) as Array<keyof EditFormValues>).forEach((key) => {
+         if (dataToSave[key] === '' && key !== 'name') {
           dataToSave[key] = null;
         }
       });
-      
+
       await updateDoc(figureRef, dataToSave);
 
       toast({
@@ -383,3 +387,5 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
+
+    
