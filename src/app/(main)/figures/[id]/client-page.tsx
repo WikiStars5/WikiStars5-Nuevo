@@ -12,7 +12,7 @@ import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays } from 'lucide-react';
 
 function FigureDetailSkeleton() {
   return (
@@ -68,6 +68,16 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
       label: 'Sexo',
       value: figure.gender,
       icon: Users,
+    },
+    {
+        label: 'Fecha de Nacimiento',
+        value: figure.birthDate,
+        icon: CalendarDays,
+    },
+    {
+        label: 'Fecha de Fallecimiento',
+        value: figure.deathDate,
+        icon: CalendarDays,
     },
     {
       label: 'Ocupación',

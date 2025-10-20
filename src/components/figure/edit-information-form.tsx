@@ -17,7 +17,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
 import type { Figure } from '@/lib/types';
-import { Textarea } from '../ui/textarea';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -28,6 +27,8 @@ const editFormSchema = z.object({
   imageUrl: z.string().url('Por favor, introduce una URL válida para la imagen.'),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
   gender: z.enum(['Femenino', 'Masculino']).optional(),
+  birthDate: z.string().optional(),
+  deathDate: z.string().optional(),
   nationality: z.string().optional(),
   occupation: z.string().optional(),
   maritalStatus: z.enum(['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a']).optional(),
@@ -46,6 +47,8 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       imageUrl: figure.imageUrl || '',
       name: figure.name || '',
       gender: figure.gender,
+      birthDate: figure.birthDate || '',
+      deathDate: figure.deathDate || '',
       nationality: figure.nationality || '',
       occupation: figure.occupation || '',
       maritalStatus: figure.maritalStatus,
@@ -174,6 +177,32 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                         <SelectItem value="Masculino">Masculino</SelectItem>
                                     </SelectContent>
                                 </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="birthDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Fecha de Nacimiento</FormLabel>
+                                <FormControl>
+                                    <Input type="date" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="deathDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Fecha de Fallecimiento</FormLabel>
+                                <FormControl>
+                                    <Input type="date" {...field} />
+                                </FormControl>
                                 <FormMessage />
                                 </FormItem>
                             )}
