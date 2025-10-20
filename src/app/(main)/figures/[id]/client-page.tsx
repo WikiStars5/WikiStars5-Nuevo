@@ -12,7 +12,7 @@ import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler } from 'lucide-react';
 
 function FigureDetailSkeleton() {
   return (
@@ -59,6 +59,11 @@ const formatDate = (dateString?: string): string | null => {
         day: 'numeric',
     };
     return adjustedDate.toLocaleDateString('es-ES', options);
+};
+
+const formatHeight = (cm?: number): string | null => {
+    if (!cm) return null;
+    return `${(cm / 100).toFixed(2)} m`;
 };
 
 
@@ -116,6 +121,11 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
       label: 'Estado civil',
       value: figure.maritalStatus,
       icon: Heart,
+    },
+    {
+      label: 'Altura',
+      value: formatHeight(figure.height),
+      icon: Ruler,
     },
   ];
 

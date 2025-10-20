@@ -19,6 +19,7 @@ import { Loader2, Save, X } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from './country-selector';
 import DateInput from './date-input';
+import { Slider } from '@/components/ui/slider';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -34,6 +35,7 @@ const editFormSchema = z.object({
   nationality: z.string().optional(),
   occupation: z.string().optional(),
   maritalStatus: z.enum(['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a']).optional(),
+  height: z.number().min(100).max(250).optional(),
 });
 
 type EditFormValues = z.infer<typeof editFormSchema>;
@@ -65,10 +67,12 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       nationality: figure.nationality || '',
       occupation: figure.occupation || '',
       maritalStatus: figure.maritalStatus,
+      height: figure.height || undefined,
     },
   });
   
   const imageUrlWatcher = form.watch('imageUrl');
+  const heightWatcher = form.watch('height');
 
   const onSubmit = async (data: EditFormValues) => {
     if (!firestore) return;
@@ -91,16 +95,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
           dataToSave[key] = null;
         }
       });
-
-      // Special check for imageUrl to ensure we only save valid ones
-      if (data.imageUrl && !isValidImageUrl(data.imageUrl)) {
-        toast({
-            variant: 'destructive',
-            title: 'URL de Imagen Inválida',
-            description: 'La URL de la imagen no es de una fuente permitida y no se guardará.',
-        });
-        delete dataToSave.imageUrl; // Don't save the invalid URL
-      }
       
       await updateDoc(figureRef, dataToSave);
 
@@ -148,6 +142,9 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                         <FormControl>
                                             <Input placeholder="https://upload.wikimedia.org/..." {...field} />
                                         </FormControl>
+                                         <p className="text-xs text-muted-foreground pt-1">
+                                            Solo se permiten URLs de `upload.wikimedia.org` y `i.pinimg.com`.
+                                        </p>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -157,7 +154,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                              <Label>Vista Previa</Label>
                              <div className="aspect-square relative w-full max-w-[150px] rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
                                 {isValidImageUrl(imageUrlWatcher) ? (
-                                    <Image src={imageUrlWatcher!} alt="Vista previa" fill objectFit="cover" />
+                                    <Image src={imageUrlWatcher} alt="Vista previa" fill objectFit="cover" />
                                 ) : (
                                     <span className="text-xs text-muted-foreground p-2 text-center">URL inválida o vacía</span>
                                 )}
@@ -287,6 +284,31 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="height"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Altura</FormLabel>
+                                    <div className="flex items-center gap-4">
+                                        <FormControl>
+                                            <Slider
+                                                min={100}
+                                                max={250}
+                                                step={1}
+                                                defaultValue={[field.value || 170]}
+                                                onValueChange={(value) => field.onChange(value[0])}
+                                                className="w-[80%]"
+                                            />
+                                        </FormControl>
+                                        <span className="w-[20%] text-center text-sm font-medium text-muted-foreground">
+                                            {heightWatcher ? `${heightWatcher} cm` : 'N/A'}
+                                        </span>
+                                    </div>
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />

@@ -15,6 +15,7 @@ export interface Figure {
   deathDate?: string;
   occupation?: string;
   maritalStatus?: 'Soltero/a' | 'Casado/a' | 'Divorciado/a' | 'Viudo/a';
+  height?: number;
   attitude?: {
     neutral: number;
     fan: number;
