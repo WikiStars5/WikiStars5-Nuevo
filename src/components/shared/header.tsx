@@ -96,20 +96,21 @@ export default function Header() {
                           <span>Panel de Administrador</span>
                           </Link>
                       </DropdownMenuItem>
-                       
-                      <DropdownMenuItem onSelect={() => setIsCharacterDialogOpen(true)}>
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          <span>Crear Perfil de Personaje</span>
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
-                        <Globe className="mr-2 h-4 w-4" />
-                        <span>Crear Perfil Web</span>
-                      </DropdownMenuItem>
-
                       <DropdownMenuSeparator />
                       </>
                   )}
+                  
+                  <DropdownMenuItem onSelect={() => setIsCharacterDialogOpen(true)}>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      <span>Crear Perfil de Personaje</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
+                    <Globe className="mr-2 h-4 w-4" />
+                    <span>Crear Perfil Web</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
 
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
