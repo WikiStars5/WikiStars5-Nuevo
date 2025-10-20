@@ -39,6 +39,29 @@ function FigureDetailSkeleton() {
   );
 }
 
+const formatDate = (dateString?: string): string | null => {
+    if (!dateString) return null;
+
+    if (dateString.startsWith('-')) {
+        const year = dateString.substring(1);
+        return `${year} a. C.`;
+    }
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // Return original if invalid
+    
+    // Adding time zone offset to prevent off-by-one day errors
+    const adjustedDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+
+    const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    };
+    return adjustedDate.toLocaleDateString('es-ES', options);
+};
+
+
 export default function FigureDetailClient({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
   const [isEditing, setIsEditing] = useState(false);
@@ -71,12 +94,12 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     },
     {
         label: 'Fecha de Nacimiento',
-        value: figure.birthDate,
+        value: formatDate(figure.birthDate),
         icon: CalendarDays,
     },
     {
         label: 'Fecha de Fallecimiento',
-        value: figure.deathDate,
+        value: formatDate(figure.deathDate),
         icon: CalendarDays,
     },
     {

@@ -65,15 +65,18 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     const figureRef = doc(firestore, 'figures', figure.id);
 
     try {
-      const dataToSave: Partial<EditFormValues> = {};
-      Object.keys(data).forEach((key) => {
-        const formKey = key as keyof EditFormValues;
-        const value = data[formKey];
+      const dataToSave: { [key: string]: any } = {};
+      
+      (Object.keys(data) as Array<keyof EditFormValues>).forEach((key) => {
+        const value = data[key];
+        // Only include fields that have a non-empty value.
+        // For optional fields, an empty string means we want to clear it.
         if (value !== undefined && value !== '') {
-          (dataToSave as any)[formKey] = value;
-        } else {
-          // Send null to clear the field in Firestore if it's empty
-          (dataToSave as any)[formKey] = null;
+          dataToSave[key] = value;
+        } else if (figure[key] !== undefined) {
+           // If the form value is empty/undefined, but it exists on the original figure,
+           // set it to null to delete it from Firestore.
+          dataToSave[key] = null;
         }
       });
       
