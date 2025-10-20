@@ -12,7 +12,9 @@ import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 
 function FigureDetailSkeleton() {
   return (
@@ -64,6 +66,43 @@ const formatDate = (dateString?: string): string | null => {
 const formatHeight = (cm?: number): string | null => {
     if (!cm) return null;
     return `${(cm / 100).toFixed(2)} m`;
+};
+
+const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
+    website: { label: 'Página Web' },
+    instagram: { label: 'Instagram' },
+    twitter: { label: 'X (Twitter)' },
+    youtube: { label: 'YouTube' },
+    facebook: { label: 'Facebook' },
+    tiktok: { label: 'TikTok' },
+    linkedin: { label: 'LinkedIn' },
+    discord: { label: 'Discord' },
+};
+
+const SocialLink = ({ platform, url }: { platform: string; url: string }) => {
+    try {
+        const domain = new URL(url).hostname;
+        const config = SOCIAL_MEDIA_CONFIG[platform] || { label: domain };
+
+        return (
+            <Link href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-md p-2 hover:bg-muted transition-colors">
+                 <Image
+                    src={`https://www.google.com/s2/favicons?sz=32&domain_url=${domain}`}
+                    alt={`${config.label} icon`}
+                    width={20}
+                    height={20}
+                    className="h-5 w-5 object-contain"
+                />
+                <div>
+                    <p className="font-semibold text-sm">{config.label}</p>
+                    <p className="text-xs text-muted-foreground truncate">{url}</p>
+                </div>
+            </Link>
+        );
+    } catch (e) {
+        // Invalid URL, don't render anything
+        return null;
+    }
 };
 
 
@@ -128,6 +167,8 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
       icon: Ruler,
     },
   ];
+
+  const hasSocialLinks = figure.socialLinks && Object.values(figure.socialLinks).some(link => !!link);
 
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
@@ -195,11 +236,29 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
                                 );
                             })}
                         </div>
-                         {infoItems.every(item => !item.value) && (
+                         {infoItems.every(item => !item.value) && !hasSocialLinks && (
                             <p className="text-muted-foreground text-center py-4">
                                 No hay información detallada disponible. ¡Haz clic en "Editar" para añadirla!
                             </p>
                         )}
+                        
+                        {hasSocialLinks && (
+                            <>
+                                <hr className="my-6" />
+                                 <div className="space-y-4">
+                                     <h3 className="text-sm font-semibold flex items-center gap-2">
+                                         <LinkIcon className="h-4 w-4 text-muted-foreground"/>
+                                         Redes Sociales y Enlaces
+                                     </h3>
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {Object.entries(figure.socialLinks || {}).map(([platform, url]) => (
+                                            url ? <SocialLink key={platform} platform={platform} url={url} /> : null
+                                        ))}
+                                    </div>
+                                 </div>
+                            </>
+                        )}
+
                     </CardContent>
                 </Card>
               )}

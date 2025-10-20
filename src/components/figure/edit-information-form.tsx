@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, X } from 'lucide-react';
+import { Loader2, Save, X, Link as LinkIcon, CaseUpper, Globe, Bot } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from './country-selector';
 import DateInput from './date-input';
@@ -25,6 +25,19 @@ interface EditInformationFormProps {
   figure: Figure;
   onFormClose: () => void;
 }
+
+const SOCIAL_MEDIA_CONFIG = {
+    website: { label: 'Página Web', placeholder: 'https://...' },
+    instagram: { label: 'Instagram', placeholder: 'https://instagram.com/...' },
+    twitter: { label: 'X (Twitter)', placeholder: 'https://x.com/...' },
+    youtube: { label: 'YouTube', placeholder: 'https://youtube.com/...' },
+    facebook: { label: 'Facebook', placeholder: 'https://facebook.com/...' },
+    tiktok: { label: 'TikTok', placeholder: 'https://tiktok.com/@...' },
+    linkedin: { label: 'LinkedIn', placeholder: 'https://linkedin.com/in/...' },
+    discord: { label: 'Discord', placeholder: 'https://discord.gg/...' },
+} as const;
+
+type SocialPlatform = keyof typeof SOCIAL_MEDIA_CONFIG;
 
 const editFormSchema = z.object({
   imageUrl: z.string().optional(),
@@ -36,6 +49,12 @@ const editFormSchema = z.object({
   occupation: z.string().optional(),
   maritalStatus: z.enum(['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a']).optional(),
   height: z.number().min(100).max(250).optional(),
+  socialLinks: z.object(
+    Object.keys(SOCIAL_MEDIA_CONFIG).reduce((acc, key) => {
+        acc[key as SocialPlatform] = z.string().url().or(z.literal('')).optional();
+        return acc;
+    }, {} as Record<SocialPlatform, z.ZodTypeAny>)
+  ).optional(),
 });
 
 type EditFormValues = z.infer<typeof editFormSchema>;
@@ -68,6 +87,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       occupation: figure.occupation || '',
       maritalStatus: figure.maritalStatus,
       height: figure.height || undefined,
+      socialLinks: figure.socialLinks || {},
     },
   });
   
@@ -89,7 +109,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
         // For optional fields, an empty string means we want to clear it.
         if (value) {
           dataToSave[key] = value;
-        } else if (figure[key]) {
+        } else if (figure[key as keyof Figure]) {
            // If the form value is empty/undefined, but it exists on the original figure,
            // set it to null to delete it from Firestore.
           dataToSave[key] = null;
@@ -314,6 +334,38 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         />
                     </div>
                 </div>
+
+                 <div className="space-y-4">
+                    <h3 className="text-lg font-medium flex items-center">
+                        <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
+                            <LinkIcon />
+                        </span>
+                        Redes Sociales y Enlaces
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        {(Object.keys(SOCIAL_MEDIA_CONFIG) as SocialPlatform[]).map((platform) => (
+                             <FormField
+                                key={platform}
+                                control={form.control}
+                                name={`socialLinks.${platform}`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{SOCIAL_MEDIA_CONFIG[platform].label}</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                placeholder={SOCIAL_MEDIA_CONFIG[platform].placeholder} 
+                                                {...field}
+                                                value={field.value || ''}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        ))}
+                    </div>
+                 </div>
+
 
             </CardContent>
             <CardFooter className="flex justify-end gap-2 p-6 border-t mt-6">

@@ -16,6 +16,16 @@ export interface Figure {
   occupation?: string;
   maritalStatus?: 'Soltero/a' | 'Casado/a' | 'Divorciado/a' | 'Viudo/a';
   height?: number;
+  socialLinks?: {
+    instagram?: string;
+    twitter?: string;
+    youtube?: string;
+    facebook?: string;
+    linkedin?: string;
+    discord?: string;
+    tiktok?: string;
+    website?: string;
+  };
   attitude?: {
     neutral: number;
     fan: number;
