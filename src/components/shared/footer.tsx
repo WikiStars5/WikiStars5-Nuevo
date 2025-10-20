@@ -14,7 +14,7 @@ export default function Footer() {
         </p>
         <nav className="flex items-center gap-4 text-sm font-medium">
           <Link
-            href="/admin"
+            href="/login"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
             Admin Login
