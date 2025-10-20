@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,6 +10,9 @@ import type { Figure } from '@/lib/types';
 import ProfileHeader from '@/components/figure/ProfileHeader';
 import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
+import EditInformationForm from '@/components/figure/edit-information-form';
+import { Button } from '@/components/ui/button';
+import { Pencil } from 'lucide-react';
 
 function FigureDetailSkeleton() {
   return (
@@ -37,16 +41,21 @@ function FigureDetailSkeleton() {
 
 export default function FigureDetailClient({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
+  const [isEditing, setIsEditing] = useState(false);
 
   const figureDocRef = useMemoFirebase(() => {
     if (!firestore || !figureId) return null;
     return doc(firestore, 'figures', figureId);
   }, [firestore, figureId]);
 
-  const { data: figure, isLoading } = useDoc<Figure>(figureDocRef);
+  const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
 
   if (isLoading || !figure) {
     return <FigureDetailSkeleton />;
+  }
+  
+  if (error) {
+    return <div className="text-center py-10 text-red-500">Error: {error.message}</div>
   }
 
   return (
@@ -76,13 +85,28 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="informacion" className="mt-4">
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-muted-foreground">
-                  Información sobre {figure.name} aparecerá aquí.
-                </p>
-              </CardContent>
-            </Card>
+              {isEditing ? (
+                  <EditInformationForm figure={figure} onFormClose={() => setIsEditing(false)} />
+              ) : (
+                <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle>Biografía</CardTitle>
+                                <CardDescription>Datos biográficos y descriptivos de {figure.name}.</CardDescription>
+                            </div>
+                            <Button variant="outline" onClick={() => setIsEditing(true)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <p className="text-muted-foreground">
+                            {figure.biography || `Aún no hay una biografía para ${figure.name}. ¡Sé el primero en añadir una!`}
+                        </p>
+                    </CardContent>
+                </Card>
+              )}
           </TabsContent>
           <TabsContent value="actitud" className="mt-4">
             <Card>
@@ -112,5 +136,3 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </div>
   );
 }
-
-    

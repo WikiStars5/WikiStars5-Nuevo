@@ -10,6 +10,12 @@ export interface Figure {
   approved: boolean;
   description?: string;
   photoUrl?: string;
+  biography?: string;
+  gender?: 'Femenino' | 'Masculino' | 'No binario' | 'Prefiero no decir';
+  birthDate?: string;
+  deathDate?: string;
+  occupation?: string;
+  maritalStatus?: 'Soltero/a' | 'Casado/a' | 'Divorciado/a' | 'Viudo/a';
   attitude?: {
     neutral: number;
     fan: number;
