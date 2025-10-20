@@ -26,7 +26,13 @@ interface EditInformationFormProps {
 }
 
 const editFormSchema = z.object({
-  imageUrl: z.string().url('Por favor, introduce una URL válida para la imagen.'),
+  imageUrl: z.string().url('Por favor, introduce una URL válida para la imagen.').refine(url => 
+    url.startsWith('https://upload.wikimedia.org') || 
+    url.startsWith('https://i.pinimg.com'), 
+    {
+      message: 'La URL debe ser de upload.wikimedia.org o i.pinimg.com.',
+    }
+  ),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
   gender: z.enum(['Femenino', 'Masculino']).optional(),
   birthDate: z.string().optional(),
@@ -125,7 +131,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                     <FormItem>
                                         <FormLabel>URL de la Imagen</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="https://ejemplo.com/imagen.jpg" {...field} />
+                                            <Input placeholder="https://upload.wikimedia.org/..." {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

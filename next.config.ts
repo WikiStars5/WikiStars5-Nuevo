@@ -55,7 +55,13 @@ const nextConfig = {
         hostname: 'flagcdn.com',
         port: '',
         pathname: '/**',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.pinimg.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };
