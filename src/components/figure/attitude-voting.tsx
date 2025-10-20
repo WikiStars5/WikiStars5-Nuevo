@@ -3,7 +3,8 @@
 
 import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment, getAuth, onAuthStateChanged, User as FirebaseUser } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged, User as FirebaseUser, Auth } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, Star, ThumbsDown, User, Loader2 } from 'lucide-react';
@@ -11,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote } from '@/lib/types';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
-import { Auth } from 'firebase/auth';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
