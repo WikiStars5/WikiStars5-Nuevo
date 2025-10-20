@@ -12,10 +12,11 @@ import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Tag } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
@@ -170,6 +171,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
   const hasInfo = infoItems.some(item => !!item.value);
   const hasSocialLinks = figure.socialLinks && Object.values(figure.socialLinks).some(link => !!link);
+  const hasTags = figure.tags && figure.tags.length > 0;
 
 
   return (
@@ -249,7 +251,10 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
                             <>
                                 <Separator className="my-6" />
                                 <div className="space-y-4">
-                                    <h3 className="font-semibold text-sm">Redes Sociales</h3>
+                                    <h3 className="font-semibold text-sm flex items-center gap-2">
+                                        <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                                        Redes Sociales
+                                    </h3>
                                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
                                         {Object.entries(figure.socialLinks || {}).map(([platform, url]) => (
                                             url ? <SocialLink key={platform} platform={platform} url={url} /> : null
@@ -258,6 +263,28 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
                                 </div>
                             </>
                         )}
+                        
+                        {hasTags && (
+                             <>
+                                <Separator className="my-6" />
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-sm flex items-center gap-2">
+                                        <Tag className="h-4 w-4 text-muted-foreground" />
+                                        Hashtags
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {figure.tags.map((tag) => (
+                                            <Link href={`/figures/hashtagged/${encodeURIComponent(tag)}`} key={tag}>
+                                                <Badge variant="secondary" className="transition-colors hover:bg-primary/20">
+                                                    #{tag}
+                                                </Badge>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
                     </CardContent>
                 </Card>
               )}
