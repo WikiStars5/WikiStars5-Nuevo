@@ -7,9 +7,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Figure } from '@/lib/types';
 import { searchFiguresByHashtag } from '@/app/actions/searchHashtagsAction';
-import { searchFiguresByName } from '@/app/actions/searchFiguresAction';
 import { cn, correctMalformedUrl } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { useFirestore } from '@/firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { normalizeText } from '@/lib/keywords';
 
 // Debounce function
 function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
@@ -27,6 +29,7 @@ interface SearchBarProps {
   onResultClick?: (figure: Figure) => void;
 }
 
+
 export default function SearchBar({ 
   initialQuery = '', 
   className,
@@ -39,6 +42,46 @@ export default function SearchBar({
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const searchFiguresByName = async (searchTerm: string): Promise<Figure[]> => {
+      if (!firestore) return [];
+      const normalizedSearchTerm = normalizeText(searchTerm);
+      if (normalizedSearchTerm.length < 1) return [];
+
+      const figuresCollection = collection(firestore, 'figures');
+      const firestoreQuery = query(
+          figuresCollection,
+          where('nameKeywords', 'array-contains', normalizedSearchTerm),
+          limit(10)
+      );
+
+      const snapshot = await getDocs(firestoreQuery);
+      if (snapshot.empty) {
+          return [];
+      }
+
+      const figures = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+              id: doc.id,
+              name: data.name,
+              imageUrl: data.imageUrl,
+              imageHint: data.imageHint,
+              nationality: data.nationality,
+              tags: data.tags,
+              isFeatured: data.isFeatured,
+              nameKeywords: data.nameKeywords,
+              approved: data.approved,
+              description: data.description,
+              photoUrl: data.photoUrl,
+          } as Figure;
+      });
+      
+      figures.sort((a, b) => a.name.localeCompare(b.name));
+      return figures;
+  }
+
 
   const handleSearchSubmit = (searchTerm: string) => {
     const trimmedTerm = searchTerm.trim();
@@ -87,7 +130,7 @@ export default function SearchBar({
         setIsLoading(false);
       }
     }, 300), 
-    []
+    [firestore] // Add firestore to dependency array
   );
 
   useEffect(() => {

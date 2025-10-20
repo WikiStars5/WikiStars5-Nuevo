@@ -3,7 +3,7 @@
  * @param text The string to normalize.
  * @returns The normalized string.
  */
-function normalizeText(text: string): string {
+export function normalizeText(text: string): string {
   return text
     .toLowerCase()
     .normalize('NFD')
