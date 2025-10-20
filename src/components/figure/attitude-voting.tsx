@@ -153,10 +153,10 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
     0
   );
 
-  // The loading state should only depend on the initial user load,
-  // and if there is a user, the loading of their specific vote.
+  // Show loading skeleton only if the user status is loading.
+  // If there's no user, we don't need to wait for their vote to load.
   const isLoading = isUserLoading || (!!user && isVoteLoading);
-
+  
   if (isLoading && user) {
     return <Skeleton className="h-48 w-full" />;
   }
