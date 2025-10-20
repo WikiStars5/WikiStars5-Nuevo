@@ -12,7 +12,7 @@ import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart } from 'lucide-react';
 
 function FigureDetailSkeleton() {
   return (
@@ -58,6 +58,34 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     return <div className="text-center py-10 text-red-500">Error: {error.message}</div>
   }
 
+  const infoItems = [
+    {
+      label: 'Nombre Completo',
+      value: figure.name,
+      icon: User,
+    },
+    {
+      label: 'Sexo',
+      value: figure.gender,
+      icon: Users,
+    },
+    {
+      label: 'Ocupación',
+      value: figure.occupation,
+      icon: Briefcase,
+    },
+    {
+      label: 'País de origen',
+      value: figure.nationality,
+      icon: Globe,
+    },
+    {
+      label: 'Estado civil',
+      value: figure.maritalStatus,
+      icon: Heart,
+    },
+  ];
+
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
       <ProfileHeader figure={figure} />
@@ -92,18 +120,33 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <div>
-                                <CardTitle>Biografía</CardTitle>
+                                <CardTitle>Información Detallada</CardTitle>
                                 <CardDescription>Datos biográficos y descriptivos de {figure.name}.</CardDescription>
                             </div>
                             <Button variant="outline" onClick={() => setIsEditing(true)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
+                                <Pencil className="mr-2 h-4 w-4" /> Editar
                             </Button>
                         </div>
                     </CardHeader>
                     <CardContent className="p-6">
-                        <p className="text-muted-foreground">
-                            {figure.biography || `Aún no hay una biografía para ${figure.name}. ¡Sé el primero en añadir una!`}
-                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                            {infoItems.map((item) => (
+                                item.value ? (
+                                    <div key={item.label} className="flex items-start gap-3">
+                                        <item.icon className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
+                                        <div>
+                                            <p className="font-semibold text-sm">{item.label}</p>
+                                            <p className="text-muted-foreground">{item.value}</p>
+                                        </div>
+                                    </div>
+                                ) : null
+                            ))}
+                        </div>
+                         {infoItems.every(item => !item.value) && (
+                            <p className="text-muted-foreground text-center py-4">
+                                No hay información detallada disponible. ¡Haz clic en "Editar" para añadirla!
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
               )}
