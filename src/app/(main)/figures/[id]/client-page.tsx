@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { Figure } from '@/lib/types';
 import ProfileHeader from '@/components/figure/ProfileHeader';
 import AttitudeVoting from '@/components/figure/attitude-voting';
+import EmotionVoting from '@/components/figure/emotion-voting';
 
 function FigureDetailSkeleton() {
   return (
@@ -93,9 +94,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
           <TabsContent value="emocion" className="mt-4">
             <Card>
               <CardContent className="p-6">
-                <p className="text-muted-foreground">
-                  El análisis de emociones para {figure.name} aparecerá aquí.
-                </p>
+                 <EmotionVoting figure={figure} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -113,4 +112,5 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </div>
   );
 }
+
     

@@ -97,6 +97,18 @@
             "simp": { "type": "number" },
             "hater": { "type": "number" }
           }
+        },
+        "emotion": {
+          "type": "object",
+          "description": "Aggregated emotion vote counts for the public figure.",
+          "properties": {
+            "alegria": { "type": "number" },
+            "envidia": { "type": "number" },
+            "tristeza": { "type": "number" },
+            "miedo": { "type": "number" },
+            "desagrado": { "type": "number" },
+            "furia": { "type": "number" }
+          }
         }
       },
       "required": [
@@ -347,6 +359,37 @@
         }
       },
       "required": ["id", "userId", "figureId", "vote", "createdAt"]
+    },
+     "EmotionVote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EmotionVote",
+      "type": "object",
+      "description": "Represents a user's emotion vote for a public figure.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Composite key, typically {userId}_{figureId}."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who voted."
+        },
+        "figureId": {
+          "type": "string",
+          "description": "The ID of the public figure being voted on."
+        },
+        "vote": {
+          "type": "string",
+          "description": "The type of vote cast.",
+          "enum": ["alegria", "envidia", "tristeza", "miedo", "desagrado", "furia"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the vote was cast."
+        }
+      },
+      "required": ["id", "userId", "figureId", "vote", "createdAt"]
     }
   },
   "auth": {
@@ -417,6 +460,26 @@
             "$ref": "#/backend/entities/AttitudeVote"
           },
           "description": "Stores a user's specific attitude vote for a figure to prevent duplicate voting.",
+          "params": [
+            {
+              "name": "figureId",
+              "description": "The unique identifier of the public figure."
+            },
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who voted."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/figures/{figureId}/emotionVotes/{userId}",
+        "definition": {
+          "entityName": "EmotionVote",
+          "schema": {
+            "$ref": "#/backend/entities/EmotionVote"
+          },
+          "description": "Stores a user's specific emotion vote for a figure to prevent duplicate voting.",
           "params": [
             {
               "name": "figureId",
@@ -541,4 +604,5 @@
     "reasoning": "The Firestore structure is designed to support the WikiStars5 application, focusing on user profiles, public figures, comments, notifications, streaks, and achievements. Key considerations include authorization independence, clarity of intent, and secure list operations. The structure utilizes path-based ownership for user-specific data and denormalization for collaborative data, ensuring that security rules can be written without complex `get()` calls.\n\n*   **Users:** User data is stored under `/users/{userId}`, providing secure and straightforward access to individual user profiles. This path-based ownership simplifies security rules. The `role` property within each user document determines administrative privileges.\n*   **Public Figures:** Public figure profiles are stored in the `/figures/{figureId}` collection.  Featuring status is stored directly in the `PublicFigure` document.\n*   **Comments:** Comments are stored in a subcollection under each `PublicFigure` at `/figures/{figureId}/comments/{commentId}`.  This structure facilitates efficient querying of comments for a specific public figure.  Denormalizing the `figureId` into the comment document itself (even though it is implicit in the path) ensures authorization independence.\n*   **Notifications:** Notifications are stored under `/users/{userId}/notifications/{notificationId}`.  This path-based approach ensures that only the user can access their notifications. No denormalization is required here.\n*   **Streaks:** Streaks, representing a user's commenting activity on a public figure, are stored under `/users/{userId}/streaks/{streakId}`. This adheres to path-based ownership. The `publicFigureId` is stored within each `Streak` document.\n*   **Achievements:** The master list of achievements is stored in the `/achievements/{achievementId}` collection. User-specific achievements are stored in the `/users/{userId}/achievements/{achievementId}` collection, which maintains a record of unlocked achievements for each user.\n*   **User Achievements:** User achievements are managed under `/users/{userId}/user_achievements/{userAchievementId}`, linking users to their earned achievements.  The `achievementId` is stored to reference the specific achievement.\n*   **Related Figures:** Relationships between public figures are stored in the `/related_figures/{relatedFigureId}` collection. Each document includes `sourceFigureId` and `targetFigureId` to define the relationship.\n*   **Admin Roles:**  Admin status is checked by verifying the existence of a document in the `/roles_admin/{userId}` collection. This existence-based check is efficient and secure.\n\nThis structure supports the required QAPs by:\n\n*   **Authorization Independence:** Denormalizing authorization-relevant data into subcollections eliminates the need for `get()` calls in security rules.\n*   **Secure List Operations:** Segregating data based on access requirements (e.g., user-specific data under `/users/{userId}`) ensures that list operations can be secured effectively. Public figures are in a separate collection, allowing open read access while restricting write access to admins only."
   }
 }
+
     

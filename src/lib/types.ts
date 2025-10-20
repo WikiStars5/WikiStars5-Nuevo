@@ -16,6 +16,14 @@ export interface Figure {
     simp: number;
     hater: number;
   };
+  emotion?: {
+    alegria: number;
+    envidia: number;
+    tristeza: number;
+    miedo: number;
+    desagrado: number;
+    furia: number;
+  };
 }
 
 export interface Hashtag {
@@ -32,4 +40,13 @@ export interface AttitudeVote {
     createdAt: any; // Firestore Timestamp
 }
 
+export interface EmotionVote {
+    id: string;
+    userId: string;
+    figureId: string;
+    vote: 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
+    createdAt: any; // Firestore Timestamp
+}
+
+    
     
