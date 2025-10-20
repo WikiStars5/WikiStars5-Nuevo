@@ -12,12 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
 import type { Figure } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { Textarea } from '../ui/textarea';
 
 interface EditInformationFormProps {
@@ -64,10 +63,17 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     const figureRef = doc(firestore, 'figures', figure.id);
 
     try {
-      // We only update the fields present in the form to avoid overwriting other data
-      await updateDoc(figureRef, {
-        ...data
+      // Create a clean data object to send to Firestore, removing any undefined fields.
+      const dataToSave: Partial<EditFormValues> = {};
+      Object.keys(data).forEach((key) => {
+        const formKey = key as keyof EditFormValues;
+        if (data[formKey] !== undefined) {
+          (dataToSave as any)[formKey] = data[formKey];
+        }
       });
+      
+      await updateDoc(figureRef, dataToSave);
+
       toast({
         title: '¡Perfil Actualizado!',
         description: `La información de ${data.name} ha sido guardada.`,
