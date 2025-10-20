@@ -43,8 +43,8 @@ export default function HomePage() {
         <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 font-headline">
           Bienvenido a <span className="text-primary">WikiStars5</span>
         </h1>
-        <div className="mt-8 max-w-lg mx-auto">
-          <SearchBar />
+        <div className="mt-8">
+          <SearchBar className="max-w-lg mx-auto" />
           <p className="mt-3 text-sm text-muted-foreground">
             Escribe un nombre y presiona enter o haz clic en buscar.
           </p>

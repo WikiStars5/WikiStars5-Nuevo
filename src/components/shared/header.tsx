@@ -48,7 +48,7 @@ export default function Header() {
                 <Logo className="h-6 w-6 text-primary" />
                 <span className="font-headline text-primary">WikiStars5</span>
             </Link>
-            <div className="hidden md:block">
+            <div className="hidden md:block w-96">
               <SearchBar />
             </div>
         </div>

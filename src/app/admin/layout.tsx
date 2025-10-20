@@ -13,8 +13,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { Bell, Download, Gem, Home, LogOut } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Search, Shield, ShieldAlert } from 'lucide-react';
+import SearchBar from '@/components/shared/search-bar';
+import { Shield, ShieldAlert } from 'lucide-react';
 import { useAuth, useUser, useAdmin } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
@@ -86,13 +86,8 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
                     <Logo className="h-6 w-6 text-primary" />
                     <span className="font-headline text-primary">WikiStars5</span>
                 </Link>
-                 <div className="hidden md:block relative min-w-80">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                    type="search"
-                    placeholder="Buscar perfiles o #hashtags"
-                    className="w-full pl-9 pr-4 py-2 h-10 text-sm rounded-full bg-card border-border/60"
-                    />
+                 <div className="hidden md:block w-96">
+                    <SearchBar />
                 </div>
             </div>
 

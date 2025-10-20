@@ -8,4 +8,12 @@ export interface Figure {
   isFeatured?: boolean;
   nameKeywords: string[];
   approved: boolean;
+  description?: string;
+  photoUrl?: string;
+}
+
+export interface Hashtag {
+    id: string;
+    name: string;
+    figureCount: number;
 }
