@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
 import type { Figure } from '@/lib/types';
-import DateInput from './date-input';
+import { CountrySelector } from './country-selector';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -71,9 +71,9 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
         const value = data[key];
         // Only include fields that have a non-empty value.
         // For optional fields, an empty string means we want to clear it.
-        if (value !== undefined && value !== '') {
+        if (value) {
           dataToSave[key] = value;
-        } else if (figure[key] !== undefined) {
+        } else if (figure[key]) {
            // If the form value is empty/undefined, but it exists on the original figure,
            // set it to null to delete it from Firestore.
           dataToSave[key] = null;
@@ -190,12 +190,11 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             control={form.control}
                             name="birthDate"
                             render={({ field }) => (
-                                <FormItem className="flex flex-col">
+                                <FormItem>
                                     <FormLabel>Fecha de Nacimiento</FormLabel>
-                                    <DateInput
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                    />
+                                    <FormControl>
+                                        <Input {...field} placeholder="Ej: 15 de agosto de 1990" />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -204,25 +203,25 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             control={form.control}
                             name="deathDate"
                             render={({ field }) => (
-                               <FormItem className="flex flex-col">
+                               <FormItem>
                                     <FormLabel>Fecha de Fallecimiento</FormLabel>
-                                    <DateInput
-                                        value={field.value}
-                                        onChange={field.onChange}
-                                    />
+                                    <FormControl>
+                                        <Input {...field} placeholder="Dejar en blanco si está vivo/a" />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                       <FormField
                             control={form.control}
                             name="nationality"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex flex-col">
                                 <FormLabel>País de origen</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder="Ej: Argentina" />
-                                </FormControl>
+                                 <CountrySelector
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                  />
                                 <FormMessage />
                                 </FormItem>
                             )}
