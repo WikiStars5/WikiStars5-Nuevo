@@ -20,6 +20,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { searchHashtags } from '@/app/actions/searchHashtagsAction';
+import { Input } from '@/components/ui/input';
 
 interface HashtagComboboxProps {
     inputValue: string;
