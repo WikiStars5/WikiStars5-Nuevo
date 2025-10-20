@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, increment, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, Star, ThumbsDown, User, Loader2 } from 'lucide-react';
@@ -37,7 +38,6 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
 
   const userVoteRef = useMemoFirebase(() => {
-    // Only create a reference if we have a logged-in user.
     if (!firestore || !user) return null;
     return doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
   }, [firestore, user, figure.id]);
@@ -47,13 +47,10 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const handleVote = async (vote: AttitudeOption) => {
     if (isVoting || !firestore || !auth) return;
 
-    // If user is not logged in, sign them in anonymously and prompt to click again
     if (!user) {
       setIsVoting(vote);
       try {
         await initiateAnonymousSignIn(auth);
-        // The onAuthStateChanged listener will update the user state.
-        // We show a toast to guide the user for the next action.
         toast({
           title: 'Cuenta de invitado creada',
           description: 'Ahora puedes votar. Haz clic de nuevo para registrar tu voto.',
@@ -68,10 +65,9 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
       } finally {
         setIsVoting(null);
       }
-      return; // Stop execution here. User needs to click again.
+      return;
     }
 
-    // If user is logged in, proceed with voting.
     setIsVoting(vote);
 
     const figureRef = doc(firestore, 'figures', figure.id);
@@ -97,34 +93,38 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
           const previousVote = existingVoteDoc.data().vote as AttitudeOption;
 
           if (previousVote === vote) {
-            // If clicking the same button, do nothing (or show a toast)
-            toast({
-              description: `Tu voto actual ya es '${vote}'.`,
+            // User is clicking the same button again, so remove the vote.
+            transaction.update(figureRef, {
+              [`attitude.${vote}`]: increment(-1),
             });
-            return;
+            transaction.delete(voteRef);
+            toast({
+              title: 'Voto eliminado',
+              description: `Has quitado tu voto de '${vote}'.`,
+            });
+          } else {
+            // User is changing their vote.
+            transaction.update(figureRef, {
+              [`attitude.${previousVote}`]: increment(-1),
+              [`attitude.${vote}`]: increment(1),
+            });
+            transaction.set(voteRef, newVoteData);
+            toast({
+                title: '¡Voto actualizado!',
+                description: `Tu actitud hacia ${figure.name} ha sido actualizada a '${vote}'.`,
+            });
           }
-
-          // Decrement the old vote and increment the new one
-          transaction.update(figureRef, {
-            [`attitude.${previousVote}`]: increment(-1),
-            [`attitude.${vote}`]: increment(1),
-          });
-
-          // Update the user's vote document
-          transaction.set(voteRef, newVoteData);
-
         } else {
-          // First time voting
+          // First time voting.
           transaction.update(figureRef, {
             [`attitude.${vote}`]: increment(1),
           });
           transaction.set(voteRef, newVoteData);
+           toast({
+            title: '¡Voto registrado!',
+            description: `Tu actitud hacia ${figure.name} ha sido registrada como '${vote}'.`,
+          });
         }
-      });
-
-      toast({
-        title: '¡Voto registrado!',
-        description: `Tu actitud hacia ${figure.name} ha sido registrada como '${vote}'.`,
       });
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
@@ -143,11 +143,9 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
     0
   );
 
-  // Determine final loading state.
-  // We are loading if auth state is loading, OR if we have a user but their specific vote hasn't loaded yet.
-  const isLoading = isUserLoading || (!!user && isVoteLoading);
+  const isLoading = isUserLoading || (user && isVoteLoading);
 
-  if (isLoading) {
+  if (isLoading && user) {
     return <Skeleton className="h-48 w-full" />;
   }
 
