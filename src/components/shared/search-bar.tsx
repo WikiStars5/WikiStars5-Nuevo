@@ -10,7 +10,7 @@ import { searchFiguresByHashtag } from '@/app/actions/searchHashtagsAction';
 import { cn, correctMalformedUrl } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { collection, query as firestoreQuery, where, getDocs, limit } from 'firebase/firestore';
 import { normalizeText } from '@/lib/keywords';
 
 // Debounce function
@@ -35,7 +35,7 @@ export default function SearchBar({
   className,
   onResultClick
 }: SearchBarProps) {
-  const [query, setQuery] = useState(initialQuery);
+  const [currentQuery, setCurrentQuery] = useState(initialQuery);
   const [figureResults, setFigureResults] = useState<Figure[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -52,13 +52,13 @@ export default function SearchBar({
 
     try {
       const figuresCollection = collection(firestore, 'figures');
-      const firestoreQuery = query(
+      const q = firestoreQuery(
           figuresCollection,
           where('nameKeywords', 'array-contains', normalizedSearchTerm),
           limit(10)
       );
 
-      const snapshot = await getDocs(firestoreQuery);
+      const snapshot = await getDocs(q);
 
       if (snapshot.empty) {
         return [];
@@ -105,7 +105,7 @@ export default function SearchBar({
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      handleSearchSubmit(query);
+      handleSearchSubmit(currentQuery);
     }
   };
 
@@ -131,10 +131,8 @@ export default function SearchBar({
         let figures: Figure[] = [];
         if (trimmedSearch.startsWith('#')) {
           const hashtagQuery = trimmedSearch.substring(1);
-          // This still uses a server action, which is fine.
           figures = await searchFiguresByHashtag(hashtagQuery);
         } else {
-          // This now uses the client-side function.
           figures = await searchFiguresByName(trimmedSearch);
         }
         setFigureResults(figures);
@@ -145,7 +143,7 @@ export default function SearchBar({
         setIsLoading(false);
       }
     }, 300), 
-    [firestore] // Critical dependency
+    [firestore]
   );
 
   useEffect(() => {
@@ -156,14 +154,14 @@ export default function SearchBar({
   }, [initialQuery]);
 
   useEffect(() => {
-    if (query.trim() === '') {
+    if (currentQuery.trim() === '') {
       setFigureResults([]);
       setIsLoading(false);
       setIsDropdownOpen(false);
       return;
     }
-    debouncedSearch(query);
-  }, [query, debouncedSearch]);
+    debouncedSearch(currentQuery);
+  }, [currentQuery, debouncedSearch]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -189,13 +187,13 @@ export default function SearchBar({
   };
 
   const clearSearch = () => {
-    setQuery('');
+    setCurrentQuery('');
     setFigureResults([]);
     setIsDropdownOpen(false);
     inputRef.current?.focus(); 
   };
 
-  const hasNoResults = !isLoading && query.trim().length >= 1 && figureResults.length === 0;
+  const hasNoResults = !isLoading && currentQuery.trim().length >= 1 && figureResults.length === 0;
 
   return (
     <div className={cn("relative w-full max-w-lg mx-auto", className)} ref={searchContainerRef}>
@@ -205,18 +203,18 @@ export default function SearchBar({
           ref={inputRef}
           type="text"
           placeholder="Buscar perfiles o #hashtags"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          value={currentQuery}
+          onChange={(e) => setCurrentQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => { 
-            if (query.trim().length > 0) setIsDropdownOpen(true);
+            if (currentQuery.trim().length > 0) setIsDropdownOpen(true);
           }}
           className="text-sm h-10 flex-grow pl-10 pr-10 rounded-full shadow-sm border-border/60 focus:ring-1 focus:ring-primary/50"
         />
-        {isLoading && query.length >= 1 && (
+        {isLoading && currentQuery.length >= 1 && (
            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-muted-foreground" />
         )}
-        {!isLoading && query.length > 0 && (
+        {!isLoading && currentQuery.length > 0 && (
           <button
             type="button"
             onClick={clearSearch}
@@ -228,15 +226,15 @@ export default function SearchBar({
         )}
       </div>
 
-      {isDropdownOpen && query.trim().length > 0 && (
+      {isDropdownOpen && currentQuery.trim().length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl max-h-80 overflow-y-auto">
-          {isLoading && query.trim().length >=1 && (
+          {isLoading && currentQuery.trim().length >=1 && (
             <div className="p-3 text-xs text-center text-muted-foreground">Buscando...</div>
           )}
           {hasNoResults && (
-            <div className="p-3 text-xs text-center text-muted-foreground">No se encontraron resultados para "{query}".</div>
+            <div className="p-3 text-xs text-center text-muted-foreground">No se encontraron resultados para "{currentQuery}".</div>
           )}
-          {!isLoading && query.trim().length < 1 && (
+          {!isLoading && currentQuery.trim().length < 1 && (
              <div className="p-3 text-xs text-center text-muted-foreground">Escribe al menos 1 caracter.</div>
           )}
 
@@ -297,7 +295,7 @@ export default function SearchBar({
                     </div>
                     <div className="flex-grow min-w-0">
                       <p className="font-medium text-xs text-foreground truncate">{figure.name}</p>
-                      {query.startsWith('#') 
+                      {currentQuery.startsWith('#') 
                         ? <p className="text-xs text-muted-foreground truncate">Coincidencia por hashtag</p>
                         : figure.description && <p className="text-xs text-muted-foreground truncate">{figure.description}</p>
                       }
@@ -313,3 +311,5 @@ export default function SearchBar({
     </div>
   );
 }
+
+    
