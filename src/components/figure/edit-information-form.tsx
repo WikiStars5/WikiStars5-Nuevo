@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Image from 'next/image';
 
@@ -23,6 +23,7 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '../ui/badge';
 import HashtagCombobox from './hashtag-combobox';
 import { generateKeywords, normalizeText } from '@/lib/keywords';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -67,9 +68,11 @@ const isValidImageUrl = (url: string | undefined | null): boolean => {
     if (!url) return false;
     try {
         const urlObject = new URL(url);
+        // Only allow specific trusted domains for images
         return urlObject.protocol === 'https:' && 
                (urlObject.hostname === 'upload.wikimedia.org' || urlObject.hostname === 'i.pinimg.com');
     } catch (e) {
+        // If URL parsing fails, it's not a valid URL
         return false; 
     }
 };
@@ -138,17 +141,32 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
         }
       });
       
+      const batch = writeBatch(firestore);
+
       // Generate hashtag keywords
-      if (data.tags) {
+      if (data.tags && data.tags.length > 0) {
         dataToSave.tagsLower = data.tags.map(tag => normalizeText(tag));
         dataToSave.tagKeywords = generateKeywords(data.tags.join(' '));
+
+        // Add new hashtags to the central 'hashtags' collection
+        for (const tag of data.tags) {
+            const normalizedTag = normalizeText(tag);
+            if (normalizedTag) {
+                const hashtagRef = doc(firestore, 'hashtags', normalizedTag);
+                // Use set with merge to create the doc if it doesn't exist,
+                // or do nothing if it does. This is idempotent.
+                batch.set(hashtagRef, { name: tag }, { merge: true });
+            }
+        }
+
       } else {
         dataToSave.tags = [];
         dataToSave.tagsLower = [];
         dataToSave.tagKeywords = [];
       }
 
-      await updateDoc(figureRef, dataToSave);
+      batch.update(figureRef, dataToSave);
+      await batch.commit();
 
       toast({
         title: '¡Perfil Actualizado!',
@@ -296,7 +314,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 <FormItem className="flex flex-col">
                                 <FormLabel>País de origen</FormLabel>
                                  <CountrySelector
-                                    value={field.value}
+                                    value={field.value || ''}
                                     onChange={field.onChange}
                                   />
                                 <FormMessage />
@@ -451,5 +469,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
+
+    
 
     
