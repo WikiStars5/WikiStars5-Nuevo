@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -38,6 +37,7 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
 
   const userVoteRef = useMemoFirebase(() => {
+    // Only create a reference if we have a logged-in user.
     if (!firestore || !user) return null;
     return doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
   }, [firestore, user, figure.id]);
@@ -143,7 +143,11 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
     0
   );
 
-  if (isUserLoading || isVoteLoading) {
+  // Determine final loading state.
+  // We are loading if auth state is loading, OR if we have a user but their specific vote hasn't loaded yet.
+  const isLoading = isUserLoading || (!!user && isVoteLoading);
+
+  if (isLoading) {
     return <Skeleton className="h-48 w-full" />;
   }
 
