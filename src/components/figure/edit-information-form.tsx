@@ -13,11 +13,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel, FormDescription } from '@/components/ui/form';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Textarea } from '../ui/textarea';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -27,7 +28,8 @@ interface EditInformationFormProps {
 const editFormSchema = z.object({
   imageUrl: z.string().url('Por favor, introduce una URL válida para la imagen.'),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
-  gender: z.enum(['Femenino', 'Masculino', 'No binario', 'Prefiero no decir']).optional(),
+  biography: z.string().optional(),
+  gender: z.enum(['Femenino', 'Masculino']).optional(),
   nationality: z.string().optional(),
   occupation: z.string().optional(),
   maritalStatus: z.enum(['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a']).optional(),
@@ -45,6 +47,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     defaultValues: {
       imageUrl: figure.imageUrl || '',
       name: figure.name || '',
+      biography: figure.biography || '',
       gender: figure.gender,
       nationality: figure.nationality || '',
       occupation: figure.occupation || '',
@@ -127,7 +130,23 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         </div>
                     </div>
                 </div>
-
+                 <FormField
+                    control={form.control}
+                    name="biography"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Biografía</FormLabel>
+                        <FormControl>
+                            <Textarea
+                            placeholder="Un breve resumen de los logros más importantes y datos de interés."
+                            className="resize-none"
+                            {...field}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
                 {/* --- Personal Details Section --- */}
                 <div className="space-y-4">
                      <h3 className="text-lg font-medium flex items-center">
@@ -165,8 +184,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                     <SelectContent>
                                         <SelectItem value="Femenino">Femenino</SelectItem>
                                         <SelectItem value="Masculino">Masculino</SelectItem>
-                                        <SelectItem value="No binario">No binario</SelectItem>
-                                        <SelectItem value="Prefiero no decir">Prefiero no decir</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -241,3 +258,5 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
+
+    

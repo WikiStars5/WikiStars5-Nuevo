@@ -11,7 +11,7 @@ export interface Figure {
   description?: string;
   photoUrl?: string;
   biography?: string;
-  gender?: 'Femenino' | 'Masculino' | 'No binario' | 'Prefiero no decir';
+  gender?: 'Femenino' | 'Masculino';
   birthDate?: string;
   deathDate?: string;
   occupation?: string;
@@ -54,5 +54,6 @@ export interface EmotionVote {
     createdAt: any; // Firestore Timestamp
 }
 
+    
     
     
