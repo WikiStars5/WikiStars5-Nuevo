@@ -9,7 +9,7 @@ import { useFirestore } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
 
-export default function HashtagPage({ params }: { params: { tag: string } }) {
+export default async function HashtagPage({ params }: { params: { tag: string } }) {
   const firestore = useFirestore();
   const [figures, setFigures] = useState<Figure[]>([]);
   const [isLoading, setIsLoading] = useState(true);
