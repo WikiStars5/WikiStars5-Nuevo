@@ -2,13 +2,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { searchFiguresByHashtag } from '@/app/actions/searchHashtagsAction';
 import FigureCard from '@/components/shared/figure-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Figure } from '@/lib/types';
-import { notFound } from 'next/navigation';
+import { useFirestore } from '@/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+
 
 export default function HashtagPage({ params }: { params: { tag: string } }) {
+  const firestore = useFirestore();
   const [figures, setFigures] = useState<Figure[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,9 +19,17 @@ export default function HashtagPage({ params }: { params: { tag: string } }) {
 
   useEffect(() => {
     const fetchFigures = async () => {
+      if (!firestore) return;
       try {
         setIsLoading(true);
-        const results = await searchFiguresByHashtag(tag);
+        const figuresCollection = collection(firestore, 'figures');
+        const firestoreQuery = query(
+          figuresCollection,
+          where('tags', 'array-contains', tag),
+          where('approved', '==', true)
+        );
+        const snapshot = await getDocs(firestoreQuery);
+        const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
         setFigures(results);
       } catch (err) {
         setError('Failed to load figures for this hashtag.');
@@ -29,8 +39,10 @@ export default function HashtagPage({ params }: { params: { tag: string } }) {
       }
     };
     
-    fetchFigures();
-  }, [tag]);
+    if (firestore) {
+      fetchFigures();
+    }
+  }, [tag, firestore]);
 
   if (error) {
     // This could be a more user-friendly error component

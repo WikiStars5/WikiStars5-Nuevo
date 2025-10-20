@@ -7,7 +7,6 @@ import { Search, Loader2, ImageOff, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Figure } from '@/lib/types';
-import { searchFiguresByHashtag } from '@/app/actions/searchHashtagsAction';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
@@ -112,6 +111,42 @@ export default function SearchBar({
       return [];
     }
   }
+  
+  const searchFiguresByHashtag = async (hashtag: string): Promise<Figure[]> => {
+    const trimmedHashtag = hashtag.trim().toLowerCase();
+    if (!trimmedHashtag || !firestore) {
+        return [];
+    }
+
+    try {
+        const figuresCollection = collection(firestore, 'figures');
+        const q = firestoreQuery(
+            figuresCollection,
+            where('tags', 'array-contains', trimmedHashtag),
+            where('approved', '==', true),
+            limit(10)
+        );
+
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            return [];
+        }
+
+        const figures = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data
+            } as Figure;
+        });
+
+        return figures;
+    } catch (error) {
+        console.error('Error searching figures by hashtag:', error);
+        return [];
+    }
+}
 
 
   const handleSearchSubmit = (searchTerm: string) => {
