@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel, FormDescription } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +27,6 @@ interface EditInformationFormProps {
 const editFormSchema = z.object({
   imageUrl: z.string().url('Por favor, introduce una URL válida para la imagen.'),
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
-  biography: z.string().optional(),
   gender: z.enum(['Femenino', 'Masculino', 'No binario', 'Prefiero no decir']).optional(),
   nationality: z.string().optional(),
   occupation: z.string().optional(),
@@ -47,7 +45,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     defaultValues: {
       imageUrl: figure.imageUrl || '',
       name: figure.name || '',
-      biography: figure.biography || '',
       gender: figure.gender,
       nationality: figure.nationality || '',
       occupation: figure.occupation || '',
@@ -129,30 +126,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                              </div>
                         </div>
                     </div>
-                </div>
-
-                 {/* --- Biography Section --- */}
-                <div className="space-y-2">
-                    <FormField
-                    control={form.control}
-                    name="biography"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Biografía</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                placeholder={`Añade un resumen sobre la vida y carrera de ${figure.name}...`}
-                                className="min-h-[120px]"
-                                {...field}
-                                />
-                            </FormControl>
-                             <FormDescription>
-                                Un breve resumen de los logros más importantes y datos de interés.
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                    />
                 </div>
 
                 {/* --- Personal Details Section --- */}
