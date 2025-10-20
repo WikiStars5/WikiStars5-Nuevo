@@ -43,6 +43,12 @@ const nextConfig = {
         hostname: 'www.google.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'flagcdn.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

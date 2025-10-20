@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
+import Image from 'next/image';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,9 +43,15 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
           aria-expanded={open}
           className="w-full justify-between"
         >
-          {value && selectedCountry ? (
+          {selectedCountry ? (
             <div className="flex items-center gap-2">
-              <span className="text-lg">{selectedCountry.emoji}</span>
+              <Image
+                src={`https://flagcdn.com/w20/${selectedCountry.code.toLowerCase()}.png`}
+                alt={`${selectedCountry.name} flag`}
+                width={20}
+                height={15}
+                className="object-contain"
+              />
               <span className="truncate">{selectedCountry.name}</span>
             </div>
           ) : (
@@ -63,8 +71,6 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
                   key={country.code}
                   value={country.name}
                   onSelect={(currentValue) => {
-                    // When an item is selected, we call onChange with the country name
-                    // If it's the same as the current value, we clear it (deselect)
                     onChange(
                       currentValue.toLowerCase() === value?.toLowerCase() ? '' : country.name
                     );
@@ -80,7 +86,13 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
                     )}
                   />
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{country.emoji}</span>
+                     <Image
+                        src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                        alt={`${country.name} flag`}
+                        width={20}
+                        height={15}
+                        className="object-contain"
+                      />
                     <span>{country.name}</span>
                   </div>
                 </CommandItem>
