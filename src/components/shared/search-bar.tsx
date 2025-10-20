@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -7,7 +8,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Figure } from '@/lib/types';
 import { searchFiguresByHashtag } from '@/app/actions/searchHashtagsAction';
-import { cn, correctMalformedUrl } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
 import { collection, query as firestoreQuery, where, getDocs, limit } from 'firebase/firestore';
@@ -21,6 +22,28 @@ function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
       if (timeout) clearTimeout(timeout);
       timeout = setTimeout(() => resolve(func(...args)), waitFor);
     });
+}
+
+/**
+ * Corrects a malformed URL, typically by ensuring it has a protocol.
+ * This is useful for image sources that might be missing 'https://'.
+ * @param url The URL string to correct.
+ * @returns A corrected, valid URL string, or an empty string if the input is invalid.
+ */
+function correctMalformedUrl(url: string | undefined | null): string {
+  if (!url) {
+    return '';
+  }
+  // If it already has a protocol, assume it's correct.
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // If it starts with '//', prepend 'https:'
+  if (url.startsWith('//')) {
+    return `https:${url}`;
+  }
+  // Otherwise, assume it's a domain and prepend 'https://'
+  return `https://${url}`;
 }
 
 interface SearchBarProps {
@@ -311,5 +334,3 @@ export default function SearchBar({
     </div>
   );
 }
-
-    
