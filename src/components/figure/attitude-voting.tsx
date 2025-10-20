@@ -4,7 +4,6 @@
 import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, Star, ThumbsDown, User, Loader2 } from 'lucide-react';
@@ -31,12 +30,12 @@ interface AttitudeVotingProps {
 }
 
 export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
-  const { user, isUserLoading, reloadUser } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
 
-  const [isVoting, setIsVoting] = useState(false);
+  const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
 
   const userVoteRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -48,24 +47,17 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const handleVote = async (vote: AttitudeOption) => {
     if (isVoting || !firestore || !auth) return;
 
-    setIsVoting(true);
-
-    let currentUser = user;
-
-    // If user is not logged in, sign them in anonymously
-    if (!currentUser) {
+    // If user is not logged in, sign them in anonymously and prompt to click again
+    if (!user) {
+      setIsVoting(vote);
       try {
         await initiateAnonymousSignIn(auth);
-        // After anonymous sign-in, we need to get the new user object.
-        // We will trigger a reload and let the effect handle the re-render.
-        await reloadUser();
-        // The user state will update, and we can retry the vote on the next click.
+        // The onAuthStateChanged listener will update the user state.
+        // We show a toast to guide the user for the next action.
         toast({
           title: 'Cuenta de invitado creada',
           description: 'Ahora puedes votar. Haz clic de nuevo para registrar tu voto.',
         });
-        setIsVoting(false);
-        return; // Exit here. The user will click again with a valid user object.
       } catch (error) {
         console.error('Error signing in anonymously:', error);
         toast({
@@ -73,21 +65,17 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
           title: 'Error de autenticación',
           description: 'No se pudo crear una sesión de invitado. Inténtalo de nuevo.',
         });
-        setIsVoting(false);
-        return;
+      } finally {
+        setIsVoting(null);
       }
-    }
-    
-    // After the check, currentUser must be valid.
-    const finalUser = auth.currentUser;
-    if (!finalUser) {
-        setIsVoting(false);
-        return;
+      return; // Stop execution here. User needs to click again.
     }
 
+    // If user is logged in, proceed with voting.
+    setIsVoting(vote);
 
     const figureRef = doc(firestore, 'figures', figure.id);
-    const voteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, finalUser.uid);
+    const voteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -99,7 +87,7 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
         }
 
         const newVoteData = {
-          userId: finalUser.uid,
+          userId: user.uid,
           figureId: figure.id,
           vote: vote,
           createdAt: serverTimestamp(),
@@ -109,23 +97,24 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
           const previousVote = existingVoteDoc.data().vote as AttitudeOption;
 
           if (previousVote === vote) {
+            // If clicking the same button, do nothing (or show a toast)
             toast({
-              title: 'Ya has votado',
               description: `Tu voto actual ya es '${vote}'.`,
             });
             return;
           }
 
+          // Decrement the old vote and increment the new one
           transaction.update(figureRef, {
             [`attitude.${previousVote}`]: increment(-1),
-          });
-
-          transaction.update(figureRef, {
             [`attitude.${vote}`]: increment(1),
           });
 
+          // Update the user's vote document
           transaction.set(voteRef, newVoteData);
+
         } else {
+          // First time voting
           transaction.update(figureRef, {
             [`attitude.${vote}`]: increment(1),
           });
@@ -145,7 +134,7 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
         description: error.message || 'No se pudo registrar tu voto. Inténtalo de nuevo.',
       });
     } finally {
-      setIsVoting(false);
+      setIsVoting(null);
     }
   };
 
@@ -170,15 +159,16 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
             key={id}
             variant="outline"
             className={cn(
-              'h-auto flex flex-col items-center justify-center gap-2 border-2 p-4 transition-all duration-200',
+              'h-auto flex-col items-center justify-center gap-2 border-2 p-4 transition-all duration-200',
+              'flex h-24 flex-col items-center justify-center gap-2',
               userVote?.vote === id
                 ? 'border-primary bg-primary/10'
                 : 'border-border hover:border-primary/50 hover:bg-primary/5'
             )}
             onClick={() => handleVote(id)}
-            disabled={isVoting}
+            disabled={!!isVoting}
           >
-            {isVoting ? (
+            {isVoting === id ? (
               <Loader2 className="h-6 w-6 animate-spin" />
             ) : (
               <Icon className="h-6 w-6" />
