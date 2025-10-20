@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, X } from 'lucide-react';
 import type { Figure } from '@/lib/types';
+import DateInput from './date-input';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -64,13 +65,15 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     const figureRef = doc(firestore, 'figures', figure.id);
 
     try {
-      // Create a clean data object to send to Firestore, removing any undefined fields.
       const dataToSave: Partial<EditFormValues> = {};
       Object.keys(data).forEach((key) => {
         const formKey = key as keyof EditFormValues;
         const value = data[formKey];
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== '') {
           (dataToSave as any)[formKey] = value;
+        } else {
+          // Send null to clear the field in Firestore if it's empty
+          (dataToSave as any)[formKey] = null;
         }
       });
       
@@ -80,7 +83,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
         title: '¡Perfil Actualizado!',
         description: `La información de ${data.name} ha sido guardada.`,
       });
-      onFormClose(); // Close the form on success
+      onFormClose();
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -98,17 +101,16 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardHeader>
-                <CardTitle>Información Detallada</CardTitle>
-                <CardDescription>Edita los datos biográficos y descriptivos de {figure.name}.</CardDescription>
+                <CardTitle>Editar Información</CardTitle>
+                <CardDescription>Modifica los datos biográficos de {figure.name}.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 pt-6">
-                {/* --- Image Section --- */}
                 <div className="space-y-4">
                     <h3 className="text-lg font-medium flex items-center">
                         <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20.4 14.5c0-1.6-1.3-3-3-3s-3 1.3-3 3c0 .8.3 1.5.8 2.1l-2.7 2.7c-.4.4-.4 1 0 1.4.2.2.5.3.7.3s.5-.1.7-.3l2.7-2.7c.6.5 1.3.8 2.1.8 1.7 0 3-1.4 3-3Z"/></svg>
                         </span>
-                        Editar Imagen de Perfil
+                        Imagen de Perfil
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                         <div className="md:col-span-2 space-y-2">
@@ -117,7 +119,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 name="imageUrl"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>URL de la Imagen de Perfil</FormLabel>
+                                        <FormLabel>URL de la Imagen</FormLabel>
                                         <FormControl>
                                             <Input placeholder="https://ejemplo.com/imagen.jpg" {...field} />
                                         </FormControl>
@@ -128,23 +130,23 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         </div>
                         <div className="space-y-2">
                              <Label>Vista Previa</Label>
-                             <div className="aspect-square relative w-full max-w-[150px] rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center">
-                                {imageUrlWatcher && form.getValues('imageUrl') ? (
+                             <div className="aspect-square relative w-full max-w-[150px] rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
+                                {imageUrlWatcher && form.formState.errors.imageUrl === undefined ? (
                                     <Image src={imageUrlWatcher} alt="Vista previa" layout="fill" objectFit="cover" />
                                 ) : (
-                                    <span className="text-xs text-muted-foreground">URL inválida</span>
+                                    <span className="text-xs text-muted-foreground p-2 text-center">URL inválida o vacía</span>
                                 )}
                              </div>
                         </div>
                     </div>
                 </div>
-                {/* --- Personal Details Section --- */}
+                
                 <div className="space-y-4">
                      <h3 className="text-lg font-medium flex items-center">
                         <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         </span>
-                        Editando Información de {figure.name}
+                        Información Personal
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField
@@ -181,29 +183,31 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                         <FormField
                             control={form.control}
                             name="birthDate"
                             render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Fecha de Nacimiento</FormLabel>
-                                <FormControl>
-                                    <Input type="date" {...field} />
-                                </FormControl>
-                                <FormMessage />
+                                <FormItem className="flex flex-col">
+                                    <FormLabel>Fecha de Nacimiento</FormLabel>
+                                    <DateInput
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                    />
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                         <FormField
                             control={form.control}
                             name="deathDate"
                             render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Fecha de Fallecimiento</FormLabel>
-                                <FormControl>
-                                    <Input type="date" {...field} />
-                                </FormControl>
-                                <FormMessage />
+                               <FormItem className="flex flex-col">
+                                    <FormLabel>Fecha de Fallecimiento</FormLabel>
+                                    <DateInput
+                                        value={field.value}
+                                        onChange={field.onChange}
+                                    />
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />
