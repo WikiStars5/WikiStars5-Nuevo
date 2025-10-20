@@ -35,6 +35,7 @@ export async function searchFiguresByName(searchTerm: string): Promise<Figure[]>
     // This query uses an index on `nameKeywords` for efficient searching.
     const firestoreQuery = figuresCollection
       .where('nameKeywords', 'array-contains', trimmedSearchTerm)
+      .where('approved', '==', true)
       .limit(10);
 
     const snapshot = await firestoreQuery.get();

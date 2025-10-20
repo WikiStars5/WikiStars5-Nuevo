@@ -132,7 +132,7 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
         isFeatured: false,
         nameKeywords: keywords,
         createdAt: serverTimestamp(),
-        approved: true,
+        approved: true, // Web profiles are auto-approved
       };
 
       setDocumentNonBlocking(figureRef, figureData, { merge: false });

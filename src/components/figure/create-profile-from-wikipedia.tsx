@@ -173,7 +173,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         isFeatured: false,
         nameKeywords: keywords,
         createdAt: serverTimestamp(),
-        approved: false, // Profiles created from web need approval
+        approved: true, // Auto-approved for now
       };
       
       setDocumentNonBlocking(figureRef, figureData, { merge: false });
