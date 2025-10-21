@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
-import { addDocumentNonBlocking, useAuth, useFirestore, useUser } from '@/firebase';
+import { collection, serverTimestamp, doc, runTransaction, increment } from 'firebase/firestore';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
@@ -69,38 +69,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
-      // We must perform reads BEFORE the transaction starts.
-      const previousCommentsQuery = query(
-          commentsColRef,
-          where('userId', '==', currentUser.uid),
-          orderBy('createdAt', 'desc'),
-          limit(1)
-        );
-      const previousCommentsSnapshot = await getDocs(previousCommentsQuery);
-      const previousComment = previousCommentsSnapshot.docs[0]?.data() as Comment | undefined;
-
       await runTransaction(firestore, async (transaction) => {
+        // 1. Update the figure document with the new rating
         const updates: { [key: string]: any } = {};
-
-        if (previousComment && previousComment.rating !== undefined) {
-          // User is changing their vote.
-          // a. Decrement the old rating's breakdown and total score.
-          updates[`ratingsBreakdown.${previousComment.rating}`] = increment(-1);
-          updates['totalRating'] = increment(-previousComment.rating);
-
-          // b. Increment the new rating's breakdown and total score.
-          updates[`ratingsBreakdown.${data.rating}`] = increment(1);
-          updates['totalRating'] = increment(data.rating);
-
-          // c. `ratingCount` remains the same as it's an update, not a new rater.
-        } else {
-          // This is the user's first rating.
-          updates[`ratingsBreakdown.${data.rating}`] = increment(1);
-          updates['totalRating'] = increment(data.rating);
-          updates['ratingCount'] = increment(1); // Increment count only for the first rating.
-        }
+        updates[`ratingsBreakdown.${data.rating}`] = increment(1);
+        updates['totalRating'] = increment(data.rating);
+        updates['ratingCount'] = increment(1);
         
-        // Apply all aggregated updates to the figure document.
         transaction.update(figureRef, updates);
 
         // 2. Create the new comment document
