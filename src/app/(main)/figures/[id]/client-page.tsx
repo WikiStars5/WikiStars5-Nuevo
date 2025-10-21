@@ -17,6 +17,7 @@ import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
+import CommunityRatings from '@/components/figure/community-ratings';
 
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
@@ -293,7 +294,8 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
         </Tabs>
       </div>
 
-       <div className="mt-8">
+       <div className="mt-8 space-y-8">
+        <CommunityRatings figure={figure} />
         <CommentSection figureId={figure.id} figureName={figure.name} />
       </div>
     </div>

@@ -44,6 +44,16 @@ export interface Figure {
     desagrado: number;
     furia: number;
   };
+  ratingCount: number;
+  totalRating: number;
+  ratingsBreakdown: {
+    '0': number;
+    '1': number;
+    '2': number;
+    '3': number;
+    '4': number;
+    '5': number;
+  };
 }
 
 export interface Hashtag {
@@ -73,6 +83,7 @@ export interface Comment {
   userId: string;
   figureId: string;
   text: string;
+  rating: number; // Star rating from 0-5 associated with the comment
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   likes?: number;

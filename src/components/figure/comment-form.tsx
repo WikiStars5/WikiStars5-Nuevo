@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment } from 'firebase/firestore';
 import { addDocumentNonBlocking, useAuth, useFirestore, useUser } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,9 +14,11 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MessageSquare, Send } from 'lucide-react';
 import { onAuthStateChanged, User as FirebaseUser, Auth } from 'firebase/auth';
+import StarInput from './star-input';
 
 const commentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(1000, 'El comentario no puede superar los 1000 caracteres.'),
+  rating: z.number().min(0).max(5, 'La calificación debe estar entre 0 y 5.'),
 });
 
 type CommentFormValues = z.infer<typeof commentSchema>;
@@ -40,7 +42,6 @@ function getNextUser(auth: Auth): Promise<FirebaseUser> {
   });
 }
 
-
 export default function CommentForm({ figureId, figureName }: CommentFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -50,7 +51,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
-    defaultValues: { text: '' },
+    defaultValues: { text: '', rating: 0 },
   });
 
   const onSubmit = async (data: CommentFormValues) => {
@@ -63,28 +64,43 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             await initiateAnonymousSignIn(auth);
             currentUser = await getNextUser(auth);
         }
-
+        
+      const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-      const newComment = {
-        figureId: figureId,
-        userId: currentUser.uid,
-        text: data.text,
-        createdAt: serverTimestamp(),
-        userDisplayName: currentUser.isAnonymous ? 'Anónimo' : currentUser.displayName || 'Usuario',
-        userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
-        likes: 0,
-        dislikes: 0,
-        parentId: null, // This is a top-level comment
-        depth: 0, // Top-level comments have depth 0
-      };
 
-      await addDocumentNonBlocking(commentsColRef, newComment);
+      await runTransaction(firestore, async (transaction) => {
+        const newCommentRef = doc(commentsColRef);
+
+        const newComment = {
+            figureId: figureId,
+            userId: currentUser.uid,
+            text: data.text,
+            rating: data.rating,
+            createdAt: serverTimestamp(),
+            userDisplayName: currentUser.isAnonymous ? 'Anónimo' : currentUser.displayName || 'Usuario',
+            userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
+            likes: 0,
+            dislikes: 0,
+            parentId: null, // This is a top-level comment
+            depth: 0, // Top-level comments have depth 0
+        };
+        
+        transaction.set(newCommentRef, newComment);
+
+        const ratingKey = `ratingsBreakdown.${data.rating}`;
+        transaction.update(figureRef, {
+            ratingCount: increment(1),
+            totalRating: increment(data.rating),
+            [ratingKey]: increment(1),
+        });
+      });
+
 
       toast({
         title: '¡Opinión Publicada!',
-        description: 'Gracias por compartir tu comentario.',
+        description: 'Gracias por compartir tu comentario y calificación.',
       });
-      form.reset();
+      form.reset({text: '', rating: 0});
     } catch (error) {
       console.error('Error al publicar comentario:', error);
       toast({
@@ -109,13 +125,28 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="rating"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Califica este perfil (0-5 estrellas)*</FormLabel>
+                  <FormControl>
+                    <StarInput 
+                        value={field.value}
+                        onChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="text"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="sr-only">Escribe tu opinión</FormLabel>
+                  <FormLabel>Escribe tu opinión*</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder={`¿Qué opinas de ${figureName}?`}
