@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -32,8 +31,26 @@ const RatingRow = ({ stars, count, total }: { stars: number; count: number; tota
 
 
 export default function CommunityRatings({ figure }: CommunityRatingsProps) {
-    const { ratingCount = 0, totalRating = 0, ratingsBreakdown } = figure;
-    const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
+    const { ratingsBreakdown } = figure;
+
+    const { totalVotes, averageRating } = React.useMemo(() => {
+        if (!ratingsBreakdown) return { totalVotes: 0, averageRating: 0 };
+
+        const total = Object.values(ratingsBreakdown).reduce((sum, count) => sum + count, 0);
+
+        if (total === 0) {
+            return { totalVotes: 0, averageRating: 0 };
+        }
+
+        const weightedSum = (Object.keys(ratingsBreakdown) as (keyof typeof ratingsBreakdown)[])
+            .reduce((sum, ratingKey) => {
+                const rating = parseInt(ratingKey.toString(), 10);
+                const count = ratingsBreakdown[ratingKey];
+                return sum + (rating * count);
+            }, 0);
+            
+        return { totalVotes: total, averageRating: weightedSum / total };
+    }, [ratingsBreakdown]);
 
     const allRatings = [5, 4, 3, 2, 1, 0];
         
@@ -51,7 +68,7 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
                         </div>
                         <StarRating rating={averageRating} starClassName="h-5 w-5" />
                         <div className="text-sm text-muted-foreground">
-                            {ratingCount} {ratingCount === 1 ? 'calificación' : 'calificaciones'}
+                            {totalVotes} {totalVotes === 1 ? 'calificación' : 'calificaciones'}
                         </div>
                     </div>
                     <div className="md:col-span-2 flex flex-col justify-center space-y-2">
@@ -60,7 +77,7 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
                                 key={starValue}
                                 stars={starValue}
                                 count={ratingsBreakdown?.[starValue as keyof typeof ratingsBreakdown] ?? 0}
-                                total={ratingCount}
+                                total={totalVotes}
                             />
                         ))}
                     </div>
