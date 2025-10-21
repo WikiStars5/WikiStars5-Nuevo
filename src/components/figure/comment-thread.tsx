@@ -299,7 +299,7 @@ interface CommentThreadProps {
 }
 
 export default function CommentThread({ comment, figureId }: CommentThreadProps) {
-  const [repliesVisible, setRepliesVisible] = useState(comment.depth < 1);
+  const [repliesVisible, setRepliesVisible] = useState(false);
   const hasChildren = comment.children && comment.children.length > 0;
 
   const toggleReplies = () => {
