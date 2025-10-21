@@ -21,9 +21,10 @@ export default function HashtagClientPage({ tag }: { tag: string }) {
       try {
         setIsLoading(true);
         const figuresCollection = collection(firestore, 'figures');
+        // Search in the lowercase field for case-insensitivity
         const firestoreQuery = query(
           figuresCollection,
-          where('tags', 'array-contains', tag),
+          where('tagsLower', 'array-contains', tag.toLowerCase()),
           where('approved', '==', true)
         );
         const snapshot = await getDocs(firestoreQuery);
@@ -50,7 +51,7 @@ export default function HashtagClientPage({ tag }: { tag: string }) {
   if (!isLoading && figures.length === 0) {
      return (
         <div className="container mx-auto px-4 py-8 md:py-12 text-center">
-            <h1 className="text-4xl font-bold tracking-tight font-headline">
+            <h1 className="text-4xl font-bold tracking-tight font-headline capitalize">
                 Resultados para <span className="text-primary">#{tag}</span>
             </h1>
             <p className="text-muted-foreground mt-4">No se encontraron perfiles con esta etiqueta.</p>
@@ -61,7 +62,7 @@ export default function HashtagClientPage({ tag }: { tag: string }) {
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
       <header className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight font-headline">
+        <h1 className="text-4xl font-bold tracking-tight font-headline capitalize">
             Resultados para <span className="text-primary">#{tag}</span>
         </h1>
         <p className="text-muted-foreground mt-2">

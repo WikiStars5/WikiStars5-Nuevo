@@ -2,6 +2,7 @@
 
 import { getFirestore } from 'firebase-admin/firestore';
 import { getSdks } from '@/firebase/server';
+import { normalizeText } from '@/lib/keywords';
 
 const { firestore } = getSdks();
 
@@ -12,7 +13,7 @@ const { firestore } = getSdks();
  * @returns A promise that resolves to an array of matching hashtag names.
  */
 export async function searchHashtags(query: string): Promise<string[]> {
-  const normalizedQuery = query.toLowerCase().trim();
+  const normalizedQuery = normalizeText(query);
   if (!normalizedQuery) {
     return [];
   }

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Figure } from '@/lib/data';
+import type { Figure } from '@/lib/types';
 
 type FigureCardProps = {
   figure: Figure;
@@ -30,9 +30,9 @@ export default function FigureCard({ figure }: FigureCardProps) {
         </CardContent>
         <CardFooter className="p-4 pt-0">
           <div className="flex flex-wrap gap-1">
-            {figure.tags.slice(0, 2).map((tag) => (
-              <Badge key={tag} variant="secondary">
-                {tag}
+            {figure.tags?.slice(0, 2).map((tag) => (
+              <Badge key={tag} variant="secondary" className="capitalize">
+                #{tag}
               </Badge>
             ))}
           </div>

@@ -93,7 +93,7 @@ const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
       maritalStatus: figure.maritalStatus,
       height: figure.height || undefined,
       socialLinks: defaultSocialLinks,
-      tags: figure.tags || [],
+      tags: figure.tags?.map(tag => tag.toLowerCase()) || [],
     };
 };
 
@@ -114,15 +114,17 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
   const [hashtagInput, setHashtagInput] = React.useState('');
 
   const handleAddHashtag = (newTag?: string) => {
-    const tagToAdd = (newTag || hashtagInput).trim();
-    if (tagToAdd && !tagsWatcher.includes(tagToAdd)) {
+    const tagToAdd = (newTag || hashtagInput).trim().toLowerCase();
+    const currentTagsLower = tagsWatcher.map(t => t.toLowerCase());
+
+    if (tagToAdd && !currentTagsLower.includes(tagToAdd)) {
         form.setValue('tags', [...tagsWatcher, tagToAdd]);
     }
     setHashtagInput('');
   };
 
   const handleRemoveHashtag = (tagToRemove: string) => {
-    form.setValue('tags', tagsWatcher.filter(tag => tag !== tagToRemove));
+    form.setValue('tags', tagsWatcher.filter(tag => tag.toLowerCase() !== tagToRemove.toLowerCase()));
   };
 
 
@@ -134,13 +136,14 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
 
     try {
       const batch = writeBatch(firestore);
+      
       const dataToSave: { [key: string]: any } = {};
-
+      
       // Handle direct properties, converting undefined or empty strings to null
       Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'socialLinks' && key !== 'tags') {
-          dataToSave[key] = value === '' || value === undefined ? null : value;
-        }
+          if (key !== 'socialLinks' && key !== 'tags') {
+              dataToSave[key] = value === '' || value === undefined ? null : value;
+          }
       });
       
       // Handle social links, converting empty strings to null
@@ -149,18 +152,18 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
         for (const platform in SOCIAL_MEDIA_CONFIG) {
           const key = platform as SocialPlatform;
           const link = data.socialLinks[key];
-          // Set to null if link is empty, undefined, or just whitespace
           dataToSave.socialLinks[key] = (link && link.trim()) ? link.trim() : null;
         }
       }
       
       // Handle hashtags
-      if (data.tags && data.tags.length > 0) {
-        dataToSave.tags = data.tags;
-        dataToSave.tagsLower = data.tags.map(tag => normalizeText(tag));
-        dataToSave.tagKeywords = generateKeywords(data.tags.join(' '));
+      const finalTags = (data.tags || []).map(tag => tag.toLowerCase());
+      if (finalTags.length > 0) {
+        dataToSave.tags = finalTags;
+        dataToSave.tagsLower = finalTags; // Already lowercase
+        dataToSave.tagKeywords = generateKeywords(finalTags.join(' '));
         
-        for (const tag of data.tags) {
+        for (const tag of finalTags) {
             const normalizedTag = normalizeText(tag);
             if (normalizedTag) {
                 const hashtagRef = doc(firestore, 'hashtags', normalizedTag);
@@ -453,7 +456,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                     </div>
                      <div className="flex flex-wrap gap-2 pt-2">
                         {tagsWatcher.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="pl-3 pr-1 py-1 text-sm">
+                        <Badge key={tag} variant="secondary" className="pl-3 pr-1 py-1 text-sm capitalize">
                             #{tag}
                             <button
                                 type="button"

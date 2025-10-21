@@ -275,7 +275,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
                                     <div className="flex flex-wrap gap-2">
                                         {figure.tags.map((tag) => (
                                             <Link href={`/figures/hashtagged/${encodeURIComponent(tag)}`} key={tag}>
-                                                <Badge variant="secondary" className="transition-colors hover:bg-primary/20">
+                                                <Badge variant="secondary" className="transition-colors hover:bg-primary/20 capitalize">
                                                     #{tag}
                                                 </Badge>
                                             </Link>
