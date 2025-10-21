@@ -94,7 +94,7 @@ const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
       maritalStatus: figure.maritalStatus,
       height: figure.height || undefined,
       socialLinks: defaultSocialLinks,
-      tags: figure.tags?.map(tag => tag.toLowerCase()) || [],
+      tags: figure.tags?.map(tag => normalizeText(tag)) || [],
     };
 };
 
@@ -156,7 +156,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       // Handle direct properties, converting undefined or empty strings to null
       Object.entries(data).forEach(([key, value]) => {
           if (key !== 'socialLinks' && key !== 'tags') {
-              dataToSave[key] = value === '' || value === undefined ? null : value;
+            dataToSave[key] = value === '' || value === undefined ? null : value;
           }
       });
       
@@ -174,15 +174,19 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       const finalTags = (data.tags || []).map(tag => normalizeText(tag)).filter(Boolean);
       dataToSave.tags = finalTags;
       dataToSave.tagsLower = finalTags; 
+      
+      // Generate keywords from the combined tags for searching within profiles
       dataToSave.tagKeywords = generateKeywords(finalTags.join(' '));
       
+      // Generate keywords for the name
       dataToSave.nameKeywords = generateKeywords(data.name);
 
-      // Create/update hashtag documents with their own keywords
+      // Create/update hashtag documents in the /hashtags collection
       finalTags.forEach(tag => {
         const hashtagRef = doc(firestore, 'hashtags', tag);
-        const keywords = generateKeywords(tag);
-        batch.set(hashtagRef, { name: tag, keywords: keywords }, { merge: true });
+        // The document only needs to exist with its ID for the search to work.
+        // We can add a name field for clarity.
+        batch.set(hashtagRef, { name: tag }, { merge: true });
       });
 
 

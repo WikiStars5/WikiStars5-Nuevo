@@ -2,28 +2,38 @@
 
 import { getSdks } from '@/firebase/server';
 import { normalizeText } from '@/lib/keywords';
+import { query, where, limit, getDocs, collection } from 'firebase/firestore';
 
 /**
- * Searches for hashtags using a keyword array query on the `hashtags` collection.
- * This is used for the autocomplete functionality in the hashtag editor.
- * @param query The string to search for.
+ * Searches for hashtags using a prefix range query on the document IDs
+ * of the `hashtags` collection. This is a highly efficient method for
+ * implementing autocomplete functionality in Firestore.
+ * @param searchQuery The string to search for.
  * @returns A promise that resolves to an array of matching hashtag names.
  */
-export async function searchHashtags(query: string): Promise<string[]> {
+export async function searchHashtags(searchQuery: string): Promise<string[]> {
   const { firestore } = getSdks();
-  const normalizedQuery = normalizeText(query);
+  const normalizedQuery = normalizeText(searchQuery);
 
   if (!normalizedQuery) {
     return [];
   }
 
   try {
-    const hashtagsRef = firestore.collection('hashtags');
-    // This query now correctly searches the `keywords` array.
-    const snapshot = await hashtagsRef
-      .where('keywords', 'array-contains', normalizedQuery)
-      .limit(10)
-      .get();
+    const hashtagsRef = collection(firestore, 'hashtags');
+    
+    // This is the key part: a range query on the document ID (__name__).
+    // \uf8ff is a very high code point in Unicode, so this query effectively
+    // finds all documents whose ID starts with the normalizedQuery string.
+    const endStr = normalizedQuery + '\uf8ff';
+    const firestoreQuery = query(
+      hashtagsRef,
+      where('__name__', '>=', normalizedQuery),
+      where('__name__', '<=', endStr),
+      limit(10)
+    );
+
+    const snapshot = await getDocs(firestoreQuery);
 
     if (snapshot.empty) {
       return [];
