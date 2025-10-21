@@ -16,6 +16,8 @@ import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Eye, EyeOff } from 'lucide-react';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
   email: z.string().email('Por favor, introduce un correo electrónico válido.'),
@@ -30,6 +32,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -54,6 +57,33 @@ export default function LoginPage() {
       await initiateEmailSignIn(auth, data.email, data.password);
     } catch (err: any) {
       setError('Credenciales inválidas. Por favor, verifica tu correo y contraseña.');
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    const email = form.getValues('email');
+    if (!email) {
+      form.setError('email', {
+        type: 'manual',
+        message: 'Por favor, introduce tu correo para restablecer la contraseña.',
+      });
+      return;
+    }
+    if (!auth) return;
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: 'Correo Enviado',
+        description: 'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.',
+      });
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo enviar el correo de restablecimiento. Verifica que el correo sea correcto.',
+      });
     }
   };
   
@@ -102,9 +132,14 @@ export default function LoginPage() {
                     <FormItem>
                         <div className="flex items-center">
                             <FormLabel>Contraseña</FormLabel>
-                            <Link href="#" className="ml-auto inline-block text-sm underline">
+                             <Button
+                                type="button"
+                                variant="link"
+                                className="ml-auto h-auto p-0 text-sm"
+                                onClick={handlePasswordReset}
+                              >
                                 ¿Olvidaste tu contraseña?
-                            </Link>
+                              </Button>
                         </div>
                       <FormControl>
                         <div className="relative">
