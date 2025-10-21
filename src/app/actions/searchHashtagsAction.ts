@@ -20,11 +20,9 @@ export async function searchHashtags(query: string): Promise<string[]> {
 
   try {
     const hashtagsRef = firestore.collection('hashtags');
-    // The \uf8ff character is a high-value Unicode character that acts as a "limit" for the query.
-    // This allows us to fetch all documents where the ID starts with the query string.
+    // We search the `keywords` array which contains all possible prefixes.
     const snapshot = await hashtagsRef
-      .where(getFirestore().FieldPath.documentId(), '>=', normalizedQuery)
-      .where(getFirestore().FieldPath.documentId(), '<=', normalizedQuery + '\uf8ff')
+      .where('keywords', 'array-contains', normalizedQuery)
       .limit(10)
       .get();
 

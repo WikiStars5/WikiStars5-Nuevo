@@ -124,8 +124,8 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       return;
     }
 
-    const tagToAdd = (newTag || hashtagInput).trim().toLowerCase();
-    const currentTagsLower = tagsWatcher.map(t => t.toLowerCase());
+    const tagToAdd = normalizeText(newTag || hashtagInput);
+    const currentTagsLower = tagsWatcher.map(t => normalizeText(t));
 
     if (tagToAdd && !currentTagsLower.includes(tagToAdd)) {
         form.setValue('tags', [...tagsWatcher, tagToAdd]);
@@ -136,7 +136,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
   const handleRemoveHashtag = (tagToRemove: string) => {
     form.setValue(
         'tags',
-        tagsWatcher.filter(tag => tag.toLowerCase() !== tagToRemove.toLowerCase())
+        tagsWatcher.filter(tag => normalizeText(tag) !== normalizeText(tagToRemove))
     );
   };
 
@@ -170,7 +170,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       }
       
       // Handle hashtags
-      const finalTags = (data.tags || []).map(tag => tag.toLowerCase());
+      const finalTags = (data.tags || []).map(tag => normalizeText(tag));
       if (finalTags.length > 0) {
         dataToSave.tags = finalTags;
         dataToSave.tagsLower = finalTags; // Already lowercase
@@ -499,5 +499,3 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
-
-    
