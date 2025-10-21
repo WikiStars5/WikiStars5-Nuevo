@@ -38,16 +38,29 @@ interface CreateProfileFromWebDialogProps {
 }
 
 /**
- * Extracts and cleans the domain from a given string.
- * "https://www.example.com/path" -> "example.com"
- * "sub.example.co.uk" -> "sub.example.co.uk"
+ * Extracts and cleans the root domain from a given string.
+ * "https://www.example.co.uk/path" -> "example.co.uk"
+ * "https://es.famousbirthdays.com" -> "famousbirthdays.com"
  */
 function cleanDomain(input: string): string {
     let domain = input;
     // Remove protocol
-    domain = domain.replace(/^(https?:\/\/)?(www\.)?/, '');
+    domain = domain.replace(/^(https?:\/\/)?/, '');
     // Remove path
     domain = domain.split('/')[0];
+    
+    const parts = domain.split('.');
+    
+    // Handle cases like .co.uk, .com.au, etc.
+    if (parts.length > 2 && (parts[parts.length-2] === 'co' || parts[parts.length-2] === 'com')) {
+        return parts.slice(-3).join('.');
+    }
+    
+    // Handle standard domains like example.com or sub.example.com
+    if (parts.length > 2) {
+        return parts.slice(-2).join('.');
+    }
+    
     return domain;
 }
 
