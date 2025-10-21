@@ -8,7 +8,7 @@ import { collection, serverTimestamp, doc, runTransaction, increment, query, whe
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +55,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     defaultValues: { text: '', rating: null as any },
   });
 
+  const textValue = form.watch('text', '');
+
   const onSubmit = async (data: CommentFormValues) => {
     if (!firestore || !auth) return;
     setIsSubmitting(true);
@@ -69,14 +71,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
-      // We need to check for a previous comment by the user for THIS figure.
       const previousCommentsQuery = query(
         commentsColRef,
         where('userId', '==', currentUser.uid),
         orderBy('createdAt', 'desc'),
         limit(1)
       );
-
+      
       const previousCommentSnapshot = await getDocs(previousCommentsQuery);
       const previousComment = previousCommentSnapshot.docs[0]?.data() as Comment | undefined;
 
@@ -90,7 +91,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const updates: { [key: string]: any } = {};
         const newRating = data.rating;
 
-        if (previousComment && typeof previousComment.rating === 'number') {
+        if (previousComment && typeof previousComment.rating === 'number' && previousComment.rating >= 0) {
           // This is a vote change
           const oldRating = previousComment.rating;
           if (oldRating !== newRating) {
@@ -98,7 +99,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
             updates[`ratingsBreakdown.${newRating}`] = increment(1);
           }
-          // ratingCount does not change
+          // ratingCount does not change because it's a vote update, not a new user voting.
         } else {
           // This is a first-time vote for this user
           updates['ratingCount'] = increment(1);
@@ -167,6 +168,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                         onChange={field.onChange}
                     />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -185,6 +187,12 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                       {...field}
                     />
                   </FormControl>
+                   <div className="flex justify-between items-center pt-1">
+                    <FormMessage />
+                    <div className="text-xs text-muted-foreground ml-auto">
+                      {textValue.length} / 500
+                    </div>
+                  </div>
                 </FormItem>
               )}
             />
