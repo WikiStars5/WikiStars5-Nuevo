@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +28,7 @@ export default function Header() {
   const { isAdmin } = useAdmin();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
 
@@ -131,12 +132,14 @@ export default function Header() {
               </DropdownMenu>
             </>
           ) : (
-            <Button asChild>
-                <Link href="/login">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Iniciar Sesión
-                </Link>
-            </Button>
+            pathname === '/' && (
+              <Button asChild>
+                  <Link href="/login">
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Iniciar Sesión
+                  </Link>
+              </Button>
+            )
           )}
         </div>
       </div>
