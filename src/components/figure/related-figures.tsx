@@ -3,14 +3,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Users, Loader2 } from 'lucide-react';
+import { PlusCircle, Users } from 'lucide-react';
 import type { Figure, RelatedFigure } from '@/lib/types';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import AddRelatedFigureDialog from './add-related-figure-dialog';
 import FigureCard from '../shared/figure-card';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
+import { doc, getDoc } from 'firebase/firestore';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 interface RelatedFiguresProps {
     figure: Figure;
@@ -71,7 +73,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     }, [firestore, figure.id]);
 
     const { data: sourceRelations, isLoading: isLoadingSource } = useCollection<RelatedFigure>(relationsAsSourceQuery);
-    const { data: targetRelations, isLoading: isLoadingTarget } = useCollection<RelatedFigure>(relationsAsTargetQuery);
+    const { data: targetRelations, isLoading: isLoadingTarget } = useCollection<RelatedFigure>(targetRelationsQuery);
 
     const relatedFigureIds = useMemo(() => {
         const ids = new Set<string>();
@@ -81,6 +83,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     }, [sourceRelations, targetRelations]);
     
     const isLoading = isLoadingSource || isLoadingTarget;
+    const isLimitReached = relatedFigureIds.length >= 5;
 
     return (
         <Card>
@@ -90,19 +93,33 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                         <CardTitle className="flex items-center gap-2">
                            <Users /> Perfiles Relacionados
                         </CardTitle>
-                        <CardDescription>Otros perfiles que podrían interesarte.</CardDescription>
+                        <CardDescription>Otros perfiles que podrían interesarte (Máx. 5).</CardDescription>
                     </div>
                      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline">
-                                <PlusCircle className="mr-2" />
-                                Añadir
-                            </Button>
-                        </DialogTrigger>
-                        <AddRelatedFigureDialog 
-                            sourceFigure={figure} 
-                            onDialogClose={() => setIsAddDialogOpen(false)} 
-                        />
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" disabled={isLimitReached}>
+                                            <PlusCircle className="mr-2" />
+                                            Añadir
+                                        </Button>
+                                    </DialogTrigger>
+                                </TooltipTrigger>
+                                {isLimitReached && (
+                                    <TooltipContent>
+                                        <p>Has alcanzado el límite de 5 perfiles relacionados.</p>
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {!isLimitReached && (
+                             <AddRelatedFigureDialog 
+                                sourceFigure={figure} 
+                                onDialogClose={() => setIsAddDialogOpen(false)} 
+                             />
+                        )}
                      </Dialog>
                 </div>
             </CardHeader>
@@ -118,8 +135,8 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                     </div>
                 )}
                 {!isLoading && relatedFigureIds.length > 0 && (
-                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {relatedFigureIds.map(id => (
+                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {relatedFigureIds.slice(0, 5).map(id => (
                             <RelatedFigureCard key={id} figureId={id} />
                         ))}
                     </div>
