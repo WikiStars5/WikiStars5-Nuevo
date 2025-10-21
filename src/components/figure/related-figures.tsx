@@ -71,7 +71,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     }, [firestore, figure.id]);
 
     const { data: sourceRelations, isLoading: isLoadingSource } = useCollection<RelatedFigure>(relationsAsSourceQuery);
-    const { data: targetRelations, isLoading: isLoadingTarget } = useCollection<RelatedFigure>(targetRelationsQuery);
+    const { data: targetRelations, isLoading: isLoadingTarget } = useCollection<RelatedFigure>(relationsAsTargetQuery);
 
     const relatedFigureIds = useMemo(() => {
         const ids = new Set<string>();
