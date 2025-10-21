@@ -88,6 +88,13 @@ export default function Header() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Mi Perfil</span>
+                    </Link>
+                  </DropdownMenuItem>
+
                   {isAdmin && (
                       <>
                       <DropdownMenuItem asChild>
@@ -96,10 +103,11 @@ export default function Header() {
                           <span>Panel de Administrador</span>
                           </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
                       </>
                   )}
                   
+                  <DropdownMenuSeparator />
+
                   <DropdownMenuItem onSelect={() => setIsCharacterDialogOpen(true)}>
                       <UserPlus className="mr-2 h-4 w-4" />
                       <span>Crear Perfil de Personaje</span>
