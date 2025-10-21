@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -14,6 +15,7 @@ import { Logo } from '@/components/icons';
 import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Por favor, introduce un correo electrónico válido.'),
@@ -27,6 +29,7 @@ export default function AdminLoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -102,7 +105,18 @@ export default function AdminLoginPage() {
                             </Link>
                         </div>
                       <FormControl>
-                        <Input type="password" {...field} />
+                        <div className="relative">
+                            <Input type={showPassword ? "text" : "password"} {...field} />
+                             <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                                onClick={() => setShowPassword(prev => !prev)}
+                            >
+                                {showPassword ? <EyeOff /> : <Eye />}
+                            </Button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

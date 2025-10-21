@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Flame, Medal, MessageSquare, TrendingUp, Loader2, Save, Link as LinkIcon, AlertTriangle } from "lucide-react";
+import { Flame, Medal, MessageSquare, TrendingUp, Loader2, Save, Link as LinkIcon, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -45,6 +45,7 @@ export default function ProfilePage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isLinking, setIsLinking] = useState(false);
     const [linkError, setLinkError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
 
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
@@ -309,7 +310,20 @@ export default function ProfilePage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Contraseña</FormLabel>
-                                                    <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                                                    <FormControl>
+                                                        <div className="relative">
+                                                            <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                                                                onClick={() => setShowPassword(prev => !prev)}
+                                                            >
+                                                                {showPassword ? <EyeOff /> : <Eye />}
+                                                            </Button>
+                                                        </div>
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
