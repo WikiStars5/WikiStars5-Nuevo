@@ -122,17 +122,19 @@ export default function SearchBar({
 
   const handleSearchSubmit = (searchTerm: string) => {
     const trimmedTerm = searchTerm.trim();
+    if (!trimmedTerm) return;
+
     if (trimmedTerm.startsWith('#')) {
-      const hashtag = trimmedTerm.substring(1).toLowerCase();
+      const hashtag = trimmedTerm.substring(1);
       if (hashtag) {
         router.push(`/figures/hashtagged/${encodeURIComponent(hashtag)}`);
-        clearSearch();
       }
-    } else if (figureResults.length > 0) {
-       router.push(`/figures/${figureResults[0].id}`);
-       clearSearch();
+    } else {
+      router.push(`/search?q=${encodeURIComponent(trimmedTerm)}`);
     }
+    clearSearch();
   };
+
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
@@ -337,5 +339,7 @@ export default function SearchBar({
     </div>
   );
 }
+
+    
 
     
