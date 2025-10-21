@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export interface Figure {
   id: string;
   name: string;
@@ -66,6 +68,13 @@ export interface EmotionVote {
     createdAt: any; // Firestore Timestamp
 }
 
-    
-    
-    
+export interface Comment {
+  id: string;
+  userId: string;
+  figureId: string;
+  text: string;
+  createdAt: Timestamp;
+  // Denormalized user data for display
+  userDisplayName: string;
+  userPhotoURL: string | null;
+}

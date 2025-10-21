@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { doc } from 'firebase/firestore';
+import { doc, collection } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +11,7 @@ import ProfileHeader from '@/components/figure/ProfileHeader';
 import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
+import CommentSection from '@/components/figure/comment-section';
 import { Button } from '@/components/ui/button';
 import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Tag } from 'lucide-react';
 import Image from 'next/image';
@@ -171,7 +172,6 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
   const hasInfo = infoItems.some(item => !!item.value);
   const hasSocialLinks = figure.socialLinks && Object.values(figure.socialLinks).some(link => !!link);
-  const hasTags = figure.tags && figure.tags.length > 0;
 
 
   return (
@@ -293,8 +293,10 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
           </TabsContent>
         </Tabs>
       </div>
+
+       <div className="mt-8">
+        <CommentSection figure={figure} />
+      </div>
     </div>
   );
 }
-
-    
