@@ -22,7 +22,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
@@ -37,9 +37,8 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // Redirect to profile if user is already logged in
-    if (!isUserLoading && user && !user.isAnonymous) {
-      router.push('/profile');
+    if (!isUserLoading && user) {
+      router.push('/admin');
     }
   }, [user, isUserLoading, router]);
 
@@ -47,17 +46,16 @@ export default function LoginPage() {
     setError(null);
     try {
       if (!auth) return;
-      // This will sign in the user and the useEffect above will redirect
       await initiateEmailSignIn(auth, data.email, data.password);
     } catch (err: any) {
-      setError('Credenciales inválidas. Por favor, verifica tu correo y contraseña.');
+      setError('Failed to sign in. Please check your credentials.');
     }
   };
   
-  if (isUserLoading || (user && !user.isAnonymous)) {
+  if (isUserLoading || user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>Cargando...</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -72,9 +70,9 @@ export default function LoginPage() {
             </Link>
         </div>
         <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
-            <CardDescription>Accede a tu cuenta para continuar.</CardDescription>
+          <CardHeader>
+            <CardTitle className="text-2xl">Admin Login</CardTitle>
+            <CardDescription>Enter your credentials to access the admin panel.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -86,7 +84,7 @@ export default function LoginPage() {
                     <FormItem>
                       <FormLabel>Correo Electrónico</FormLabel>
                       <FormControl>
-                        <Input placeholder="tu@correo.com" {...field} />
+                        <Input placeholder="admin@example.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -104,24 +102,18 @@ export default function LoginPage() {
                             </Link>
                         </div>
                       <FormControl>
-                        <Input type="password" {...field} placeholder="••••••••" />
+                        <Input type="password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {error && <p className="text-sm font-medium text-destructive text-center">{error}</p>}
+                {error && <p className="text-sm font-medium text-destructive">{error}</p>}
                 
                 <Button type="submit" className="w-full">
                   Iniciar Sesión
                 </Button>
-                 <div className="mt-4 text-center text-sm">
-                    ¿No tienes una cuenta?{' '}
-                    <Link href="/signup" className="underline">
-                        Regístrate
-                    </Link>
-                </div>
               </form>
             </Form>
           </CardContent>
