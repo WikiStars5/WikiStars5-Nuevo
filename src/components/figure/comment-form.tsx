@@ -69,21 +69,17 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
-      await runTransaction(firestore, async (transaction) => {
-        // 1. Find the user's previous comment to get their old rating
-        const previousCommentsQuery = query(
+      // We must perform reads BEFORE the transaction starts.
+      const previousCommentsQuery = query(
           commentsColRef,
           where('userId', '==', currentUser.uid),
           orderBy('createdAt', 'desc'),
           limit(1)
         );
+      const previousCommentsSnapshot = await getDocs(previousCommentsQuery);
+      const previousComment = previousCommentsSnapshot.docs[0]?.data() as Comment | undefined;
 
-        // We can't use `getDocs` inside a transaction, so we fetch it beforehand.
-        // This is a limitation, but acceptable for this use case. A more complex
-        // system might store the user's last vote in a separate document.
-        const previousCommentsSnapshot = await getDocs(previousCommentsQuery);
-        const previousComment = previousCommentsSnapshot.docs[0]?.data() as Comment | undefined;
-        
+      await runTransaction(firestore, async (transaction) => {
         const updates: { [key: string]: any } = {};
 
         if (previousComment && previousComment.rating !== undefined) {
