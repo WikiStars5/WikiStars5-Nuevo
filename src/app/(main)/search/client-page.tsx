@@ -15,6 +15,7 @@ import { LayoutGrid, List } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 export default function SearchResultsClient({ query }: { query: string }) {
@@ -125,45 +126,28 @@ export default function SearchResultsClient({ query }: { query: string }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="hidden w-[80px] sm:table-cell">Imagen</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Nacionalidad</TableHead>
-                <TableHead className="hidden md:table-cell">Ocupación</TableHead>
+                <TableHead>Perfil</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
-                  <TableCell className="hidden sm:table-cell">
-                    <Skeleton className="aspect-square rounded-md h-16 w-16" />
+                  <TableCell className="flex items-center gap-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <Skeleton className="h-5 w-32" />
                   </TableCell>
-                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                  <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-32" /></TableCell>
                 </TableRow>
               ))}
               {figures.map((figure) => (
                 <TableRow key={figure.id}>
-                  <TableCell className="hidden sm:table-cell">
-                    <Link href={`/figures/${figure.id}`}>
-                      <Image
-                        alt={figure.name}
-                        className="aspect-square rounded-md object-cover"
-                        height="64"
-                        src={figure.imageUrl}
-                        width="64"
-                        data-ai-hint={figure.imageHint}
-                      />
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <Link href={`/figures/${figure.id}`} className="hover:underline">
-                      {figure.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{figure.nationality}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                      {figure.occupation || 'N/A'}
+                  <TableCell>
+                     <Link href={`/figures/${figure.id}`} className="flex items-center gap-4 group">
+                        <Avatar className="h-12 w-12">
+                           <AvatarImage src={figure.imageUrl} alt={figure.name} className="object-cover" />
+                           <AvatarFallback>{figure.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium group-hover:underline">{figure.name}</span>
+                     </Link>
                   </TableCell>
                 </TableRow>
               ))}
