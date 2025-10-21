@@ -6,7 +6,7 @@ import type { Comment as CommentType, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { formatDateDistance, cn } from '@/lib/utils';
-import { MessageCircle, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X } from 'lucide-react';
+import { MessageCircle, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,10 +27,13 @@ import ReplyForm from './reply-form';
 
 interface CommentItemProps {
   comment: CommentType, 
-  figureId: string 
+  figureId: string,
+  hasChildren: boolean,
+  repliesVisible: boolean,
+  toggleReplies: () => void,
 }
 
-function CommentItem({ comment, figureId }: CommentItemProps) {
+function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleReplies }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -194,6 +197,7 @@ function CommentItem({ comment, figureId }: CommentItemProps) {
                 )}
 
                 {!isEditing && (
+                   <>
                     <div className="mt-2 flex items-center gap-1 text-muted-foreground">
                         <Button 
                             variant="ghost" 
@@ -255,6 +259,26 @@ function CommentItem({ comment, figureId }: CommentItemProps) {
                             </>
                         )}
                     </div>
+                     {hasChildren && (
+                        <Button
+                            variant="link"
+                            className="p-0 h-auto text-xs font-semibold text-muted-foreground mt-2"
+                            onClick={toggleReplies}
+                        >
+                            {repliesVisible ? (
+                                <>
+                                 <ChevronUp className="mr-1 h-4 w-4" />
+                                 Ocultar respuestas
+                                </>
+                            ) : (
+                                <>
+                                <ChevronDown className="mr-1 h-4 w-4" />
+                                Ver {comment.children!.length} {comment.children!.length > 1 ? 'respuestas' : 'respuesta'}
+                                </>
+                            )}
+                        </Button>
+                    )}
+                   </>
                 )}
                  {isReplying && (
                     <ReplyForm 
@@ -275,12 +299,23 @@ interface CommentThreadProps {
 }
 
 export default function CommentThread({ comment, figureId }: CommentThreadProps) {
+  const [repliesVisible, setRepliesVisible] = useState(true);
   const hasChildren = comment.children && comment.children.length > 0;
+
+  const toggleReplies = () => {
+    setRepliesVisible(prev => !prev);
+  }
 
   return (
     <div className="flex flex-col">
-      <CommentItem comment={comment} figureId={figureId} />
-      {hasChildren && (
+      <CommentItem 
+        comment={comment} 
+        figureId={figureId} 
+        hasChildren={!!hasChildren}
+        repliesVisible={repliesVisible}
+        toggleReplies={toggleReplies}
+      />
+      {hasChildren && repliesVisible && (
         <div className="ml-8 mt-4 space-y-4 border-l-2 pl-4">
           {comment.children!.map(child => (
             <CommentThread key={child.id} comment={child} figureId={figureId} />
