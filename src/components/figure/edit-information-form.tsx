@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { doc, writeBatch } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import Image from 'next/image';
 
@@ -55,11 +55,22 @@ const editFormSchema = z.object({
   height: z.number().min(100).max(250).optional(),
   socialLinks: z.object(
     Object.keys(SOCIAL_MEDIA_CONFIG).reduce((acc, key) => {
-        acc[key as SocialPlatform] = z.string().url("URL inválida.").or(z.literal('')).optional();
+        acc[key as SocialPlatform] = z.string().optional();
         return acc;
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
   tags: z.array(z.string()).optional(),
+}).refine(data => {
+    if (!data.imageUrl) return true;
+    try {
+        const url = new URL(data.imageUrl);
+        return url.protocol === 'https:' && (url.hostname === 'upload.wikimedia.org' || url.hostname === 'i.pinimg.com');
+    } catch {
+        return false;
+    }
+}, {
+    message: 'La URL de la imagen debe ser de "upload.wikimedia.org" o "i.pinimg.com".',
+    path: ['imageUrl'],
 });
 
 type EditFormValues = z.infer<typeof editFormSchema>;
@@ -68,23 +79,22 @@ const isValidImageUrl = (url: string | undefined | null): boolean => {
     if (!url) return false;
     try {
         const urlObject = new URL(url);
-        // Only allow specific trusted domains for images
         return urlObject.protocol === 'https:' && 
                (urlObject.hostname === 'upload.wikimedia.org' || urlObject.hostname === 'i.pinimg.com');
     } catch (e) {
-        // If URL parsing fails, it's not a valid URL
         return false; 
     }
 };
 
-export default function EditInformationForm({ figure, onFormClose }: EditInformationFormProps) {
-  const firestore = useFirestore();
-  const { toast } = useToast();
-  const [isSaving, setIsSaving] = React.useState(false);
-  
-  const form = useForm<EditFormValues>({
-    resolver: zodResolver(editFormSchema),
-    defaultValues: {
+const getSanitizedDefaultValues = (figure: Figure) => {
+    const defaultSocialLinks: { [key in SocialPlatform]?: string } = {};
+
+    for (const key in SOCIAL_MEDIA_CONFIG) {
+        const platform = key as SocialPlatform;
+        defaultSocialLinks[platform] = figure.socialLinks?.[platform] || '';
+    }
+
+    return {
       imageUrl: figure.imageUrl || '',
       name: figure.name || '',
       gender: figure.gender,
@@ -94,9 +104,19 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       occupation: figure.occupation || '',
       maritalStatus: figure.maritalStatus,
       height: figure.height || undefined,
-      socialLinks: figure.socialLinks || {},
+      socialLinks: defaultSocialLinks,
       tags: figure.tags || [],
-    },
+    };
+};
+
+export default function EditInformationForm({ figure, onFormClose }: EditInformationFormProps) {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = React.useState(false);
+  
+  const form = useForm<EditFormValues>({
+    resolver: zodResolver(editFormSchema),
+    defaultValues: getSanitizedDefaultValues(figure),
   });
   
   const imageUrlWatcher = form.watch('imageUrl');
@@ -143,18 +163,14 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       
       const batch = writeBatch(firestore);
 
-      // Generate hashtag keywords
       if (data.tags && data.tags.length > 0) {
         dataToSave.tagsLower = data.tags.map(tag => normalizeText(tag));
         dataToSave.tagKeywords = generateKeywords(data.tags.join(' '));
 
-        // Add new hashtags to the central 'hashtags' collection
         for (const tag of data.tags) {
             const normalizedTag = normalizeText(tag);
             if (normalizedTag) {
                 const hashtagRef = doc(firestore, 'hashtags', normalizedTag);
-                // Use set with merge to create the doc if it doesn't exist,
-                // or do nothing if it does. This is idempotent.
                 batch.set(hashtagRef, { name: tag }, { merge: true });
             }
         }
@@ -469,7 +485,5 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
-
-    
 
     
