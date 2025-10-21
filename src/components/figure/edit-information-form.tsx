@@ -86,12 +86,12 @@ const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
     return {
       imageUrl: figure.imageUrl || '',
       name: figure.name || '',
-      gender: figure.gender,
+      gender: figure.gender || undefined,
       birthDate: figure.birthDate || '',
       deathDate: figure.deathDate || '',
       nationality: figure.nationality || '',
       occupation: figure.occupation || '',
-      maritalStatus: figure.maritalStatus,
+      maritalStatus: figure.maritalStatus || undefined,
       height: figure.height || undefined,
       socialLinks: defaultSocialLinks,
       tags: figure.tags?.map(tag => normalizeText(tag)) || [],
@@ -184,8 +184,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       // Create/update hashtag documents in the /hashtags collection
       finalTags.forEach(tag => {
         const hashtagRef = doc(firestore, 'hashtags', tag);
-        // The document only needs to exist with its ID for the search to work.
-        // We can add a name field for clarity.
         batch.set(hashtagRef, { name: tag }, { merge: true });
       });
 
@@ -285,7 +283,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Sexo</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecciona un sexo" />
@@ -365,7 +363,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Estado Civil</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
                                     <FormControl>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecciona un estado civil" />
