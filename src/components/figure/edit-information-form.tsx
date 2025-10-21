@@ -79,7 +79,8 @@ const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
 
     for (const key in SOCIAL_MEDIA_CONFIG) {
         const platform = key as SocialPlatform;
-        defaultSocialLinks[platform] = figure.socialLinks?.[platform] || '';
+        const linkValue = figure.socialLinks?.[platform];
+        defaultSocialLinks[platform] = linkValue || '';
     }
 
     return {
