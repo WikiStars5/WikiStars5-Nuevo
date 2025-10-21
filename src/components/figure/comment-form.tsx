@@ -72,6 +72,8 @@ export default function CommentForm({ figure }: CommentFormProps) {
         createdAt: serverTimestamp(),
         userDisplayName: currentUser.isAnonymous ? 'Anónimo' : currentUser.displayName || 'Usuario',
         userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
+        likes: 0,
+        dislikes: 0,
       };
 
       await addDocumentNonBlocking(commentsColRef, newComment);

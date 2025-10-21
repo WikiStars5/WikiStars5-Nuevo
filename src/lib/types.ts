@@ -6,7 +6,7 @@ export interface Figure {
   imageUrl: string;
   imageHint?: string;
   nationality: string;
-  tags: string[];
+  tags?: string[];
   tagsLower?: string[];
   tagKeywords?: string[];
   isFeatured?: boolean;
@@ -74,7 +74,17 @@ export interface Comment {
   figureId: string;
   text: string;
   createdAt: Timestamp;
+  likes?: number;
+  dislikes?: number;
   // Denormalized user data for display
   userDisplayName: string;
   userPhotoURL: string | null;
+}
+
+export interface CommentVote {
+  id: string;
+  userId: string;
+  commentId: string;
+  vote: 'like' | 'dislike';
+  createdAt: Timestamp;
 }

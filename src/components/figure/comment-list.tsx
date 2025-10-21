@@ -1,18 +1,88 @@
 'use client';
 
-import { collection, query, orderBy } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import type { Comment } from '@/lib/types';
+import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import type { Comment, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { formatDateDistance } from '@/lib/utils';
-import { MessageCircle } from 'lucide-react';
+import { formatDateDistance, cn } from '@/lib/utils';
+import { MessageCircle, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { Button } from '../ui/button';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface CommentListProps {
   figureId: string;
 }
 
-function CommentItem({ comment }: { comment: Comment }) {
+function CommentItem({ comment, figureId }: { comment: Comment, figureId: string }) {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
+
+    const userVoteRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, `figures/${figureId}/comments/${comment.id}/votes`, user.uid);
+    }, [firestore, user, figureId, comment.id]);
+
+    const { data: userVote, isLoading: isVoteLoading } = useDoc<CommentVote>(userVoteRef);
+
+    const handleVote = async (voteType: 'like' | 'dislike') => {
+        if (!firestore || !user || isVoting) return;
+
+        setIsVoting(voteType);
+
+        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+        // The ref is already memoized, so we can reuse `userVoteRef`
+        const voteRef = doc(firestore, `figures/${figureId}/comments/${comment.id}/votes`, user.uid);
+        
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const commentDoc = await transaction.get(commentRef);
+                const voteDoc = await transaction.get(voteRef);
+
+                if (!commentDoc.exists()) {
+                    throw new Error("El comentario ya no existe.");
+                }
+
+                const currentVote = voteDoc.exists() ? voteDoc.data().vote : null;
+                const updates: { [key: string]: any } = {};
+
+                if (currentVote === voteType) {
+                    // User is un-voting
+                    updates[`${voteType}s`] = increment(-1);
+                    transaction.delete(voteRef);
+                } else {
+                    // New vote or changing vote
+                    updates[`${voteType}s`] = increment(1);
+                    if (currentVote) {
+                        // If changing vote, decrement the other counter
+                        const otherType = voteType === 'like' ? 'dislike' : 'like';
+                        updates[`${otherType}s`] = increment(-1);
+                    }
+                    transaction.set(voteRef, { 
+                        userId: user.uid,
+                        commentId: comment.id,
+                        vote: voteType,
+                        createdAt: serverTimestamp(),
+                     });
+                }
+                
+                transaction.update(commentRef, updates);
+            });
+        } catch (error: any) {
+            console.error("Error al votar:", error);
+            toast({
+                title: "Error al Votar",
+                description: error.message || "No se pudo registrar tu voto.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsVoting(null);
+        }
+    };
+
     const getAvatarFallback = () => {
         return comment.userDisplayName?.charAt(0) || 'U';
     }
@@ -31,6 +101,28 @@ function CommentItem({ comment }: { comment: Comment }) {
                     </p>
                 </div>
                 <p className="text-sm text-foreground/90 whitespace-pre-wrap">{comment.text}</p>
+                <div className="mt-2 flex items-center gap-4 text-muted-foreground">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && "text-blue-500")}
+                        onClick={() => handleVote('like')}
+                        disabled={!!isVoting || isVoteLoading}
+                    >
+                        {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
+                        <span>{comment.likes ?? 0}</span>
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && "text-red-500")}
+                        onClick={() => handleVote('dislike')}
+                        disabled={!!isVoting || isVoteLoading}
+                    >
+                         {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
+                        <span>{comment.dislikes ?? 0}</span>
+                    </Button>
+                </div>
             </div>
         </div>
     )
@@ -59,6 +151,10 @@ export default function CommentList({ figureId }: CommentListProps) {
                     <div className="flex-1 space-y-2">
                         <Skeleton className="h-4 w-1/4" />
                         <Skeleton className="h-10 w-full" />
+                         <div className="flex gap-4 mt-2">
+                            <Skeleton className="h-6 w-12" />
+                            <Skeleton className="h-6 w-12" />
+                        </div>
                     </div>
                 </div>
             ))}
@@ -82,7 +178,7 @@ export default function CommentList({ figureId }: CommentListProps) {
     <div className="space-y-6">
         <h3 className="text-lg font-semibold">Comentarios Recientes</h3>
         {comments.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} />
+            <CommentItem key={comment.id} comment={comment} figureId={figureId} />
         ))}
     </div>
   );

@@ -207,6 +207,46 @@
         "text"
       ]
     },
+    "CommentVote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CommentVote",
+      "type": "object",
+      "description": "Represents a user's vote on a comment.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the comment vote, typically {userId}."
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who voted."
+        },
+        "commentId": {
+          "type": "string",
+          "description": "ID of the comment being voted on."
+        },
+        "vote": {
+          "type": "string",
+          "enum": [
+            "like",
+            "dislike"
+          ],
+          "description": "The type of vote cast."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the vote was cast."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "commentId",
+        "vote",
+        "createdAt"
+      ]
+    },
     "Notification": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Notification",
@@ -514,6 +554,30 @@
             {
               "name": "commentId",
               "description": "The unique identifier of the comment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/figures/{figureId}/comments/{commentId}/votes/{userId}",
+        "definition": {
+          "entityName": "CommentVote",
+          "schema": {
+            "$ref": "#/backend/entities/CommentVote"
+          },
+          "description": "Stores a user's specific vote on a comment to prevent duplicate voting.",
+          "params": [
+            {
+              "name": "figureId",
+              "description": "The unique identifier of the public figure."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique identifier of the comment."
+            },
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who voted."
             }
           ]
         }
