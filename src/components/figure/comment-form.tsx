@@ -69,6 +69,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
+      // Step 1: Find the user's previous comment (if any) outside the transaction.
       const previousCommentsQuery = query(
         commentsColRef,
         where('userId', '==', currentUser.uid),
@@ -79,48 +80,31 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const previousCommentSnapshot = await getDocs(previousCommentsQuery);
       const previousComment = previousCommentSnapshot.docs[0]?.data() as Comment | undefined;
 
+      // Step 2: Run the transaction.
       await runTransaction(firestore, async (transaction) => {
         const figureDoc = await transaction.get(figureRef);
         if (!figureDoc.exists()) {
             throw new Error("Figure not found.");
         }
 
-        const isFirstVote = !previousComment || typeof previousComment.rating !== 'number';
         const updates: { [key: string]: any } = {};
-
-        // Prepare the new comment payload
-        const newCommentRef = doc(commentsColRef);
-        const newCommentPayload = {
-            figureId: figureId,
-            userId: currentUser.uid,
-            text: data.text,
-            rating: data.rating,
-            createdAt: serverTimestamp(),
-            userDisplayName: currentUser.isAnonymous ? 'Anónimo' : currentUser.displayName || 'Usuario',
-            userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
-            likes: 0,
-            dislikes: 0,
-            parentId: null,
-            depth: 0,
-        };
+        const isFirstVote = !previousComment || typeof previousComment.rating !== 'number';
+        const newRating = data.rating;
 
         if (isFirstVote) {
           // If it's the user's first vote, simply increment everything.
           updates['ratingCount'] = increment(1);
-          updates['totalRating'] = increment(data.rating);
-          updates[`ratingsBreakdown.${data.rating}`] = increment(1);
+          updates['totalRating'] = increment(newRating);
+          updates[`ratingsBreakdown.${newRating}`] = increment(1);
         } else {
           // User is changing their vote.
           const oldRating = previousComment.rating;
-          const newRating = data.rating;
-
           if (oldRating !== newRating) {
-            // Decrement the old rating's count.
-            updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
-            // Increment the new rating's count.
-            updates[`ratingsBreakdown.${newRating}`] = increment(1);
-            // Adjust the total rating by the difference.
+            // Adjust total rating by the difference.
             updates['totalRating'] = increment(newRating - oldRating);
+            // Decrement the old rating's count and increment the new one.
+            updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
+            updates[`ratingsBreakdown.${newRating}`] = increment(1);
           }
           // Note: ratingCount does not change when a vote is updated.
         }
@@ -128,7 +112,21 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         // Apply all updates to the figure document
         transaction.update(figureRef, updates);
         
-        // Create the new comment document
+        // Prepare and create the new comment document
+        const newCommentRef = doc(commentsColRef);
+        const newCommentPayload = {
+            figureId: figureId,
+            userId: currentUser!.uid,
+            text: data.text,
+            rating: newRating,
+            createdAt: serverTimestamp(),
+            userDisplayName: currentUser!.isAnonymous ? 'Anónimo' : currentUser!.displayName || 'Usuario',
+            userPhotoURL: currentUser!.isAnonymous ? null : currentUser!.photoURL,
+            likes: 0,
+            dislikes: 0,
+            parentId: null,
+            depth: 0,
+        };
         transaction.set(newCommentRef, newCommentPayload);
       });
 

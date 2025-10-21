@@ -199,7 +199,7 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                         • {comment.createdAt ? formatDateDistance(comment.createdAt.toDate()) : 'justo ahora'}
                     </p>
                     {comment.updatedAt && (
-                         <p className="text-xs text-muted-foreground italic">(editado)</p>
+                         <p className="text-xs text-italic text-muted-foreground">(editado)</p>
                     )}
                 </div>
 

@@ -31,7 +31,7 @@ const RatingRow = ({ stars, count, total }: { stars: number; count: number; tota
 
 
 export default function CommunityRatings({ figure }: CommunityRatingsProps) {
-    const { ratingCount, totalRating, ratingsBreakdown } = figure;
+    const { ratingCount = 0, totalRating = 0, ratingsBreakdown } = figure;
     const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
 
     const allRatings = [5, 4, 3, 2, 1, 0];
