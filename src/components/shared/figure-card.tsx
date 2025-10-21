@@ -10,7 +10,7 @@ type FigureCardProps = {
 
 export default function FigureCard({ figure }: FigureCardProps) {
   return (
-    <Link href={`/figures/${figure.id}`}>
+    <Link href={`/figures/${figure.id}`} scroll={true}>
       <Card className="h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 duration-300 ease-in-out">
         <CardHeader className="p-0">
           <div className="relative aspect-[4/5] w-full">
