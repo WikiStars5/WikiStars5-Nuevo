@@ -43,6 +43,14 @@ function getNextUser(auth: Auth): Promise<FirebaseUser> {
   });
 }
 
+const ratingSounds: { [key: number]: string } = {
+    1: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar1.mp3?alt=media&token=c867fe4c-a39f-49a1-ab99-b6fdac84b2e8',
+    2: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar2.mp3?alt=media&token=f0a09d9e-8a99-498b-b9ea-0a61b07e4173',
+    3: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar3.mp3?alt=media&token=40943193-e45d-443d-9cc2-40ff8fa98076',
+    4: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar4.mp3?alt=media&token=75b19307-5b2c-4c89-a252-b584727469da',
+    5: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar5.mp3?alt=media&token=11cd84e2-7377-4972-a9b0-e0e716e2df46',
+};
+
 export default function CommentForm({ figureId, figureName }: CommentFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -125,6 +133,12 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         };
         transaction.set(newCommentRef, newCommentPayload);
       });
+
+      // Play sound on success
+      if (ratingSounds[data.rating]) {
+        const audio = new Audio(ratingSounds[data.rating]);
+        audio.play();
+      }
 
       toast({
         title: '¡Opinión Publicada!',
