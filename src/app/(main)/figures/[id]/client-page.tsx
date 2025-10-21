@@ -264,27 +264,6 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
                             </>
                         )}
                         
-                        {hasTags && (
-                             <>
-                                <Separator className="my-6" />
-                                <div className="space-y-4">
-                                    <h3 className="font-semibold text-sm flex items-center gap-2">
-                                        <Tag className="h-4 w-4 text-muted-foreground" />
-                                        Hashtags
-                                    </h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {figure.tags.map((tag) => (
-                                            <Link href={`/figures/hashtagged/${encodeURIComponent(tag)}`} key={tag}>
-                                                <Badge variant="secondary" className="transition-colors hover:bg-primary/20 capitalize">
-                                                    #{tag}
-                                                </Badge>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-
                     </CardContent>
                 </Card>
               )}
@@ -317,3 +296,5 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </div>
   );
 }
+
+    
