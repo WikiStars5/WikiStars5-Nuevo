@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { addDocumentNonBlocking, useAuth, useFirestore, useUser } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, MessageSquare, Send } from 'lucide-react';
 import { onAuthStateChanged, User as FirebaseUser, Auth } from 'firebase/auth';
 import StarInput from './star-input';
+import { Comment } from '@/lib/types';
 
 const commentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(1000, 'El comentario no puede superar los 1000 caracteres.'),
@@ -67,11 +68,48 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-
+      
       await runTransaction(firestore, async (transaction) => {
-        const newCommentRef = doc(commentsColRef);
+        // 1. Find the user's previous comment to get their old rating
+        const previousCommentsQuery = query(
+          commentsColRef,
+          where('userId', '==', currentUser.uid),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
 
-        const newComment = {
+        // We can't use `getDocs` inside a transaction, so we fetch it beforehand.
+        // This is a limitation, but acceptable for this use case. A more complex
+        // system might store the user's last vote in a separate document.
+        const previousCommentsSnapshot = await getDocs(previousCommentsQuery);
+        const previousComment = previousCommentsSnapshot.docs[0]?.data() as Comment | undefined;
+        
+        const updates: { [key: string]: any } = {};
+
+        if (previousComment && previousComment.rating !== undefined) {
+          // User is changing their vote.
+          // a. Decrement the old rating's breakdown and total score.
+          updates[`ratingsBreakdown.${previousComment.rating}`] = increment(-1);
+          updates['totalRating'] = increment(-previousComment.rating);
+
+          // b. Increment the new rating's breakdown and total score.
+          updates[`ratingsBreakdown.${data.rating}`] = increment(1);
+          updates['totalRating'] = increment(data.rating);
+
+          // c. `ratingCount` remains the same as it's an update, not a new rater.
+        } else {
+          // This is the user's first rating.
+          updates[`ratingsBreakdown.${data.rating}`] = increment(1);
+          updates['totalRating'] = increment(data.rating);
+          updates['ratingCount'] = increment(1); // Increment count only for the first rating.
+        }
+        
+        // Apply all aggregated updates to the figure document.
+        transaction.update(figureRef, updates);
+
+        // 2. Create the new comment document
+        const newCommentRef = doc(commentsColRef);
+        const newCommentPayload = {
             figureId: figureId,
             userId: currentUser.uid,
             text: data.text,
@@ -81,20 +119,11 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
             likes: 0,
             dislikes: 0,
-            parentId: null, // This is a top-level comment
-            depth: 0, // Top-level comments have depth 0
+            parentId: null,
+            depth: 0,
         };
-        
-        transaction.set(newCommentRef, newComment);
-
-        const ratingKey = `ratingsBreakdown.${data.rating}`;
-        transaction.update(figureRef, {
-            ratingCount: increment(1),
-            totalRating: increment(data.rating),
-            [ratingKey]: increment(1),
-        });
+        transaction.set(newCommentRef, newCommentPayload);
       });
-
 
       toast({
         title: '¡Opinión Publicada!',
