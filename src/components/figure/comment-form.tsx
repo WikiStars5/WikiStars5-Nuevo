@@ -69,6 +69,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
+      // We need to check for a previous comment by the user for THIS figure.
       const previousCommentsQuery = query(
         commentsColRef,
         where('userId', '==', currentUser.uid),
@@ -79,6 +80,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const previousCommentSnapshot = await getDocs(previousCommentsQuery);
       const previousComment = previousCommentSnapshot.docs[0]?.data() as Comment | undefined;
 
+
       await runTransaction(firestore, async (transaction) => {
         const figureDoc = await transaction.get(figureRef);
         if (!figureDoc.exists()) {
@@ -86,20 +88,22 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         }
 
         const updates: { [key: string]: any } = {};
-        const isFirstVote = !previousComment || typeof previousComment.rating !== 'number';
         const newRating = data.rating;
 
-        if (isFirstVote) {
-          updates['ratingCount'] = increment(1);
-          updates['totalRating'] = increment(newRating);
-          updates[`ratingsBreakdown.${newRating}`] = increment(1);
-        } else {
+        if (previousComment && typeof previousComment.rating === 'number') {
+          // This is a vote change
           const oldRating = previousComment.rating;
           if (oldRating !== newRating) {
             updates['totalRating'] = increment(newRating - oldRating);
             updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
             updates[`ratingsBreakdown.${newRating}`] = increment(1);
           }
+          // ratingCount does not change
+        } else {
+          // This is a first-time vote for this user
+          updates['ratingCount'] = increment(1);
+          updates['totalRating'] = increment(newRating);
+          updates[`ratingsBreakdown.${newRating}`] = increment(1);
         }
 
         transaction.update(figureRef, updates);
@@ -177,6 +181,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                       placeholder={`¿Qué opinas de ${figureName}?`}
                       className="resize-none"
                       rows={4}
+                      maxLength={500}
                       {...field}
                     />
                   </FormControl>
