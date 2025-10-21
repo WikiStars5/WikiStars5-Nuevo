@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,12 +27,14 @@ export default function Header() {
   const { user, isUserLoading } = useUser();
   const { isAdmin } = useAdmin();
   const auth = useAuth();
+  const router = useRouter();
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
 
   const handleLogout = () => {
     if (auth) {
       auth.signOut();
+      router.push('/');
     }
   };
 

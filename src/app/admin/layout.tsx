@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -53,6 +54,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     const handleLogout = () => {
         if (auth) {
             auth.signOut();
+            router.push('/');
         }
     };
 
