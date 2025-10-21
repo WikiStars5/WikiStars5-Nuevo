@@ -69,7 +69,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
-      // Find user's previous comment to get their old rating
       const previousCommentsQuery = query(
         commentsColRef,
         where('userId', '==', currentUser.uid),
@@ -77,10 +76,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         limit(1)
       );
 
-      // This query must happen OUTSIDE the transaction
       const previousCommentSnapshot = await getDocs(previousCommentsQuery);
       const previousComment = previousCommentSnapshot.docs[0]?.data() as Comment | undefined;
-
 
       await runTransaction(firestore, async (transaction) => {
         const figureDoc = await transaction.get(figureRef);
@@ -88,39 +85,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             throw new Error("Figure not found.");
         }
 
-        const currentTotalRating = figureDoc.data().totalRating || 0;
-        const currentRatingCount = figureDoc.data().ratingCount || 0;
-        const currentRatingsBreakdown = figureDoc.data().ratingsBreakdown || { '0':0, '1':0, '2':0, '3':0, '4':0, '5':0 };
-
-        let newTotalRating = currentTotalRating;
-        let newRatingCount = currentRatingCount;
-        let newRatingsBreakdown = { ...currentRatingsBreakdown };
-        
         const isFirstVote = !previousComment || typeof previousComment.rating !== 'number';
+        const updates: { [key: string]: any } = {};
 
-        if (!isFirstVote) {
-            // Decrement old rating stats
-            newTotalRating -= previousComment.rating;
-            newRatingsBreakdown[previousComment.rating] = (newRatingsBreakdown[previousComment.rating] || 1) - 1;
-        }
-
-        // Increment new rating stats
-        newTotalRating += data.rating;
-        newRatingsBreakdown[data.rating] = (newRatingsBreakdown[data.rating] || 0) + 1;
-        
-        if(isFirstVote) {
-            newRatingCount += 1;
-        }
-
-        const updates = {
-            totalRating: newTotalRating,
-            ratingCount: newRatingCount,
-            ratingsBreakdown: newRatingsBreakdown
-        };
-        
-        transaction.update(figureRef, updates);
-
-        // 2. Create the new comment document
+        // Prepare the new comment payload
         const newCommentRef = doc(commentsColRef);
         const newCommentPayload = {
             figureId: figureId,
@@ -135,6 +103,32 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             parentId: null,
             depth: 0,
         };
+
+        if (isFirstVote) {
+          // If it's the user's first vote, simply increment everything.
+          updates['ratingCount'] = increment(1);
+          updates['totalRating'] = increment(data.rating);
+          updates[`ratingsBreakdown.${data.rating}`] = increment(1);
+        } else {
+          // User is changing their vote.
+          const oldRating = previousComment.rating;
+          const newRating = data.rating;
+
+          if (oldRating !== newRating) {
+            // Decrement the old rating's count.
+            updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
+            // Increment the new rating's count.
+            updates[`ratingsBreakdown.${newRating}`] = increment(1);
+            // Adjust the total rating by the difference.
+            updates['totalRating'] = increment(newRating - oldRating);
+          }
+          // Note: ratingCount does not change when a vote is updated.
+        }
+
+        // Apply all updates to the figure document
+        transaction.update(figureRef, updates);
+        
+        // Create the new comment document
         transaction.set(newCommentRef, newCommentPayload);
       });
 
