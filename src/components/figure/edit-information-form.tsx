@@ -115,6 +115,15 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
   const [hashtagInput, setHashtagInput] = React.useState('');
 
   const handleAddHashtag = (newTag?: string) => {
+    if (tagsWatcher.length >= 10) {
+      toast({
+        title: 'Límite de Hashtags Alcanzado',
+        description: 'No puedes añadir más de 10 hashtags.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const tagToAdd = (newTag || hashtagInput).trim().toLowerCase();
     const currentTagsLower = tagsWatcher.map(t => t.toLowerCase());
 
@@ -125,7 +134,10 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
   };
 
   const handleRemoveHashtag = (tagToRemove: string) => {
-    form.setValue('tags', tagsWatcher.filter(tag => tag.toLowerCase() !== tagToRemove.toLowerCase()));
+    form.setValue(
+        'tags',
+        tagsWatcher.filter(tag => tag.toLowerCase() !== tagToRemove.toLowerCase())
+    );
   };
 
 
@@ -450,7 +462,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         <Button
                             type="button"
                             onClick={() => handleAddHashtag()}
-                            disabled={!hashtagInput.trim()}
+                            disabled={!hashtagInput.trim() || tagsWatcher.length >= 10}
                         >
                             <Plus className="mr-2 h-4 w-4" /> Añadir
                         </Button>
@@ -487,3 +499,5 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
+
+    
