@@ -12,7 +12,7 @@ interface CommunityRatingsProps {
     figure: Figure;
 }
 
-const RatingRow = ({ stars, count, total, max }: { stars: number; count: number; total: number; max: number }) => {
+const RatingRow = ({ stars, count, total }: { stars: number; count: number; total: number; }) => {
     const percentage = total > 0 ? (count / total) * 100 : 0;
     
     return (
@@ -34,15 +34,7 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
     const { ratingCount, totalRating, ratingsBreakdown } = figure;
     const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
 
-    const maxVotes = ratingsBreakdown ? Math.max(...Object.values(ratingsBreakdown)) : 0;
-    
-    const ratingData = ratingsBreakdown ? Object.entries(ratingsBreakdown)
-        .map(([stars, count]) => ({
-            name: `${stars} ★`,
-            votes: count,
-        }))
-        .sort((a, b) => parseInt(b.name) - parseInt(a.name))
-        : [];
+    const allRatings = [5, 4, 3, 2, 1, 0];
         
     return (
         <Card>
@@ -62,13 +54,12 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
                         </div>
                     </div>
                     <div className="md:col-span-2 flex flex-col justify-center space-y-2">
-                        {ratingData.map(item => (
+                        {allRatings.map(starValue => (
                             <RatingRow
-                                key={item.name}
-                                stars={parseInt(item.name)}
-                                count={item.votes}
+                                key={starValue}
+                                stars={starValue}
+                                count={ratingsBreakdown?.[starValue as keyof typeof ratingsBreakdown] ?? 0}
                                 total={ratingCount}
-                                max={maxVotes}
                             />
                         ))}
                     </div>
