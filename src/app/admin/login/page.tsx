@@ -48,17 +48,16 @@ export default function AdminLoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = (data: LoginFormValues) => {
     setError(null);
-    try {
-      if (!auth) return;
-      await initiateEmailSignIn(auth, data.email, data.password);
-    } catch (err: any) {
-      setError('Failed to sign in. Please check your credentials.');
-    }
+    if (!auth) return;
+    initiateEmailSignIn(auth, data.email, data.password)
+        .catch((err: any) => {
+            setError('Failed to sign in. Please check your credentials.');
+        });
   };
 
-  const handlePasswordReset = async () => {
+  const handlePasswordReset = () => {
     const email = form.getValues('email');
     if (!email) {
       form.setError('email', {
@@ -69,20 +68,21 @@ export default function AdminLoginPage() {
     }
     if (!auth) return;
 
-    try {
-      await sendPasswordResetEmail(auth, email);
-      toast({
-        title: 'Correo Enviado',
-        description: 'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.',
+    sendPasswordResetEmail(auth, email)
+      .then(() => {
+        toast({
+            title: 'Correo Enviado',
+            description: 'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.',
+        });
+      })
+      .catch((error) => {
+        console.error('Password reset error:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudo enviar el correo de restablecimiento. Verifica que el correo sea correcto.',
+        });
       });
-    } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo enviar el correo de restablecimiento. Verifica que el correo sea correcto.',
-      });
-    }
   };
   
   if (isUserLoading || user) {

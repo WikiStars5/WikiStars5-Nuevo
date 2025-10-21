@@ -49,18 +49,16 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = (data: LoginFormValues) => {
     setError(null);
-    try {
-      if (!auth) return;
-      // This will sign in the user and the useEffect above will redirect
-      await initiateEmailSignIn(auth, data.email, data.password);
-    } catch (err: any) {
-      setError('Credenciales inválidas. Por favor, verifica tu correo y contraseña.');
-    }
+    if (!auth) return;
+    initiateEmailSignIn(auth, data.email, data.password)
+        .catch((err: any) => {
+            setError('Credenciales inválidas. Por favor, verifica tu correo y contraseña.');
+        });
   };
 
-  const handlePasswordReset = async () => {
+  const handlePasswordReset = () => {
     const email = form.getValues('email');
     if (!email) {
       form.setError('email', {
@@ -71,20 +69,21 @@ export default function LoginPage() {
     }
     if (!auth) return;
 
-    try {
-      await sendPasswordResetEmail(auth, email);
-      toast({
-        title: 'Correo Enviado',
-        description: 'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.',
+    sendPasswordResetEmail(auth, email)
+      .then(() => {
+        toast({
+            title: 'Correo Enviado',
+            description: 'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.',
+        });
+      })
+      .catch((error) => {
+        console.error('Password reset error:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudo enviar el correo de restablecimiento. Verifica que el correo sea correcto.',
+        });
       });
-    } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo enviar el correo de restablecimiento. Verifica que el correo sea correcto.',
-      });
-    }
   };
   
   if (isUserLoading || (user && !user.isAnonymous)) {
