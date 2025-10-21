@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Textarea } from '../ui/textarea';
 import ReplyForm from './reply-form';
+import { StarRating } from '../shared/star-rating';
 
 
 interface CommentItemProps {
@@ -175,6 +176,8 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                     )}
                 </div>
 
+                <StarRating rating={comment.rating} starClassName="h-4 w-4 mt-1" />
+
                 {isEditing ? (
                     <div className="mt-2 space-y-2">
                         <Textarea 
@@ -193,7 +196,7 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                         </div>
                     </div>
                 ) : (
-                    <p className="text-sm text-foreground/90 whitespace-pre-wrap">{comment.text}</p>
+                    <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">{comment.text}</p>
                 )}
 
                 {!isEditing && (
