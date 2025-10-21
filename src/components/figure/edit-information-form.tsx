@@ -174,14 +174,15 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       const finalTags = (data.tags || []).map(tag => normalizeText(tag)).filter(Boolean);
       dataToSave.tags = finalTags;
       dataToSave.tagsLower = finalTags; 
-      dataToSave.tagKeywords = generateKeywords(finalTags.join(' ')); 
+      dataToSave.tagKeywords = generateKeywords(finalTags.join(' '));
       
       dataToSave.nameKeywords = generateKeywords(data.name);
 
-      // Create/update hashtag documents
+      // Create/update hashtag documents with their own keywords
       finalTags.forEach(tag => {
         const hashtagRef = doc(firestore, 'hashtags', tag);
-        batch.set(hashtagRef, { name: tag }, { merge: true });
+        const keywords = generateKeywords(tag);
+        batch.set(hashtagRef, { name: tag, keywords: keywords }, { merge: true });
       });
 
 
