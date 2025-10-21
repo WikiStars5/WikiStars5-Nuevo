@@ -19,7 +19,7 @@ import { Comment } from '@/lib/types';
 
 const commentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(1000, 'El comentario no puede superar los 1000 caracteres.'),
-  rating: z.number().min(0).max(5, 'La calificación debe estar entre 0 y 5.'),
+  rating: z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.'),
 });
 
 type CommentFormValues = z.infer<typeof commentSchema>;
@@ -52,7 +52,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
-    defaultValues: { text: '', rating: 0 },
+    defaultValues: { text: '', rating: null as any },
   });
 
   const onSubmit = async (data: CommentFormValues) => {
@@ -69,7 +69,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
-      // Step 1: Find the user's previous comment (if any) outside the transaction.
       const previousCommentsQuery = query(
         commentsColRef,
         where('userId', '==', currentUser.uid),
@@ -80,7 +79,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const previousCommentSnapshot = await getDocs(previousCommentsQuery);
       const previousComment = previousCommentSnapshot.docs[0]?.data() as Comment | undefined;
 
-      // Step 2: Run the transaction.
       await runTransaction(firestore, async (transaction) => {
         const figureDoc = await transaction.get(figureRef);
         if (!figureDoc.exists()) {
@@ -92,27 +90,20 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const newRating = data.rating;
 
         if (isFirstVote) {
-          // If it's the user's first vote, simply increment everything.
           updates['ratingCount'] = increment(1);
           updates['totalRating'] = increment(newRating);
           updates[`ratingsBreakdown.${newRating}`] = increment(1);
         } else {
-          // User is changing their vote.
           const oldRating = previousComment.rating;
           if (oldRating !== newRating) {
-            // Adjust total rating by the difference.
             updates['totalRating'] = increment(newRating - oldRating);
-            // Decrement the old rating's count and increment the new one.
             updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
             updates[`ratingsBreakdown.${newRating}`] = increment(1);
           }
-          // Note: ratingCount does not change when a vote is updated.
         }
 
-        // Apply all updates to the figure document
         transaction.update(figureRef, updates);
         
-        // Prepare and create the new comment document
         const newCommentRef = doc(commentsColRef);
         const newCommentPayload = {
             figureId: figureId,
@@ -134,7 +125,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         title: '¡Opinión Publicada!',
         description: 'Gracias por compartir tu comentario y calificación.',
       });
-      form.reset({text: '', rating: 0});
+      form.reset({text: '', rating: null as any});
     } catch (error) {
       console.error('Error al publicar comentario:', error);
       toast({
