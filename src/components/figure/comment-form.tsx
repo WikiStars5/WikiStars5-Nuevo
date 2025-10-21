@@ -60,9 +60,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isAnonymous = !user || user.isAnonymous;
+  // A user is a "first-time anonymous" if they are not logged in OR if they are anonymous and haven't set a display name yet.
+  const isFirstTimeAnonymous = (!user || (user.isAnonymous && !user.displayName));
 
-  const commentSchema = isAnonymous
+  const commentSchema = isFirstTimeAnonymous
     ? baseCommentSchema.extend({
         username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(20, 'El nombre no puede tener más de 20 caracteres.'),
       })
@@ -87,7 +88,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         currentUser = await getNextUser(auth);
       }
       
-      // If user is still anonymous (or newly anonymous), update their profile with the chosen username
+      // If user is still anonymous (or newly anonymous), and they provided a username, update their auth profile.
       if (currentUser.isAnonymous && data.username && data.username !== currentUser.displayName) {
           await updateProfile(currentUser, { displayName: data.username });
       }
@@ -144,7 +145,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         transaction.update(figureRef, updates);
         
         const newCommentRef = doc(commentsColRef);
-        const displayName = currentUser!.isAnonymous ? data.username : userProfileData.username || currentUser!.displayName || 'Usuario';
+        const displayName = currentUser!.isAnonymous ? (data.username || currentUser.displayName) : (userProfileData.username || currentUser!.displayName || 'Usuario');
         
         const newCommentPayload = {
             figureId: figureId,
@@ -174,7 +175,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         title: '¡Opinión Publicada!',
         description: 'Gracias por compartir tu comentario y calificación.',
       });
-      form.reset({text: '', rating: null as any, username: data.username });
+      form.reset({text: '', rating: null as any, username: data.username || user?.displayName });
     } catch (error) {
       console.error('Error al publicar comentario:', error);
       toast({
@@ -200,7 +201,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {isAnonymous && (
+            {isFirstTimeAnonymous && (
               <Card className="bg-muted/50">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg">¡Únete a la conversación!</CardTitle>
