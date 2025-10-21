@@ -34,7 +34,9 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
     const { ratingsBreakdown } = figure;
 
     const { totalVotes, averageRating } = React.useMemo(() => {
-        if (!ratingsBreakdown) return { totalVotes: 0, averageRating: 0 };
+        if (!ratingsBreakdown) {
+            return { totalVotes: 0, averageRating: 0 };
+        }
 
         const total = Object.values(ratingsBreakdown).reduce((sum, count) => sum + count, 0);
 
