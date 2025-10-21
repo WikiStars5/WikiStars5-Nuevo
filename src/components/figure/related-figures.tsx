@@ -3,26 +3,63 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Users } from 'lucide-react';
+import { PlusCircle, Users, Trash2, Loader2 } from 'lucide-react';
 import type { Figure, RelatedFigure } from '@/lib/types';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import AddRelatedFigureDialog from './add-related-figure-dialog';
 import FigureCard from '../shared/figure-card';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
-import { doc, getDoc } from 'firebase/firestore';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
+
 
 interface RelatedFiguresProps {
     figure: Figure;
 }
 
 // A new component to fetch the actual figure data based on the relation
-function RelatedFigureCard({ figureId }: { figureId: string }) {
+function RelatedFigureCard({ figureId, relationId }: { figureId: string, relationId: string }) {
     const firestore = useFirestore();
+    const { toast } = useToast();
     const [figureData, setFigureData] = useState<Figure | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
+    
+    const handleDelete = async () => {
+        if (!firestore) return;
+        setIsDeleting(true);
+        try {
+            const relationRef = doc(firestore, 'related_figures', relationId);
+            await deleteDoc(relationRef);
+            toast({
+                title: 'Relación Eliminada',
+                description: 'El perfil relacionado ha sido eliminado.',
+            });
+            // The component will unmount as the parent's `relations` data updates
+        } catch (error) {
+            console.error("Failed to delete relation:", error);
+            toast({
+                title: 'Error al Eliminar',
+                description: 'No se pudo eliminar la relación.',
+                variant: 'destructive',
+            });
+            setIsDeleting(false);
+        }
+    }
+
 
     useEffect(() => {
         const fetchFigure = async () => {
@@ -45,16 +82,43 @@ function RelatedFigureCard({ figureId }: { figureId: string }) {
     if (isLoading) {
         return (
              <div className="space-y-4">
-                <Skeleton className="h-[350px] w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="aspect-[4/5] w-full" />
+                <Skeleton className="h-5 w-3/4" />
             </div>
         )
     }
 
     if (!figureData) return null;
 
-    return <FigureCard figure={figureData} />;
+    return (
+        <div className="relative group">
+            <FigureCard figure={figureData} />
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        disabled={isDeleting}
+                    >
+                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                           Esta acción eliminará la relación con {figureData.name}. No se puede deshacer.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
+    );
 }
 
 
@@ -63,20 +127,22 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     const firestore = useFirestore();
 
     // Query only for relationships where the current figure is the SOURCE.
-    const relationsQuery = useMemoFirebase(() => {
+    const relationsAsSourceQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(collection(firestore, 'related_figures'), where('sourceFigureId', '==', figure.id));
     }, [firestore, figure.id]);
 
-    const { data: relations, isLoading } = useCollection<RelatedFigure>(relationsQuery);
+    const { data: relations, isLoading } = useCollection<RelatedFigure>(relationsAsSourceQuery);
 
-    const relatedFigureIds = useMemo(() => {
+    const relatedItems = useMemo(() => {
         if (!relations) return [];
-        // The related figures are the TARGETS of the relationships.
-        return relations.map(rel => rel.targetFigureId);
+        return relations.map(rel => ({
+            figureId: rel.targetFigureId,
+            relationId: rel.id
+        }));
     }, [relations]);
     
-    const isLimitReached = relatedFigureIds.length >= 5;
+    const isLimitReached = relatedItems.length >= 5;
 
     return (
         <Card>
@@ -127,14 +193,14 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                         ))}
                     </div>
                 )}
-                {!isLoading && relatedFigureIds.length > 0 && (
+                {!isLoading && relatedItems.length > 0 && (
                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {relatedFigureIds.slice(0, 5).map(id => (
-                            <RelatedFigureCard key={id} figureId={id} />
+                        {relatedItems.slice(0, 5).map(item => (
+                            <RelatedFigureCard key={item.relationId} figureId={item.figureId} relationId={item.relationId} />
                         ))}
                     </div>
                 )}
-                {!isLoading && relatedFigureIds.length === 0 && (
+                {!isLoading && relatedItems.length === 0 && (
                      <p className="text-sm text-muted-foreground text-center py-8">
                         Aún no se han añadido perfiles relacionados.
                     </p>
