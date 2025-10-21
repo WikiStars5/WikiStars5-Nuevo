@@ -40,7 +40,7 @@ export default function StarInput({
                 onMouseLeave={() => setHoverValue(undefined)}
                 className={cn(
                     "flex items-center justify-center gap-1.5 rounded-md border-2 px-3 py-1.5 text-sm font-medium transition-colors",
-                    (isSelected || hoverValue === 0) ? "border-primary bg-primary/10 text-primary" : "border-dashed hover:border-muted-foreground"
+                    (isSelected || hoverValue === 0) ? "border-destructive bg-destructive/10 text-destructive" : "border-dashed hover:border-muted-foreground"
                 )}
              >
                 <StarOff className="h-4 w-4" /> 0
