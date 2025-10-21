@@ -18,7 +18,7 @@ import StarInput from './star-input';
 import { Comment } from '@/lib/types';
 
 const commentSchema = z.object({
-  text: z.string().min(1, 'El comentario no puede estar vacío.').max(1000, 'El comentario no puede superar los 1000 caracteres.'),
+  text: z.string().min(1, 'El comentario no puede estar vacío.').max(500, 'El comentario no puede superar los 500 caracteres.'),
   rating: z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.'),
 });
 
