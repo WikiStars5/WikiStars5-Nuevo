@@ -198,6 +198,11 @@
           "type": "string",
           "description": "The timestamp when the comment was created.",
           "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The timestamp when the comment was last updated.",
+          "format": "date-time"
         }
       },
       "required": [

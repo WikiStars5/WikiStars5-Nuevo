@@ -1,12 +1,12 @@
 'use client';
 
-import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import type { Comment, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { formatDateDistance, cn } from '@/lib/utils';
-import { MessageCircle, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2 } from 'lucide-react';
+import { MessageCircle, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Textarea } from '../ui/textarea';
 
 
 interface CommentItemProps {
@@ -34,6 +35,10 @@ function CommentItem({ comment, figureId }: { comment: Comment, figureId: string
     const { toast } = useToast();
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editText, setEditText] = useState(comment.text);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+
 
     const isOwner = user && user.uid === comment.userId;
 
@@ -118,6 +123,32 @@ function CommentItem({ comment, figureId }: { comment: Comment, figureId: string
         }
     };
 
+    const handleUpdate = async () => {
+        if (!firestore || !isOwner || editText.trim() === '') return;
+        setIsSavingEdit(true);
+
+        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+        try {
+            await updateDoc(commentRef, {
+                text: editText,
+                updatedAt: serverTimestamp() 
+            });
+            toast({
+                title: "Comentario Actualizado",
+            });
+            setIsEditing(false);
+        } catch (error) {
+            console.error("Error updating comment:", error);
+            toast({
+                title: "Error al Actualizar",
+                description: "No se pudo guardar tu comentario.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
+
     const getAvatarFallback = () => {
         return comment.userDisplayName?.charAt(0) || 'U';
     }
@@ -134,68 +165,94 @@ function CommentItem({ comment, figureId }: { comment: Comment, figureId: string
                     <p className="text-xs text-muted-foreground">
                         • {comment.createdAt ? formatDateDistance(comment.createdAt.toDate()) : 'justo ahora'}
                     </p>
-                </div>
-                <p className="text-sm text-foreground/90 whitespace-pre-wrap">{comment.text}</p>
-                <div className="mt-2 flex items-center gap-2 text-muted-foreground">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && "text-blue-500")}
-                        onClick={() => handleVote('like')}
-                        disabled={!!isVoting || isVoteLoading}
-                    >
-                        {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
-                        <span>{comment.likes ?? 0}</span>
-                    </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && "text-red-500")}
-                        onClick={() => handleVote('dislike')}
-                        disabled={!!isVoting || isVoteLoading}
-                    >
-                         {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
-                        <span>{comment.dislikes ?? 0}</span>
-                    </Button>
-
-                    {isOwner && (
-                        <>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {/* TODO: Implement edit */}}>
-                            <FilePenLine className="h-4 w-4" />
-                            <span className="sr-only">Editar comentario</span>
-                        </Button>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" disabled={isDeleting}>
-                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                    <span className="sr-only">Eliminar comentario</span>
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                    tu comentario de nuestros servidores.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                       
-                        </>
+                    {comment.updatedAt && (
+                         <p className="text-xs text-muted-foreground italic">(editado)</p>
                     )}
                 </div>
+
+                {isEditing ? (
+                    <div className="mt-2 space-y-2">
+                        <Textarea 
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            className="text-sm"
+                            rows={3}
+                        />
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={isSavingEdit}>
+                                <X className="mr-1.5" /> Cancelar
+                            </Button>
+                            <Button size="sm" onClick={handleUpdate} disabled={isSavingEdit}>
+                                {isSavingEdit ? <Loader2 className="animate-spin" /> : <Send className="mr-1.5" />} Guardar
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-sm text-foreground/90 whitespace-pre-wrap">{comment.text}</p>
+                )}
+
+                {!isEditing && (
+                    <div className="mt-2 flex items-center gap-2 text-muted-foreground">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && "text-blue-500")}
+                            onClick={() => handleVote('like')}
+                            disabled={!!isVoting || isVoteLoading}
+                        >
+                            {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
+                            <span>{comment.likes ?? 0}</span>
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && "text-red-500")}
+                            onClick={() => handleVote('dislike')}
+                            disabled={!!isVoting || isVoteLoading}
+                        >
+                            {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
+                            <span>{comment.dislikes ?? 0}</span>
+                        </Button>
+
+                        {isOwner && (
+                            <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
+                                <FilePenLine className="h-4 w-4" />
+                                <span className="sr-only">Editar comentario</span>
+                            </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" disabled={isDeleting}>
+                                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                        <span className="sr-only">Eliminar comentario</span>
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta acción no se puede deshacer. Esto eliminará permanentemente
+                                        tu comentario de nuestros servidores.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     )
 }
 
 
-export default function CommentList({ figureId }: CommentListProps) {
+export default function CommentList({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
 
   const commentsQuery = useMemoFirebase(() => {

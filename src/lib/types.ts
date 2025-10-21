@@ -74,6 +74,7 @@ export interface Comment {
   figureId: string;
   text: string;
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
   likes?: number;
   dislikes?: number;
   // Denormalized user data for display
