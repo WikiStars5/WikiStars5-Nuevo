@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useUser, useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { useState, useEffect } from 'react';
+import { useUser, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,7 +46,7 @@ export default function ProfilePage() {
         }
     });
 
-    React.useEffect(() => {
+    useEffect(() => {
         const fetchUserData = async () => {
             if (firestore && user) {
                 setIsUserDataLoading(true);
@@ -82,13 +82,14 @@ export default function ProfilePage() {
         const userRef = doc(firestore, 'users', user.uid);
         
         try {
+            const { setDoc } = await import('firebase/firestore');
             const dataToUpdate = {
                 ...data,
                 email: user.email, // ensure email is always present
                 username: data.username,
             };
             
-            updateDocumentNonBlocking(userRef, dataToUpdate);
+            await setDoc(userRef, dataToUpdate, { merge: true });
 
             // Also update the auth profile display name
             const { updateProfile } = await import('firebase/auth');
@@ -289,3 +290,5 @@ export default function ProfilePage() {
         </div>
     )
 }
+
+    
