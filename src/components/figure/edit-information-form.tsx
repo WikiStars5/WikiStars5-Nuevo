@@ -170,28 +170,10 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       }
       
       // Handle hashtags
-      const finalTags = (data.tags || []).map(tag => normalizeText(tag));
-      if (finalTags.length > 0) {
-        dataToSave.tags = finalTags;
-        dataToSave.tagsLower = finalTags; // Already lowercase
-        dataToSave.tagKeywords = generateKeywords(finalTags.join(' '));
-        
-        for (const tag of finalTags) {
-            const normalizedTag = normalizeText(tag);
-            if (normalizedTag) {
-                const hashtagRef = doc(firestore, 'hashtags', normalizedTag);
-                batch.set(hashtagRef, { 
-                  name: tag,
-                  keywords: generateKeywords(tag)
-                }, { merge: true });
-            }
-        }
-
-      } else {
-        dataToSave.tags = [];
-        dataToSave.tagsLower = [];
-        dataToSave.tagKeywords = [];
-      }
+      const finalTags = (data.tags || []).map(tag => normalizeText(tag)).filter(Boolean);
+      dataToSave.tags = finalTags;
+      dataToSave.tagsLower = finalTags; // Already lowercase and normalized
+      dataToSave.tagKeywords = generateKeywords(finalTags.join(' ')); // Keywords for all tags
       
       dataToSave.nameKeywords = generateKeywords(data.name);
 
