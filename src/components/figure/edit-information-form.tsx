@@ -54,7 +54,7 @@ const editFormSchema = z.object({
   height: z.number().min(100).max(250).optional(),
   socialLinks: z.object(
     Object.keys(SOCIAL_MEDIA_CONFIG).reduce((acc, key) => {
-        acc[key as SocialPlatform] = z.string().optional();
+        acc[key as SocialPlatform] = z.string().url().or(z.literal('')).optional();
         return acc;
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
@@ -74,7 +74,7 @@ const isValidImageUrl = (url: string | undefined | null): boolean => {
     }
 };
 
-const getSanitizedDefaultValues = (figure: Figure) => {
+const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
     const defaultSocialLinks: { [key in SocialPlatform]?: string } = {};
 
     for (const key in SOCIAL_MEDIA_CONFIG) {
@@ -136,23 +136,21 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       const batch = writeBatch(firestore);
       const dataToSave: { [key: string]: any } = {};
 
-      // Handle direct properties
+      // Handle direct properties, converting undefined or empty strings to null
       Object.entries(data).forEach(([key, value]) => {
         if (key !== 'socialLinks' && key !== 'tags') {
-          dataToSave[key] = value === '' ? null : value;
+          dataToSave[key] = value === '' || value === undefined ? null : value;
         }
       });
       
       // Handle social links, converting empty strings to null
       if (data.socialLinks) {
         dataToSave.socialLinks = {};
-        for (const platform in data.socialLinks) {
-          const link = data.socialLinks[platform as SocialPlatform];
-          if (link) {
-            dataToSave.socialLinks[platform] = link;
-          } else {
-            dataToSave.socialLinks[platform] = null;
-          }
+        for (const platform in SOCIAL_MEDIA_CONFIG) {
+          const key = platform as SocialPlatform;
+          const link = data.socialLinks[key];
+          // Set to null if link is empty, undefined, or just whitespace
+          dataToSave.socialLinks[key] = (link && link.trim()) ? link.trim() : null;
         }
       }
       
@@ -485,5 +483,3 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
-
-    
