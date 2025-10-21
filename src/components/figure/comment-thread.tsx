@@ -1,6 +1,6 @@
 'use client';
 
-import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking } from '@/firebase';
 import type { Comment as CommentType, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -110,18 +110,45 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
         if (!firestore || !isOwner) return;
         setIsDeleting(true);
 
+        const figureRef = doc(firestore, 'figures', figureId);
         const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+
         try {
-            await deleteDoc(commentRef);
+            await runTransaction(firestore, async (transaction) => {
+                const commentDoc = await transaction.get(commentRef);
+                if (!commentDoc.exists()) {
+                    throw new Error("Este comentario ya no existe.");
+                }
+
+                const commentData = commentDoc.data() as CommentType;
+
+                // Only adjust ratings if this comment had a valid rating
+                if (typeof commentData.rating === 'number' && commentData.rating >= 0) {
+                     const figureDoc = await transaction.get(figureRef);
+                    if (!figureDoc.exists()) {
+                        throw new Error("La figura asociada no fue encontrada.");
+                    }
+                    const updates: { [key: string]: any } = {};
+                    updates['ratingCount'] = increment(-1);
+                    updates['totalRating'] = increment(-commentData.rating);
+                    updates[`ratingsBreakdown.${commentData.rating}`] = increment(-1);
+                    
+                    transaction.update(figureRef, updates);
+                }
+
+                // Finally, delete the comment itself
+                transaction.delete(commentRef);
+            });
+
             toast({
                 title: "Comentario Eliminado",
                 description: "Tu comentario ha sido eliminado correctamente.",
-            })
+            });
         } catch (error: any) {
             console.error("Error al eliminar comentario:", error);
             toast({
                 title: "Error al Eliminar",
-                description: "No se pudo eliminar el comentario.",
+                description: error.message || "No se pudo eliminar el comentario.",
                 variant: "destructive",
             });
         } finally {
@@ -251,7 +278,7 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                                     <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                        tu comentario de nuestros servidores.
+                                        tu comentario y su calificación asociada de nuestros servidores.
                                     </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
