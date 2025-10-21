@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import { addDocumentNonBlocking, useAuth, useFirestore, useUser } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
-import type { Figure } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,7 +22,8 @@ const commentSchema = z.object({
 type CommentFormValues = z.infer<typeof commentSchema>;
 
 interface CommentFormProps {
-  figure: Figure;
+  figureId: string;
+  figureName: string;
 }
 
 function getNextUser(auth: Auth): Promise<FirebaseUser> {
@@ -41,7 +41,7 @@ function getNextUser(auth: Auth): Promise<FirebaseUser> {
 }
 
 
-export default function CommentForm({ figure }: CommentFormProps) {
+export default function CommentForm({ figureId, figureName }: CommentFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -64,9 +64,9 @@ export default function CommentForm({ figure }: CommentFormProps) {
             currentUser = await getNextUser(auth);
         }
 
-      const commentsColRef = collection(firestore, 'figures', figure.id, 'comments');
+      const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       const newComment = {
-        figureId: figure.id,
+        figureId: figureId,
         userId: currentUser.uid,
         text: data.text,
         createdAt: serverTimestamp(),
@@ -74,6 +74,8 @@ export default function CommentForm({ figure }: CommentFormProps) {
         userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
         likes: 0,
         dislikes: 0,
+        parentId: null, // This is a top-level comment
+        depth: 0, // Top-level comments have depth 0
       };
 
       await addDocumentNonBlocking(commentsColRef, newComment);
@@ -102,7 +104,7 @@ export default function CommentForm({ figure }: CommentFormProps) {
             <MessageSquare /> Opiniones y Discusión
         </CardTitle>
         <CardDescription>
-          Comparte tu opinión sobre {figure.name}. Sé respetuoso y mantén la conversación constructiva.
+          Comparte tu opinión sobre {figureName}. Sé respetuoso y mantén la conversación constructiva.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -116,7 +118,7 @@ export default function CommentForm({ figure }: CommentFormProps) {
                   <FormLabel className="sr-only">Escribe tu opinión</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder={`¿Qué opinas de ${figure.name}?`}
+                      placeholder={`¿Qué opinas de ${figureName}?`}
                       className="resize-none"
                       rows={4}
                       {...field}

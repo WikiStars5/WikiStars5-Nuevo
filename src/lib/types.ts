@@ -77,6 +77,9 @@ export interface Comment {
   updatedAt?: Timestamp;
   likes?: number;
   dislikes?: number;
+  parentId: string | null;
+  depth: number;
+  children?: Comment[];
   // Denormalized user data for display
   userDisplayName: string;
   userPhotoURL: string | null;

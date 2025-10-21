@@ -1,20 +1,20 @@
 'use client';
 
-import type { Figure } from '@/lib/types';
 import CommentForm from './comment-form';
 import CommentList from './comment-list';
 import { Separator } from '../ui/separator';
 
 interface CommentSectionProps {
-  figure: Figure;
+  figureId: string;
+  figureName: string;
 }
 
-export default function CommentSection({ figure }: CommentSectionProps) {
+export default function CommentSection({ figureId, figureName }: CommentSectionProps) {
   return (
     <div className="space-y-6">
-      <CommentForm figure={figure} />
+      <CommentForm figureId={figureId} figureName={figureName} />
       <Separator />
-      <CommentList figureId={figure.id} />
+      <CommentList figureId={figureId} />
     </div>
   );
 }
