@@ -82,12 +82,15 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const previousCommentsQuery = query(
         commentsColRef,
         where('userId', '==', currentUser.uid),
+        where('rating', '>=', 0), // Only get comments that had a rating
+        orderBy('rating'), // This is arbitrary, needed for the composite index
         orderBy('createdAt', 'desc'),
         limit(1)
       );
       
       const previousCommentSnapshot = await getDocs(previousCommentsQuery);
-      const previousComment = previousCommentSnapshot.docs[0]?.data() as Comment | undefined;
+      const previousCommentDoc = previousCommentSnapshot.docs[0];
+      const previousComment = previousCommentDoc?.data() as Comment | undefined;
 
 
       await runTransaction(firestore, async (transaction) => {
@@ -100,12 +103,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const newRating = data.rating;
 
         if (previousComment && typeof previousComment.rating === 'number' && previousComment.rating >= 0) {
-          // This is a vote change
           const oldRating = previousComment.rating;
           if (oldRating !== newRating) {
             updates['totalRating'] = increment(newRating - oldRating);
             updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
             updates[`ratingsBreakdown.${newRating}`] = increment(1);
+             // "Fossilize" the old comment's rating so it no longer displays stars
+            transaction.update(previousCommentDoc.ref, { rating: -1 });
           }
           // ratingCount does not change because it's a vote update, not a new user voting.
         } else {
