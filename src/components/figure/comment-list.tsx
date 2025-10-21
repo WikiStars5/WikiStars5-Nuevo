@@ -1,18 +1,31 @@
 'use client';
 
-import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import type { Comment, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { formatDateDistance, cn } from '@/lib/utils';
-import { MessageCircle, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { MessageCircle, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
-interface CommentListProps {
-  figureId: string;
+
+interface CommentItemProps {
+  comment: Comment, 
+  figureId: string 
 }
 
 function CommentItem({ comment, figureId }: { comment: Comment, figureId: string }) {
@@ -20,6 +33,9 @@ function CommentItem({ comment, figureId }: { comment: Comment, figureId: string
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const isOwner = user && user.uid === comment.userId;
 
     const userVoteRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -34,7 +50,6 @@ function CommentItem({ comment, figureId }: { comment: Comment, figureId: string
         setIsVoting(voteType);
 
         const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
-        // The ref is already memoized, so we can reuse `userVoteRef`
         const voteRef = doc(firestore, `figures/${figureId}/comments/${comment.id}/votes`, user.uid);
         
         try {
@@ -50,14 +65,11 @@ function CommentItem({ comment, figureId }: { comment: Comment, figureId: string
                 const updates: { [key: string]: any } = {};
 
                 if (currentVote === voteType) {
-                    // User is un-voting
                     updates[`${voteType}s`] = increment(-1);
                     transaction.delete(voteRef);
                 } else {
-                    // New vote or changing vote
                     updates[`${voteType}s`] = increment(1);
                     if (currentVote) {
-                        // If changing vote, decrement the other counter
                         const otherType = voteType === 'like' ? 'dislike' : 'like';
                         updates[`${otherType}s`] = increment(-1);
                     }
@@ -82,6 +94,29 @@ function CommentItem({ comment, figureId }: { comment: Comment, figureId: string
             setIsVoting(null);
         }
     };
+    
+    const handleDelete = async () => {
+        if (!firestore || !isOwner) return;
+        setIsDeleting(true);
+
+        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+        try {
+            await deleteDoc(commentRef);
+            toast({
+                title: "Comentario Eliminado",
+                description: "Tu comentario ha sido eliminado correctamente.",
+            })
+        } catch (error: any) {
+            console.error("Error al eliminar comentario:", error);
+            toast({
+                title: "Error al Eliminar",
+                description: "No se pudo eliminar el comentario.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     const getAvatarFallback = () => {
         return comment.userDisplayName?.charAt(0) || 'U';
@@ -101,7 +136,7 @@ function CommentItem({ comment, figureId }: { comment: Comment, figureId: string
                     </p>
                 </div>
                 <p className="text-sm text-foreground/90 whitespace-pre-wrap">{comment.text}</p>
-                <div className="mt-2 flex items-center gap-4 text-muted-foreground">
+                <div className="mt-2 flex items-center gap-2 text-muted-foreground">
                     <Button 
                         variant="ghost" 
                         size="sm" 
@@ -122,6 +157,37 @@ function CommentItem({ comment, figureId }: { comment: Comment, figureId: string
                          {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
                         <span>{comment.dislikes ?? 0}</span>
                     </Button>
+
+                    {isOwner && (
+                        <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {/* TODO: Implement edit */}}>
+                            <FilePenLine className="h-4 w-4" />
+                            <span className="sr-only">Editar comentario</span>
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" disabled={isDeleting}>
+                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    <span className="sr-only">Eliminar comentario</span>
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta acción no se puede deshacer. Esto eliminará permanentemente
+                                    tu comentario de nuestros servidores.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                       
+                        </>
+                    )}
                 </div>
             </div>
         </div>
