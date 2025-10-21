@@ -1,8 +1,9 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, sendEmailVerification as firebaseSendEmailVerification, User } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -40,6 +41,18 @@ export function getSdks(firebaseApp: FirebaseApp) {
   };
 }
 
+
+/**
+ * Sends a verification email to the given user.
+ * This is a non-blocking operation.
+ * @param user The user to send the verification email to.
+ */
+export async function sendVerificationEmail(user: User): Promise<void> {
+  // We don't await this promise. The email is sent in the background.
+  return firebaseSendEmailVerification(user);
+}
+
+
 export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';
@@ -50,3 +63,4 @@ export * from './errors';
 export * from './error-emitter';
 export * from './auth/use-admin';
 
+    

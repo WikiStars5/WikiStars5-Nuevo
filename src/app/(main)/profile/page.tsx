@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useAuth } from '@/firebase';
+import { useUser, useFirestore, useAuth, sendVerificationEmail } from '@/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Flame, Medal, MessageSquare, TrendingUp, Loader2, Save, Link as LinkIcon, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Flame, Medal, MessageSquare, TrendingUp, Loader2, Save, Link as LinkIcon, AlertTriangle, Eye, EyeOff, MailCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -46,6 +46,7 @@ export default function ProfilePage() {
     const [isLinking, setIsLinking] = useState(false);
     const [linkError, setLinkError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [isSendingVerification, setIsSendingVerification] = useState(false);
 
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
@@ -134,20 +135,22 @@ export default function ProfilePage() {
 
         try {
             const credential = EmailAuthProvider.credential(data.email, data.password);
-            await linkWithCredential(user, credential);
+            const userCredential = await linkWithCredential(user, credential);
+            const linkedUser = userCredential.user;
             
             // After linking, we might want to update the user document with the new email
-            const userRef = doc(firestore, 'users', user.uid);
+            const userRef = doc(firestore, 'users', linkedUser.uid);
             await setDoc(userRef, { email: data.email }, { merge: true });
             
-            // Also update the email in the auth profile itself
-            // Note: This reload is important to get the updated user state
-            await reloadUser();
+            // Send verification email
+            await sendVerificationEmail(linkedUser);
 
             toast({
-                title: "¡Cuenta Vinculada!",
-                description: "Has convertido tu cuenta de invitado en una cuenta permanente.",
+                title: "¡Cuenta Vinculada! Revisa tu correo.",
+                description: "Hemos enviado un enlace de verificación a tu correo electrónico para activar tu cuenta.",
             });
+            
+            await reloadUser();
             
         } catch (error: any) {
             console.error("Error linking account:", error);
@@ -163,6 +166,28 @@ export default function ProfilePage() {
             setIsLinking(false);
         }
     }
+
+    const handleResendVerification = async () => {
+        if (!user || user.emailVerified) return;
+        
+        setIsSendingVerification(true);
+        try {
+            await sendVerificationEmail(user);
+            toast({
+                title: "Correo de Verificación Enviado",
+                description: "Se ha enviado un nuevo enlace de verificación a tu correo.",
+            });
+        } catch (error) {
+            console.error("Error resending verification email:", error);
+            toast({
+                title: "Error al Enviar",
+                description: "No se pudo enviar el correo. Inténtalo de nuevo más tarde.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSendingVerification(false);
+        }
+    };
     
     if (isUserLoading || isUserDataLoading) {
       return (
@@ -204,6 +229,25 @@ export default function ProfilePage() {
                 <h1 className="text-4xl font-bold tracking-tight font-headline">Mi Perfil</h1>
                 <p className="text-muted-foreground mt-2">Gestiona tu información personal y visualiza tu actividad.</p>
             </header>
+
+            {user && !user.isAnonymous && !user.emailVerified && (
+                <Alert variant="destructive" className="mb-6 bg-yellow-900/20 border-yellow-700/50 text-yellow-200 [&>svg]:text-yellow-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="font-bold text-yellow-300">Verifica tu Correo Electrónico</AlertTitle>
+                    <AlertDescription className="text-yellow-300/90 flex justify-between items-center">
+                       <span> Para asegurar tu cuenta, por favor, verifica tu dirección de correo electrónico.</span>
+                        <Button 
+                            variant="link"
+                            className="p-0 h-auto text-yellow-300 hover:text-yellow-100"
+                            onClick={handleResendVerification}
+                            disabled={isSendingVerification}
+                        >
+                             {isSendingVerification ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MailCheck className="mr-2 h-4 w-4"/>}
+                            Reenviar correo
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2 space-y-6">
@@ -407,3 +451,5 @@ export default function ProfilePage() {
         </div>
     )
 }
+
+    
