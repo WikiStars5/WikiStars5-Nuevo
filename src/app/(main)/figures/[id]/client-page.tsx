@@ -18,6 +18,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import CommunityRatings from '@/components/figure/community-ratings';
+import RelatedFigures from '@/components/figure/related-figures';
 
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
@@ -297,6 +298,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
        <div className="mt-8 space-y-8">
         <CommunityRatings figure={figure} />
         <CommentSection figureId={figure.id} figureName={figure.name} />
+        <RelatedFigures figure={figure} />
       </div>
     </div>
   );

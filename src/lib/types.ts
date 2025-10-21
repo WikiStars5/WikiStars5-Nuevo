@@ -62,6 +62,16 @@ export interface Hashtag {
     figureCount: number;
 }
 
+export interface RelatedFigure {
+  id: string;
+  sourceFigureId: string;
+  sourceFigureName: string;
+  targetFigureId: string;
+  targetFigureName: string;
+  createdAt: Timestamp;
+}
+
+
 export interface AttitudeVote {
     id: string;
     userId: string;

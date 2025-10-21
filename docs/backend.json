@@ -411,15 +411,25 @@
           "type": "string",
           "description": "Reference to the source PublicFigure. (Relationship: PublicFigure 1:N RelatedFigure)"
         },
+        "sourceFigureName": {
+          "type": "string",
+          "description": "Denormalized name of the source PublicFigure for display."
+        },
         "targetFigureId": {
           "type": "string",
           "description": "Reference to the target PublicFigure that is related to the source figure. (Relationship: PublicFigure 1:N RelatedFigure)"
+        },
+        "targetFigureName": {
+          "type": "string",
+          "description": "Denormalized name of the target PublicFigure for display."
         }
       },
       "required": [
         "id",
         "sourceFigureId",
-        "targetFigureId"
+        "targetFigureId",
+        "sourceFigureName",
+        "targetFigureName"
       ]
     },
     "AttitudeVote": {
