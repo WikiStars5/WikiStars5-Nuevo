@@ -12,17 +12,19 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, Send } from 'lucide-react';
-import { onAuthStateChanged, User as FirebaseUser, Auth } from 'firebase/auth';
+import { Loader2, MessageSquare, Send, User } from 'lucide-react';
+import { onAuthStateChanged, User as FirebaseUser, Auth, updateProfile } from 'firebase/auth';
 import StarInput from './star-input';
 import { Comment } from '@/lib/types';
+import { Input } from '../ui/input';
 
-const commentSchema = z.object({
+const baseCommentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(500, 'El comentario no puede superar los 500 caracteres.'),
   rating: z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.'),
+  username: z.string().optional(),
 });
 
-type CommentFormValues = z.infer<typeof commentSchema>;
+type CommentFormValues = z.infer<typeof baseCommentSchema>;
 
 interface CommentFormProps {
   figureId: string;
@@ -58,9 +60,18 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isAnonymous = !user || user.isAnonymous;
+
+  const commentSchema = isAnonymous
+    ? baseCommentSchema.extend({
+        username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(20, 'El nombre no puede tener más de 20 caracteres.'),
+      })
+    : baseCommentSchema;
+
+
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
-    defaultValues: { text: '', rating: null as any },
+    defaultValues: { text: '', rating: null as any, username: user?.displayName || '' },
   });
 
   const textValue = form.watch('text', '');
@@ -76,6 +87,11 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         currentUser = await getNextUser(auth);
       }
       
+      // If user is still anonymous (or newly anonymous), update their profile with the chosen username
+      if (currentUser.isAnonymous && data.username && data.username !== currentUser.displayName) {
+          await updateProfile(currentUser, { displayName: data.username });
+      }
+
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
@@ -128,13 +144,15 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         transaction.update(figureRef, updates);
         
         const newCommentRef = doc(commentsColRef);
+        const displayName = currentUser!.isAnonymous ? data.username : userProfileData.username || currentUser!.displayName || 'Usuario';
+        
         const newCommentPayload = {
             figureId: figureId,
             userId: currentUser!.uid,
             text: data.text,
             rating: newRating,
             createdAt: serverTimestamp(),
-            userDisplayName: currentUser!.isAnonymous ? 'Anónimo' : userProfileData.username || currentUser!.displayName || 'Usuario',
+            userDisplayName: displayName,
             userPhotoURL: currentUser!.isAnonymous ? null : currentUser!.photoURL,
             userCountry: userProfileData.country || null,
             userGender: userProfileData.gender || null,
@@ -156,7 +174,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         title: '¡Opinión Publicada!',
         description: 'Gracias por compartir tu comentario y calificación.',
       });
-      form.reset({text: '', rating: null as any});
+      form.reset({text: '', rating: null as any, username: data.username });
     } catch (error) {
       console.error('Error al publicar comentario:', error);
       toast({
@@ -182,12 +200,36 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {isAnonymous && (
+              <Card className="bg-muted/50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg">¡Únete a la conversación!</CardTitle>
+                  <CardDescription>Para comentar, elige un nombre de usuario. Esto también activará tus rachas de comentarios.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre de Usuario*</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Tu nombre público" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
             <FormField
               control={form.control}
               name="rating"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Califica este perfil (0-5 estrellas)*</FormLabel>
+                  <FormLabel>Paso 2: Califica este perfil*</FormLabel>
                   <FormControl>
                     <StarInput 
                         value={field.value}
@@ -203,7 +245,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
               name="text"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Escribe tu opinión*</FormLabel>
+                  <FormLabel>Paso 3: Escribe tu opinión*</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder={`¿Qué opinas de ${figureName}?`}
