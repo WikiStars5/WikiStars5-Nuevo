@@ -17,7 +17,7 @@ import SearchBar from '@/components/shared/search-bar';
 import { Shield, ShieldAlert } from 'lucide-react';
 import { useAuth, useUser, useAdmin } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 
 function AccessDenied() {
@@ -48,6 +48,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     const { isAdmin, isAdminLoading } = useAdmin();
     const auth = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
 
     const handleLogout = () => {
         if (auth) {
@@ -59,6 +60,12 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'A';
     }
     
+    // If we are on the login page, don't run any of the auth checks.
+    // Just render the login page.
+    if (pathname === '/admin/login') {
+      return <>{children}</>;
+    }
+
     // Step 1: Render a loading state until all checks are complete.
     // This is the most critical part to prevent race conditions.
     // We wait until BOTH user loading AND admin status loading are finished.
