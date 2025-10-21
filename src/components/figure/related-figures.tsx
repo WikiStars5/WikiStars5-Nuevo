@@ -62,27 +62,20 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const firestore = useFirestore();
 
-    const relationsAsSourceQuery = useMemoFirebase(() => {
+    // Query only for relationships where the current figure is the SOURCE.
+    const relationsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(collection(firestore, 'related_figures'), where('sourceFigureId', '==', figure.id));
     }, [firestore, figure.id]);
 
-    const relationsAsTargetQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(collection(firestore, 'related_figures'), where('targetFigureId', '==', figure.id));
-    }, [firestore, figure.id]);
-
-    const { data: sourceRelations, isLoading: isLoadingSource } = useCollection<RelatedFigure>(relationsAsSourceQuery);
-    const { data: targetRelations, isLoading: isLoadingTarget } = useCollection<RelatedFigure>(relationsAsTargetQuery);
+    const { data: relations, isLoading } = useCollection<RelatedFigure>(relationsQuery);
 
     const relatedFigureIds = useMemo(() => {
-        const ids = new Set<string>();
-        sourceRelations?.forEach(rel => ids.add(rel.targetFigureId));
-        targetRelations?.forEach(rel => ids.add(rel.sourceFigureId));
-        return Array.from(ids);
-    }, [sourceRelations, targetRelations]);
+        if (!relations) return [];
+        // The related figures are the TARGETS of the relationships.
+        return relations.map(rel => rel.targetFigureId);
+    }, [relations]);
     
-    const isLoading = isLoadingSource || isLoadingTarget;
     const isLimitReached = relatedFigureIds.length >= 5;
 
     return (
@@ -125,7 +118,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
             </CardHeader>
             <CardContent>
                 {isLoading && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                          {Array.from({ length: 4 }).map((_, i) => (
                             <div key={i} className="space-y-4">
                                 <Skeleton className="aspect-[4/5] w-full" />
