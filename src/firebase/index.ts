@@ -3,7 +3,7 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, sendEmailVerification as firebaseSendEmailVerification, User } from 'firebase/auth';
+import { getAuth, sendEmailVerification as firebaseSendEmailVerification, User, GoogleAuthProvider, signInWithPopup, linkWithCredential } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -62,5 +62,6 @@ export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
 export * from './auth/use-admin';
+export { GoogleAuthProvider, signInWithPopup, linkWithCredential };
 
     
