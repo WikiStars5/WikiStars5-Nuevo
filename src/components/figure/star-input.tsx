@@ -1,11 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { Star } from 'lucide-react';
+import { Star, StarOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StarInputProps {
-  value: number;
+  value: number | null;
   onChange: (value: number) => void;
   maxStars?: number;
 }
@@ -24,11 +24,11 @@ export default function StarInput({
   return (
     <div className="flex items-center gap-1">
       {stars.map((starValue) => {
-        const isSelected = starValue > 0 && starValue <= value;
-        const isHovered = hoverValue !== undefined && starValue > 0 && starValue <= hoverValue;
+        const isSelected = starValue === value;
+        const isHovered = hoverValue !== undefined && starValue <= hoverValue;
+        const isCurrentValueSelected = value !== null && starValue <= value;
+
         const isZeroStar = starValue === 0;
-        const isZeroSelected = value === 0;
-        const isZeroHovered = hoverValue === 0;
 
         if (isZeroStar) {
           return (
@@ -39,11 +39,11 @@ export default function StarInput({
                 onMouseEnter={() => setHoverValue(0)}
                 onMouseLeave={() => setHoverValue(undefined)}
                 className={cn(
-                    "flex items-center justify-center gap-1 rounded-md border-2 px-3 py-1.5 text-sm font-medium transition-colors",
-                    isZeroSelected || isZeroHovered ? "border-primary bg-primary/10 text-primary" : "border-dashed"
+                    "flex items-center justify-center gap-1.5 rounded-md border-2 px-3 py-1.5 text-sm font-medium transition-colors",
+                    (isSelected || hoverValue === 0) ? "border-primary bg-primary/10 text-primary" : "border-dashed hover:border-muted-foreground"
                 )}
              >
-                <Star className="h-4 w-4" /> 0
+                <StarOff className="h-4 w-4" /> 0
              </button>
           )
         }
@@ -60,10 +60,10 @@ export default function StarInput({
             <Star
               className={cn(
                 'h-7 w-7 cursor-pointer text-muted-foreground transition-colors',
-                (isHovered || isSelected) && 'text-yellow-400',
+                (isHovered || isCurrentValueSelected) && 'text-yellow-400',
                 isHovered && 'scale-110 transform'
               )}
-              fill={isHovered || isSelected ? 'currentColor' : 'none'}
+              fill={(isHovered || isCurrentValueSelected) ? 'currentColor' : 'none'}
             />
           </button>
         );

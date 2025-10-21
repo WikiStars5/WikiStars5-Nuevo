@@ -1,4 +1,4 @@
-import { Star } from 'lucide-react';
+import { Star, StarOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type StarRatingProps = {
@@ -9,6 +9,14 @@ type StarRatingProps = {
 };
 
 export function StarRating({ rating, totalStars = 5, className, starClassName }: StarRatingProps) {
+  if (rating === 0) {
+    return (
+      <div className={cn('flex items-center gap-0.5', className)}>
+        <StarOff className={cn('text-destructive', starClassName)} />
+      </div>
+    );
+  }
+  
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 !== 0;
 
