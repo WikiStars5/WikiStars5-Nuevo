@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking, useAuth, useFirestore, useUser } from '@/firebase';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -55,14 +55,20 @@ export default function ReplyForm({ figureId, parentId, depth, onReplySuccess }:
     setIsSubmitting(true);
 
     try {
+      const userProfileRef = doc(firestore, 'users', user.uid);
+      const userProfileSnap = await getDoc(userProfileRef);
+      const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
+
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       const newReply = {
         figureId: figureId,
         userId: user.uid,
         text: data.text,
         createdAt: serverTimestamp(),
-        userDisplayName: user.isAnonymous ? 'Anónimo' : user.displayName || 'Usuario',
+        userDisplayName: user.isAnonymous ? 'Anónimo' : userProfileData.username || user.displayName || 'Usuario',
         userPhotoURL: user.isAnonymous ? null : user.photoURL,
+        userCountry: userProfileData.country || null,
+        userGender: userProfileData.gender || null,
         likes: 0,
         dislikes: 0,
         parentId: parentId,

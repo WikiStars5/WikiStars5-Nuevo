@@ -24,7 +24,8 @@ import {
 import { Textarea } from '../ui/textarea';
 import ReplyForm from './reply-form';
 import { StarRating } from '../shared/star-rating';
-
+import { countries } from '@/lib/countries';
+import Image from 'next/image';
 
 interface CommentItemProps {
   comment: CommentType, 
@@ -54,6 +55,8 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
     }, [firestore, user, figureId, comment.id]);
 
     const { data: userVote, isLoading: isVoteLoading } = useDoc<CommentVote>(userVoteRef);
+
+    const country = countries.find(c => c.name === comment.userCountry);
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
         if (!firestore || !user || isVoting) return;
@@ -193,8 +196,23 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                 <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-sm">{comment.userDisplayName}</p>
+                    
+                    {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
+                    {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+
+                    {country && (
+                        <Image
+                            src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                            alt={country.name}
+                            width={20}
+                            height={15}
+                            className="object-contain"
+                            title={country.name}
+                        />
+                    )}
+
                     <p className="text-xs text-muted-foreground">
                         • {comment.createdAt ? formatDateDistance(comment.createdAt.toDate()) : 'justo ahora'}
                     </p>

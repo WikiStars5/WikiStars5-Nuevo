@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc } from 'firebase/firestore';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,6 +79,12 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
+      // Fetch user profile data to denormalize it
+      const userProfileRef = doc(firestore, 'users', currentUser.uid);
+      const userProfileSnap = await getDoc(userProfileRef);
+      const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
+
+
       const previousCommentsQuery = query(
         commentsColRef,
         where('userId', '==', currentUser.uid),
@@ -128,8 +134,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             text: data.text,
             rating: newRating,
             createdAt: serverTimestamp(),
-            userDisplayName: currentUser!.isAnonymous ? 'Anónimo' : currentUser!.displayName || 'Usuario',
+            userDisplayName: currentUser!.isAnonymous ? 'Anónimo' : userProfileData.username || currentUser!.displayName || 'Usuario',
             userPhotoURL: currentUser!.isAnonymous ? null : currentUser!.photoURL,
+            userCountry: userProfileData.country || null,
+            userGender: userProfileData.gender || null,
             likes: 0,
             dislikes: 0,
             parentId: null,

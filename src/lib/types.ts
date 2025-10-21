@@ -104,6 +104,8 @@ export interface Comment {
   // Denormalized user data for display
   userDisplayName: string;
   userPhotoURL: string | null;
+  userCountry?: string;
+  userGender?: 'Masculino' | 'Femenino' | 'Otro' | 'Prefiero no decirlo';
 }
 
 export interface CommentVote {
