@@ -173,10 +173,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       // Handle hashtags
       const finalTags = (data.tags || []).map(tag => normalizeText(tag)).filter(Boolean);
       dataToSave.tags = finalTags;
-      dataToSave.tagsLower = finalTags; 
-      
-      // Generate keywords from the combined tags for searching within profiles
-      dataToSave.tagKeywords = generateKeywords(finalTags.join(' '));
       
       // Generate keywords for the name
       dataToSave.nameKeywords = generateKeywords(data.name);
@@ -438,43 +434,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         ))}
                     </div>
                  </div>
-
-                <div className="space-y-4">
-                    <h3 className="text-lg font-medium flex items-center">
-                        <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
-                            <Tag />
-                        </span>
-                        Editar Hashtags
-                    </h3>
-                    <div className="flex items-start gap-2">
-                        <HashtagCombobox
-                            inputValue={hashtagInput}
-                            onInputChange={setHashtagInput}
-                            onTagSelect={handleAddHashtag}
-                        />
-                        <Button
-                            type="button"
-                            onClick={() => handleAddHashtag()}
-                            disabled={!hashtagInput.trim() || tagsWatcher.length >= 10}
-                        >
-                            <Plus className="mr-2 h-4 w-4" /> Añadir
-                        </Button>
-                    </div>
-                     <div className="flex flex-wrap gap-2 pt-2">
-                        {tagsWatcher.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="pl-3 pr-1 py-1 text-sm capitalize">
-                            #{tag}
-                            <button
-                                type="button"
-                                onClick={() => handleRemoveHashtag(tag)}
-                                className="ml-2 rounded-full p-0.5 hover:bg-destructive/20 text-destructive"
-                            >
-                                <X className="h-3 w-3" />
-                            </button>
-                        </Badge>
-                        ))}
-                    </div>
-                </div>
 
             </CardContent>
             <CardFooter className="flex justify-end gap-2 p-6 border-t mt-6">
