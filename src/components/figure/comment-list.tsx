@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Comment } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { MessageCircle } from 'lucide-react';
 import CommentThread from './comment-thread';
+import { Button } from '../ui/button';
+
+const INITIAL_COMMENT_LIMIT = 5;
+const COMMENT_INCREMENT = 5;
 
 // Helper function to build the comment tree
 function buildCommentTree(comments: Comment[]): Comment[] {
@@ -34,6 +38,7 @@ function buildCommentTree(comments: Comment[]): Comment[] {
 
 export default function CommentList({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
+  const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
 
   const commentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -83,13 +88,28 @@ export default function CommentList({ figureId }: { figureId: string }) {
         </div>
     )
   }
+  
+  const visibleComments = commentTree.slice(0, visibleCount);
 
   return (
     <div className="space-y-6">
         <h3 className="text-lg font-semibold">Comentarios Recientes</h3>
-        {commentTree.map((comment) => (
+        {visibleComments.map((comment) => (
             <CommentThread key={comment.id} comment={comment} figureId={figureId} />
         ))}
+
+        <div className="flex items-center justify-center gap-4">
+            {commentTree.length > visibleCount && (
+                <Button variant="outline" onClick={() => setVisibleCount(prev => prev + COMMENT_INCREMENT)}>
+                    Ver más comentarios
+                </Button>
+            )}
+            {visibleCount > INITIAL_COMMENT_LIMIT && (
+                 <Button variant="ghost" onClick={() => setVisibleCount(INITIAL_COMMENT_LIMIT)}>
+                    Mostrar menos
+                </Button>
+            )}
+        </div>
     </div>
   );
 }
