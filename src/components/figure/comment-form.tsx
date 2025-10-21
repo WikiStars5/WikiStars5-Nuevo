@@ -77,6 +77,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         limit(1)
       );
 
+      // This query must happen OUTSIDE the transaction
       const previousCommentSnapshot = await getDocs(previousCommentsQuery);
       const previousComment = previousCommentSnapshot.docs[0]?.data() as Comment | undefined;
 
@@ -95,10 +96,9 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         let newRatingCount = currentRatingCount;
         let newRatingsBreakdown = { ...currentRatingsBreakdown };
         
-        let isFirstVote = true;
+        const isFirstVote = !previousComment || typeof previousComment.rating !== 'number';
 
-        if (previousComment && typeof previousComment.rating === 'number') {
-            isFirstVote = false;
+        if (!isFirstVote) {
             // Decrement old rating stats
             newTotalRating -= previousComment.rating;
             newRatingsBreakdown[previousComment.rating] = (newRatingsBreakdown[previousComment.rating] || 1) - 1;
