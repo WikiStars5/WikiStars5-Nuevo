@@ -176,7 +176,9 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                     )}
                 </div>
 
-                <StarRating rating={comment.rating} starClassName="h-4 w-4 mt-1" />
+                {comment.rating !== -1 && typeof comment.rating === 'number' && (
+                  <StarRating rating={comment.rating} starClassName="h-4 w-4 mt-1" />
+                )}
 
                 {isEditing ? (
                     <div className="mt-2 space-y-2">

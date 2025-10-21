@@ -12,6 +12,29 @@ import { Button } from '../ui/button';
 const INITIAL_COMMENT_LIMIT = 5;
 const COMMENT_INCREMENT = 5;
 
+/**
+ * Processes a flat list of comments (sorted by date desc) to "deactivate"
+ * star ratings on all but the most recent comment by each user.
+ * It sets the rating to -1 for older comments to prevent them from displaying stars.
+ * @param comments The flat array of comments from Firestore.
+ * @returns A new array of comments with older ratings deactivated.
+ */
+function processLatestRatings(comments: Comment[]): Comment[] {
+  const latestCommentByUser = new Set<string>();
+  return comments.map(comment => {
+    // If we've already found a newer comment by this user, deactivate this one's rating.
+    if (latestCommentByUser.has(comment.userId)) {
+      return { ...comment, rating: -1 }; // Use -1 to signify a deactivated rating
+    } else {
+      // This is the first time we see a comment from this user (newest one).
+      // Mark it as found and keep its original rating.
+      latestCommentByUser.add(comment.userId);
+      return comment;
+    }
+  });
+}
+
+
 // Helper function to build the comment tree
 function buildCommentTree(comments: Comment[]): Comment[] {
   const commentMap: { [key: string]: Comment } = {};
@@ -53,7 +76,9 @@ export default function CommentList({ figureId }: { figureId: string }) {
 
   const commentTree = useMemo(() => {
     if (!comments) return [];
-    return buildCommentTree(comments);
+    // Process the flat list to handle latest ratings before building the tree
+    const processedComments = processLatestRatings(comments);
+    return buildCommentTree(processedComments);
   }, [comments]);
 
 
