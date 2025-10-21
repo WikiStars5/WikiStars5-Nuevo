@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useAuth, useFirestore, useUser } from '@/firebase';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,21 +60,63 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     setIsSubmitting(true);
 
     try {
-        let currentUser = user;
-        if (!currentUser) {
-            await initiateAnonymousSignIn(auth);
-            currentUser = await getNextUser(auth);
-        }
-        
+      let currentUser = user;
+      if (!currentUser) {
+        await initiateAnonymousSignIn(auth);
+        currentUser = await getNextUser(auth);
+      }
+      
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
+      // Find user's previous comment to get their old rating
+      const previousCommentsQuery = query(
+        commentsColRef,
+        where('userId', '==', currentUser.uid),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      );
+
+      const previousCommentSnapshot = await getDocs(previousCommentsQuery);
+      const previousComment = previousCommentSnapshot.docs[0]?.data() as Comment | undefined;
+
+
       await runTransaction(firestore, async (transaction) => {
-        // 1. Update the figure document with the new rating
-        const updates: { [key: string]: any } = {};
-        updates[`ratingsBreakdown.${data.rating}`] = increment(1);
-        updates['totalRating'] = increment(data.rating);
-        updates['ratingCount'] = increment(1);
+        const figureDoc = await transaction.get(figureRef);
+        if (!figureDoc.exists()) {
+            throw new Error("Figure not found.");
+        }
+
+        const currentTotalRating = figureDoc.data().totalRating || 0;
+        const currentRatingCount = figureDoc.data().ratingCount || 0;
+        const currentRatingsBreakdown = figureDoc.data().ratingsBreakdown || { '0':0, '1':0, '2':0, '3':0, '4':0, '5':0 };
+
+        let newTotalRating = currentTotalRating;
+        let newRatingCount = currentRatingCount;
+        let newRatingsBreakdown = { ...currentRatingsBreakdown };
+        
+        let isFirstVote = true;
+
+        if (previousComment && typeof previousComment.rating === 'number') {
+            isFirstVote = false;
+            // Decrement old rating stats
+            newTotalRating -= previousComment.rating;
+            newRatingsBreakdown[previousComment.rating] = (newRatingsBreakdown[previousComment.rating] || 1) - 1;
+        }
+
+        // Increment new rating stats
+        newTotalRating += data.rating;
+        newRatingsBreakdown[data.rating] = (newRatingsBreakdown[data.rating] || 0) + 1;
+        
+        if(isFirstVote) {
+            newRatingCount += 1;
+        }
+
+        const updates = {
+            totalRating: newTotalRating,
+            ratingCount: newRatingCount,
+            ratingsBreakdown: newRatingsBreakdown
+        };
         
         transaction.update(figureRef, updates);
 
