@@ -1,10 +1,7 @@
 'use server';
 
-import { getFirestore } from 'firebase-admin/firestore';
 import { getSdks } from '@/firebase/server';
 import { normalizeText } from '@/lib/keywords';
-
-const { firestore } = getSdks();
 
 /**
  * Searches for hashtags using a Firestore range query on document IDs.
@@ -13,7 +10,9 @@ const { firestore } = getSdks();
  * @returns A promise that resolves to an array of matching hashtag names.
  */
 export async function searchHashtags(query: string): Promise<string[]> {
+  const { firestore } = getSdks();
   const normalizedQuery = normalizeText(query);
+
   if (!normalizedQuery) {
     return [];
   }
