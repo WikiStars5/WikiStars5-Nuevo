@@ -66,87 +66,58 @@ export default function SearchBar({
   const router = useRouter();
   const firestore = useFirestore();
 
-  const searchFiguresByName = async (searchTerm: string): Promise<Figure[]> => {
-    const normalizedSearchTerm = normalizeText(searchTerm);
-    if (normalizedSearchTerm.length < 1 || !firestore) {
+  const searchFigures = async (searchTerm: string): Promise<Figure[]> => {
+    if (searchTerm.trim().length < 1 || !firestore) {
       return [];
     }
 
-    try {
-      const figuresCollection = collection(firestore, 'figures');
-      const q = firestoreQuery(
-          figuresCollection,
-          where('nameKeywords', 'array-contains', normalizedSearchTerm),
-          limit(10)
-      );
+    const isHashtagSearch = searchTerm.startsWith('#');
+    const normalizedSearchTerm = normalizeText(isHashtagSearch ? searchTerm.substring(1) : searchTerm);
 
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        return [];
-      }
-      
-      const figures = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-              id: doc.id,
-              name: data.name,
-              imageUrl: data.imageUrl,
-              imageHint: data.imageHint,
-              nationality: data.nationality,
-              tags: data.tags,
-              isFeatured: data.isFeatured,
-              nameKeywords: data.nameKeywords,
-              approved: data.approved,
-              description: data.description,
-              photoUrl: data.photoUrl,
-          } as Figure;
-      });
-      
-      figures.sort((a, b) => a.name.localeCompare(b.name));
-
-      return figures;
-    } catch (error) {
-      console.error('Error searching figures by name:', error);
-      return [];
-    }
-  }
-  
-  const searchFiguresByHashtag = async (hashtag: string): Promise<Figure[]> => {
-    const trimmedHashtag = hashtag.trim().toLowerCase();
-    if (!trimmedHashtag || !firestore) {
-        return [];
-    }
+    if (!normalizedSearchTerm) return [];
+    
+    let figures: Figure[] = [];
 
     try {
-        const figuresCollection = collection(firestore, 'figures');
-        const q = firestoreQuery(
-            figuresCollection,
-            where('tags', 'array-contains', trimmedHashtag),
-            where('approved', '==', true),
-            limit(10)
-        );
+        if (isHashtagSearch) {
+             const hashtagsQuery = firestoreQuery(
+                collection(firestore, 'hashtags'),
+                where('keywords', 'array-contains', normalizedSearchTerm),
+                limit(5)
+            );
+            const hashtagSnapshot = await getDocs(hashtagsQuery);
+            if (hashtagSnapshot.empty) return [];
 
-        const snapshot = await getDocs(q);
+            const matchedTags = hashtagSnapshot.docs.map(doc => doc.data().name);
 
-        if (snapshot.empty) {
-            return [];
+            if (matchedTags.length > 0) {
+                 const figuresQuery = firestoreQuery(
+                    collection(firestore, 'figures'),
+                    where('tags', 'array-contains-any', matchedTags),
+                    limit(10)
+                );
+                const figuresSnapshot = await getDocs(figuresQuery);
+                figures = figuresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
+            }
+
+        } else {
+             const figuresQuery = firestoreQuery(
+                collection(firestore, 'figures'),
+                where('nameKeywords', 'array-contains', normalizedSearchTerm),
+                limit(10)
+            );
+            const figuresSnapshot = await getDocs(figuresQuery);
+            figures = figuresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
         }
 
-        const figures = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data
-            } as Figure;
-        });
+       figures.sort((a, b) => a.name.localeCompare(b.name));
+       return figures;
 
-        return figures;
     } catch (error) {
-        console.error('Error searching figures by hashtag:', error);
+        console.error('Error during search:', error);
         return [];
     }
-}
+  }
 
 
   const handleSearchSubmit = (searchTerm: string) => {
@@ -157,6 +128,9 @@ export default function SearchBar({
         router.push(`/figures/hashtagged/${encodeURIComponent(hashtag)}`);
         clearSearch();
       }
+    } else if (figureResults.length > 0) {
+       router.push(`/figures/${figureResults[0].id}`);
+       clearSearch();
     }
   };
 
@@ -175,7 +149,7 @@ export default function SearchBar({
       };
 
       const trimmedSearch = searchTerm.trim();
-      if (trimmedSearch.length < 1) { // Allow search from 1 character
+      if (trimmedSearch.length < 1) { 
         setFigureResults([]);
         setIsLoading(false);
         setIsDropdownOpen(trimmedSearch.length > 0);
@@ -186,14 +160,8 @@ export default function SearchBar({
       setIsDropdownOpen(true);
       
       try {
-        let figures: Figure[] = [];
-        if (trimmedSearch.startsWith('#')) {
-          const hashtagQuery = trimmedSearch.substring(1);
-          figures = await searchFiguresByHashtag(hashtagQuery);
-        } else {
-          figures = await searchFiguresByName(trimmedSearch);
-        }
-        setFigureResults(figures);
+        const results = await searchFigures(trimmedSearch);
+        setFigureResults(results);
       } catch (error) {
         console.error("Search error:", error);
         setFigureResults([]);
@@ -369,3 +337,5 @@ export default function SearchBar({
     </div>
   );
 }
+
+    

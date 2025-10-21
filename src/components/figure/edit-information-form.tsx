@@ -23,7 +23,6 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '../ui/badge';
 import HashtagCombobox from './hashtag-combobox';
 import { generateKeywords, normalizeText } from '@/lib/keywords';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -60,17 +59,6 @@ const editFormSchema = z.object({
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
   tags: z.array(z.string()).optional(),
-}).refine(data => {
-    if (!data.imageUrl) return true;
-    try {
-        const url = new URL(data.imageUrl);
-        return url.protocol === 'https:' && (url.hostname === 'upload.wikimedia.org' || url.hostname === 'i.pinimg.com');
-    } catch {
-        return false;
-    }
-}, {
-    message: 'La URL de la imagen debe ser de "upload.wikimedia.org" o "i.pinimg.com".',
-    path: ['imageUrl'],
 });
 
 type EditFormValues = z.infer<typeof editFormSchema>;
@@ -145,33 +133,43 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     const figureRef = doc(firestore, 'figures', figure.id);
 
     try {
-      const dataToSave: { [key: string]: any } = JSON.parse(JSON.stringify(data));
+      const batch = writeBatch(firestore);
+      const dataToSave: { [key: string]: any } = {};
 
-      if (dataToSave.socialLinks) {
-        for (const key in dataToSave.socialLinks) {
-          if (dataToSave.socialLinks[key] === undefined || dataToSave.socialLinks[key] === '') {
-            dataToSave.socialLinks[key] = null;
+      // Handle direct properties
+      Object.entries(data).forEach(([key, value]) => {
+        if (key !== 'socialLinks' && key !== 'tags') {
+          dataToSave[key] = value === '' ? null : value;
+        }
+      });
+      
+      // Handle social links, converting empty strings to null
+      if (data.socialLinks) {
+        dataToSave.socialLinks = {};
+        for (const platform in data.socialLinks) {
+          const link = data.socialLinks[platform as SocialPlatform];
+          if (link) {
+            dataToSave.socialLinks[platform] = link;
+          } else {
+            dataToSave.socialLinks[platform] = null;
           }
         }
       }
       
-      (Object.keys(dataToSave) as Array<keyof EditFormValues>).forEach((key) => {
-         if (dataToSave[key] === '' && key !== 'name') {
-          dataToSave[key] = null;
-        }
-      });
-      
-      const batch = writeBatch(firestore);
-
+      // Handle hashtags
       if (data.tags && data.tags.length > 0) {
+        dataToSave.tags = data.tags;
         dataToSave.tagsLower = data.tags.map(tag => normalizeText(tag));
         dataToSave.tagKeywords = generateKeywords(data.tags.join(' '));
-
+        
         for (const tag of data.tags) {
             const normalizedTag = normalizeText(tag);
             if (normalizedTag) {
                 const hashtagRef = doc(firestore, 'hashtags', normalizedTag);
-                batch.set(hashtagRef, { name: tag }, { merge: true });
+                batch.set(hashtagRef, { 
+                  name: tag,
+                  keywords: generateKeywords(tag)
+                }, { merge: true });
             }
         }
 
@@ -180,6 +178,8 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
         dataToSave.tagsLower = [];
         dataToSave.tagKeywords = [];
       }
+      
+      dataToSave.nameKeywords = generateKeywords(data.name);
 
       batch.update(figureRef, dataToSave);
       await batch.commit();
@@ -299,7 +299,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                     <FormLabel>Fecha de Nacimiento</FormLabel>
                                     <FormControl>
                                         <DateInput
-                                            value={field.value}
+                                            value={field.value || ''}
                                             onChange={field.onChange}
                                         />
                                     </FormControl>
@@ -315,7 +315,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                     <FormLabel>Fecha de Fallecimiento</FormLabel>
                                     <FormControl>
                                         <DateInput
-                                            value={field.value}
+                                            value={field.value || ''}
                                             onChange={field.onChange}
                                         />
                                     </FormControl>
