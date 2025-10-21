@@ -104,7 +104,7 @@ export default function LoginPage() {
                             </Link>
                         </div>
                       <FormControl>
-                        <Input type="password" {...field} placeholder="••••••••" />
+                        <Input type="password" placeholder="••••••••" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -116,12 +116,6 @@ export default function LoginPage() {
                 <Button type="submit" className="w-full">
                   Iniciar Sesión
                 </Button>
-                 <div className="mt-4 text-center text-sm">
-                    ¿No tienes una cuenta?{' '}
-                    <Link href="/signup" className="underline">
-                        Regístrate
-                    </Link>
-                </div>
               </form>
             </Form>
           </CardContent>
