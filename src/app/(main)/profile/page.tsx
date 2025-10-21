@@ -2,13 +2,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useAuth, sendVerificationEmail } from '@/firebase';
+import { useUser, useFirestore, useAuth, GoogleAuthProvider, linkWithCredential, signInWithPopup } from '@/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { EmailAuthProvider, linkWithCredential, updateProfile } from 'firebase/auth';
+import { updateProfile } from 'firebase/auth';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Flame, Medal, MessageSquare, TrendingUp, Loader2, Save, Link as LinkIcon, AlertTriangle, Eye, EyeOff, MailCheck } from "lucide-react";
+import { Flame, Medal, MessageSquare, TrendingUp, Loader2, Save, Link as LinkIcon, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -29,12 +29,15 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const linkAccountSchema = z.object({
-  email: z.string().email('Por favor, introduce un correo electrónico válido.'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
-});
-
-type LinkAccountFormValues = z.infer<typeof linkAccountSchema>;
+const GoogleIcon = () => (
+    <svg className="mr-2 h-4 w-4" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+        <path fill="none" d="M0 0h48v48H0z"></path>
+    </svg>
+);
 
 
 export default function ProfilePage() {
@@ -45,8 +48,6 @@ export default function ProfilePage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isLinking, setIsLinking] = useState(false);
     const [linkError, setLinkError] = useState<string | null>(null);
-    const [showPassword, setShowPassword] = useState(false);
-    const [isSendingVerification, setIsSendingVerification] = useState(false);
 
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
@@ -58,11 +59,6 @@ export default function ProfilePage() {
             country: '',
             gender: undefined,
         }
-    });
-    
-    const linkAccountForm = useForm<LinkAccountFormValues>({
-        resolver: zodResolver(linkAccountSchema),
-        defaultValues: { email: '', password: '' },
     });
 
     useEffect(() => {
@@ -126,68 +122,46 @@ export default function ProfilePage() {
             setIsSaving(false);
         }
     };
-    
-    const onLinkAccountSubmit = async (data: LinkAccountFormValues) => {
-        if (!auth || !user || !user.isAnonymous) return;
 
+    const handleLinkWithGoogle = async () => {
+        if (!auth || !user || !user.isAnonymous) return;
+    
         setIsLinking(true);
         setLinkError(null);
-
+    
         try {
-            const credential = EmailAuthProvider.credential(data.email, data.password);
-            const userCredential = await linkWithCredential(user, credential);
-            const linkedUser = userCredential.user;
-            
-            // After linking, we might want to update the user document with the new email
-            const userRef = doc(firestore, 'users', linkedUser.uid);
-            await setDoc(userRef, { email: data.email }, { merge: true });
-            
-            // Send verification email
-            await sendVerificationEmail(linkedUser);
-
-            toast({
-                title: "¡Cuenta Vinculada! Revisa tu correo.",
-                description: "Hemos enviado un enlace de verificación a tu correo electrónico para activar tu cuenta.",
-            });
-            
-            await reloadUser();
-            
+          const provider = new GoogleAuthProvider();
+          // Link the anonymous user with the Google provider
+          const result = await linkWithCredential(user, provider);
+          
+          // Optionally, update Firestore with the new user details from Google
+          const googleUser = result.user;
+          const userRef = doc(firestore, 'users', googleUser.uid);
+          await setDoc(userRef, { 
+            email: googleUser.email,
+            username: googleUser.displayName,
+            photoURL: googleUser.photoURL
+          }, { merge: true });
+    
+          toast({
+            title: "¡Cuenta Vinculada con Google!",
+            description: "Has convertido tu cuenta de invitado en una cuenta permanente.",
+          });
+    
+          // Reload user state to reflect the change from anonymous to permanent
+          await reloadUser();
+    
         } catch (error: any) {
-            console.error("Error linking account:", error);
-            if (error.code === 'auth/email-already-in-use') {
-                setLinkError('Este correo electrónico ya está en uso por otra cuenta.');
-            } else if (error.code === 'auth/credential-already-in-use') {
-                 setLinkError('Esta credencial ya está asociada con una cuenta de usuario diferente.');
-            }
-            else {
-                setLinkError('No se pudo vincular la cuenta. Inténtalo de nuevo.');
-            }
+          console.error("Error linking with Google:", error);
+          if (error.code === 'auth/credential-already-in-use') {
+            setLinkError('Esta cuenta de Google ya está asociada con otro usuario.');
+          } else {
+            setLinkError('No se pudo vincular la cuenta. Inténtalo de nuevo.');
+          }
         } finally {
-            setIsLinking(false);
+          setIsLinking(false);
         }
-    }
-
-    const handleResendVerification = async () => {
-        if (!user || user.emailVerified) return;
-        
-        setIsSendingVerification(true);
-        try {
-            await sendVerificationEmail(user);
-            toast({
-                title: "Correo de Verificación Enviado",
-                description: "Se ha enviado un nuevo enlace de verificación a tu correo.",
-            });
-        } catch (error) {
-            console.error("Error resending verification email:", error);
-            toast({
-                title: "Error al Enviar",
-                description: "No se pudo enviar el correo. Inténtalo de nuevo más tarde.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsSendingVerification(false);
-        }
-    };
+      };
     
     if (isUserLoading || isUserDataLoading) {
       return (
@@ -229,25 +203,6 @@ export default function ProfilePage() {
                 <h1 className="text-4xl font-bold tracking-tight font-headline">Mi Perfil</h1>
                 <p className="text-muted-foreground mt-2">Gestiona tu información personal y visualiza tu actividad.</p>
             </header>
-
-            {user && !user.isAnonymous && !user.emailVerified && (
-                <Alert variant="destructive" className="mb-6 bg-yellow-900/20 border-yellow-700/50 text-yellow-200 [&>svg]:text-yellow-400">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle className="font-bold text-yellow-300">Verifica tu Correo Electrónico</AlertTitle>
-                    <AlertDescription className="text-yellow-300/90 flex justify-between items-center">
-                       <span> Para asegurar tu cuenta, por favor, verifica tu dirección de correo electrónico.</span>
-                        <Button 
-                            variant="link"
-                            className="p-0 h-auto text-yellow-300 hover:text-yellow-100"
-                            onClick={handleResendVerification}
-                            disabled={isSendingVerification}
-                        >
-                             {isSendingVerification ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MailCheck className="mr-2 h-4 w-4"/>}
-                            Reenviar correo
-                        </Button>
-                    </AlertDescription>
-                </Alert>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2 space-y-6">
@@ -329,66 +284,25 @@ export default function ProfilePage() {
                     </Form>
                     
                     {user.isAnonymous && (
-                        <Form {...linkAccountForm}>
-                            <form onSubmit={linkAccountForm.handleSubmit(onLinkAccountSubmit)}>
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Vincular Cuenta</CardTitle>
-                                        <CardDescription>Convierte tu cuenta de invitado en una cuenta permanente para no perder tu progreso.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <FormField
-                                            control={linkAccountForm.control}
-                                            name="email"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Vincular Correo Electrónico</FormLabel>
-                                                    <FormControl><Input type="email" placeholder="tu@correo.com" {...field} /></FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                         <FormField
-                                            control={linkAccountForm.control}
-                                            name="password"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Contraseña</FormLabel>
-                                                    <FormControl>
-                                                        <div className="relative">
-                                                            <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
-                                                                onClick={() => setShowPassword(prev => !prev)}
-                                                            >
-                                                                {showPassword ? <EyeOff /> : <Eye />}
-                                                            </Button>
-                                                        </div>
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        {linkError && (
-                                            <Alert variant="destructive">
-                                                <AlertTriangle className="h-4 w-4" />
-                                                <AlertTitle>Error al Vincular</AlertTitle>
-                                                <AlertDescription>{linkError}</AlertDescription>
-                                            </Alert>
-                                        )}
-                                    </CardContent>
-                                    <CardFooter>
-                                        <Button type="submit" disabled={isLinking}>
-                                            {isLinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
-                                            Vincular y Guardar
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            </form>
-                        </Form>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Vincular Cuenta</CardTitle>
+                                <CardDescription>Convierte tu cuenta de invitado en una cuenta permanente para no perder tu progreso. ¡Es más fácil con Google!</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {linkError && (
+                                    <Alert variant="destructive" className="mb-4">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>Error al Vincular</AlertTitle>
+                                        <AlertDescription>{linkError}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <Button onClick={handleLinkWithGoogle} disabled={isLinking} className="w-full">
+                                    {isLinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+                                    Vincular con Google
+                                </Button>
+                            </CardContent>
+                        </Card>
                     )}
 
                 </div>
