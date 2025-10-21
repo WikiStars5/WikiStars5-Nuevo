@@ -230,7 +230,7 @@ export default function SearchBar({
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Buscar perfiles o #hashtags"
+          placeholder="Buscar perfiles"
           value={currentQuery}
           onChange={(e) => setCurrentQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -339,6 +339,8 @@ export default function SearchBar({
     </div>
   );
 }
+
+    
 
     
 
