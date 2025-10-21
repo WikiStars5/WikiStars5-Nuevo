@@ -115,6 +115,9 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
   const [hashtagInput, setHashtagInput] = React.useState('');
 
   const handleAddHashtag = (newTag?: string) => {
+    const tagToAdd = normalizeText(newTag || hashtagInput);
+    if (!tagToAdd) return;
+
     if (tagsWatcher.length >= 10) {
       toast({
         title: 'Límite de Hashtags Alcanzado',
@@ -124,10 +127,8 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       return;
     }
 
-    const tagToAdd = normalizeText(newTag || hashtagInput);
     const currentTagsLower = tagsWatcher.map(t => normalizeText(t));
-
-    if (tagToAdd && !currentTagsLower.includes(tagToAdd)) {
+    if (!currentTagsLower.includes(tagToAdd)) {
         form.setValue('tags', [...tagsWatcher, tagToAdd]);
     }
     setHashtagInput('');
@@ -172,10 +173,17 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       // Handle hashtags
       const finalTags = (data.tags || []).map(tag => normalizeText(tag)).filter(Boolean);
       dataToSave.tags = finalTags;
-      dataToSave.tagsLower = finalTags; // Already lowercase and normalized
-      dataToSave.tagKeywords = generateKeywords(finalTags.join(' ')); // Keywords for all tags
+      dataToSave.tagsLower = finalTags; 
+      dataToSave.tagKeywords = generateKeywords(finalTags.join(' ')); 
       
       dataToSave.nameKeywords = generateKeywords(data.name);
+
+      // Create/update hashtag documents
+      finalTags.forEach(tag => {
+        const hashtagRef = doc(firestore, 'hashtags', tag);
+        batch.set(hashtagRef, { name: tag }, { merge: true });
+      });
+
 
       batch.update(figureRef, dataToSave);
       await batch.commit();

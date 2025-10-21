@@ -3,12 +3,11 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { getSdks } from '@/firebase/server';
 import { normalizeText } from '@/lib/keywords';
-import { Figure } from '@/lib/types';
 
 const { firestore } = getSdks();
 
 /**
- * Searches for hashtags by querying figures that contain matching tag keywords.
+ * Searches for hashtags using a Firestore range query on document IDs.
  * This is used for the autocomplete functionality in the hashtag editor.
  * @param query The string to search for.
  * @returns A promise that resolves to an array of matching hashtag names.
@@ -20,10 +19,11 @@ export async function searchHashtags(query: string): Promise<string[]> {
   }
 
   try {
-    const figuresRef = firestore.collection('figures');
-    // Search the `tagKeywords` array which contains all possible prefixes for all tags in a figure.
-    const snapshot = await figuresRef
-      .where('tagKeywords', 'array-contains', normalizedQuery)
+    const hashtagsRef = firestore.collection('hashtags');
+    // Use the range query trick on the document ID (__name__) for prefix search.
+    const snapshot = await hashtagsRef
+      .where('__name__', '>=', normalizedQuery)
+      .where('__name__', '<=', normalizedQuery + '\uf8ff')
       .limit(10)
       .get();
 
@@ -31,20 +31,10 @@ export async function searchHashtags(query: string): Promise<string[]> {
       return [];
     }
     
-    // From the matched figures, collect all their tags.
-    const allTags = new Set<string>();
-    snapshot.docs.forEach(doc => {
-        const figure = doc.data() as Figure;
-        figure.tags?.forEach(tag => {
-            // Only add tags that actually start with the searched query
-            if (normalizeText(tag).startsWith(normalizedQuery)) {
-                allTags.add(tag);
-            }
-        });
-    });
+    // The document IDs are the hashtag names themselves.
+    const matchingTags = snapshot.docs.map(doc => doc.id);
 
-    // Return a sorted, unique list of matching tags
-    return Array.from(allTags).sort();
+    return matchingTags.sort();
     
   } catch (error) {
     console.error('Error searching hashtags:', error);
