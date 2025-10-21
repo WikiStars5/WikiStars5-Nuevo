@@ -2,22 +2,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useAuth } from '@/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { EmailAuthProvider, linkWithCredential, updateProfile } from 'firebase/auth';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Flame, Medal, MessageSquare, TrendingUp, Loader2, Save } from "lucide-react";
+import { Flame, Medal, MessageSquare, TrendingUp, Loader2, Save, Link as LinkIcon, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const profileSchema = z.object({
   username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.'),
@@ -27,17 +29,27 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+const linkAccountSchema = z.object({
+  email: z.string().email('Por favor, introduce un correo electrónico válido.'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
+});
+
+type LinkAccountFormValues = z.infer<typeof linkAccountSchema>;
+
+
 export default function ProfilePage() {
-    const { user, isUserLoading } = useUser();
+    const { user, isUserLoading, reloadUser } = useUser();
     const firestore = useFirestore();
+    const auth = useAuth();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
+    const [isLinking, setIsLinking] = useState(false);
+    const [linkError, setLinkError] = useState<string | null>(null);
 
-    // This state will hold the user data fetched from Firestore
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
 
-    const form = useForm<ProfileFormValues>({
+    const profileForm = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
             username: '',
@@ -45,25 +57,28 @@ export default function ProfilePage() {
             gender: undefined,
         }
     });
+    
+    const linkAccountForm = useForm<LinkAccountFormValues>({
+        resolver: zodResolver(linkAccountSchema),
+        defaultValues: { email: '', password: '' },
+    });
 
     useEffect(() => {
         const fetchUserData = async () => {
             if (firestore && user) {
                 setIsUserDataLoading(true);
                 const userRef = doc(firestore, 'users', user.uid);
-                const userSnap = await (await import('firebase/firestore')).getDoc(userRef);
+                const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
                     const data = userSnap.data();
                     setUserData(data);
-                    // Set form values once data is fetched
-                    form.reset({
+                    profileForm.reset({
                         username: data.username || user.displayName || '',
                         country: data.country || '',
                         gender: data.gender || undefined,
                     });
                 } else {
-                     // If no doc exists, use displayName from auth
-                    form.reset({ username: user.displayName || '' });
+                    profileForm.reset({ username: user.displayName || '' });
                 }
                 setIsUserDataLoading(false);
             }
@@ -72,28 +87,27 @@ export default function ProfilePage() {
         if (!isUserLoading) {
             fetchUserData();
         }
-    }, [user, firestore, isUserLoading, form]);
+    }, [user, firestore, isUserLoading, profileForm]);
 
 
-    const onSubmit = async (data: ProfileFormValues) => {
+    const onProfileSubmit = async (data: ProfileFormValues) => {
         if (!firestore || !user) return;
         
         setIsSaving(true);
         const userRef = doc(firestore, 'users', user.uid);
         
         try {
-            const { setDoc } = await import('firebase/firestore');
             const dataToUpdate = {
                 ...data,
-                email: user.email, // ensure email is always present
+                email: user.email,
                 username: data.username,
             };
             
             await setDoc(userRef, dataToUpdate, { merge: true });
 
-            // Also update the auth profile display name
-            const { updateProfile } = await import('firebase/auth');
-            await updateProfile(user, { displayName: data.username });
+            if (user.displayName !== data.username) {
+                await updateProfile(user, { displayName: data.username });
+            }
             
             toast({
                 title: "¡Perfil Actualizado!",
@@ -110,6 +124,44 @@ export default function ProfilePage() {
             setIsSaving(false);
         }
     };
+    
+    const onLinkAccountSubmit = async (data: LinkAccountFormValues) => {
+        if (!auth || !user || !user.isAnonymous) return;
+
+        setIsLinking(true);
+        setLinkError(null);
+
+        try {
+            const credential = EmailAuthProvider.credential(data.email, data.password);
+            await linkWithCredential(user, credential);
+            
+            // After linking, we might want to update the user document with the new email
+            const userRef = doc(firestore, 'users', user.uid);
+            await setDoc(userRef, { email: data.email }, { merge: true });
+            
+            // Also update the email in the auth profile itself
+            // Note: This reload is important to get the updated user state
+            await reloadUser();
+
+            toast({
+                title: "¡Cuenta Vinculada!",
+                description: "Has convertido tu cuenta de invitado en una cuenta permanente.",
+            });
+            
+        } catch (error: any) {
+            console.error("Error linking account:", error);
+            if (error.code === 'auth/email-already-in-use') {
+                setLinkError('Este correo electrónico ya está en uso por otra cuenta.');
+            } else if (error.code === 'auth/credential-already-in-use') {
+                 setLinkError('Esta credencial ya está asociada con una cuenta de usuario diferente.');
+            }
+            else {
+                setLinkError('No se pudo vincular la cuenta. Inténtalo de nuevo.');
+            }
+        } finally {
+            setIsLinking(false);
+        }
+    }
     
     if (isUserLoading || isUserDataLoading) {
       return (
@@ -142,7 +194,7 @@ export default function ProfilePage() {
 
     const getAvatarFallback = () => {
         if (user?.isAnonymous) return 'G';
-        return form.getValues('username')?.charAt(0) || user?.email?.charAt(0) || 'U';
+        return profileForm.getValues('username')?.charAt(0) || user?.email?.charAt(0) || 'U';
     }
 
     return (
@@ -153,9 +205,9 @@ export default function ProfilePage() {
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2">
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                <div className="md:col-span-2 space-y-6">
+                    <Form {...profileForm}>
+                        <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
                              <Card>
                                 <CardHeader>
                                     <CardTitle>Información del Perfil</CardTitle>
@@ -171,7 +223,7 @@ export default function ProfilePage() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                        <FormField
-                                            control={form.control}
+                                            control={profileForm.control}
                                             name="username"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -183,12 +235,12 @@ export default function ProfilePage() {
                                         />
                                         <div className="space-y-2">
                                             <FormLabel>Correo Electrónico</FormLabel>
-                                            <Input type="email" value={user?.email || ''} disabled />
+                                            <Input type="email" value={user?.email || (user.isAnonymous ? 'Cuenta de invitado' : '')} disabled />
                                         </div>
                                     </div>
                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <FormField
-                                            control={form.control}
+                                            control={profileForm.control}
                                             name="country"
                                             render={({ field }) => (
                                                 <FormItem className="flex flex-col">
@@ -199,7 +251,7 @@ export default function ProfilePage() {
                                             )}
                                         />
                                         <FormField
-                                            control={form.control}
+                                            control={profileForm.control}
                                             name="gender"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -221,15 +273,66 @@ export default function ProfilePage() {
                                         />
                                      </div>
                                 </CardContent>
-                                <CardContent>
+                                <CardFooter>
                                     <Button type="submit" disabled={isSaving}>
                                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                         Guardar Cambios
                                     </Button>
-                                </CardContent>
+                                </CardFooter>
                             </Card>
                         </form>
                     </Form>
+                    
+                    {user.isAnonymous && (
+                        <Form {...linkAccountForm}>
+                            <form onSubmit={linkAccountForm.handleSubmit(onLinkAccountSubmit)}>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Vincular Cuenta</CardTitle>
+                                        <CardDescription>Convierte tu cuenta de invitado en una cuenta permanente para no perder tu progreso.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <FormField
+                                            control={linkAccountForm.control}
+                                            name="email"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Vincular Correo Electrónico</FormLabel>
+                                                    <FormControl><Input type="email" placeholder="tu@correo.com" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                         <FormField
+                                            control={linkAccountForm.control}
+                                            name="password"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Contraseña</FormLabel>
+                                                    <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        {linkError && (
+                                            <Alert variant="destructive">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                <AlertTitle>Error al Vincular</AlertTitle>
+                                                <AlertDescription>{linkError}</AlertDescription>
+                                            </Alert>
+                                        )}
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button type="submit" disabled={isLinking}>
+                                            {isLinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
+                                            Vincular y Guardar
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            </form>
+                        </Form>
+                    )}
+
                 </div>
 
                 <div className="space-y-8">
@@ -290,5 +393,3 @@ export default function ProfilePage() {
         </div>
     )
 }
-
-    
