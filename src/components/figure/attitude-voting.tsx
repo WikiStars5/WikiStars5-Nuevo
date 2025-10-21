@@ -15,7 +15,7 @@ import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
-const attitudeOptions: {
+const allAttitudeOptions: {
   id: AttitudeOption;
   label: string;
   icon: React.ElementType;
@@ -56,6 +56,10 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const { toast } = useToast();
 
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
+
+  const attitudeOptions = figure.nationality === 'Web'
+    ? allAttitudeOptions.filter(option => option.id !== 'simp')
+    : allAttitudeOptions;
 
   const userVoteRef = useMemoFirebase(() => {
     // We only create the ref if there IS a user.
@@ -161,13 +165,15 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
     return <Skeleton className="h-48 w-full" />;
   }
 
+  const gridColsClass = attitudeOptions.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4';
+
   return (
     <div className="w-full">
       <div className="mb-4 text-left">
         <h3 className="text-xl font-bold font-headline">¿Qué te consideras?</h3>
         <p className="text-muted-foreground">Define tu actitud hacia {figure.name}. Tu voto es anónimo.</p>
       </div>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
         {attitudeOptions.map(({ id, label, icon: Icon }) => (
           <Button
             key={id}
