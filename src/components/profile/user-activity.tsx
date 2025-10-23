@@ -126,7 +126,7 @@ export default function UserActivity() {
             const [attitudeSnapshot, emotionSnapshot, streaksSnapshot] = await Promise.all([
                 getDocs(attitudeQuery),
                 getDocs(emotionQuery),
-                getDocs(streaksSnapshot),
+                getDocs(streaksQuery),
             ]);
 
             const attitudes = attitudeSnapshot.docs.map(d => d.data() as AttitudeVote);
