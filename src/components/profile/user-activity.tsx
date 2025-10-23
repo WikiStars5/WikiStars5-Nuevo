@@ -80,7 +80,15 @@ function ActivityDisplay({ votes, figures, category }: { votes: FetchedVote[], f
 
 function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
   if (streaks.length === 0) {
-    return <p className="text-sm text-muted-foreground text-center py-8">No tienes rachas activas en ningún perfil.</p>;
+    return (
+        <div className="text-center py-8">
+            <Flame className="mx-auto h-12 w-12 text-muted-foreground/30" />
+            <h3 className="mt-2 text-md font-semibold">Aún no tienes rachas activas</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+                Gana rachas comentando en perfiles durante días consecutivos.
+            </p>
+        </div>
+    );
   }
 
   return (
