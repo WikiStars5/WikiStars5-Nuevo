@@ -22,7 +22,7 @@ export default function MainLayout({
     const statusRef = doc(firestore, 'status', user.uid);
 
     const updateStatus = (isOnline: boolean) => {
-      setDoc(statusRef, { isOnline, last_changed: serverTimestamp() }, { merge: true });
+      setDoc(statusRef, { isOnline, lastChanged: serverTimestamp() }, { merge: true });
     };
 
     const handleVisibilityChange = () => {
@@ -69,5 +69,3 @@ export default function MainLayout({
       </div>
   );
 }
-
-    

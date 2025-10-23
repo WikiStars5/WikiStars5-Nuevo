@@ -71,7 +71,7 @@ export default function ActiveUsersChart() {
         const statusQuery = query(
             collection(firestore, 'status'),
             where('isOnline', '==', true),
-            where('last_changed', '>=', fiveMinutesAgo)
+            where('lastChanged', '>=', fiveMinutesAgo)
         );
 
         const statusSnapshot = await getDocs(statusQuery);
@@ -212,5 +212,3 @@ export default function ActiveUsersChart() {
     </Card>
   );
 }
-
-    
