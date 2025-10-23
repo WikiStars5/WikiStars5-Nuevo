@@ -23,11 +23,12 @@ import { collection, query } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { countries } from '@/lib/countries';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
-import { Users, TrendingUp, MapPin } from 'lucide-react';
+import { Users, TrendingUp, MapPin, KeyRound, UserCheck } from 'lucide-react';
 
 interface UserData {
     country?: string;
     gender?: 'Masculino' | 'Femenino' | 'Otro';
+    email?: string;
 }
 
 interface CountryStat {
@@ -61,11 +62,13 @@ export default function AdminUsersDashboardPage() {
         total: 0,
         genderData: [],
         countryData: [],
+        accountTypeData: [],
       };
     }
 
     const genderCounts: { [key: string]: number } = { Masculino: 0, Femenino: 0, Otro: 0, 'No especificado': 0 };
     const countryCounts: { [key: string]: number } = {};
+    const accountTypeCounts = { Registrados: 0, Invitados: 0 };
 
     users.forEach(user => {
       // Tally genders
@@ -79,9 +82,17 @@ export default function AdminUsersDashboardPage() {
       if (user.country) {
         countryCounts[user.country] = (countryCounts[user.country] || 0) + 1;
       }
+
+      // Tally account types
+      if (user.email) {
+        accountTypeCounts.Registrados++;
+      } else {
+        accountTypeCounts.Invitados++;
+      }
     });
 
     const genderData = Object.entries(genderCounts).map(([name, value]) => ({ name, value }));
+    const accountTypeData = Object.entries(accountTypeCounts).map(([name, value]) => ({ name, value }));
 
     const countryData: CountryStat[] = Object.entries(countryCounts)
       .map(([name, count]) => {
@@ -98,6 +109,7 @@ export default function AdminUsersDashboardPage() {
       total: users.length,
       genderData,
       countryData,
+      accountTypeData,
     };
   }, [users]);
   
@@ -118,7 +130,7 @@ export default function AdminUsersDashboardPage() {
             </CardContent>
         </Card>
         
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><TrendingUp /> Distribución por Sexo</CardTitle>
@@ -146,6 +158,32 @@ export default function AdminUsersDashboardPage() {
             </Card>
 
             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><UserCheck /> Tipo de Cuenta</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? <Skeleton className="h-[250px] w-full" /> : (
+                         <ResponsiveContainer width="100%" height={250}>
+                            <BarChart data={stats.accountTypeData} layout="vertical" margin={{ left: 20, right: 30 }}>
+                                <XAxis type="number" hide />
+                                <YAxis 
+                                    dataKey="name" 
+                                    type="category" 
+                                    stroke="hsl(var(--muted-foreground))"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    width={100}
+                                />
+                                <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="hsl(var(--primary))">
+                                    <LabelList dataKey="value" content={<ChartLabel />} />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2 lg:col-span-1">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><MapPin /> Top Países</CardTitle>
                 </CardHeader>
@@ -196,3 +234,4 @@ export default function AdminUsersDashboardPage() {
     </div>
   );
 }
+
