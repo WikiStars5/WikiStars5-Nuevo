@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -53,10 +52,10 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
         return null; // Don't show anything if there's no active streak
     }
 
+    const streakText = streak.currentStreak === 1 ? 'día' : 'días';
+
     return (
-        <div className="flex items-center gap-2 rounded-full bg-card border px-4 py-2 shadow-sm">
-            <span className="text-sm font-semibold text-muted-foreground">Día</span>
-            <span className="font-bold text-orange-500">{streak.currentStreak}</span>
+        <div className="flex items-center gap-2 rounded-full bg-card border px-3 py-1.5 shadow-sm">
              <Image
                 src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
                 alt="Racha activa"
@@ -64,6 +63,9 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
                 height={24}
                 unoptimized
             />
+            <span className="font-bold text-orange-500">
+                {streak.currentStreak} {streakText}
+            </span>
         </div>
     );
 }
