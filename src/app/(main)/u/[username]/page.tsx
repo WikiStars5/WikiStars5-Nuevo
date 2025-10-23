@@ -3,7 +3,6 @@ import { getSdks } from '@/firebase/server';
 import PublicProfileClientPage from './client-page';
 import { notFound } from 'next/navigation';
 import { normalizeText } from '@/lib/keywords';
-import { doc, getDoc } from 'firebase/firestore';
 
 
 interface PublicProfilePageProps {
