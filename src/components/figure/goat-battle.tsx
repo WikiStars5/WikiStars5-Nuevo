@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import type { GoatBattle, GoatVote } from '@/lib/types';
-import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
+import type { GoatBattle, GoatVote, Figure } from '@/lib/types';
+import { doc, runTransaction, serverTimestamp, increment, getDoc, query, where, collection, getDocs, limit } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { onAuthStateChanged, type Auth, type User as FirebaseUser } from 'firebase/auth';
@@ -16,16 +16,10 @@ import { Skeleton } from '../ui/skeleton';
 
 const BATTLE_ID = 'messi-vs-ronaldo';
 
-const messiData = {
-    name: 'Lionel Messi',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Lionel_Messi_WC2022.jpg'
-};
-
-const ronaldoData = {
-    name: 'Cristiano Ronaldo',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_WC2022_-_Portugal_vs_Uruguay.jpg'
-};
-
+interface PlayerData {
+  name: string;
+  imageUrl: string;
+}
 
 function getNextUser(auth: Auth): Promise<FirebaseUser> {
   return new Promise((resolve, reject) => {
@@ -41,6 +35,29 @@ function getNextUser(auth: Auth): Promise<FirebaseUser> {
   });
 }
 
+// Fetches a single figure by name. Limited to find Messi or Ronaldo.
+async function fetchFigureByName(firestore: any, name: string): Promise<PlayerData | null> {
+    const figuresRef = collection(firestore, 'figures');
+    const q = query(figuresRef, where('name', '==', name), limit(1));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+        // Fallback data if not found in DB
+        return {
+            name,
+            imageUrl: name === 'Lionel Messi'
+                ? 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Lionel_Messi_WC2022.jpg'
+                : 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_WC2022_-_Portugal_vs_Uruguay.jpg'
+        };
+    }
+    const figureDoc = snapshot.docs[0];
+    const data = figureDoc.data() as Figure;
+    return {
+        name: data.name,
+        imageUrl: data.imageUrl,
+    };
+}
+
 
 export default function GoatBattle() {
   const firestore = useFirestore();
@@ -48,6 +65,10 @@ export default function GoatBattle() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [isVoting, setIsVoting] = useState(false);
+
+  const [messiData, setMessiData] = useState<PlayerData | null>(null);
+  const [ronaldoData, setRonaldoData] = useState<PlayerData | null>(null);
+  const [arePlayersLoading, setArePlayersLoading] = useState(true);
 
   // Get global battle data
   const battleDocRef = useMemoFirebase(() => {
@@ -63,6 +84,21 @@ export default function GoatBattle() {
   }, [firestore, user]);
   const { data: userVote, isLoading: isUserVoteLoading } = useDoc<GoatVote>(userVoteDocRef);
 
+  useEffect(() => {
+    async function fetchPlayers() {
+        if (!firestore) return;
+        setArePlayersLoading(true);
+        const [messi, ronaldo] = await Promise.all([
+            fetchFigureByName(firestore, 'Lionel Messi'),
+            fetchFigureByName(firestore, 'Cristiano Ronaldo')
+        ]);
+        setMessiData(messi);
+        setRonaldoData(ronaldo);
+        setArePlayersLoading(false);
+    }
+    fetchPlayers();
+  }, [firestore]);
+
 
   const messiVotes = battleData?.messiVotes ?? 0;
   const ronaldoVotes = battleData?.ronaldoVotes ?? 0;
@@ -71,7 +107,6 @@ export default function GoatBattle() {
   const messiPercentage = totalVotes > 0 ? (messiVotes / totalVotes) * 100 : 50;
   const ronaldoPercentage = 100 - messiPercentage;
 
-  // It's a value between -10 (all Ronaldo) and 10 (all Messi).
   const balanceRotation = totalVotes > 0 ? ((messiPercentage - 50) / 5) * -1 : 0;
 
   const handleVote = async (player: 'messi' | 'ronaldo') => {
@@ -98,16 +133,16 @@ export default function GoatBattle() {
 
             const updates: { [key: string]: any } = {};
 
-            if (currentVote === player) { // --- Cancel Vote ---
+            if (currentVote === player) {
                 updates[`${player}Votes`] = increment(-1);
                 transaction.delete(userVoteRef);
                 toast({ title: "Voto cancelado" });
             } else {
-                 if (currentVote) { // --- Change Vote ---
+                 if (currentVote) {
                     const otherPlayer = player === 'messi' ? 'ronaldo' : 'messi';
                     updates[`${otherPlayer}Votes`] = increment(-1);
                 }
-                updates[`${player}Votes`] = increment(1); // Add to new vote in all cases (new or change)
+                updates[`${player}Votes`] = increment(1);
                 transaction.set(userVoteRef, { 
                     userId: currentUser!.uid, 
                     vote: player, 
@@ -149,7 +184,7 @@ export default function GoatBattle() {
     </svg>
   );
   
-  const isLoading = isUserLoading || isBattleLoading || (user && isUserVoteLoading);
+  const isLoading = isUserLoading || isBattleLoading || (user && isUserVoteLoading) || arePlayersLoading;
 
   if (isLoading) {
     return (
@@ -159,11 +194,27 @@ export default function GoatBattle() {
                 <Skeleton className="h-5 w-1/2" />
             </CardHeader>
             <CardContent>
-                <Skeleton className="h-64 w-full" />
+                <div className="relative w-full max-w-md h-48 mb-8">
+                     <div className="absolute top-1/2 left-0 w-full h-1.5 bg-muted rounded-full">
+                        <div className="absolute -left-8 -top-12">
+                           <Skeleton className="h-20 w-20 rounded-full" />
+                        </div>
+                        <div className="absolute -right-8 -top-12">
+                           <Skeleton className="h-20 w-20 rounded-full" />
+                        </div>
+                     </div>
+                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[40px] border-l-transparent border-r-[40px] border-r-transparent border-b-[60px] border-b-muted"></div>
+                </div>
+                 <div className="grid grid-cols-2 gap-4 w-full max-w-md mt-6">
+                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-16 w-full" />
+                 </div>
             </CardContent>
         </Card>
     )
   }
+
+  if (!messiData || !ronaldoData) return null; // Should not happen if not loading
 
   return (
     <Card>
@@ -174,14 +225,11 @@ export default function GoatBattle() {
         <CardDescription>¿Quién es el mejor de todos los tiempos? Tu voto decide.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center">
-        {/* Balance Component */}
         <div className="relative w-full max-w-md h-48 mb-8">
-          {/* Balance Beam */}
           <div
             className="absolute top-1/2 left-0 w-full h-1.5 bg-muted rounded-full transition-transform duration-500"
             style={{ transform: `translateY(-50%) rotate(${balanceRotation}deg)` }}
           >
-            {/* Player Plates */}
             <div className="absolute -left-8 -top-12 flex flex-col items-center">
               <div className="relative h-20 w-20 rounded-full border-4 border-blue-500 overflow-hidden shadow-lg">
                 <Image src={messiData.imageUrl} alt={messiData.name} layout="fill" objectFit="cover" />
@@ -193,11 +241,9 @@ export default function GoatBattle() {
               </div>
             </div>
           </div>
-          {/* Fulcrum */}
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[40px] border-l-transparent border-r-[40px] border-r-transparent border-b-[60px] border-b-muted"></div>
         </div>
 
-        {/* Vote Percentages */}
         <div className="w-full max-w-md mb-6">
             <div className="relative h-4 w-full bg-red-500/30 rounded-full overflow-hidden">
                 <div 
@@ -212,7 +258,6 @@ export default function GoatBattle() {
         </div>
 
 
-        {/* Voting Buttons */}
         <div className="grid grid-cols-2 gap-4 w-full max-w-md">
           <Button
             size="lg"
