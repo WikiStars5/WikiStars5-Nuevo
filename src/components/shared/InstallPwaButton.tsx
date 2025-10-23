@@ -1,38 +1,52 @@
 
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Download } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
+import { DropdownMenuItem } from "../ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
-// This is the type definition for the BeforeInstallPromptEvent.
-// It's not a standard built-in type, so we define it manually.
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: Array<string>;
   readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
-    platform: string;
+    outcome: 'accepted' | 'dismissed',
+    platform: string
   }>;
   prompt(): Promise<void>;
 }
 
-export default function InstallPwaButton() {
+interface InstallPwaButtonProps {
+  asMenuItem?: boolean;
+}
+
+export function InstallPwaButton({ asMenuItem = false }: InstallPwaButtonProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the browser from showing its default install banner
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
@@ -40,39 +54,53 @@ export default function InstallPwaButton() {
     if (!deferredPrompt) {
       return;
     }
-    // Show the browser's install prompt
-    deferredPrompt.prompt();
-    // Wait for the user to respond to the prompt
-    await deferredPrompt.userChoice;
-    // We've used the prompt, and it can't be used again. Clear it.
-    setDeferredPrompt(null);
+    
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    setDeferredPrompt(null); // The prompt can only be used once.
+
+    if (outcome === 'accepted') {
+      toast({
+        title: "¡App Instalada!",
+        description: "Ahora puedes abrir WikiStars5 desde tu pantalla de inicio."
+      });
+    }
   };
 
-  const isInstallable = !!deferredPrompt;
+  const canInstall = !!deferredPrompt;
+
+  if (asMenuItem) {
+    if (!canInstall) return null; // Don't show in dropdown if not installable
+    return (
+      <DropdownMenuItem onSelect={handleInstallClick}>
+        <Download className="mr-2 h-4 w-4" />
+        <span>Instalar aplicación</span>
+      </DropdownMenuItem>
+    );
+  }
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          {/* We wrap the button in a div because TooltipTrigger requires a single child
-              that can accept a ref, and disabled buttons sometimes don't. */}
-          <div>
+          <div className={cn(!canInstall && "cursor-not-allowed")}>
             <Button
               variant="ghost"
               size="icon"
               onClick={handleInstallClick}
-              disabled={!isInstallable}
-              aria-label="Instalar aplicación"
+              disabled={!canInstall}
               className={cn(
-                isInstallable && "animate-pulse"
+                  "text-foreground/70 hover:text-foreground",
+                  canInstall && "animate-color-pulse"
               )}
+              aria-label="Instalar aplicación"
             >
               <Download className="h-5 w-5" />
             </Button>
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{isInstallable ? 'Instalar aplicación' : 'Instalación no disponible'}</p>
+          <p>{canInstall ? 'Instalar aplicación' : 'Instalación no disponible en este momento.'}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

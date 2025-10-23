@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -54,5 +55,20 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  @keyframes color-pulse {
+    0%, 100% {
+      color: hsl(var(--foreground) / 0.7);
+    }
+    50% {
+      color: hsl(var(--primary));
+    }
+  }
+
+  .animate-color-pulse {
+    animation: color-pulse 2s ease-in-out infinite;
   }
 }

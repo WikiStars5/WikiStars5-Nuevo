@@ -22,7 +22,7 @@ import { Dialog, DialogTrigger } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
 import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog';
 import SearchBar from './search-bar';
-import InstallPwaButton from './InstallPwaButton';
+import { InstallPwaButton } from './InstallPwaButton';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
@@ -59,7 +59,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <InstallPwaButton />
+          
           {isUserLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
           ) : user ? (
@@ -123,6 +123,8 @@ export default function Header() {
                     <Globe className="mr-2 h-4 w-4" />
                     <span>Crear Perfil Web</span>
                   </DropdownMenuItem>
+
+                  <InstallPwaButton asMenuItem={true} />
 
                   <DropdownMenuSeparator />
 
