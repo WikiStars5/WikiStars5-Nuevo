@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFirestore, useUser } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Footer from '@/components/shared/footer';
@@ -14,16 +14,51 @@ export default function MainLayout({
 }>) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const isUnloading = useRef(false);
 
   useEffect(() => {
-    // This effect runs whenever the user navigates within the main layout.
-    // It updates the `lastLogin` field to keep track of active users.
-    if (user && firestore) {
-      const userRef = doc(firestore, 'users', user.uid);
-      // We use setDoc with merge: true to create the document if it doesn't exist,
-      // or update it if it does. This is a non-blocking "fire-and-forget" operation.
-      setDoc(userRef, { lastLogin: serverTimestamp() }, { merge: true });
+    if (!user || !firestore) return;
+
+    const statusRef = doc(firestore, 'status', user.uid);
+
+    const updateStatus = (isOnline: boolean) => {
+      setDoc(statusRef, { isOnline, last_changed: serverTimestamp() }, { merge: true });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        isUnloading.current = false;
+        updateStatus(true);
+      } else {
+        // This is a "best effort" to set offline status quickly.
+        // The `pagehide` and `beforeunload` are more reliable for final-state changes.
+        if (!isUnloading.current) {
+            updateStatus(false);
+        }
+      }
+    };
+    
+    const handlePageHide = () => {
+      isUnloading.current = true;
+      updateStatus(false);
     }
+    
+    // Set online status initially
+    updateStatus(true);
+
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // Use `pagehide` for mobile and modern desktop browsers for better reliability
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      // On component unmount (e.g., logout), set status to offline
+      if (user && firestore) {
+        updateStatus(false);
+      }
+    };
   }, [user, firestore]);
 
   return (

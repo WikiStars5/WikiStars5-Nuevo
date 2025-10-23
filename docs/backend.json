@@ -36,9 +36,13 @@
           "type": "string",
           "description": "User's role within the platform (e.g., 'user', 'admin')."
         },
-        "lastLogin": {
+        "isOnline": {
+          "type": "boolean",
+          "description": "Indicates if the user is currently online."
+        },
+        "lastChanged": {
           "type": "string",
-          "description": "The last time the user was active on the platform.",
+          "description": "Timestamp of the last presence change.",
           "format": "date-time"
         },
         "createdAt": {
@@ -50,6 +54,21 @@
       "required": [
         "id"
       ]
+    },
+    "UserStatus": {
+      "title": "UserStatus",
+      "type": "object",
+      "description": "Represents a user's real-time online status.",
+      "properties": {
+        "isOnline": {
+          "type": "boolean"
+        },
+        "lastChanged": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["isOnline", "lastChanged"]
     },
     "Username": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -565,6 +584,20 @@
               "description": "The unique identifier of the user."
             }
           ]
+        }
+      },
+      {
+        "path": "/status/{userId}",
+        "definition": {
+            "entityName": "UserStatus",
+            "schema": { "$ref": "#/backend/entities/UserStatus" },
+            "description": "Stores the real-time online status of a user.",
+            "params": [
+                {
+                    "name": "userId",
+                    "description": "The unique identifier of the user."
+                }
+            ]
         }
       },
       {
