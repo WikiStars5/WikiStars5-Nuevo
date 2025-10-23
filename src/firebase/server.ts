@@ -8,7 +8,7 @@ function getAdminApp(): FirebaseApp {
   }
   
   // This will use the GOOGLE_APPLICATION_CREDENTIALS environment variable
-  // for authentication.
+  // for authentication when running in a Google Cloud environment.
   return initializeApp();
 }
 
