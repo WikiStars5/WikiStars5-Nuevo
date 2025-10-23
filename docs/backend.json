@@ -38,7 +38,7 @@
         },
         "lastLogin": {
           "type": "string",
-          "description": "The last time the user logged in.",
+          "description": "The last time the user was active on the platform.",
           "format": "date-time"
         },
         "createdAt": {

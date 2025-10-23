@@ -23,8 +23,9 @@ import { collection, query, Timestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { countries } from '@/lib/countries';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
-import { Users, TrendingUp, MapPin, UserCheck, BarChart3 } from 'lucide-react';
+import { Users, TrendingUp, MapPin, UserCheck } from 'lucide-react';
 import UserTrendsChart from '@/components/admin/user-trends-chart';
+import ActiveUsersChart from '@/components/admin/active-users-chart';
 
 interface UserData {
     country?: string;
@@ -235,6 +236,7 @@ export default function AdminUsersDashboardPage() {
         </div>
 
         <UserTrendsChart />
+        <ActiveUsersChart />
     </div>
   );
 }
