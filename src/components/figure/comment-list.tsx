@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { collection, query, orderBy } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy, where } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import type { Comment } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Star } from 'lucide-react';
 import CommentThread from './comment-thread';
 import { Button } from '../ui/button';
+import { cn } from '@/lib/utils';
 
 const INITIAL_COMMENT_LIMIT = 5;
 const COMMENT_INCREMENT = 5;
@@ -37,27 +38,43 @@ function buildCommentTree(comments: Comment[]): Comment[] {
   return rootComments;
 }
 
+type FilterType = 'all' | 'mine' | number;
+
 export default function CommentList({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+
 
   const commentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // We still order by creation date to get a generally chronological flat list
-    return query(
+    
+    const baseQuery = query(
       collection(firestore, 'figures', figureId, 'comments'),
       orderBy('createdAt', 'desc')
     );
+
+    return baseQuery;
   }, [firestore, figureId]);
+
 
   const { data: comments, isLoading } = useCollection<Comment>(commentsQuery);
 
-  const commentTree = useMemo(() => {
+  const filteredComments = useMemo(() => {
     if (!comments) return [];
-    // The logic to deactivate old ratings is now handled in the database directly
-    // when a new vote is cast, so we don't need to process it here anymore.
-    return buildCommentTree(comments);
-  }, [comments]);
+
+    let filtered = comments;
+
+    if (activeFilter === 'mine') {
+      if (!user) return [];
+      filtered = comments.filter(comment => comment.userId === user.uid);
+    } else if (typeof activeFilter === 'number') {
+       filtered = comments.filter(comment => comment.rating === activeFilter);
+    }
+
+    return buildCommentTree(filtered);
+  }, [comments, activeFilter, user]);
 
 
   if (isLoading) {
@@ -80,29 +97,48 @@ export default function CommentList({ figureId }: { figureId: string }) {
     )
   }
 
-  if (!comments || comments.length === 0) {
-    return (
-        <div className="text-center py-10">
-            <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <h3 className="mt-2 text-lg font-semibold">Aún no hay opiniones</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-                Sé el primero en compartir tu opinión sobre este perfil.
-            </p>
-        </div>
-    )
-  }
+  const visibleComments = filteredComments.slice(0, visibleCount);
   
-  const visibleComments = commentTree.slice(0, visibleCount);
+  const FilterButton = ({ filter, children }: { filter: FilterType; children: React.ReactNode }) => (
+    <Button
+        variant={activeFilter === filter ? 'secondary' : 'ghost'}
+        className="h-8 px-3"
+        onClick={() => setActiveFilter(filter)}
+    >
+        {children}
+    </Button>
+  );
 
   return (
     <div className="space-y-6">
-        <h3 className="text-lg font-semibold">Comentarios Recientes</h3>
-        {visibleComments.map((comment) => (
-            <CommentThread key={comment.id} comment={comment} figureId={figureId} />
+      <div className="flex items-center gap-2 flex-wrap">
+        <FilterButton filter="all">Todo</FilterButton>
+        {user && <FilterButton filter="mine">Mis Opiniones</FilterButton>}
+        <div className="flex-grow" />
+        {[5, 4, 3, 2, 1].map(rating => (
+          <FilterButton key={rating} filter={rating}>
+            {rating} <Star className="ml-1 h-3 w-3" />
+          </FilterButton>
         ))}
+      </div>
+
+      {visibleComments.length > 0 ? (
+        visibleComments.map((comment) => (
+            <CommentThread key={comment.id} comment={comment} figureId={figureId} />
+        ))
+      ) : (
+        <div className="text-center py-10">
+            <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
+            <h3 className="mt-2 text-lg font-semibold">No se encontraron opiniones</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+                No hay comentarios que coincidan con el filtro seleccionado.
+            </p>
+        </div>
+      )}
+
 
         <div className="flex items-center justify-center gap-4">
-            {commentTree.length > visibleCount && (
+            {filteredComments.length > visibleCount && (
                 <Button variant="outline" onClick={() => setVisibleCount(prev => prev + COMMENT_INCREMENT)}>
                     Ver más comentarios
                 </Button>
