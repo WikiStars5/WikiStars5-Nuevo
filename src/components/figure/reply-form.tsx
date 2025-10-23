@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { updateStreak } from '@/firebase/streaks';
+import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 
 
 const replySchema = z.object({
@@ -31,6 +33,8 @@ export default function ReplyForm({ figureId, parentId, depth, onReplySuccess }:
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showStreakAnimation } = useContext(StreakAnimationContext);
+
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
@@ -58,6 +62,7 @@ export default function ReplyForm({ figureId, parentId, depth, onReplySuccess }:
       const userProfileRef = doc(firestore, 'users', user.uid);
       const userProfileSnap = await getDoc(userProfileRef);
       const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
+      const displayName = userProfileData.username || user.displayName || 'Usuario';
 
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       const newReply = {
@@ -65,7 +70,7 @@ export default function ReplyForm({ figureId, parentId, depth, onReplySuccess }:
         userId: user.uid,
         text: data.text,
         createdAt: serverTimestamp(),
-        userDisplayName: user.isAnonymous ? 'Anónimo' : userProfileData.username || user.displayName || 'Usuario',
+        userDisplayName: displayName,
         userPhotoURL: user.isAnonymous ? null : user.photoURL,
         userCountry: userProfileData.country || null,
         userGender: userProfileData.gender || null,
@@ -73,9 +78,27 @@ export default function ReplyForm({ figureId, parentId, depth, onReplySuccess }:
         dislikes: 0,
         parentId: parentId,
         depth: depth + 1,
+        rating: -1, // Replies don't have ratings
       };
 
       await addDocumentNonBlocking(commentsColRef, newReply);
+
+      // --- Streak Update ---
+      const streakResult = await updateStreak({
+        firestore,
+        figureId,
+        userId: user.uid,
+        userDisplayName: displayName,
+        userPhotoURL: user.photoURL,
+        userCountry: userProfileData.country || null,
+        userGender: userProfileData.gender || null,
+        isAnonymous: user.isAnonymous,
+      });
+
+      if (streakResult?.streakGained) {
+        showStreakAnimation(streakResult.newStreakCount);
+      }
+
 
       toast({
         title: '¡Respuesta Publicada!',

@@ -94,7 +94,7 @@ export interface Comment {
   userId: string;
   figureId: string;
   text: string;
-  rating: number; // Star rating from 0-5 associated with the comment
+  rating: number; // Star rating from 0-5 associated with the comment. -1 for replies.
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   likes?: number;

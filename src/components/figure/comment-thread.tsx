@@ -335,7 +335,12 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                         figureId={figureId} 
                         parentId={comment.id} 
                         depth={comment.depth}
-                        onReplySuccess={() => setIsReplying(false)}
+                        onReplySuccess={() => {
+                            setIsReplying(false);
+                            if (!repliesVisible) {
+                                toggleReplies();
+                            }
+                        }}
                     />
                  )}
             </div>
