@@ -1,8 +1,10 @@
+
 import { getSdks } from '@/firebase/server';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import PublicProfileClientPage from './client-page';
 import { notFound } from 'next/navigation';
 import { normalizeText } from '@/lib/keywords';
+import { doc, getDoc } from 'firebase/firestore';
+
 
 interface PublicProfilePageProps {
   params: {
@@ -16,14 +18,10 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
   const usernameLower = normalizeText(username);
 
   try {
-    // 1. Find the user ID from the username
-    const usernameRef = collection(firestore, 'usernames');
-    const usernameQuery = query(
-        usernameRef, 
-        where('__name__', '==', usernameLower), 
-        limit(1)
-    );
-    const usernameSnapshot = await getDocs(usernameQuery);
+    // 1. Find the user ID from the username using Admin SDK methods
+    const usernameRef = firestore.collection('usernames');
+    const usernameQuery = usernameRef.where('__name__', '==', usernameLower).limit(1);
+    const usernameSnapshot = await usernameQuery.get();
 
     if (usernameSnapshot.empty) {
       notFound();
@@ -35,15 +33,15 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
       notFound();
     }
 
-    // 2. Fetch the user's public profile data
-    const userRef = doc(firestore, 'users', userId);
-    const userSnap = await getDoc(userRef);
+    // 2. Fetch the user's public profile data using Admin SDK
+    const userRef = firestore.collection('users').doc(userId);
+    const userSnap = await userRef.get();
 
-    if (!userSnap.exists()) {
+    if (!userSnap.exists) {
         notFound();
     }
     
-    const userData = userSnap.data();
+    const userData = userSnap.data()!;
     
     // 3. Select ONLY the data that is safe to be public
     const publicUserData = {
