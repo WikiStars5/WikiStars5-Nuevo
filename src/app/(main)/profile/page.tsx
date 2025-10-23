@@ -68,6 +68,8 @@ export default function ProfilePage() {
         }
     });
 
+    const descriptionValue = profileForm.watch('description') || '';
+
     useEffect(() => {
         const fetchUserData = async () => {
             if (firestore && user) {
@@ -313,7 +315,12 @@ export default function ProfilePage() {
                                                         {...field}
                                                     />
                                                 </FormControl>
-                                                <FormMessage />
+                                                <div className="flex justify-between items-center pt-1">
+                                                    <FormMessage />
+                                                    <div className="text-xs text-muted-foreground ml-auto">
+                                                        {descriptionValue.length} / 160
+                                                    </div>
+                                                </div>
                                             </FormItem>
                                         )}
                                     />
