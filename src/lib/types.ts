@@ -131,4 +131,16 @@ export interface Streak {
   isAnonymous: boolean;
 }
 
+export interface GoatBattle {
+    id: string;
+    messiVotes: number;
+    ronaldoVotes: number;
+}
+
+export interface GoatVote {
+    id: string; // userId
+    userId: string;
+    vote: 'messi' | 'ronaldo';
+    createdAt: Timestamp;
+}
     

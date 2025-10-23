@@ -20,6 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import CommunityRatings from '@/components/figure/community-ratings';
 import RelatedFigures from '@/components/figure/related-figures';
 import TopStreaks from '@/components/streaks/top-streaks';
+import GoatBattle from '@/components/figure/goat-battle';
 
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
@@ -174,7 +175,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
   const hasInfo = infoItems.some(item => !!item.value);
   const hasSocialLinks = figure.socialLinks && Object.values(figure.socialLinks).some(link => !!link);
-
+  const isGoatCandidate = figure.name === 'Lionel Messi' || figure.name === 'Cristiano Ronaldo';
 
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
@@ -182,7 +183,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
       <div className="mt-6">
         <Tabs defaultValue="actitud" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${isGoatCandidate ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <TabsTrigger value="informacion">
               <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
               Información
@@ -201,6 +202,12 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
               <Flame className="mr-2 h-4 w-4" />
               Rachas
             </TabsTrigger>
+            {isGoatCandidate && (
+              <TabsTrigger value="goat">
+                <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 16h3a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-3v10z" /><path d="M11 16v-10" /><path d="M7 10h1.5a1.5 1.5 0 0 1 0 3h-1.5a1.5 1.5 0 0 1 0 3h2" /><path d="M4 16v-5" /></svg>
+                GOAT
+              </TabsTrigger>
+            )}
           </TabsList>
           <TabsContent value="informacion" className="mt-4">
               {isEditing ? (
@@ -287,6 +294,11 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
           <TabsContent value="rachas" className="mt-4">
             <TopStreaks figureId={figureId} />
           </TabsContent>
+           {isGoatCandidate && (
+             <TabsContent value="goat" className="mt-4">
+                <GoatBattle />
+            </TabsContent>
+           )}
         </Tabs>
       </div>
 
