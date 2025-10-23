@@ -10,6 +10,8 @@ import { Flame, Trophy } from 'lucide-react';
 import { Streak } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { countries } from '@/lib/countries';
+
 
 interface TopStreaksProps {
     figureId: string;
@@ -19,6 +21,8 @@ interface TopStreaksProps {
  * Checks if a Firestore Timestamp is from today or yesterday.
  */
 function isDateActive(timestamp: Timestamp): boolean {
+    if (!timestamp) return false;
+    
     const date = timestamp.toDate();
     const today = new Date();
     const yesterday = new Date();
@@ -122,31 +126,48 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                     </div>
                 ) : topStreaks.length > 0 ? (
                     <div className="space-y-1">
-                        {topStreaks.map((streak, index) => (
-                            <div key={streak.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
-                                <div className="flex items-center gap-3">
-                                    <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarImage src={streak.userPhotoURL ?? undefined} alt={streak.userDisplayName} />
-                                        <AvatarFallback>{streak.userDisplayName.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-semibold text-sm">{streak.userDisplayName}</p>
-                                        <p className="text-xs text-muted-foreground">{streak.isAnonymous ? 'Invitado' : 'Usuario Registrado'}</p>
+                        {topStreaks.map((streak, index) => {
+                            const country = countries.find(c => c.name === streak.userCountry);
+                            return (
+                                <div key={streak.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
+                                    <div className="flex items-center gap-3">
+                                        <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
+                                        <Avatar className="h-10 w-10">
+                                            <AvatarImage src={streak.userPhotoURL ?? undefined} alt={streak.userDisplayName} />
+                                            <AvatarFallback>{streak.userDisplayName.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-semibold text-sm">{streak.userDisplayName}</p>
+                                                {streak.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
+                                                {streak.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                                                {country && (
+                                                    <Image
+                                                        src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                                                        alt={country.name}
+                                                        width={20}
+                                                        height={15}
+                                                        className="object-contain"
+                                                        title={country.name}
+                                                    />
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">{streak.isAnonymous ? 'Invitado' : 'Usuario Registrado'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 font-bold text-lg text-orange-500">
+                                        <span>{streak.currentStreak}</span>
+                                        <Image
+                                            src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
+                                            alt="Streak flame"
+                                            width={24}
+                                            height={24}
+                                            unoptimized // GIF animations are not optimized by next/image
+                                        />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 font-bold text-lg text-orange-500">
-                                    <span>{streak.currentStreak}</span>
-                                    <Image
-                                        src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
-                                        alt="Streak flame"
-                                        width={24}
-                                        height={24}
-                                        unoptimized // GIF animations are not optimized by next/image
-                                    />
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <p className="text-center text-muted-foreground py-6">
