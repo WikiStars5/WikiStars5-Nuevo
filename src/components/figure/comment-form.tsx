@@ -19,6 +19,7 @@ import { Comment, Streak } from '@/lib/types';
 import { Input } from '../ui/input';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
+import { normalizeText } from '@/lib/keywords';
 
 const baseCommentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(500, 'El comentario no puede superar los 500 caracteres.'),
@@ -56,7 +57,7 @@ const ratingSounds: { [key: number]: string } = {
 };
 
 export default function CommentForm({ figureId, figureName }: CommentFormProps) {
-  const { user } = useUser();
+  const { user, reloadUser } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
@@ -69,7 +70,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const commentSchema = isFirstTimeAnonymous
     ? baseCommentSchema.extend({
-        username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(20, 'El nombre no puede tener más de 20 caracteres.'),
+        username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(20, 'El nombre no puede tener más de 20 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
       })
     : baseCommentSchema;
 
@@ -84,6 +85,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const onSubmit = async (data: CommentFormValues) => {
     if (!firestore || !auth) return;
     setIsSubmitting(true);
+    form.clearErrors('username');
 
     try {
       let currentUser = user;
@@ -92,36 +94,57 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         currentUser = await getNextUser(auth);
       }
       
-      // If user is still anonymous (or newly anonymous), and they provided a username, update their auth profile.
-      if (currentUser.isAnonymous && data.username && data.username !== currentUser.displayName) {
-          await updateProfile(currentUser, { displayName: data.username });
-      }
-
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
-      // Fetch user profile data to denormalize it
-      const userProfileRef = doc(firestore, 'users', currentUser.uid);
-      const userProfileSnap = await getDoc(userProfileRef);
-      const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
+      let displayName = currentUser.displayName;
 
-
-      const previousCommentsQuery = query(
-        commentsColRef,
-        where('userId', '==', currentUser.uid),
-        where('rating', '>=', 0), // Only get comments that had a rating
-        orderBy('rating'), // This is arbitrary, needed for the composite index
-        orderBy('createdAt', 'desc'),
-        limit(1)
-      );
-      
-      const previousCommentSnapshot = await getDocs(previousCommentsQuery);
-      const previousCommentDoc = previousCommentSnapshot.docs[0];
-      const previousComment = previousCommentDoc?.data() as Comment | undefined;
-
-      const displayName = currentUser!.isAnonymous ? (data.username || currentUser.displayName) : (userProfileData.username || currentUser!.displayName || 'Usuario');
-      
       await runTransaction(firestore, async (transaction) => {
+        // --- Username validation for first-time anonymous users ---
+        if (isFirstTimeAnonymous && data.username) {
+            const newUsername = data.username;
+            const newUsernameLower = normalizeText(newUsername);
+            const usernameRef = doc(firestore, 'usernames', newUsernameLower);
+            const usernameDoc = await transaction.get(usernameRef);
+
+            if (usernameDoc.exists()) {
+                throw new Error('El nombre de usuario ya está en uso.');
+            }
+            // Reserve the username within the transaction
+            transaction.set(usernameRef, { userId: currentUser!.uid });
+            displayName = newUsername;
+        }
+
+        // --- Rating and Comment Logic ---
+        const userProfileRef = doc(firestore, 'users', currentUser!.uid);
+        const userProfileSnap = await transaction.get(userProfileRef);
+        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
+        
+        displayName = displayName || userProfileData.username || 'Usuario';
+        
+        // Update user document if it doesn't exist or username is new
+        if (isFirstTimeAnonymous && data.username) {
+            transaction.set(userProfileRef, {
+                username: data.username,
+                usernameLower: normalizeText(data.username),
+                createdAt: serverTimestamp()
+            }, { merge: true });
+        }
+
+
+        const previousCommentsQuery = query(
+            commentsColRef,
+            where('userId', '==', currentUser!.uid),
+            where('rating', '>=', 0),
+            orderBy('rating'),
+            orderBy('createdAt', 'desc'),
+            limit(1)
+        );
+      
+        const previousCommentSnapshot = await getDocs(previousCommentsQuery);
+        const previousCommentDoc = previousCommentSnapshot.docs[0];
+        const previousComment = previousCommentDoc?.data() as Comment | undefined;
+
         const figureDoc = await transaction.get(figureRef);
         if (!figureDoc.exists()) {
             throw new Error("Figure not found.");
@@ -136,12 +159,9 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             updates['totalRating'] = increment(newRating - oldRating);
             updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
             updates[`ratingsBreakdown.${newRating}`] = increment(1);
-             // "Fossilize" the old comment's rating so it no longer displays stars
             transaction.update(previousCommentDoc.ref, { rating: -1 });
           }
-          // ratingCount does not change because it's a vote update, not a new user voting.
         } else {
-          // This is a first-time vote for this user
           updates['ratingCount'] = increment(1);
           updates['totalRating'] = increment(newRating);
           updates[`ratingsBreakdown.${newRating}`] = increment(1);
@@ -150,7 +170,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         transaction.update(figureRef, updates);
         
         const newCommentRef = doc(commentsColRef);
-        
         const newCommentPayload = {
             figureId: figureId,
             userId: currentUser!.uid,
@@ -169,15 +188,21 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         transaction.set(newCommentRef, newCommentPayload);
       });
 
-      // After successful comment, update the streak
+      // --- Post-Transaction Auth Update ---
+       if (isFirstTimeAnonymous && data.username && currentUser.displayName !== data.username) {
+            await updateProfile(currentUser, { displayName: data.username });
+            await reloadUser();
+      }
+
+      // --- Streak Update ---
       const streakResult = await updateStreak({
         firestore,
         figureId,
         userId: currentUser.uid,
-        userDisplayName: displayName,
+        userDisplayName: displayName!,
         userPhotoURL: currentUser.photoURL,
-        userCountry: userProfileData.country || null,
-        userGender: userProfileData.gender || null,
+        userCountry: (await getDoc(doc(firestore, 'users', currentUser.uid))).data()?.country || null,
+        userGender: (await getDoc(doc(firestore, 'users', currentUser.uid))).data()?.gender || null,
         isAnonymous: currentUser.isAnonymous,
       });
 
@@ -186,7 +211,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       }
 
 
-      // Play sound on success
       if (ratingSounds[data.rating]) {
         const audio = new Audio(ratingSounds[data.rating]);
         audio.play();
@@ -197,13 +221,17 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         description: 'Gracias por compartir tu comentario y calificación.',
       });
       form.reset({text: '', rating: null as any, username: data.username || user?.displayName });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al publicar comentario:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al Publicar',
-        description: 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
-      });
+      if (error.message === 'El nombre de usuario ya está en uso.') {
+        form.setError('username', { type: 'manual', message: error.message });
+      } else {
+         toast({
+            variant: 'destructive',
+            title: 'Error al Publicar',
+            description: 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -226,7 +254,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
               <Card className="bg-muted/50">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg">¡Únete a la conversación!</CardTitle>
-                  <CardDescription>Para comentar, elige un nombre de usuario. Esto también activará tus rachas de comentarios.</CardDescription>
+                  <CardDescription>Para comentar, elige un nombre de usuario único. Esto también activará tus rachas de comentarios.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <FormField
@@ -302,3 +330,5 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     </Card>
   );
 }
+
+    

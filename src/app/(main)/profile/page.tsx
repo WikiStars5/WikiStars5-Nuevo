@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useAuth, EmailAuthProvider, linkWithCredential } from '@/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,9 +20,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import UserActivity from '@/components/profile/user-activity';
+import { normalizeText } from '@/lib/keywords';
 
 const profileSchema = z.object({
-  username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.'),
+  username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
   country: z.string().optional(),
   gender: z.enum(['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo']).optional(),
 });
@@ -79,6 +80,7 @@ export default function ProfilePage() {
                         gender: data.gender || undefined,
                     });
                 } else {
+                     // Pre-fill from auth if no DB profile exists
                     profileForm.reset({ username: user.displayName || '' });
                 }
                 setIsUserDataLoading(false);
@@ -93,43 +95,81 @@ export default function ProfilePage() {
 
     const onProfileSubmit = async (data: ProfileFormValues) => {
         if (!firestore || !user) return;
-        
+
         setIsSaving(true);
-        const userRef = doc(firestore, 'users', user.uid);
+        profileForm.clearErrors('username');
         
+        const userRef = doc(firestore, 'users', user.uid);
+        const newUsername = data.username;
+        const oldUsername = userData?.username;
+        const newUsernameLower = normalizeText(newUsername);
+        const oldUsernameLower = oldUsername ? normalizeText(oldUsername) : null;
+        
+        const usernameHasChanged = newUsernameLower !== oldUsernameLower;
+
         try {
-            // Create a clean object to save, converting undefined to null
-            const dataToUpdate: any = {
-                username: data.username,
-                country: data.country || null,
-                gender: data.gender || null,
-            };
+            await runTransaction(firestore, async (transaction) => {
+                if (usernameHasChanged) {
+                    const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
+                    const usernameDoc = await transaction.get(newUsernameRef);
+                    if (usernameDoc.exists() && usernameDoc.data()?.userId !== user.uid) {
+                        throw new Error('El nombre de usuario ya está en uso.');
+                    }
 
-            if (!user.isAnonymous) {
-              dataToUpdate.email = user.email;
-            }
-            
-            await setDoc(userRef, dataToUpdate, { merge: true });
+                    // If there was an old username, delete its document
+                    if (oldUsernameLower) {
+                        const oldUsernameRef = doc(firestore, 'usernames', oldUsernameLower);
+                        transaction.delete(oldUsernameRef);
+                    }
+                    
+                    // Create the new username document
+                    transaction.set(newUsernameRef, { userId: user.uid });
+                }
 
-            if (user.displayName !== data.username) {
-                await updateProfile(user, { displayName: data.username });
+                const dataToUpdate: any = {
+                    username: newUsername,
+                    usernameLower: newUsernameLower,
+                    country: data.country || null,
+                    gender: data.gender || null,
+                };
+                
+                if (!user.isAnonymous) {
+                    dataToUpdate.email = user.email;
+                }
+
+                transaction.set(userRef, dataToUpdate, { merge: true });
+            });
+
+            // Update auth profile outside the transaction
+            if (user.displayName !== newUsername) {
+                await updateProfile(user, { displayName: newUsername });
+                await reloadUser(); // Reload user state to reflect display name change everywhere
             }
-            
+
+            // Manually update local state after successful transaction
+            setUserData((prev: any) => ({...prev, ...data}));
+
             toast({
                 title: "¡Perfil Actualizado!",
                 description: "Tu información ha sido guardada correctamente.",
             });
-        } catch (error) {
+
+        } catch (error: any) {
             console.error("Error updating profile:", error);
-            toast({
-                title: "Error al Guardar",
-                description: "No se pudo actualizar tu perfil. Inténtalo de nuevo.",
-                variant: "destructive",
-            });
+            if (error.message === 'El nombre de usuario ya está en uso.') {
+                profileForm.setError('username', { type: 'manual', message: error.message });
+            } else {
+                 toast({
+                    title: "Error al Guardar",
+                    description: "No se pudo actualizar tu perfil. Inténtalo de nuevo.",
+                    variant: "destructive",
+                });
+            }
         } finally {
             setIsSaving(false);
         }
     };
+
 
     const handleLinkEmailPassword = async (data: LinkAccountFormValues) => {
         if (!auth || !user || !user.isAnonymous) return;
@@ -346,3 +386,5 @@ export default function ProfilePage() {
         </div>
     )
 }
+
+    
