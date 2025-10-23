@@ -212,10 +212,6 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                             title={country.name}
                         />
                     )}
-
-                    <p className="text-xs text-muted-foreground">
-                        • {comment.createdAt ? formatDateDistance(comment.createdAt.toDate()) : 'justo ahora'}
-                    </p>
                     {comment.updatedAt && (
                          <p className="text-xs text-italic text-muted-foreground">(editado)</p>
                     )}
