@@ -85,7 +85,7 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
             <Flame className="mx-auto h-12 w-12 text-muted-foreground/30" />
             <h3 className="mt-2 text-md font-semibold">Aún no tienes rachas activas</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-                Gana rachas comentando en perfiles durante días consecutivos.
+                Gana rachas dejando un comentario o respondiendo a uno en cualquier perfil durante días consecutivos.
             </p>
         </div>
     );
