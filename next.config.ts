@@ -32,12 +32,6 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
-       {
-        protocol: 'https',
-        hostname: 'upload.wikimedia.or',
-        port: '',
-        pathname: '/**',
-      },
       {
         protocol: 'https',
         hostname: 'www.famousbirthdays.com',

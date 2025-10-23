@@ -23,7 +23,7 @@ const messiData = {
 
 const ronaldoData = {
     name: 'Cristiano Ronaldo',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_WC2022_-_Portugal_vs_Uruguay.jpg'
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Cristiano_Ronaldo_WC2022_-_Portugal_vs_Uruguay.jpg/800px-Cristiano_Ronaldo_WC2022_-_Portugal_vs_Uruguay.jpg'
 };
 
 
@@ -59,7 +59,7 @@ export default function GoatBattle() {
   // Get user's personal vote
   const userVoteDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid, 'goatVotes', BATTLE_ID);
+    return doc(firestore, `users/${user.uid}/goatVotes`, BATTLE_ID);
   }, [firestore, user]);
   const { data: userVote, isLoading: isUserVoteLoading } = useDoc<GoatVote>(userVoteDocRef);
 
