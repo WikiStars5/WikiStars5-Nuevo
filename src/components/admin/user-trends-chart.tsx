@@ -125,7 +125,7 @@ export default function UserTrendsChart() {
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-                 <CardTitle className="flex items-center gap-2"><BarChart3/> Interés a lo largo del tiempo</CardTitle>
+                 <CardTitle className="flex items-center gap-2"><BarChart3/>Usuarios registrados a lo largo del tiempo</CardTitle>
                  <CardDescription>Usuarios registrados a lo largo del tiempo con filtros demográficos.</CardDescription>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
