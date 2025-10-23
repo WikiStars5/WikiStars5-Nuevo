@@ -24,6 +24,10 @@ interface FetchedStreak extends Streak {
   figureData?: Figure;
 }
 
+interface UserActivityProps {
+    userId?: string;
+}
+
 const attitudeOptions = [
   { id: 'neutral', label: 'Neutral', icon: Meh },
   { id: 'fan', label: 'Fan', icon: Star },
@@ -111,8 +115,8 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
   );
 }
 
-export default function UserActivity() {
-  const { user } = useUser();
+export default function UserActivity({ userId: propUserId }: UserActivityProps) {
+  const { user: loggedInUser } = useUser();
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(true);
   const [attitudeVotes, setAttitudeVotes] = useState<FetchedVote[]>([]);
@@ -120,16 +124,18 @@ export default function UserActivity() {
   const [streaks, setStreaks] = useState<FetchedStreak[]>([]);
   const [figures, setFigures] = useState<Map<string, Figure>>(new Map());
 
+  const userId = propUserId || loggedInUser?.uid;
+
   useEffect(() => {
     const fetchData = async () => {
-        if (!firestore || !user) return;
+        if (!firestore || !userId) return;
         setIsLoading(true);
         
         try {
-            // Fetch all votes and streaks from subcollections of the current user
-            const attitudeQuery = query(collection(firestore, 'users', user.uid, 'attitudeVotes'));
-            const emotionQuery = query(collection(firestore, 'users', user.uid, 'emotionVotes'));
-            const streaksQuery = query(collection(firestore, 'users', user.uid, 'streaks'), orderBy('currentStreak', 'desc'));
+            // Fetch all votes and streaks from subcollections of the target user
+            const attitudeQuery = query(collection(firestore, 'users', userId, 'attitudeVotes'));
+            const emotionQuery = query(collection(firestore, 'users', userId, 'emotionVotes'));
+            const streaksQuery = query(collection(firestore, 'users', userId, 'streaks'), orderBy('currentStreak', 'desc'));
 
             const [attitudeSnapshot, emotionSnapshot, streaksSnapshot] = await Promise.all([
                 getDocs(attitudeQuery),
@@ -173,7 +179,7 @@ export default function UserActivity() {
     };
 
     fetchData();
-  }, [user, firestore]);
+  }, [userId, firestore]);
 
   if (isLoading) {
     return (
@@ -192,15 +198,15 @@ export default function UserActivity() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Mi Actividad</CardTitle>
-        <CardDescription>Un resumen de tus interacciones en la plataforma.</CardDescription>
+        <CardTitle>Actividad del Usuario</CardTitle>
+        <CardDescription>Un resumen de las interacciones del usuario en la plataforma.</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="attitudes" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="attitudes">Mi Actitud</TabsTrigger>
-            <TabsTrigger value="emotions">Mis Emociones</TabsTrigger>
-            <TabsTrigger value="streaks">Mis Rachas</TabsTrigger>
+            <TabsTrigger value="attitudes">Actitud</TabsTrigger>
+            <TabsTrigger value="emotions">Emociones</TabsTrigger>
+            <TabsTrigger value="streaks">Rachas</TabsTrigger>
           </TabsList>
           
           <TabsContent value="attitudes" className="mt-4">

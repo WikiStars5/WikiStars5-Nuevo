@@ -5,7 +5,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocum
 import type { Comment as CommentType, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { formatDateDistance, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { MessageCircle, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState } from 'react';
@@ -26,6 +26,7 @@ import ReplyForm from './reply-form';
 import { StarRating } from '../shared/star-rating';
 import { countries } from '@/lib/countries';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface CommentItemProps {
   comment: CommentType, 
@@ -192,12 +193,12 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
     return (
         <div className="flex items-start gap-4">
             <Avatar className="h-10 w-10">
-                <AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} />
-                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                 <Link href={`/u/${comment.userDisplayName}`}><AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} /></Link>
+                <AvatarFallback><Link href={`/u/${comment.userDisplayName}`}>{getAvatarFallback()}</Link></AvatarFallback>
             </Avatar>
             <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-sm">{comment.userDisplayName}</p>
+                    <Link href={`/u/${comment.userDisplayName}`} className="font-semibold text-sm hover:underline">{comment.userDisplayName}</Link>
                     
                     {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
                     {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}

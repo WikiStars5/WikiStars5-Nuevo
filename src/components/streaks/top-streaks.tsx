@@ -11,6 +11,7 @@ import { Streak } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { countries } from '@/lib/countries';
+import Link from 'next/link';
 
 
 interface TopStreaksProps {
@@ -132,28 +133,30 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                                 <div key={streak.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                                     <div className="flex items-center gap-3">
                                         <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
-                                        <Avatar className="h-10 w-10">
-                                            <AvatarImage src={streak.userPhotoURL ?? undefined} alt={streak.userDisplayName} />
-                                            <AvatarFallback>{streak.userDisplayName.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <p className="font-semibold text-sm">{streak.userDisplayName}</p>
-                                                {streak.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                                                {streak.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
-                                                {country && (
-                                                    <Image
-                                                        src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                                                        alt={country.name}
-                                                        width={20}
-                                                        height={15}
-                                                        className="object-contain"
-                                                        title={country.name}
-                                                    />
-                                                )}
+                                        <Link href={`/u/${streak.userDisplayName}`} className="flex items-center gap-3 group">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={streak.userPhotoURL ?? undefined} alt={streak.userDisplayName} />
+                                                <AvatarFallback>{streak.userDisplayName.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold text-sm group-hover:underline">{streak.userDisplayName}</p>
+                                                    {streak.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
+                                                    {streak.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                                                    {country && (
+                                                        <Image
+                                                            src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                                                            alt={country.name}
+                                                            width={20}
+                                                            height={15}
+                                                            className="object-contain"
+                                                            title={country.name}
+                                                        />
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">{streak.isAnonymous ? 'Invitado' : 'Usuario Registrado'}</p>
                                             </div>
-                                            <p className="text-xs text-muted-foreground">{streak.isAnonymous ? 'Invitado' : 'Usuario Registrado'}</p>
-                                        </div>
+                                        </Link>
                                     </div>
                                     <div className="flex items-center gap-2 font-bold text-lg text-orange-500">
                                         <span>{streak.currentStreak}</span>
