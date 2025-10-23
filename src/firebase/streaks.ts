@@ -71,6 +71,11 @@ export async function updateStreak({
                     ...denormalizedUserData,
                 };
                 transaction.set(streakRef, newStreak);
+                
+                // Also ensure the user document has a createdAt timestamp
+                const userRef = doc(firestore, 'users', userId);
+                transaction.set(userRef, { createdAt: serverTimestamp() }, { merge: true });
+
                 return { streakGained: true, newStreakCount: 1 };
             } else {
                 // Streak exists, check the date.
@@ -109,3 +114,5 @@ export async function updateStreak({
         return null;
     }
 }
+
+    

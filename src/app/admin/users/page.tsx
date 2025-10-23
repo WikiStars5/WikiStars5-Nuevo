@@ -19,16 +19,18 @@ import {
 } from '@/components/ui/table';
 import Image from 'next/image';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, Timestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { countries } from '@/lib/countries';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
-import { Users, TrendingUp, MapPin, KeyRound, UserCheck } from 'lucide-react';
+import { Users, TrendingUp, MapPin, UserCheck, BarChart3 } from 'lucide-react';
+import UserTrendsChart from '@/components/admin/user-trends-chart';
 
 interface UserData {
     country?: string;
     gender?: 'Masculino' | 'Femenino' | 'Otro';
     email?: string;
+    createdAt?: Timestamp;
 }
 
 interface CountryStat {
@@ -231,7 +233,10 @@ export default function AdminUsersDashboardPage() {
                 </CardContent>
             </Card>
         </div>
+
+        <UserTrendsChart />
     </div>
   );
 }
 
+    

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useAuth, EmailAuthProvider, linkWithCredential } from '@/firebase';
-import { doc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -192,9 +192,11 @@ export default function ProfilePage() {
             const permanentUser = result.user;
           
             const userRef = doc(firestore, 'users', permanentUser.uid);
+            // Ensure createdAt is set when converting the account
             await setDoc(userRef, { 
                 email: permanentUser.email,
                 username: permanentUser.displayName || userData?.username, // Keep existing username if any
+                createdAt: serverTimestamp(),
             }, { merge: true });
     
             toast({
@@ -395,3 +397,5 @@ export default function ProfilePage() {
         </div>
     )
 }
+
+    

@@ -55,6 +55,7 @@ export interface Figure {
     '4': number;
     '5': number;
   };
+  createdAt?: Timestamp;
 }
 
 export interface Hashtag {
@@ -129,3 +130,5 @@ export interface Streak {
   userGender?: string;
   isAnonymous: boolean;
 }
+
+    

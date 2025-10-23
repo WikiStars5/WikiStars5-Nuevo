@@ -40,6 +40,11 @@
           "type": "string",
           "description": "The last time the user logged in.",
           "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the user account was created."
         }
       },
       "required": [
@@ -673,7 +678,7 @@
             },
             {
               "name": "userId",
-              "description": "The unique identifier of the user who voted."
+              "description": "The unique identifier of a user who voted."
             }
           ]
         }
