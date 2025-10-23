@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, Timestamp, Query } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -69,27 +68,33 @@ export default function ActiveUsersChart() {
         const hoursAgo = parseInt(timeRangeFilter, 10);
         const startTime = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
 
-        let usersQuery = query(
+        let conditions = [
+            where('lastLogin', '>=', startTime)
+        ];
+
+        if (countryFilter !== 'all') {
+            conditions.push(where('country', '==', countryFilter));
+        }
+        if (genderFilter !== 'all') {
+            conditions.push(where('gender', '==', genderFilter));
+        }
+
+        const usersQuery = query(
           collection(firestore, 'users'),
-          where('lastLogin', '>=', startTime),
+          ...conditions,
           orderBy('lastLogin', 'asc')
         );
 
-        const snapshot = await getDocs(usersQuery);
-        const allActiveUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ActiveUserData));
-        
-        const filteredUsers = allActiveUsers.filter(user => {
-          const countryMatch = countryFilter === 'all' || user.country === countryFilter;
-          const genderMatch = genderFilter === 'all' || user.gender === genderFilter;
-          return countryMatch && genderMatch;
-        });
 
-        setTotalActive(filteredUsers.length);
+        const snapshot = await getDocs(usersQuery);
+        const activeUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ActiveUserData));
         
-        const trendData = processTrendData(filteredUsers, hoursAgo);
+        setTotalActive(activeUsers.length);
+        
+        const trendData = processTrendData(activeUsers, hoursAgo);
         setChartData(trendData);
 
-        processDemographics(filteredUsers);
+        processDemographics(activeUsers);
 
       } catch (error) {
         console.error("Error fetching active user data:", error);
@@ -185,7 +190,7 @@ export default function ActiveUsersChart() {
                  <Select value={genderFilter} onValueChange={setGenderFilter}>
                     <SelectTrigger><SelectValue placeholder="Sexo" /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Ambos sexos</SelectItem>
+                        <SelectItem value="all">Todos los sexos</SelectItem>
                         <SelectItem value="Masculino">Masculino</SelectItem>
                         <SelectItem value="Femenino">Femenino</SelectItem>
                         <SelectItem value="Otro">Otro</SelectItem>
@@ -262,5 +267,3 @@ export default function ActiveUsersChart() {
     </Card>
   );
 }
-
-    

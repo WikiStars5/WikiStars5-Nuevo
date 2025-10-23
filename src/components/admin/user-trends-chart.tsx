@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, Timestamp, Query } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -51,21 +51,26 @@ export default function UserTrendsChart() {
         const hoursAgo = parseInt(timeRangeFilter, 10);
         const startTime = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
 
-        let usersQuery = query(
+        let conditions = [
+            where('createdAt', '>=', startTime)
+        ];
+
+        if (countryFilter !== 'all') {
+            conditions.push(where('country', '==', countryFilter));
+        }
+        if (genderFilter !== 'all') {
+            conditions.push(where('gender', '==', genderFilter));
+        }
+
+        const usersQuery = query(
           collection(firestore, 'users'),
-          where('createdAt', '>=', startTime),
+          ...conditions,
           orderBy('createdAt', 'asc')
         );
 
         const snapshot = await getDocs(usersQuery);
-        const allUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserData));
+        const filteredUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserData));
         
-        const filteredUsers = allUsers.filter(user => {
-          const countryMatch = countryFilter === 'all' || user.country === countryFilter;
-          const genderMatch = genderFilter === 'all' || user.gender === genderFilter;
-          return countryMatch && genderMatch;
-        });
-
         const data = processUserData(filteredUsers, hoursAgo);
         setChartData(data);
 
@@ -138,7 +143,7 @@ export default function UserTrendsChart() {
                         <SelectValue placeholder="Sexo" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Ambos sexos</SelectItem>
+                        <SelectItem value="all">Todos los sexos</SelectItem>
                         <SelectItem value="Masculino">Masculino</SelectItem>
                         <SelectItem value="Femenino">Femenino</SelectItem>
                         <SelectItem value="Otro">Otro</SelectItem>
@@ -185,6 +190,3 @@ export default function UserTrendsChart() {
     </Card>
   );
 }
-
-
-    
