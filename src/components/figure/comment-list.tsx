@@ -9,6 +9,7 @@ import { MessageCircle, Star } from 'lucide-react';
 import CommentThread from './comment-thread';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 const INITIAL_COMMENT_LIMIT = 5;
 const COMMENT_INCREMENT = 5;
@@ -19,19 +20,20 @@ function buildCommentTree(comments: Comment[]): Comment[] {
   const commentMap: { [key: string]: Comment } = {};
   const rootComments: Comment[] = [];
 
-  // First pass: create a map of all comments by their ID
+  // First pass: create a map of all comments by their ID and initialize children
   comments.forEach(comment => {
     commentMap[comment.id] = { ...comment, children: [] };
   });
 
   // Second pass: build the tree
   comments.forEach(comment => {
+    const mappedComment = commentMap[comment.id];
     if (comment.parentId && commentMap[comment.parentId]) {
       // It's a reply, so add it to its parent's children array
-      commentMap[comment.parentId].children?.push(commentMap[comment.id]);
+      commentMap[comment.parentId].children?.push(mappedComment);
     } else {
       // It's a root comment
-      rootComments.push(commentMap[comment.id]);
+      rootComments.push(mappedComment);
     }
   });
 
@@ -39,12 +41,14 @@ function buildCommentTree(comments: Comment[]): Comment[] {
 }
 
 type FilterType = 'all' | 'mine' | number;
+type MineFilterType = 'unanswered' | 'answered';
 
 export default function CommentList({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [mineFilter, setMineFilter] = useState<MineFilterType>('unanswered');
 
 
   const commentsQuery = useMemoFirebase(() => {
@@ -63,18 +67,24 @@ export default function CommentList({ figureId }: { figureId: string }) {
 
   const filteredComments = useMemo(() => {
     if (!comments) return [];
-
-    let filtered = comments;
+    
+    const tree = buildCommentTree(comments);
 
     if (activeFilter === 'mine') {
       if (!user) return [];
-      filtered = comments.filter(comment => comment.userId === user.uid);
+      const myComments = tree.filter(comment => comment.userId === user.uid);
+      
+      if (mineFilter === 'answered') {
+        return myComments.filter(comment => comment.children && comment.children.length > 0);
+      }
+      return myComments.filter(comment => !comment.children || comment.children.length === 0);
+
     } else if (typeof activeFilter === 'number') {
-       filtered = comments.filter(comment => comment.rating === activeFilter);
+       return tree.filter(comment => comment.rating === activeFilter);
     }
 
-    return buildCommentTree(filtered);
-  }, [comments, activeFilter, user]);
+    return tree;
+  }, [comments, activeFilter, user, mineFilter]);
 
 
   if (isLoading) {
@@ -121,6 +131,16 @@ export default function CommentList({ figureId }: { figureId: string }) {
           </FilterButton>
         ))}
       </div>
+
+       {activeFilter === 'mine' && (
+        <Tabs value={mineFilter} onValueChange={(value) => setMineFilter(value as MineFilterType)} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="unanswered">No Respondidas</TabsTrigger>
+                <TabsTrigger value="answered">Respondidas</TabsTrigger>
+            </TabsList>
+        </Tabs>
+      )}
+
 
       {visibleComments.length > 0 ? (
         visibleComments.map((comment) => (
