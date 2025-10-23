@@ -38,8 +38,9 @@ interface CountryStat {
 
 const ChartLabel = (props: any) => {
     const { x, y, width, value } = props;
+    if (value === 0) return null; // Don't render label for 0 value
     return (
-        <text x={x + width / 2} y={y} dy={-4} fill="hsl(var(--foreground))" textAnchor="middle" className="text-sm font-bold">
+        <text x={x + width + 10} y={y + 12} fill="hsl(var(--foreground))" textAnchor="start" className="text-sm font-bold">
             {value}
         </text>
     );
@@ -63,7 +64,7 @@ export default function AdminUsersDashboardPage() {
       };
     }
 
-    const genderCounts = { Masculino: 0, Femenino: 0, Otro: 0, 'No especificado': 0 };
+    const genderCounts: { [key: string]: number } = { Masculino: 0, Femenino: 0, Otro: 0, 'No especificado': 0 };
     const countryCounts: { [key: string]: number } = {};
 
     users.forEach(user => {
@@ -125,7 +126,7 @@ export default function AdminUsersDashboardPage() {
                 <CardContent>
                     {isLoading ? <Skeleton className="h-[250px] w-full" /> : (
                          <ResponsiveContainer width="100%" height={250}>
-                            <BarChart data={stats.genderData} layout="vertical" margin={{ left: 20 }}>
+                            <BarChart data={stats.genderData} layout="vertical" margin={{ left: 20, right: 30 }}>
                                 <XAxis type="number" hide />
                                 <YAxis 
                                     dataKey="name" 
@@ -133,6 +134,7 @@ export default function AdminUsersDashboardPage() {
                                     stroke="hsl(var(--muted-foreground))"
                                     axisLine={false}
                                     tickLine={false}
+                                    width={100}
                                 />
                                 <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="hsl(var(--primary))">
                                     <LabelList dataKey="value" content={<ChartLabel />} />
@@ -194,4 +196,3 @@ export default function AdminUsersDashboardPage() {
     </div>
   );
 }
-
