@@ -13,12 +13,14 @@ import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import CommunityRatings from '@/components/figure/community-ratings';
 import RelatedFigures from '@/components/figure/related-figures';
+import TopStreaks from '@/components/streaks/top-streaks';
+import PersonalStreak from '@/components/streaks/personal-streak';
 
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
@@ -177,6 +179,9 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
+       <div className="flex justify-end pt-2 pr-2">
+            <PersonalStreak figureId={figure.id} />
+       </div>
       <ProfileHeader figure={figure} />
 
       <div className="mt-6">
@@ -197,8 +202,8 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
               Emoción
             </TabsTrigger>
             <TabsTrigger value="rachas">
-              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="I 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3.5 17.5c4.667 -6.667 6.333 -6.667 11 -2.5" /><path d="M3.5 12.5c4.667 -6.667 6.333 -6.667 11 -2.5" /><path d="M3.5 7.5c4.667 -6.667 6.333 -6.667 11 -2.5" /></svg>
-              Top Rachas
+              <Flame className="mr-2 h-4 w-4" />
+              Rachas
             </TabsTrigger>
           </TabsList>
           <TabsContent value="informacion" className="mt-4">
@@ -284,13 +289,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
             </Card>
           </TabsContent>
           <TabsContent value="rachas" className="mt-4">
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-muted-foreground">
-                  Las mejores rachas para {figure.name} aparecerán aquí.
-                </p>
-              </CardContent>
-            </Card>
+            <TopStreaks figureId={figureId} />
           </TabsContent>
         </Tabs>
       </div>

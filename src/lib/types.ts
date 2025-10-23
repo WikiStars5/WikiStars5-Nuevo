@@ -115,3 +115,15 @@ export interface CommentVote {
   vote: 'like' | 'dislike';
   createdAt: Timestamp;
 }
+
+export interface Streak {
+  id: string;
+  userId: string;
+  currentStreak: number;
+  lastCommentDate: Timestamp;
+  userDisplayName: string;
+  userPhotoURL?: string | null;
+  userCountry?: string;
+  userGender?: string;
+  isAnonymous: boolean;
+}

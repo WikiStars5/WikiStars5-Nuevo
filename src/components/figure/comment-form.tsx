@@ -15,8 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, MessageSquare, Send, User } from 'lucide-react';
 import { onAuthStateChanged, User as FirebaseUser, Auth, updateProfile } from 'firebase/auth';
 import StarInput from './star-input';
-import { Comment } from '@/lib/types';
+import { Comment, Streak } from '@/lib/types';
 import { Input } from '../ui/input';
+import { updateStreak } from '@/firebase/streaks';
 
 const baseCommentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(500, 'El comentario no puede superar los 500 caracteres.'),
@@ -115,7 +116,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const previousCommentDoc = previousCommentSnapshot.docs[0];
       const previousComment = previousCommentDoc?.data() as Comment | undefined;
 
-
+      const displayName = currentUser!.isAnonymous ? (data.username || currentUser.displayName) : (userProfileData.username || currentUser!.displayName || 'Usuario');
+      
       await runTransaction(firestore, async (transaction) => {
         const figureDoc = await transaction.get(figureRef);
         if (!figureDoc.exists()) {
@@ -145,7 +147,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         transaction.update(figureRef, updates);
         
         const newCommentRef = doc(commentsColRef);
-        const displayName = currentUser!.isAnonymous ? (data.username || currentUser.displayName) : (userProfileData.username || currentUser!.displayName || 'Usuario');
         
         const newCommentPayload = {
             figureId: figureId,
@@ -164,6 +165,19 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         };
         transaction.set(newCommentRef, newCommentPayload);
       });
+
+      // After successful comment, update the streak
+      await updateStreak({
+        firestore,
+        figureId,
+        userId: currentUser.uid,
+        userDisplayName: displayName,
+        userPhotoURL: currentUser.photoURL,
+        userCountry: userProfileData.country || null,
+        userGender: userProfileData.gender || null,
+        isAnonymous: currentUser.isAnonymous,
+      });
+
 
       // Play sound on success
       if (ratingSounds[data.rating]) {
