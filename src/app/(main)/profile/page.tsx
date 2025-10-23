@@ -109,23 +109,32 @@ export default function ProfilePage() {
 
         try {
             await runTransaction(firestore, async (transaction) => {
-                if (usernameHasChanged) {
-                    const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
-                    const usernameDoc = await transaction.get(newUsernameRef);
-                    if (usernameDoc.exists() && usernameDoc.data()?.userId !== user.uid) {
-                        throw new Error('El nombre de usuario ya está en uso.');
-                    }
+                const newUsernameRef = usernameHasChanged ? doc(firestore, 'usernames', newUsernameLower) : null;
+                const oldUsernameRef = (usernameHasChanged && oldUsernameLower) ? doc(firestore, 'usernames', oldUsernameLower) : null;
 
-                    // If there was an old username, delete its document
-                    if (oldUsernameLower) {
-                        const oldUsernameRef = doc(firestore, 'usernames', oldUsernameLower);
-                        transaction.delete(oldUsernameRef);
-                    }
-                    
-                    // Create the new username document
-                    transaction.set(newUsernameRef, { userId: user.uid });
+                // --- 1. All READS must happen first ---
+                let usernameDoc;
+                if (newUsernameRef) {
+                    usernameDoc = await transaction.get(newUsernameRef);
                 }
 
+                // --- 2. Validation after reads ---
+                if (usernameDoc && usernameDoc.exists() && usernameDoc.data()?.userId !== user.uid) {
+                    throw new Error('El nombre de usuario ya está en uso.');
+                }
+                
+                // --- 3. All WRITES happen last ---
+                // Delete the old username document if it exists
+                if (oldUsernameRef) {
+                    transaction.delete(oldUsernameRef);
+                }
+                
+                // Create the new username document
+                if (newUsernameRef) {
+                    transaction.set(newUsernameRef, { userId: user.uid });
+                }
+                
+                // Finally, update the user's profile
                 const dataToUpdate: any = {
                     username: newUsername,
                     usernameLower: newUsernameLower,
@@ -386,5 +395,3 @@ export default function ProfilePage() {
         </div>
     )
 }
-
-    

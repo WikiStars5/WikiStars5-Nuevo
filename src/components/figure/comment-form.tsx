@@ -100,37 +100,23 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       let displayName = currentUser.displayName;
 
       await runTransaction(firestore, async (transaction) => {
-        // --- Username validation for first-time anonymous users ---
-        if (isFirstTimeAnonymous && data.username) {
-            const newUsername = data.username;
+        let usernameDoc;
+        let figureDoc;
+        let previousCommentSnapshot;
+        let userProfileSnap;
+
+        const newUsername = data.username;
+        const userProfileRef = doc(firestore, 'users', currentUser!.uid);
+
+        // --- 1. All READS must happen first ---
+        if (isFirstTimeAnonymous && newUsername) {
             const newUsernameLower = normalizeText(newUsername);
             const usernameRef = doc(firestore, 'usernames', newUsernameLower);
-            const usernameDoc = await transaction.get(usernameRef);
-
-            if (usernameDoc.exists()) {
-                throw new Error('El nombre de usuario ya está en uso.');
-            }
-            // Reserve the username within the transaction
-            transaction.set(usernameRef, { userId: currentUser!.uid });
-            displayName = newUsername;
+            usernameDoc = await transaction.get(usernameRef);
         }
 
-        // --- Rating and Comment Logic ---
-        const userProfileRef = doc(firestore, 'users', currentUser!.uid);
-        const userProfileSnap = await transaction.get(userProfileRef);
-        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
-        
-        displayName = displayName || userProfileData.username || 'Usuario';
-        
-        // Update user document if it doesn't exist or username is new
-        if (isFirstTimeAnonymous && data.username) {
-            transaction.set(userProfileRef, {
-                username: data.username,
-                usernameLower: normalizeText(data.username),
-                createdAt: serverTimestamp()
-            }, { merge: true });
-        }
-
+        figureDoc = await transaction.get(figureRef);
+        userProfileSnap = await transaction.get(userProfileRef);
 
         const previousCommentsQuery = query(
             commentsColRef,
@@ -140,15 +126,35 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             orderBy('createdAt', 'desc'),
             limit(1)
         );
-      
-        const previousCommentSnapshot = await getDocs(previousCommentsQuery);
-        const previousCommentDoc = previousCommentSnapshot.docs[0];
-        const previousComment = previousCommentDoc?.data() as Comment | undefined;
+        previousCommentSnapshot = await getDocs(previousCommentsQuery);
+        
+        // --- 2. Validation after reads ---
+        if (usernameDoc && usernameDoc.exists()) {
+            throw new Error('El nombre de usuario ya está en uso.');
+        }
 
-        const figureDoc = await transaction.get(figureRef);
         if (!figureDoc.exists()) {
             throw new Error("Figure not found.");
         }
+        
+        // --- 3. All WRITES happen last ---
+        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
+        displayName = displayName || userProfileData.username || 'Usuario';
+        
+        if (isFirstTimeAnonymous && newUsername) {
+            displayName = newUsername;
+            const newUsernameLower = normalizeText(newUsername);
+            const usernameRef = doc(firestore, 'usernames', newUsernameLower);
+            transaction.set(usernameRef, { userId: currentUser!.uid });
+            transaction.set(userProfileRef, {
+                username: newUsername,
+                usernameLower: newUsernameLower,
+                createdAt: serverTimestamp()
+            }, { merge: true });
+        }
+        
+        const previousCommentDoc = previousCommentSnapshot.docs[0];
+        const previousComment = previousCommentDoc?.data() as Comment | undefined;
 
         const updates: { [key: string]: any } = {};
         const newRating = data.rating;
@@ -330,5 +336,3 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     </Card>
   );
 }
-
-    
