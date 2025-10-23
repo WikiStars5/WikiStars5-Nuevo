@@ -106,9 +106,9 @@ export default function GoatBattle() {
                     style={{ width: `${messiPercentage}%`}}
                 />
             </div>
-            <div className="flex justify-between text-sm font-bold mt-1">
-                <span className="text-blue-400">{messiPercentage.toFixed(1)}%</span>
-                <span className="text-red-400">{ronaldoPercentage.toFixed(1)}%</span>
+             <div className="flex justify-between text-sm font-bold mt-1">
+                <span className="text-blue-400">{messiVotes.toLocaleString()} votos</span>
+                <span className="text-red-400">{ronaldoVotes.toLocaleString()} votos</span>
             </div>
         </div>
 
