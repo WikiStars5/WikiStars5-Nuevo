@@ -1,12 +1,12 @@
+'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Share2 } from 'lucide-react';
 import type { Figure } from '@/lib/types';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import PersonalStreak from '../streaks/personal-streak';
+import ShareButton from '../shared/ShareButton';
 
 interface ProfileHeaderProps {
   figure: Figure;
@@ -39,9 +39,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
             </div>
           </div>
           <div className="absolute right-0 top-0">
-            <Button variant="ghost" size="icon">
-              <Share2 className="h-5 w-5 text-muted-foreground" />
-            </Button>
+             <ShareButton figureId={figure.id} figureName={figure.name} />
           </div>
         </div>
       </CardContent>
