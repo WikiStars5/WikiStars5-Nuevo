@@ -32,6 +32,11 @@
           "type": "string",
           "description": "User's gender identity."
         },
+        "description": {
+          "type": "string",
+          "description": "A short bio or description about the user.",
+          "maxLength": 160
+        },
         "role": {
           "type": "string",
           "description": "User's role within the platform (e.g., 'user', 'admin')."

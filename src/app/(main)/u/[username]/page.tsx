@@ -18,15 +18,14 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
 
   try {
     // 1. Find the user ID from the username using Admin SDK methods
-    const usernameRef = firestore.collection('usernames');
-    const usernameQuery = usernameRef.where('__name__', '==', usernameLower).limit(1);
-    const usernameSnapshot = await usernameQuery.get();
+    const usernameRef = firestore.collection('usernames').doc(usernameLower);
+    const usernameDoc = await usernameRef.get();
 
-    if (usernameSnapshot.empty) {
+    if (!usernameDoc.exists) {
       notFound();
     }
     
-    const userId = usernameSnapshot.docs[0].data().userId;
+    const userId = usernameDoc.data()?.userId;
 
     if (!userId) {
       notFound();
@@ -48,6 +47,7 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
         username: userData.username || 'Usuario',
         country: userData.country || null,
         gender: userData.gender || null,
+        description: userData.description || null,
         // CRITICAL: DO NOT pass email or other private fields
     };
 
@@ -58,3 +58,5 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     notFound();
   }
 }
+
+    

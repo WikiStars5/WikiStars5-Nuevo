@@ -21,11 +21,13 @@ import { CountrySelector } from '@/components/figure/country-selector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
+import { Textarea } from '../ui/textarea';
 
 const profileSchema = z.object({
   username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
   country: z.string().optional(),
   gender: z.enum(['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo']).optional(),
+  description: z.string().max(160, 'La descripción no puede superar los 160 caracteres.').optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -54,6 +56,7 @@ export default function ProfilePage() {
             username: '',
             country: '',
             gender: undefined,
+            description: '',
         }
     });
 
@@ -78,6 +81,7 @@ export default function ProfilePage() {
                         username: data.username || user.displayName || '',
                         country: data.country || '',
                         gender: data.gender || undefined,
+                        description: data.description || '',
                     });
                 } else {
                      // Pre-fill from auth if no DB profile exists
@@ -140,6 +144,7 @@ export default function ProfilePage() {
                     usernameLower: newUsernameLower,
                     country: data.country || null,
                     gender: data.gender || null,
+                    description: data.description || null,
                 };
                 
                 if (!user.isAnonymous) {
@@ -292,6 +297,26 @@ export default function ProfilePage() {
                                         <FormLabel>Correo Electrónico</FormLabel>
                                         <Input type="email" value={user?.email || (user.isAnonymous ? 'Cuenta de invitado' : '')} disabled />
                                     </div>
+                                </div>
+                                <div>
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="description"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Descripción</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        placeholder="Una breve descripción sobre ti."
+                                                        className="resize-none"
+                                                        maxLength={160}
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                 </div>
                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <FormField

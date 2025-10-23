@@ -11,6 +11,7 @@ interface PublicUserProfile {
     username: string;
     country: string | null;
     gender: 'Masculino' | 'Femenino' | 'Otro' | 'Prefiero no decirlo' | null;
+    description: string | null;
 }
 
 interface PublicProfileClientPageProps {
@@ -36,7 +37,10 @@ export default function PublicProfileClientPage({ userProfile }: PublicProfileCl
                         </Avatar>
                         <div className="flex-1 text-center md:text-left">
                             <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">{userProfile.username}</h1>
-                            <div className="flex items-center justify-center md:justify-start gap-3 mt-2 text-muted-foreground">
+                            {userProfile.description && (
+                                <p className="mt-2 text-muted-foreground">{userProfile.description}</p>
+                            )}
+                            <div className="flex items-center justify-center md:justify-start gap-3 mt-3 text-muted-foreground">
                                 {userProfile.gender && (
                                     <>
                                         {userProfile.gender === 'Masculino' && <span className="flex items-center gap-1"><span className="text-blue-400 font-bold">♂</span> Masculino</span>}
@@ -56,7 +60,7 @@ export default function PublicProfileClientPage({ userProfile }: PublicProfileCl
                                         <span>{country.name}</span>
                                     </div>
                                 )}
-                                 {(!userProfile.gender && !country) && (
+                                 {(!userProfile.gender && !country && !userProfile.description) && (
                                     <span className="text-sm">Aún sin información pública.</span>
                                 )}
                             </div>
@@ -71,3 +75,5 @@ export default function PublicProfileClientPage({ userProfile }: PublicProfileCl
         </div>
     );
 }
+
+    
