@@ -1,10 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import { MoreHorizontal, XCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -13,13 +10,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Table,
   TableBody,
   TableCell,
@@ -27,154 +17,181 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { format } from 'date-fns';
+import Image from 'next/image';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CountrySelector } from '@/components/figure/country-selector';
+import { countries } from '@/lib/countries';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
+import { Users, TrendingUp, MapPin } from 'lucide-react';
 
-export default function AdminUsersPage() {
+interface UserData {
+    country?: string;
+    gender?: 'Masculino' | 'Femenino' | 'Otro';
+}
+
+interface CountryStat {
+    name: string;
+    code: string;
+    count: number;
+}
+
+const ChartLabel = (props: any) => {
+    const { x, y, width, value } = props;
+    return (
+        <text x={x + width / 2} y={y} dy={-4} fill="hsl(var(--foreground))" textAnchor="middle" className="text-sm font-bold">
+            {value}
+        </text>
+    );
+};
+
+export default function AdminUsersDashboardPage() {
   const firestore = useFirestore();
   const usersCollection = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'users'));
   }, [firestore]);
 
-  const { data: users, isLoading } = useCollection<any>(usersCollection);
+  const { data: users, isLoading } = useCollection<UserData>(usersCollection);
 
-  const [countryFilter, setCountryFilter] = useState<string>('');
-  const [genderFilter, setGenderFilter] = useState<string>('');
-  
-  const filteredUsers = useMemo(() => {
-    if (!users) return [];
-    return users.filter(user => {
-        const countryMatch = !countryFilter || user.country === countryFilter;
-        const genderMatch = !genderFilter || user.gender === genderFilter;
-        return countryMatch && genderMatch;
+  const stats = useMemo(() => {
+    if (!users) {
+      return {
+        total: 0,
+        genderData: [],
+        countryData: [],
+      };
+    }
+
+    const genderCounts = { Masculino: 0, Femenino: 0, Otro: 0, 'No especificado': 0 };
+    const countryCounts: { [key: string]: number } = {};
+
+    users.forEach(user => {
+      // Tally genders
+      if (user.gender && (user.gender === 'Masculino' || user.gender === 'Femenino' || user.gender === 'Otro')) {
+        genderCounts[user.gender]++;
+      } else {
+        genderCounts['No especificado']++;
+      }
+
+      // Tally countries
+      if (user.country) {
+        countryCounts[user.country] = (countryCounts[user.country] || 0) + 1;
+      }
     });
-  }, [users, countryFilter, genderFilter]);
 
-  const clearFilters = () => {
-    setCountryFilter('');
-    setGenderFilter('');
-  }
+    const genderData = Object.entries(genderCounts).map(([name, value]) => ({ name, value }));
 
-  const getAvatarFallback = (user: any) => {
-    return user.displayName?.charAt(0) || user.email?.charAt(0) || 'U';
-  }
+    const countryData: CountryStat[] = Object.entries(countryCounts)
+      .map(([name, count]) => {
+        const countryInfo = countries.find(c => c.name === name);
+        return {
+          name,
+          code: countryInfo?.code || '',
+          count,
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      total: users.length,
+      genderData,
+      countryData,
+    };
+  }, [users]);
   
   return (
-    <Card>
-      <CardHeader>
-         <div className="flex items-center justify-between">
-            <div>
-                <CardTitle>Users</CardTitle>
-                <CardDescription>
-                    {isLoading ? 'Cargando usuarios...' : `Mostrando ${filteredUsers.length} de ${users?.length || 0} usuarios.`}
-                </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-                <CountrySelector value={countryFilter} onChange={setCountryFilter} />
-                <Select value={genderFilter} onValueChange={setGenderFilter}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filtrar por sexo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="Masculino">Masculino</SelectItem>
-                        <SelectItem value="Femenino">Femenino</SelectItem>
-                        <SelectItem value="Otro">Otro</SelectItem>
-                    </SelectContent>
-                </Select>
-                 {(countryFilter || genderFilter) && (
-                    <Button variant="ghost" size="icon" onClick={clearFilters}>
-                        <XCircle className="h-5 w-5" />
-                    </Button>
+    <div className="grid gap-6">
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Users /> Resumen de Usuarios</CardTitle>
+                <CardDescription>Estadísticas demográficas de la comunidad.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <Skeleton className="h-24 w-1/3" />
+                ) : (
+                    <div className="text-5xl font-bold tracking-tighter">{stats.total}</div>
                 )}
-            </div>
+                <p className="text-xs text-muted-foreground">usuarios registrados en la plataforma.</p>
+            </CardContent>
+        </Card>
+        
+        <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><TrendingUp /> Distribución por Sexo</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? <Skeleton className="h-[250px] w-full" /> : (
+                         <ResponsiveContainer width="100%" height={250}>
+                            <BarChart data={stats.genderData} layout="vertical" margin={{ left: 20 }}>
+                                <XAxis type="number" hide />
+                                <YAxis 
+                                    dataKey="name" 
+                                    type="category" 
+                                    stroke="hsl(var(--muted-foreground))"
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                                <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="hsl(var(--primary))">
+                                    <LabelList dataKey="value" content={<ChartLabel />} />
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><MapPin /> Top Países</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[250px] overflow-y-auto">
+                     {isLoading ? (
+                        <div className="space-y-4">
+                           <Skeleton className="h-8 w-full" />
+                           <Skeleton className="h-8 w-full" />
+                           <Skeleton className="h-8 w-full" />
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>País</TableHead>
+                                <TableHead className="text-right">Usuarios</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {stats.countryData.map(country => (
+                                    <TableRow key={country.code}>
+                                        <TableCell className="flex items-center gap-2 font-medium">
+                                            {country.code && (
+                                                <Image 
+                                                    src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                                                    width={20}
+                                                    height={15}
+                                                    alt={country.name}
+                                                    className="object-contain"
+                                                />
+                                            )}
+                                            <span>{country.name}</span>
+                                        </TableCell>
+                                        <TableCell className="text-right font-bold">{country.count}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                     {!isLoading && stats.countryData.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-10">
+                            Aún no hay datos de países.
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
         </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead className="hidden md:table-cell">Country</TableHead>
-              <TableHead className="hidden md:table-cell">Last Access</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-             {isLoading && (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`skeleton-${i}`}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-9 w-9 rounded-full" />
-                      <Skeleton className="h-5 w-24" />
-                    </div>
-                  </TableCell>
-                  <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-12" /></TableCell>
-                  <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                </TableRow>
-              ))
-            )}
-            {filteredUsers.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
-                    <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                            <AvatarImage src={user.photoURL} alt={user.displayName} />
-                            <AvatarFallback>{getAvatarFallback(user)}</AvatarFallback>
-                        </Avatar>
-                        <div className="font-medium">{user.username || 'N/A'}</div>
-                    </div>
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Badge variant={user.role === 'admin' ? 'destructive' : 'outline'}>
-                    {user.role || 'user'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="hidden md-table-cell">{user.country || 'N/A'}</TableCell>
-                <TableCell className="hidden md:table-cell">
-                    {user.lastLogin?.seconds ? format(new Date(user.lastLogin.seconds * 1000), "MMMM d, yyyy") : 'N/A'}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Make Admin</DropdownMenuItem>
-                      <DropdownMenuItem>Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-             {!isLoading && filteredUsers.length === 0 && (
-                <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                        No se encontraron usuarios con los filtros seleccionados.
-                    </TableCell>
-                </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
+
