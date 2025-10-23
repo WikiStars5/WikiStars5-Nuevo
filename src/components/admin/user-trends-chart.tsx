@@ -10,6 +10,7 @@ import { BarChart3, Globe, Users, Loader2 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { countries } from '@/lib/countries';
 import { Skeleton } from '../ui/skeleton';
+import CountryCombobox from '../shared/country-combobox';
 
 interface UserData {
   id: string;
@@ -129,15 +130,10 @@ export default function UserTrendsChart() {
                  <CardDescription>Usuarios registrados a lo largo del tiempo con filtros demográficos.</CardDescription>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <Select value={countryFilter} onValueChange={setCountryFilter}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="País" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Todos los países</SelectItem>
-                        {countries.map(c => <SelectItem key={c.code} value={c.name}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
+                <CountryCombobox
+                    value={countryFilter}
+                    onChange={setCountryFilter}
+                />
                  <Select value={genderFilter} onValueChange={setGenderFilter}>
                     <SelectTrigger>
                         <SelectValue placeholder="Sexo" />
