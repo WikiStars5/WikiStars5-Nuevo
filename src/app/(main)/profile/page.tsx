@@ -98,9 +98,11 @@ export default function ProfilePage() {
         const userRef = doc(firestore, 'users', user.uid);
         
         try {
+            // Create a clean object to save, converting undefined to null
             const dataToUpdate: any = {
-                ...data,
                 username: data.username,
+                country: data.country || null,
+                gender: data.gender || null,
             };
 
             if (!user.isAnonymous) {
@@ -401,5 +403,3 @@ export default function ProfilePage() {
         </div>
     )
 }
-
-    
