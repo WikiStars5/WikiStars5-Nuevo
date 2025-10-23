@@ -25,10 +25,10 @@ interface FetchedStreak extends Streak {
 }
 
 const attitudeOptions = [
+  { id: 'neutral', label: 'Neutral', icon: Meh },
   { id: 'fan', label: 'Fan', icon: Star },
   { id: 'simp', label: 'Simp', icon: Heart },
   { id: 'hater', label: 'Hater', icon: ThumbsDown },
-  { id: 'neutral', label: 'Neutral', icon: Meh },
 ];
 
 const emotionOptions = [
@@ -196,7 +196,7 @@ export default function UserActivity() {
           </TabsList>
           
           <TabsContent value="attitudes" className="mt-4">
-             <Tabs defaultValue="fan">
+             <Tabs defaultValue="neutral">
                 <TabsList className="grid w-full grid-cols-4">
                     {attitudeOptions.map(opt => (
                         <TabsTrigger key={opt.id} value={opt.id}>{opt.label}</TabsTrigger>
