@@ -117,30 +117,30 @@ export default function AdminUsersDashboardPage() {
   }, [users]);
   
   return (
-    <div className="grid gap-6">
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Users /> Resumen de Usuarios</CardTitle>
-                <CardDescription>Estadísticas demográficas de la comunidad.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {isLoading ? (
-                    <Skeleton className="h-24 w-1/3" />
-                ) : (
-                    <div className="text-5xl font-bold tracking-tighter">{stats.total}</div>
-                )}
-                <p className="text-xs text-muted-foreground">usuarios registrados en la plataforma.</p>
-            </CardContent>
-        </Card>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><TrendingUp /> Distribución por Sexo</CardTitle>
+    <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+            <Card className="sm:col-span-2">
+                <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2"><Users /> Resumen de Usuarios</CardTitle>
+                    <CardDescription className="max-w-lg text-balance leading-relaxed">Estadísticas demográficas de la comunidad.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isLoading ? <Skeleton className="h-[250px] w-full" /> : (
-                         <ResponsiveContainer width="100%" height={250}>
+                    {isLoading ? (
+                        <Skeleton className="h-10 w-1/3" />
+                    ) : (
+                        <div className="text-5xl font-bold tracking-tighter">{stats.total}</div>
+                    )}
+                    <p className="text-xs text-muted-foreground">usuarios registrados en la plataforma.</p>
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2"><TrendingUp /> Distribución por Sexo</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? <Skeleton className="h-[100px] w-full" /> : (
+                         <ResponsiveContainer width="100%" height={100}>
                             <BarChart data={stats.genderData} layout="vertical" margin={{ left: 20, right: 30 }}>
                                 <XAxis type="number" hide />
                                 <YAxis 
@@ -150,8 +150,9 @@ export default function AdminUsersDashboardPage() {
                                     axisLine={false}
                                     tickLine={false}
                                     width={100}
+                                    fontSize={12}
                                 />
-                                <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="hsl(var(--primary))">
+                                <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="hsl(var(--primary))" barSize={16}>
                                     <LabelList dataKey="value" content={<ChartLabel />} />
                                 </Bar>
                             </BarChart>
@@ -160,13 +161,13 @@ export default function AdminUsersDashboardPage() {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><UserCheck /> Tipo de Cuenta</CardTitle>
+             <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2"><UserCheck /> Tipo de Cuenta</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {isLoading ? <Skeleton className="h-[250px] w-full" /> : (
-                         <ResponsiveContainer width="100%" height={250}>
+                    {isLoading ? <Skeleton className="h-[100px] w-full" /> : (
+                         <ResponsiveContainer width="100%" height={100}>
                             <BarChart data={stats.accountTypeData} layout="vertical" margin={{ left: 20, right: 30 }}>
                                 <XAxis type="number" hide />
                                 <YAxis 
@@ -176,8 +177,9 @@ export default function AdminUsersDashboardPage() {
                                     axisLine={false}
                                     tickLine={false}
                                     width={100}
+                                    fontSize={12}
                                 />
-                                <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="hsl(var(--primary))">
+                                <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="hsl(var(--primary))" barSize={16}>
                                     <LabelList dataKey="value" content={<ChartLabel />} />
                                 </Bar>
                             </BarChart>
@@ -185,12 +187,14 @@ export default function AdminUsersDashboardPage() {
                     )}
                 </CardContent>
             </Card>
+        </div>
 
-            <Card className="md:col-span-2 lg:col-span-1">
+        <div className="grid gap-4">
+            <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><MapPin /> Top Países</CardTitle>
                 </CardHeader>
-                <CardContent className="h-[250px] overflow-y-auto">
+                <CardContent className="max-h-[250px] overflow-y-auto">
                      {isLoading ? (
                         <div className="space-y-4">
                            <Skeleton className="h-8 w-full" />
@@ -233,12 +237,10 @@ export default function AdminUsersDashboardPage() {
                     )}
                 </CardContent>
             </Card>
+            
+            <UserTrendsChart />
+            <ActiveUsersChart />
         </div>
-
-        <UserTrendsChart />
-        <ActiveUsersChart />
     </div>
   );
 }
-
-    
