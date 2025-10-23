@@ -67,11 +67,11 @@ export default function ActiveUsersChart() {
       setIsLoading(true);
 
       try {
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
         const statusQuery = query(
             collection(firestore, 'status'),
             where('isOnline', '==', true),
-            where('lastChanged', '>=', fiveMinutesAgo)
+            where('lastChanged', '>=', oneMinuteAgo)
         );
 
         const statusSnapshot = await getDocs(statusQuery);
@@ -86,6 +86,7 @@ export default function ActiveUsersChart() {
         }
 
         const userProfiles: UserProfile[] = [];
+        // Batch queries to avoid hitting Firestore limits on 'in' arrays
         for (let i = 0; i < onlineUserIds.length; i += 30) {
             const batchIds = onlineUserIds.slice(i, i + 30);
             const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', batchIds));
