@@ -55,6 +55,7 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
 
     return (
         <div className="flex items-center gap-2 rounded-full bg-card border px-4 py-2 shadow-sm">
+            <span className="text-sm font-semibold text-muted-foreground">Día</span>
             <span className="font-bold text-orange-500">{streak.currentStreak}</span>
              <Image
                 src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
@@ -63,7 +64,6 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
                 height={24}
                 unoptimized
             />
-            <span className="text-sm font-semibold text-muted-foreground">Racha</span>
         </div>
     );
 }
