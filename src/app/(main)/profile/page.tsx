@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Flame, Medal, MessageSquare, TrendingUp, Loader2, Save, Link as LinkIcon, AlertTriangle, KeyRound } from "lucide-react";
+import { Loader2, Save, AlertTriangle, KeyRound } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -210,195 +210,137 @@ export default function ProfilePage() {
                 <p className="text-muted-foreground mt-2">Gestiona tu información personal y visualiza tu actividad.</p>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2 space-y-6">
-                    <Form {...profileForm}>
-                        <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
-                             <Card>
-                                <CardHeader>
-                                    <CardTitle>Información del Perfil</CardTitle>
-                                    <CardDescription>Aquí puedes editar tus datos personales.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div className="flex items-center gap-4">
-                                        <Avatar className="h-20 w-20">
-                                            <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User Avatar'} />
-                                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                        </Avatar>
-                                        <Button variant="outline" type="button">Cambiar Avatar</Button>
+            <div className="space-y-6">
+                <Form {...profileForm}>
+                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
+                         <Card>
+                            <CardHeader>
+                                <CardTitle>Información del Perfil</CardTitle>
+                                <CardDescription>Aquí puedes editar tus datos personales.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div className="flex items-center gap-4">
+                                    <Avatar className="h-20 w-20">
+                                        <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User Avatar'} />
+                                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                                    </Avatar>
+                                    <Button variant="outline" type="button">Cambiar Avatar</Button>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                   <FormField
+                                        control={profileForm.control}
+                                        name="username"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Nombre de Usuario</FormLabel>
+                                                <FormControl><Input {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="space-y-2">
+                                        <FormLabel>Correo Electrónico</FormLabel>
+                                        <Input type="email" value={user?.email || (user.isAnonymous ? 'Cuenta de invitado' : '')} disabled />
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                       <FormField
-                                            control={profileForm.control}
-                                            name="username"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Nombre de Usuario</FormLabel>
-                                                    <FormControl><Input {...field} /></FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <div className="space-y-2">
+                                </div>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="country"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel>País</FormLabel>
+                                                <CountrySelector value={field.value} onChange={field.onChange} />
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="gender"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Sexo</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Masculino">Masculino</SelectItem>
+                                                        <SelectItem value="Femenino">Femenino</SelectItem>
+                                                        <SelectItem value="Otro">Otro</SelectItem>
+                                                        <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                 </div>
+                            </CardContent>
+                            <CardFooter>
+                                <Button type="submit" disabled={isSaving}>
+                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                    Guardar Cambios
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    </form>
+                </Form>
+                
+                {user.isAnonymous && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Vincular Cuenta</CardTitle>
+                            <CardDescription>Convierte tu cuenta de invitado en una cuenta permanente para no perder tu progreso. Elige un correo y contraseña.</CardDescription>
+                        </CardHeader>
+                         <Form {...linkForm}>
+                            <form onSubmit={linkForm.handleSubmit(handleLinkEmailPassword)}>
+                                <CardContent className="space-y-4">
+                                     {linkError && (
+                                        <Alert variant="destructive">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            <AlertTitle>Error al Vincular</AlertTitle>
+                                            <AlertDescription>{linkError}</AlertDescription>
+                                        </Alert>
+                                    )}
+                                    <FormField
+                                        control={linkForm.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
                                             <FormLabel>Correo Electrónico</FormLabel>
-                                            <Input type="email" value={user?.email || (user.isAnonymous ? 'Cuenta de invitado' : '')} disabled />
-                                        </div>
-                                    </div>
-                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <FormField
-                                            control={profileForm.control}
-                                            name="country"
-                                            render={({ field }) => (
-                                                <FormItem className="flex flex-col">
-                                                    <FormLabel>País</FormLabel>
-                                                    <CountrySelector value={field.value} onChange={field.onChange} />
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={profileForm.control}
-                                            name="gender"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Sexo</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="Masculino">Masculino</SelectItem>
-                                                            <SelectItem value="Femenino">Femenino</SelectItem>
-                                                            <SelectItem value="Otro">Otro</SelectItem>
-                                                            <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                     </div>
+                                            <FormControl>
+                                                <Input type="email" placeholder="tu@correo.com" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={linkForm.control}
+                                        name="password"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Contraseña</FormLabel>
+                                            <FormControl>
+                                                <Input type="password" placeholder="••••••••" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                 </CardContent>
                                 <CardFooter>
-                                    <Button type="submit" disabled={isSaving}>
-                                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                        Guardar Cambios
+                                     <Button type="submit" disabled={isLinking} className="w-full">
+                                        {isLinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound />}
+                                        Crear Cuenta Permanente
                                     </Button>
                                 </CardFooter>
-                            </Card>
-                        </form>
-                    </Form>
-                    
-                    {user.isAnonymous && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Vincular Cuenta</CardTitle>
-                                <CardDescription>Convierte tu cuenta de invitado en una cuenta permanente para no perder tu progreso. Elige un correo y contraseña.</CardDescription>
-                            </CardHeader>
-                             <Form {...linkForm}>
-                                <form onSubmit={linkForm.handleSubmit(handleLinkEmailPassword)}>
-                                    <CardContent className="space-y-4">
-                                         {linkError && (
-                                            <Alert variant="destructive">
-                                                <AlertTriangle className="h-4 w-4" />
-                                                <AlertTitle>Error al Vincular</AlertTitle>
-                                                <AlertDescription>{linkError}</AlertDescription>
-                                            </Alert>
-                                        )}
-                                        <FormField
-                                            control={linkForm.control}
-                                            name="email"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                <FormLabel>Correo Electrónico</FormLabel>
-                                                <FormControl>
-                                                    <Input type="email" placeholder="tu@correo.com" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={linkForm.control}
-                                            name="password"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                <FormLabel>Contraseña</FormLabel>
-                                                <FormControl>
-                                                    <Input type="password" placeholder="••••••••" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </CardContent>
-                                    <CardFooter>
-                                         <Button type="submit" disabled={isLinking} className="w-full">
-                                            {isLinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound />}
-                                            Crear Cuenta Permanente
-                                        </Button>
-                                    </CardFooter>
-                                </form>
-                            </Form>
-                        </Card>
-                    )}
-
-                </div>
-
-                <div className="space-y-8">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Estadísticas de Actividad</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Flame className="h-6 w-6 text-orange-500" />
-                                    <span className="font-medium">Racha más larga</span>
-                                </div>
-                                <span className="font-bold text-lg">0 Días</span>
-                            </div>
-                           
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <MessageSquare className="h-6 w-6 text-primary" />
-                                    <span className="font-medium">Comentarios totales</span>
-                                </div>
-                               
-                                <span className="font-bold text-lg">0</span>
-                               
-                            </div>
-                           
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <TrendingUp className="h-6 w-6 text-green-500" />
-                                    <span className="font-medium">Votos totales</span>
-                                </div>
-                                <span className="font-bold text-lg">0</span>
-                            </div>
-                        </CardContent>
+                            </form>
+                        </Form>
                     </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Logros</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap gap-4">
-                            <div className="flex flex-col items-center text-center gap-2 p-2 rounded-md bg-muted opacity-50" title="Primer Comentario (Bloqueado)">
-                                <Medal className="h-8 w-8 text-muted-foreground"/>
-                                <span className="text-xs font-medium">Primer Comentario</span>
-                            </div>
-                            <div className="flex flex-col items-center text-center gap-2 p-2 rounded-md bg-muted opacity-50" title="Primer Voto (Bloqueado)">
-                                <Medal className="h-8 w-8 text-muted-foreground"/>
-                                <span className="text-xs font-medium">Primer Voto</span>
-                            </div>
-                            <div className="flex flex-col items-center text-center gap-2 p-2 rounded-md bg-muted opacity-50" title="Racha de 10 días (Bloqueado)">
-                                <Medal className="h-8 w-8 text-muted-foreground"/>
-                                <span className="text-xs font-medium">Racha de 10 días</span>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                )}
             </div>
         </div>
     )
