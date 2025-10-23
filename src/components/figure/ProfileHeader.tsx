@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Share2 } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import PersonalStreak from '../streaks/personal-streak';
 
 interface ProfileHeaderProps {
   figure: Figure;
+  figureId: string;
 }
 
-export default function ProfileHeader({ figure }: ProfileHeaderProps) {
+export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) {
     
   return (
     <Card className="overflow-hidden">
@@ -32,6 +34,9 @@ export default function ProfileHeader({ figure }: ProfileHeaderProps) {
             <h1 className="text-3xl md:text-5xl font-bold tracking-tight font-headline">
               {figure.name}
             </h1>
+            <div className="mt-2">
+              <PersonalStreak figureId={figureId} />
+            </div>
           </div>
           <div className="absolute right-0 top-0">
             <Button variant="ghost" size="icon">

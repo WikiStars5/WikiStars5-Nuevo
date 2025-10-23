@@ -20,7 +20,6 @@ import { Separator } from '@/components/ui/separator';
 import CommunityRatings from '@/components/figure/community-ratings';
 import RelatedFigures from '@/components/figure/related-figures';
 import TopStreaks from '@/components/streaks/top-streaks';
-import PersonalStreak from '@/components/streaks/personal-streak';
 
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
@@ -179,10 +178,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
-       <div className="flex justify-end pt-2 pr-2">
-            <PersonalStreak figureId={figure.id} />
-       </div>
-      <ProfileHeader figure={figure} />
+      <ProfileHeader figure={figure} figureId={figure.id} />
 
       <div className="mt-6">
         <Tabs defaultValue="informacion" className="w-full">
