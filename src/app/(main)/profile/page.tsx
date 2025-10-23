@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -20,6 +19,7 @@ import { Loader2, Save, AlertTriangle, KeyRound } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import UserActivity from '@/components/profile/user-activity';
 
 const profileSchema = z.object({
   username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.'),
@@ -182,7 +182,6 @@ export default function ProfilePage() {
                 </div>
                 <div className="space-y-8">
                     <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-32 w-full" />
                 </div>
             </div>
          </div>
@@ -288,6 +287,8 @@ export default function ProfilePage() {
                     </form>
                 </Form>
                 
+                <UserActivity />
+
                 {user.isAnonymous && (
                     <Card>
                         <CardHeader>
