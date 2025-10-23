@@ -30,7 +30,8 @@ export default function GoatBattle() {
 
   // This will determine the rotation of the balance beam.
   // It's a value between -10 (all Ronaldo) and 10 (all Messi).
-  const balanceRotation = totalVotes > 0 ? ((messiPercentage - 50) / 5) : 0;
+  // A negative value will make the left side go down, a positive value will make the right side go down.
+  const balanceRotation = totalVotes > 0 ? ((ronaldoPercentage - 50) / 5) : 0;
 
   const handleVote = async (player: 'messi' | 'ronaldo') => {
     setIsVoting(true);
