@@ -19,8 +19,8 @@ const ronaldoData = {
 };
 
 export default function GoatBattle() {
-  const [messiVotes, setMessiVotes] = useState(1500);
-  const [ronaldoVotes, setRonaldoVotes] = useState(1450);
+  const [messiVotes, setMessiVotes] = useState(0);
+  const [ronaldoVotes, setRonaldoVotes] = useState(0);
   const [userVote, setUserVote] = useState<'messi' | 'ronaldo' | null>(null);
   const [isVoting, setIsVoting] = useState(false);
 
