@@ -18,12 +18,12 @@ const BATTLE_ID = 'messi-vs-ronaldo';
 
 const messiData = {
     name: 'Lionel Messi',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Lionel_Messi_WC2022.jpg/800px-Lionel_Messi_WC2022.jpg'
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Lionel_Messi_WC2022.jpg'
 };
 
 const ronaldoData = {
     name: 'Cristiano Ronaldo',
-    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Cristiano_Ronaldo_WC2022_-_Portugal_vs_Uruguay.jpg/800px-Cristiano_Ronaldo_WC2022_-_Portugal_vs_Uruguay.jpg'
+    imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_WC2022_-_Portugal_vs_Uruguay.jpg'
 };
 
 
