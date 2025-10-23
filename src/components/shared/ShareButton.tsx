@@ -1,138 +1,192 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { Share2, Link as LinkIcon, Copy } from 'lucide-react';
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Share2, Link as LinkIcon, Facebook, Twitter, Linkedin, MessageCircle, Mail } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-// Define the type for the props
-interface ShareButtonProps {
-  figureId: string;
-  figureName: string;
-}
-
-// A simple SVG for WhatsApp
-const WhatsAppIcon = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-    <path d="M16.75 13.96c.25.5.12 1.04-.25 1.5l-1.25.88c-.62.38-1.5.25-2.12-.38-.88-.88-1.63-1.88-2.25-2.88-.62-1-1.12-2.12-1.38-3.25-.12-.62.12-1.25.62-1.62l1-1.12c.5-.5 1.25-.62 1.75-.25l1.38 1c.5.38.62 1.12.25 1.62l-.5 1.12-1.25 1.5.5 1.12 1.38 1.12.5-1zM12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"></path>
+// Simple inline SVG component for Reddit Icon
+const RedditIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props} // Allows passing className, size, etc.
+  >
+    <title>Reddit</title>
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-.5-5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5zm-3 0c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5zm-1.79-4.71L10.5 6h3l3.79 3.79c.2.2.2.51 0 .71l-1.06 1.06c-.2.2-.51.2-.71 0L14.41 10H9.59l-1.12 1.56c-.2.2-.51.2-.71 0l-1.06-1.06c-.2-.2-.2-.51 0-.71z" fill="currentColor"/>
   </svg>
 );
 
-// A simple SVG for Facebook
-const FacebookIcon = () => (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-        <path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3v9h4v-9z"></path>
-    </svg>
-);
 
-// A simple SVG for Twitter/X
-const XIcon = () => (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
-    </svg>
-);
+interface ShareButtonProps {
+  figureName: string;
+  figureId: string;
+  showText?: boolean;
+}
 
+interface SocialShareOption {
+  name: string;
+  icon: React.ElementType;
+  url: string;
+  isMailto?: boolean;
+}
 
-export default function ShareButton({ figureId, figureName }: ShareButtonProps) {
+export function ShareButton({ figureName, figureId, showText = false }: ShareButtonProps) {
   const { toast } = useToast();
+  const [currentUrl, setCurrentUrl] = useState('');
   const [isWebShareSupported, setIsWebShareSupported] = useState(false);
-  const [shareUrl, setShareUrl] = useState('');
 
   useEffect(() => {
-    // Check for Web Share API support on the client
-    if (navigator.share) {
-      setIsWebShareSupported(true);
+    // Ensure this runs only on the client
+    if (typeof window !== 'undefined') {
+      setCurrentUrl(window.location.origin + `/figures/${figureId}`);
+      if (navigator.share) {
+        setIsWebShareSupported(true);
+      }
     }
-    // Construct the full URL on the client
-    setShareUrl(`${window.location.origin}/figures/${figureId}`);
   }, [figureId]);
 
-  const handleNativeShare = async () => {
-    if (!navigator.share) return;
-    try {
-      await navigator.share({
-        title: `¡Mira a ${figureName} en WikiStars5!`,
-        text: `¡Echa un vistazo al perfil, opiniones y calificaciones de ${figureName} en WikiStars5!`,
-        url: shareUrl,
-      });
-    } catch (error: any) {
-      // Ignore abort errors which happen when the user cancels the share sheet
-      if (error.name === 'AbortError') {
-        return;
-      }
-      console.error('Error sharing natively', error);
-    }
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      toast({
-        title: '¡Enlace Copiado!',
-        description: 'El enlace al perfil ha sido copiado a tu portapapeles.',
-      });
-    });
-  };
-
-  // Social share URLs
-  const encodedUrl = encodeURIComponent(shareUrl);
-  const encodedText = encodeURIComponent(`¡Mira a ${figureName} en WikiStars5!`);
-  
-  const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`;
-  const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-  const whatsappShareUrl = `https://api.whatsapp.com/send?text=${encodedText}%20${encodedUrl}`;
-  const telegramShareUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
-  const linkedinShareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedText}`;
+  const buttonSize = showText ? "default" : "icon";
 
 
-  if (isWebShareSupported) {
+  if (!currentUrl) {
+    // Return a disabled button or a placeholder while URL is not available
     return (
-      <Button variant="ghost" size="icon" onClick={handleNativeShare}>
-        <Share2 className="h-5 w-5 text-muted-foreground" />
-        <span className="sr-only">Compartir</span>
+      <Button variant="outline" size={buttonSize} aria-label="Cargando opciones para compartir" disabled>
+        <Share2 className="h-5 w-5" />
+        {showText && <span className="ml-2">Compartir</span>}
       </Button>
     );
   }
 
+  // If Web Share API is supported, show a direct share button.
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      const shareTitle = `¡Mira a ${figureName} en WikiStars5!`;
+      const shareText = `¡Echa un vistazo al perfil, opiniones y calificaciones de ${figureName} en WikiStars5!`;
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: currentUrl,
+        });
+      } catch (error) {
+        // This can happen if the user cancels the share dialog. We don't need to show an error for that.
+        console.log("Web Share API was cancelled or failed:", error);
+      }
+    }
+  };
+
+  if (isWebShareSupported) {
+    return (
+      <Button
+        variant="outline"
+        size={buttonSize}
+        onClick={handleNativeShare}
+        aria-label={`Compartir perfil de ${figureName}`}
+      >
+        <Share2 className="h-5 w-5" />
+        {showText && <span className="ml-2">Compartir</span>}
+      </Button>
+    );
+  }
+
+  // --- Fallback for browsers that don't support Web Share API (e.g., desktop) ---
+
+  const encodedUrl = encodeURIComponent(currentUrl);
+  const shareTitle = `¡Mira a ${figureName} en WikiStars5!`;
+  const encodedTitle = encodeURIComponent(shareTitle);
+  const emailSubject = encodeURIComponent(`Perfil de ${figureName} en WikiStars5`);
+  const emailBody = encodeURIComponent(`Hola,\n\nEcha un vistazo al perfil de ${figureName} en WikiStars5:\n`);
+
+
+  const socialOptions: SocialShareOption[] = [
+    {
+      name: "Copiar Enlace",
+      icon: LinkIcon,
+      url: "#copy",
+    },
+    {
+      name: "Facebook",
+      icon: Facebook,
+      url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    },
+    {
+      name: "Twitter (X)",
+      icon: Twitter,
+      url: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`,
+    },
+    {
+      name: "WhatsApp",
+      icon: MessageCircle,
+      url: `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`,
+    },
+    {
+      name: "LinkedIn",
+      icon: Linkedin,
+      url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+    },
+    {
+      name: "Reddit",
+      icon: RedditIcon,
+      url: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}`,
+    },
+    {
+      name: "Correo Electrónico",
+      icon: Mail,
+      url: `mailto:?subject=${emailSubject}&body=${emailBody}${encodedUrl}`,
+      isMailto: true,
+    },
+  ];
+
+  const handleShareOptionClick = async (option: SocialShareOption) => {
+    if (option.url === "#copy") {
+      try {
+        await navigator.clipboard.writeText(currentUrl);
+        toast({ title: "¡Enlace Copiado!", description: "Enlace del perfil copiado al portapapeles." });
+      } catch (error) {
+        console.error("Error copying to clipboard:", error);
+        toast({ title: "No se pudo copiar el enlace", variant: "destructive" });
+      }
+    } else if (option.isMailto) {
+        window.location.href = option.url;
+    }
+    else {
+      // For other social media, open in a new tab
+      window.open(option.url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Share2 className="h-5 w-5 text-muted-foreground" />
-          <span className="sr-only">Compartir</span>
+        <Button variant="outline" size={buttonSize} aria-label={`Compartir perfil de ${figureName}`}>
+          <Share2 className="h-5 w-5" />
+          {showText && <span className="ml-2">Compartir</span>}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={copyToClipboard}>
-          <Copy className="mr-2 h-4 w-4" />
-          <span>Copiar Enlace</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={twitterShareUrl} target="_blank" rel="noopener noreferrer">
-            <XIcon /> <span className="ml-2">Compartir en X</span>
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={facebookShareUrl} target="_blank" rel="noopener noreferrer">
-            <FacebookIcon /> <span className="ml-2">Compartir en Facebook</span>
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={whatsappShareUrl} target="_blank" rel="noopener noreferrer">
-            <WhatsAppIcon /> <span className="ml-2">Compartir en WhatsApp</span>
-          </a>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={telegramShareUrl} target="_blank" rel="noopener noreferrer">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" className="mr-2"><path d="M9.78 18.65l.28-4.23l7.02-6.64c.38-.34.22-.99-.33-1.15l-11.59-3.3c-.56-.16-1.13.29-1.02.88l1.84 9.38c.11.54.6.93 1.15.93l3.66.01z"></path></svg>
-            <span>Compartir en Telegram</span>
-          </a>
-        </DropdownMenuItem>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Compartir Perfil</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {socialOptions.map((option) => (
+          <DropdownMenuItem key={option.name} onClick={() => handleShareOptionClick(option)} className="cursor-pointer">
+            <option.icon className="mr-2 h-4 w-4" />
+            <span>{option.name}</span>
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );

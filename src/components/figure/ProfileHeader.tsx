@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { Figure } from '@/lib/types';
 import PersonalStreak from '../streaks/personal-streak';
-import ShareButton from '../shared/ShareButton';
+import { ShareButton } from '../shared/ShareButton';
 
 interface ProfileHeaderProps {
   figure: Figure;
