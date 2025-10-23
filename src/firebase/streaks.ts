@@ -21,6 +21,11 @@ interface UpdateStreakParams {
     isAnonymous: boolean;
 }
 
+interface StreakUpdateResult {
+    streakGained: boolean;
+    newStreakCount: number;
+}
+
 /**
  * Checks if two dates are on the same day, ignoring time.
  */
@@ -45,12 +50,12 @@ export async function updateStreak({
     figureId,
     userId,
     ...denormalizedUserData
-}: UpdateStreakParams): Promise<void> {
+}: UpdateStreakParams): Promise<StreakUpdateResult | null> {
 
     const streakRef = doc(firestore, `figures/${figureId}/streaks`, userId);
     
     try {
-        await runTransaction(firestore, async (transaction) => {
+        return await runTransaction(firestore, async (transaction) => {
             const streakDoc = await transaction.get(streakRef);
             const now = new Date();
 
@@ -63,6 +68,7 @@ export async function updateStreak({
                     ...denormalizedUserData,
                 };
                 transaction.set(streakRef, newStreak);
+                return { streakGained: true, newStreakCount: 1 };
             } else {
                 // Streak exists, check the date.
                 const streakData = streakDoc.data() as Streak;
@@ -70,31 +76,33 @@ export async function updateStreak({
 
                 if (isYesterday(lastCommentDate, now)) {
                     // Rule 2: Last comment was yesterday, continue the streak.
+                    const newStreakCount = (streakData.currentStreak || 0) + 1;
                     transaction.update(streakRef, {
                         currentStreak: increment(1),
                         lastCommentDate: serverTimestamp(),
-                         // Also update user data in case it changed
                         ...denormalizedUserData
                     });
+                     return { streakGained: true, newStreakCount };
                 } else if (!isSameDay(lastCommentDate, now)) {
-                    // Rule 4 (Implicit): Last comment was before yesterday, reset the streak.
+                    // Rule 4: Last comment was before yesterday, reset the streak.
                     transaction.update(streakRef, {
                         currentStreak: 1,
                         lastCommentDate: serverTimestamp(),
                         ...denormalizedUserData
                     });
+                    return { streakGained: true, newStreakCount: 1 };
                 } else {
                      // Rule 3: Last comment was today. Just update timestamp and user data.
                     transaction.update(streakRef, {
                         lastCommentDate: serverTimestamp(),
                         ...denormalizedUserData
                     });
+                    return { streakGained: false, newStreakCount: streakData.currentStreak };
                 }
             }
         });
     } catch (error) {
         console.error("Error updating streak:", error);
-        // We don't throw the error or show a toast to the user,
-        // as streak update is a background task and shouldn't block the UI.
+        return null;
     }
 }

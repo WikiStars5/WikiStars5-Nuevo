@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,6 +18,7 @@ import StarInput from './star-input';
 import { Comment, Streak } from '@/lib/types';
 import { Input } from '../ui/input';
 import { updateStreak } from '@/firebase/streaks';
+import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 
 const baseCommentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(500, 'El comentario no puede superar los 500 caracteres.'),
@@ -60,6 +61,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const auth = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showStreakAnimation } = useContext(StreakAnimationContext);
+
 
   // A user is a "first-time anonymous" if they are not logged in OR if they are anonymous and haven't set a display name yet.
   const isFirstTimeAnonymous = (!user || (user.isAnonymous && !user.displayName));
@@ -167,7 +170,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       });
 
       // After successful comment, update the streak
-      await updateStreak({
+      const streakResult = await updateStreak({
         firestore,
         figureId,
         userId: currentUser.uid,
@@ -177,6 +180,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         userGender: userProfileData.gender || null,
         isAnonymous: currentUser.isAnonymous,
       });
+
+      if (streakResult?.streakGained) {
+        showStreakAnimation(streakResult.newStreakCount);
+      }
 
 
       // Play sound on success

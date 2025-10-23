@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { Providers } from './providers';
+import StreakAnimationOverlay from '@/components/streaks/StreakAnimationOverlay';
 
 export const metadata: Metadata = {
   title: 'WikiStars5',
@@ -28,6 +29,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster />
+          <StreakAnimationOverlay />
         </Providers>
       </body>
     </html>
