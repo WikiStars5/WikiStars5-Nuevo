@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -52,7 +53,8 @@ export async function updateStreak({
     ...denormalizedUserData
 }: UpdateStreakParams): Promise<StreakUpdateResult | null> {
 
-    const streakRef = doc(firestore, `figures/${figureId}/streaks`, userId);
+    // New Path: users/{userId}/streaks/{figureId}
+    const streakRef = doc(firestore, `users/${userId}/streaks`, figureId);
     
     try {
         return await runTransaction(firestore, async (transaction) => {
@@ -63,6 +65,7 @@ export async function updateStreak({
                 // Rule 1: No existing streak, create a new one.
                 const newStreak: Omit<Streak, 'id'> = {
                     userId,
+                    figureId, // Add figureId to the streak document itself
                     currentStreak: 1,
                     lastCommentDate: Timestamp.now(),
                     ...denormalizedUserData,

@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface Figure {
@@ -117,8 +118,9 @@ export interface CommentVote {
 }
 
 export interface Streak {
-  id: string;
+  id: string; // The ID will now be the figureId
   userId: string;
+  figureId: string; // Denormalized for querying
   currentStreak: number;
   lastCommentDate: Timestamp;
   userDisplayName: string;

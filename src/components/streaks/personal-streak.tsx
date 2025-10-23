@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -36,7 +37,8 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
 
     const streakDocRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
-        return doc(firestore, `figures/${figureId}/streaks`, user.uid);
+        // New path: users/{userId}/streaks/{figureId}
+        return doc(firestore, `users/${user.uid}/streaks`, figureId);
     }, [firestore, user, figureId]);
 
     const { data: streak, isLoading: isStreakLoading } = useDoc<Streak>(streakDocRef);

@@ -58,7 +58,8 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
   const userVoteRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, `figures/${figure.id}/emotionVotes`, user.uid);
+    // New path: users/{userId}/emotionVotes/{figureId}
+    return doc(firestore, `users/${user.uid}/emotionVotes`, figure.id);
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading } = useDoc<EmotionVote>(userVoteRef);
@@ -75,7 +76,8 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
       }
       
       const figureRef = doc(firestore, 'figures', figure.id);
-      const voteRef = doc(firestore, `figures/${figure.id}/emotionVotes`, currentUser.uid);
+      // New path for user-specific vote tracking
+      const voteRef = doc(firestore, `users/${currentUser.uid}/emotionVotes`, figure.id);
 
       await runTransaction(firestore, async (transaction) => {
         const existingVoteDoc = await transaction.get(voteRef);
@@ -85,7 +87,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
           throw new Error('¡El perfil no existe!');
         }
 
-        const newVoteData = {
+        const newVoteData: Omit<EmotionVote, 'id'> = {
           userId: currentUser!.uid,
           figureId: figure.id,
           vote: vote,
@@ -176,5 +178,3 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     </div>
   );
 }
-
-    

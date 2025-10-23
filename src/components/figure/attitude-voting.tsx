@@ -62,9 +62,9 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
     : allAttitudeOptions;
 
   const userVoteRef = useMemoFirebase(() => {
-    // We only create the ref if there IS a user.
     if (!firestore || !user) return null;
-    return doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
+    // New path: users/{userId}/attitudeVotes/{figureId}
+    return doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
@@ -77,15 +77,14 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
     try {
         let currentUser = user;
 
-        // If there's no user, sign in anonymously and wait for the new user object.
         if (!currentUser) {
             await initiateAnonymousSignIn(auth);
             currentUser = await getNextUser(auth);
         }
         
-        // At this point, we are guaranteed to have a user (either existing or newly created anonymous one).
         const figureRef = doc(firestore, 'figures', figure.id);
-        const voteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, currentUser.uid);
+        // New path for user-specific vote tracking
+        const voteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figure.id);
 
         await runTransaction(firestore, async (transaction) => {
             const existingVoteDoc = await transaction.get(voteRef);
@@ -95,7 +94,7 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
                 throw new Error('¡El perfil no existe!');
             }
 
-            const newVoteData = {
+            const newVoteData: Omit<AttitudeVote, 'id'> = {
                 userId: currentUser!.uid,
                 figureId: figure.id,
                 vote: vote,
@@ -106,7 +105,6 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
                 const previousVote = existingVoteDoc.data().vote as AttitudeOption;
 
                 if (previousVote === vote) {
-                    // User is clicking the same button again, so remove the vote.
                     transaction.update(figureRef, {
                         [`attitude.${vote}`]: increment(-1),
                     });
@@ -116,7 +114,6 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
                         description: `Has quitado tu voto de '${vote}'.`,
                     });
                 } else {
-                    // User is changing their vote.
                     transaction.update(figureRef, {
                         [`attitude.${previousVote}`]: increment(-1),
                         [`attitude.${vote}`]: increment(1),
@@ -128,7 +125,6 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
                     });
                 }
             } else {
-                // First time voting for this user.
                 transaction.update(figureRef, {
                     [`attitude.${vote}`]: increment(1),
                 });
@@ -157,8 +153,6 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
     0
   );
 
-  // Show loading skeleton only if the user status is loading.
-  // If there's no user, we don't need to wait for their vote to load.
   const isLoading = isUserLoading || (!!user && isVoteLoading);
   
   if (isLoading && user) {

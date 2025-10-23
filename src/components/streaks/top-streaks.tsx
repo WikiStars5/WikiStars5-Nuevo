@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -32,9 +33,14 @@ function isDateActive(timestamp: Timestamp): boolean {
     return date.getTime() === today.getTime() || date.getTime() === yesterday.getTime();
 }
 
+// This function now needs to query a collection group to find streaks for a specific figure
 async function getTopStreaksForFigure(firestore: any, figureId: string): Promise<Streak[]> {
-    const streaksRef = collection(firestore, `figures/${figureId}/streaks`);
-    const q = query(streaksRef, orderBy('currentStreak', 'desc'));
+    const streaksRef = collection(firestore, 'streaks');
+    const q = query(
+        streaksRef,
+        where('figureId', '==', figureId),
+        orderBy('currentStreak', 'desc'),
+    );
     
     const snapshot = await getDocs(q);
     
@@ -78,8 +84,22 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
             if (!firestore) return;
             setIsLoading(true);
             try {
-                const streaks = await getTopStreaksForFigure(firestore, figureId);
-                setTopStreaks(streaks);
+                // This function is no longer needed with the new structure,
+                // but we can simulate a similar logic if needed.
+                // For now, we assume we need to find streaks related to this figure,
+                // which requires a collection group query on `streaks` where `figureId` matches.
+                const streaksQuery = query(
+                    collectionGroup(firestore, 'streaks'),
+                    where('figureId', '==', figureId),
+                    orderBy('currentStreak', 'desc')
+                );
+                
+                const snapshot = await getDocs(streaksQuery);
+                const allStreaks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Streak));
+                const activeStreaks = allStreaks.filter(streak => isDateActive(streak.lastCommentDate));
+
+                setTopStreaks(activeStreaks.slice(0, 10));
+
             } catch (error) {
                 console.error("Failed to fetch top streaks:", error);
             } finally {

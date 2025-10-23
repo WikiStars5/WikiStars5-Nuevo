@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Figure, AttitudeVote, EmotionVote, Streak } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isDateActive } from '@/lib/streaks';
-import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame } from 'lucide-react';
+import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart } from 'lucide-react';
 
 
 interface FetchedVote {
@@ -26,7 +26,7 @@ interface FetchedStreak extends Streak {
 
 const attitudeOptions = [
   { id: 'fan', label: 'Fan', icon: Star },
-  { id: 'simp', label: 'Simp', icon: ThumbsDown },
+  { id: 'simp', label: 'Simp', icon: Heart },
   { id: 'hater', label: 'Hater', icon: ThumbsDown },
   { id: 'neutral', label: 'Neutral', icon: Meh },
 ];
@@ -118,10 +118,10 @@ export default function UserActivity() {
         setIsLoading(true);
         
         try {
-            // Fetch all votes and streaks in parallel
-            const attitudeQuery = query(collectionGroup(firestore, 'attitudeVotes'), where('userId', '==', user.uid));
-            const emotionQuery = query(collectionGroup(firestore, 'emotionVotes'), where('userId', '==', user.uid));
-            const streaksQuery = query(collectionGroup(firestore, 'streaks'), where('userId', '==', user.uid), orderBy('currentStreak', 'desc'));
+            // Fetch all votes and streaks from subcollections of the current user
+            const attitudeQuery = query(collection(firestore, 'users', user.uid, 'attitudeVotes'));
+            const emotionQuery = query(collection(firestore, 'users', user.uid, 'emotionVotes'));
+            const streaksQuery = query(collection(firestore, 'users', user.uid, 'streaks'), orderBy('currentStreak', 'desc'));
 
             const [attitudeSnapshot, emotionSnapshot, streaksSnapshot] = await Promise.all([
                 getDocs(attitudeQuery),
@@ -129,9 +129,9 @@ export default function UserActivity() {
                 getDocs(streaksQuery),
             ]);
 
-            const attitudes = attitudeSnapshot.docs.map(d => d.data() as AttitudeVote);
-            const emotions = emotionSnapshot.docs.map(d => d.data() as EmotionVote);
-            const allStreaks = streaksSnapshot.docs.map(d => d.data() as Streak);
+            const attitudes = attitudeSnapshot.docs.map(d => ({...d.data(), figureId: d.id } as AttitudeVote));
+            const emotions = emotionSnapshot.docs.map(d => ({...d.data(), figureId: d.id } as EmotionVote));
+            const allStreaks = streaksSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Streak));
 
             const activeStreaks = allStreaks.filter(s => isDateActive(s.lastCommentDate));
 
