@@ -61,7 +61,11 @@ export default function ShareButton({ figureId, figureName }: ShareButtonProps) 
         text: `¡Echa un vistazo al perfil, opiniones y calificaciones de ${figureName} en WikiStars5!`,
         url: shareUrl,
       });
-    } catch (error) {
+    } catch (error: any) {
+      // Ignore abort errors which happen when the user cancels the share sheet
+      if (error.name === 'AbortError') {
+        return;
+      }
       console.error('Error sharing natively', error);
     }
   };
