@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, where, getDocs, doc, getDoc, collection, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -197,7 +197,7 @@ export default function UserActivity() {
           
           <TabsContent value="attitudes" className="mt-4">
              <Tabs defaultValue="fan">
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-4">
                     {attitudeOptions.map(opt => (
                         <TabsTrigger key={opt.id} value={opt.id}>{opt.label}</TabsTrigger>
                     ))}
