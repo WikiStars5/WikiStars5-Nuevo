@@ -50,7 +50,7 @@ async function fetchFigureByName(firestore: any, name: string): Promise<PlayerDa
             name,
             imageUrl: name === 'Lionel Messi'
                 ? 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Lionel_Messi_20180626.jpg'
-                : 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_WC2022_-_01.jpg'
+                : 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg'
         };
     }
     const figureDoc = snapshot.docs[0];
@@ -161,7 +161,7 @@ export default function GoatBattle() {
   const totalVotes = messiVotes + ronaldoVotes;
 
   const messiPercentage = totalVotes > 0 ? (messiVotes / totalVotes) * 100 : 50;
-  const balanceRotation = totalVotes > 0 ? ((messiPercentage - 50) / 5) * -1 : 0;
+  const balanceRotation = totalVotes > 0 ? ((messiPercentage - 50) / 5) * 1 : 0;
 
   const handleVote = async (player: 'messi' | 'ronaldo') => {
     if (isVoting || !firestore || !auth || !isBattleActive) return;
@@ -289,7 +289,7 @@ export default function GoatBattle() {
         </CardTitle>
         <CardDescription className="max-w-md flex flex-col items-center text-center gap-2">
             <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
-            <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={32} height={32} className="h-8 w-8" />
+            <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={64} height={64} className="h-16 w-16" />
         </CardDescription>
         {isBattleOver ? (
             <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
@@ -369,3 +369,5 @@ export default function GoatBattle() {
     </Card>
   );
 }
+
+    
