@@ -135,6 +135,8 @@ export interface GoatBattle {
     id: string;
     messiVotes: number;
     ronaldoVotes: number;
+    endTime?: Timestamp;
+    winner?: 'messi' | 'ronaldo' | null;
 }
 
 export interface GoatVote {

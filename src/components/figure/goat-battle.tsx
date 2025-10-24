@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,10 +6,10 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Timer } from 'lucide-react';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import type { GoatBattle, GoatVote, Figure } from '@/lib/types';
-import { doc, runTransaction, serverTimestamp, increment, getDoc, query, where, collection, getDocs, limit } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, increment, getDoc, query, where, collection, getDocs, limit, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { onAuthStateChanged, type Auth, type User as FirebaseUser } from 'firebase/auth';
@@ -47,7 +48,7 @@ async function fetchFigureByName(firestore: any, name: string): Promise<PlayerDa
             name,
             imageUrl: name === 'Lionel Messi'
                 ? 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Lionel_Messi_WC2022.jpg'
-                : 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_WC2022_-_Portugal_vs_Uruguay.jpg'
+                : 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg'
         };
     }
     const figureDoc = snapshot.docs[0];
@@ -69,6 +70,8 @@ export default function GoatBattle() {
   const [messiData, setMessiData] = useState<PlayerData | null>(null);
   const [ronaldoData, setRonaldoData] = useState<PlayerData | null>(null);
   const [arePlayersLoading, setArePlayersLoading] = useState(true);
+  const [timeLeft, setTimeLeft] = useState('');
+
 
   // Get global battle data
   const battleDocRef = useMemoFirebase(() => {
@@ -96,8 +99,38 @@ export default function GoatBattle() {
         setRonaldoData(ronaldo);
         setArePlayersLoading(false);
     }
-    fetchPlayers();
+    if (firestore) {
+        fetchPlayers();
+    }
   }, [firestore]);
+  
+  const battleEndTime = battleData?.endTime?.toDate();
+  const isBattleOver = battleEndTime ? new Date() > battleEndTime : false;
+  const winner = battleData?.winner;
+
+  useEffect(() => {
+    if (!battleEndTime || isBattleOver) {
+      setTimeLeft('00:00');
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const distance = battleEndTime.getTime() - now.getTime();
+
+      if (distance < 0) {
+        clearInterval(interval);
+        setTimeLeft('00:00');
+        return;
+      }
+
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      setTimeLeft(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [battleEndTime, isBattleOver]);
 
 
   const messiVotes = battleData?.messiVotes ?? 0;
@@ -105,12 +138,10 @@ export default function GoatBattle() {
   const totalVotes = messiVotes + ronaldoVotes;
 
   const messiPercentage = totalVotes > 0 ? (messiVotes / totalVotes) * 100 : 50;
-  const ronaldoPercentage = 100 - messiPercentage;
-
   const balanceRotation = totalVotes > 0 ? ((messiPercentage - 50) / 5) * -1 : 0;
 
   const handleVote = async (player: 'messi' | 'ronaldo') => {
-    if (isVoting || !firestore || !auth) return;
+    if (isVoting || !firestore || !auth || isBattleOver) return;
     setIsVoting(true);
 
     try {
@@ -152,9 +183,13 @@ export default function GoatBattle() {
             }
 
             if (!battleDoc.exists()) {
+                 const endTime = new Date();
+                 endTime.setMinutes(endTime.getMinutes() + 1); // Set battle for 1 minute for testing
+
                  transaction.set(battleRef, { 
                     messiVotes: player === 'messi' ? 1 : 0,
                     ronaldoVotes: player === 'ronaldo' ? 1 : 0,
+                    endTime: Timestamp.fromDate(endTime),
                     ...updates
                  });
             } else {
@@ -222,7 +257,17 @@ export default function GoatBattle() {
         <CardTitle className="flex items-center gap-2 text-3xl">
           <GoatIcon/> La Batalla del GOAT
         </CardTitle>
-        <CardDescription>¿Quién es el mejor de todos los tiempos? Tu voto decide.</CardDescription>
+        <CardDescription className="max-w-md">
+            ¿Quién es el mejor de todos los tiempos? El ganador obtiene el ícono de GOAT en su perfil.
+        </CardDescription>
+        {isBattleOver ? (
+            <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
+        ) : (
+            <div className="flex items-center gap-2 font-mono text-lg font-bold text-primary animate-pulse">
+                <Timer className="h-5 w-5" />
+                <span>{timeLeft}</span>
+            </div>
+        )}
       </CardHeader>
       <CardContent className="flex flex-col items-center">
         <div className="relative w-full max-w-md h-48 mb-8">
@@ -257,31 +302,36 @@ export default function GoatBattle() {
             </div>
         </div>
 
-
-        <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-          <Button
-            size="lg"
-            className={cn(
-                "h-16 text-lg bg-blue-500/20 text-blue-300 border-2 border-blue-500/50 hover:bg-blue-500/30",
-                userVote?.vote === 'messi' && "ring-2 ring-offset-2 ring-blue-400 ring-offset-background"
-            )}
-            onClick={() => handleVote('messi')}
-            disabled={isVoting}
-          >
-            {isVoting && userVote?.vote !== 'messi' ? <Loader2 className="animate-spin" /> : 'Votar por Messi'}
-          </Button>
-          <Button
-            size="lg"
-            className={cn(
-                "h-16 text-lg bg-red-500/20 text-red-300 border-2 border-red-500/50 hover:bg-red-500/30",
-                userVote?.vote === 'ronaldo' && "ring-2 ring-offset-2 ring-red-400 ring-offset-background"
-            )}
-            onClick={() => handleVote('ronaldo')}
-            disabled={isVoting}
-          >
-            {isVoting && userVote?.vote !== 'ronaldo' ? <Loader2 className="animate-spin" /> : 'Votar por Ronaldo'}
-          </Button>
-        </div>
+        {isBattleOver ? (
+            <div className="text-center font-bold text-xl py-6">
+                El ganador es {winner === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo'}!
+            </div>
+        ) : (
+            <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+            <Button
+                size="lg"
+                className={cn(
+                    "h-16 text-lg bg-blue-500/20 text-blue-300 border-2 border-blue-500/50 hover:bg-blue-500/30",
+                    userVote?.vote === 'messi' && "ring-2 ring-offset-2 ring-blue-400 ring-offset-background"
+                )}
+                onClick={() => handleVote('messi')}
+                disabled={isVoting}
+            >
+                {isVoting && userVote?.vote !== 'messi' ? <Loader2 className="animate-spin" /> : 'Votar por Messi'}
+            </Button>
+            <Button
+                size="lg"
+                className={cn(
+                    "h-16 text-lg bg-red-500/20 text-red-300 border-2 border-red-500/50 hover:bg-red-500/30",
+                    userVote?.vote === 'ronaldo' && "ring-2 ring-offset-2 ring-red-400 ring-offset-background"
+                )}
+                onClick={() => handleVote('ronaldo')}
+                disabled={isVoting}
+            >
+                {isVoting && userVote?.vote !== 'ronaldo' ? <Loader2 className="animate-spin" /> : 'Votar por Ronaldo'}
+            </Button>
+            </div>
+        )}
       </CardContent>
     </Card>
   );
