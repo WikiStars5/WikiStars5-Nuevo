@@ -16,6 +16,8 @@ import { onAuthStateChanged, type Auth, type User as FirebaseUser } from 'fireba
 import { Skeleton } from '../ui/skeleton';
 
 const BATTLE_ID = 'messi-vs-ronaldo';
+const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAT.png?alt=media&token=1700e71c-ce98-457a-9804-69b255e4ad98";
+
 
 interface PlayerData {
   name: string;
@@ -48,7 +50,7 @@ async function fetchFigureByName(firestore: any, name: string): Promise<PlayerDa
             name,
             imageUrl: name === 'Lionel Messi'
                 ? 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Lionel_Messi_20180626.jpg'
-                : 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_WC2022_-_01.jpg'
+                : 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg'
         };
     }
     const figureDoc = snapshot.docs[0];
@@ -119,8 +121,8 @@ export default function GoatBattle() {
           winner = 'tie'; // Or handle ties as you see fit
       }
       // Non-blocking write to update the winner in Firestore
-      if (firestore && winner !== 'tie') {
-          updateDoc(battleDocRef!, { winner: winner });
+      if (firestore && winner !== 'tie' && battleDocRef) {
+          updateDoc(battleDocRef, { winner: winner });
       }
   }
 
@@ -285,8 +287,9 @@ export default function GoatBattle() {
         <CardTitle className="flex items-center gap-2 text-3xl">
           <GoatIcon/> La Batalla del GOAT
         </CardTitle>
-        <CardDescription className="max-w-md">
-            ¿Quién es el mejor de todos los tiempos? El ganador obtiene el ícono de GOAT en su perfil.
+        <CardDescription className="max-w-md flex flex-col items-center text-center gap-1">
+            <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
+            <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={24} height={24} className="h-6 w-6" />
         </CardDescription>
         {isBattleOver ? (
             <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
