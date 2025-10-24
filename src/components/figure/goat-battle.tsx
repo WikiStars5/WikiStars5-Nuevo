@@ -50,7 +50,7 @@ async function fetchFigureByName(firestore: any, name: string): Promise<PlayerDa
             name,
             imageUrl: name === 'Lionel Messi'
                 ? 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Lionel_Messi_20180626.jpg'
-                : 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg'
+                : 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_WC2022_-_01.jpg'
         };
     }
     const figureDoc = snapshot.docs[0];
@@ -287,9 +287,9 @@ export default function GoatBattle() {
         <CardTitle className="flex items-center gap-2 text-3xl">
           <GoatIcon/> La Batalla del GOAT
         </CardTitle>
-        <CardDescription className="max-w-md flex flex-col items-center text-center gap-1">
+        <CardDescription className="max-w-md flex flex-col items-center text-center gap-2">
             <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
-            <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={24} height={24} className="h-6 w-6" />
+            <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={32} height={32} className="h-8 w-8" />
         </CardDescription>
         {isBattleOver ? (
             <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
