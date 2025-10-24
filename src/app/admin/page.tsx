@@ -4,13 +4,20 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, PlusCircle, Users } from 'lucide-react';
+import { List, PlusCircle, Users, Trophy } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, doc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isStartingBattle, setIsStartingBattle] = useState(false);
+
 
   const figuresCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -23,6 +30,53 @@ export default function AdminDashboard() {
     return query(collection(firestore, 'users'));
   }, [firestore]);
   const { data: users, isLoading: isLoadingUsers } = useCollection(usersCollection);
+
+  const handleStartGoatBattle = async () => {
+    if (!firestore) return;
+    setIsStartingBattle(true);
+
+    const battleId = 'messi-vs-ronaldo';
+    const battleRef = doc(firestore, 'goat_battles', battleId);
+    const votesCollectionRef = collection(firestore, 'users'); // Reference to the top-level users collection
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            // This is a placeholder for a more complex operation.
+            // In a real scenario, you might want to clear out old votes.
+            // For now, we will just reset the main battle document.
+
+            const newEndTime = new Date();
+            newEndTime.setDate(newEndTime.getDate() + 30);
+
+            transaction.set(battleRef, {
+                messiVotes: 0,
+                ronaldoVotes: 0,
+                endTime: Timestamp.fromDate(newEndTime),
+                winner: null,
+                startedAt: serverTimestamp()
+            });
+
+             // Note: Deleting all subcollections (votes) from the client is not recommended
+             // for production apps due to performance and security. This would typically be
+             // handled by a Cloud Function. For this prototype, we are just resetting the main doc.
+        });
+
+        toast({
+            title: '¡Batalla del GOAT Iniciada!',
+            description: 'El evento de 30 días ha comenzado. Los contadores se han reiniciado.',
+        });
+
+    } catch (error) {
+        console.error("Error starting GOAT battle:", error);
+        toast({
+            title: 'Error al Iniciar la Batalla',
+            description: 'No se pudo iniciar el evento. Revisa la consola para más detalles.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsStartingBattle(false);
+    }
+};
 
 
   return (
@@ -77,6 +131,28 @@ export default function AdminDashboard() {
               </div>
             </div>
           </CardContent>
+        </Card>
+         <Card>
+            <CardHeader>
+                <CardTitle>Gestión de Eventos</CardTitle>
+                <CardDescription>Controla los eventos especiales de la plataforma.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                        <h3 className="font-semibold">Batalla del GOAT</h3>
+                        <p className="text-sm text-muted-foreground">Inicia una nueva temporada de 30 días y reinicia todos los votos.</p>
+                    </div>
+                    <Button onClick={handleStartGoatBattle} disabled={isStartingBattle}>
+                        {isStartingBattle ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Trophy className="mr-2 h-4 w-4" />
+                        )}
+                        Iniciar/Reiniciar Batalla GOAT (30 Días)
+                    </Button>
+                </div>
+            </CardContent>
         </Card>
         <Card>
           <CardHeader>

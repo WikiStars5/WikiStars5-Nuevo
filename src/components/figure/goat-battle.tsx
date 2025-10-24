@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { Loader2, Timer } from 'lucide-react';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import type { GoatBattle, GoatVote, Figure } from '@/lib/types';
-import { doc, runTransaction, serverTimestamp, increment, getDoc, query, where, collection, getDocs, limit, Timestamp } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, increment, getDoc, query, where, collection, getDocs, limit, Timestamp, writeBatch, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { onAuthStateChanged, type Auth, type User as FirebaseUser } from 'firebase/auth';
@@ -47,8 +47,8 @@ async function fetchFigureByName(firestore: any, name: string): Promise<PlayerDa
         return {
             name,
             imageUrl: name === 'Lionel Messi'
-                ? 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Lionel_Messi_WC2022.jpg'
-                : 'https://upload.wikimedia.org/wikipedia/commons/8/8c/Cristiano_Ronaldo_2018.jpg'
+                ? 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Lionel_Messi_20180626.jpg'
+                : 'https://upload.wikimedia.org/wikipedia/commons/2/23/Cristiano_Ronaldo_WC2022_-_01.jpg'
         };
     }
     const figureDoc = snapshot.docs[0];
@@ -105,12 +105,29 @@ export default function GoatBattle() {
   }, [firestore]);
   
   const battleEndTime = battleData?.endTime?.toDate();
+  const isBattleActive = battleEndTime && new Date() < battleEndTime;
   const isBattleOver = battleEndTime ? new Date() > battleEndTime : false;
-  const winner = battleData?.winner;
+  let winner = battleData?.winner;
+
+  // Determine winner if battle is over and winner isn't set yet
+  if (isBattleOver && !winner && battleData) {
+      if (battleData.messiVotes > battleData.ronaldoVotes) {
+          winner = 'messi';
+      } else if (battleData.ronaldoVotes > battleData.messiVotes) {
+          winner = 'ronaldo';
+      } else {
+          winner = 'tie'; // Or handle ties as you see fit
+      }
+      // Non-blocking write to update the winner in Firestore
+      if (firestore && winner !== 'tie') {
+          updateDoc(battleDocRef!, { winner: winner });
+      }
+  }
+
 
   useEffect(() => {
-    if (!battleEndTime || isBattleOver) {
-      setTimeLeft('00:00');
+    if (!battleEndTime || !isBattleActive) {
+      setTimeLeft('00:00:00:00');
       return;
     }
 
@@ -120,17 +137,21 @@ export default function GoatBattle() {
 
       if (distance < 0) {
         clearInterval(interval);
-        setTimeLeft('00:00');
+        setTimeLeft('00:00:00:00');
         return;
       }
 
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-      setTimeLeft(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      setTimeLeft(
+        `${days.toString().padStart(2, '0')}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [battleEndTime, isBattleOver]);
+  }, [battleEndTime, isBattleActive]);
 
 
   const messiVotes = battleData?.messiVotes ?? 0;
@@ -141,7 +162,7 @@ export default function GoatBattle() {
   const balanceRotation = totalVotes > 0 ? ((messiPercentage - 50) / 5) * -1 : 0;
 
   const handleVote = async (player: 'messi' | 'ronaldo') => {
-    if (isVoting || !firestore || !auth || isBattleOver) return;
+    if (isVoting || !firestore || !auth || !isBattleActive) return;
     setIsVoting(true);
 
     try {
@@ -160,8 +181,11 @@ export default function GoatBattle() {
                 transaction.get(userVoteRef)
             ]);
 
-            const currentVote = userVoteDoc.exists() ? userVoteDoc.data().vote : null;
+            if (!battleDoc.exists() || !battleDoc.data()?.endTime || new Date() > battleDoc.data()!.endTime.toDate()) {
+                throw new Error("La batalla no está activa.");
+            }
 
+            const currentVote = userVoteDoc.exists() ? userVoteDoc.data().vote : null;
             const updates: { [key: string]: any } = {};
 
             if (currentVote === player) {
@@ -182,26 +206,14 @@ export default function GoatBattle() {
                 toast({ title: `¡Has votado por ${player === 'messi' ? 'Messi' : 'Ronaldo'}!` });
             }
 
-            if (!battleDoc.exists()) {
-                 const endTime = new Date();
-                 endTime.setMinutes(endTime.getMinutes() + 1); // Set battle for 1 minute for testing
-
-                 transaction.set(battleRef, { 
-                    messiVotes: player === 'messi' ? 1 : 0,
-                    ronaldoVotes: player === 'ronaldo' ? 1 : 0,
-                    endTime: Timestamp.fromDate(endTime),
-                    ...updates
-                 });
-            } else {
-                transaction.update(battleRef, updates);
-            }
+            transaction.update(battleRef, updates);
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error casting vote:", error);
         toast({
             title: "Error al Votar",
-            description: "No se pudo registrar tu voto. Inténtalo de nuevo.",
+            description: error.message || "No se pudo registrar tu voto. Inténtalo de nuevo.",
             variant: "destructive"
         });
     } finally {
@@ -250,6 +262,22 @@ export default function GoatBattle() {
   }
 
   if (!messiData || !ronaldoData) return null; // Should not happen if not loading
+
+  if (!battleData || !battleData.endTime) {
+    return (
+        <Card>
+            <CardHeader className="items-center text-center">
+                 <CardTitle className="flex items-center gap-2 text-3xl">
+                    <GoatIcon/> La Batalla del GOAT
+                </CardTitle>
+                <CardDescription>El evento no ha comenzado. Vuelve más tarde.</CardDescription>
+            </CardHeader>
+             <CardContent className="text-center text-muted-foreground">
+                El administrador aún no ha iniciado la batalla.
+            </CardContent>
+        </Card>
+    )
+  }
 
   return (
     <Card>
@@ -304,7 +332,9 @@ export default function GoatBattle() {
 
         {isBattleOver ? (
             <div className="text-center font-bold text-xl py-6">
-                El ganador es {winner === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo'}!
+                {winner === 'tie' && '¡Es un empate!'}
+                {winner && winner !== 'tie' && `El ganador es ${winner === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo'}!`}
+                {!winner && 'Calculando ganador...'}
             </div>
         ) : (
             <div className="grid grid-cols-2 gap-4 w-full max-w-md">
