@@ -16,7 +16,7 @@ import { onAuthStateChanged, type Auth, type User as FirebaseUser } from 'fireba
 import { Skeleton } from '../ui/skeleton';
 
 const BATTLE_ID = 'messi-vs-ronaldo';
-const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAT.png?alt=media&token=1700e71c-ce98-457a-9804-69b255e4ad98";
+const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAT2.png?alt=media&token=50973a60-0bff-4fcb-9c17-986f067d834e";
 
 
 interface PlayerData {
@@ -289,7 +289,7 @@ export default function GoatBattle() {
         </CardTitle>
         <CardDescription className="max-w-md flex flex-col items-center text-center gap-2">
             <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
-            <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={80} height={80} className="h-20 w-20" />
+            <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={80} height={80} className="h-60 w-60" />
         </CardDescription>
         {isBattleOver ? (
             <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
