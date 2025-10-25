@@ -7,21 +7,14 @@ import { Separator } from '../ui/separator';
 interface CommentSectionProps {
   figureId: string;
   figureName: string;
-  initialOpenThreadId: string | null;
-  initialCommentView?: string;
 }
 
-export default function CommentSection({ figureId, figureName, initialOpenThreadId, initialCommentView }: CommentSectionProps) {
+export default function CommentSection({ figureId, figureName }: CommentSectionProps) {
   return (
     <div className="space-y-6">
       <CommentForm figureId={figureId} figureName={figureName} />
       <Separator />
-      <CommentList 
-        figureId={figureId} 
-        figureName={figureName}
-        initialOpenThreadId={initialOpenThreadId}
-        initialCommentView={initialCommentView}
-      />
+      <CommentList figureId={figureId} figureName={figureName} />
     </div>
   );
 }

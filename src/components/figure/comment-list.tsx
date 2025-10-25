@@ -46,25 +46,24 @@ type MineFilterType = 'unanswered' | 'answered';
 interface CommentListProps {
   figureId: string;
   figureName: string;
-  initialOpenThreadId: string | null;
-  initialCommentView?: string;
 }
 
-export default function CommentList({ figureId, figureName, initialOpenThreadId, initialCommentView }: CommentListProps) {
+export default function CommentList({ figureId, figureName }: CommentListProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
-  const [activeFilter, setActiveFilter] = useState<FilterType>(initialCommentView === 'mine' ? 'mine' : 'all');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [mineFilter, setMineFilter] = useState<MineFilterType>('answered');
 
   useEffect(() => {
-    // If the initial view is 'mine', ensure the 'answered' tab is selected by default,
-    // as this is where replies will appear.
-    if (initialCommentView === 'mine') {
-        setActiveFilter('mine');
-        setMineFilter('answered');
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('view') === 'mine') {
+      setActiveFilter('mine');
+      setMineFilter('answered');
     }
-  }, [initialCommentView]);
+  }, []);
 
 
   const commentsQuery = useMemoFirebase(() => {
@@ -165,7 +164,6 @@ export default function CommentList({ figureId, figureName, initialOpenThreadId,
                 comment={comment} 
                 figureId={figureId} 
                 figureName={figureName}
-                initialRepliesVisible={comment.id === initialOpenThreadId}
             />
         ))
       ) : (

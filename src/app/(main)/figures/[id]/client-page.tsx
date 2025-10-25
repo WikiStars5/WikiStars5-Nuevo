@@ -114,16 +114,6 @@ const formatHeight = (cm?: number): string | null => {
 export default function FigureDetailClient({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
   const [isEditing, setIsEditing] = useState(false);
-  const [initialOpenThreadId, setInitialOpenThreadId] = useState<string | null>(null);
-
-  // Directly initialize state from URL parameters
-  const [initialCommentView, setInitialCommentView] = useState(() => {
-      if (typeof window !== 'undefined') {
-          const params = new URLSearchParams(window.location.search);
-          return params.get('view') === 'mine' ? 'mine' : 'all';
-      }
-      return 'all';
-  });
 
   const figureDocRef = useMemoFirebase(() => {
     if (!firestore || !figureId) return null;
@@ -131,41 +121,6 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
   }, [firestore, figureId]);
 
   const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
-
-  useEffect(() => {
-    const handleCommentHighlight = async () => {
-        if (typeof window === 'undefined' || isLoading || !figure) return;
-  
-        const params = new URLSearchParams(window.location.search);
-        const replyId = params.get('reply');
-        const threadId = params.get('thread');
-        
-        // This is now handled by initial state, but we keep the logic to open threads
-        // and highlight comments, which runs after the initial render.
-  
-        if (threadId) {
-          setInitialOpenThreadId(threadId);
-        }
-  
-        const highlightId = replyId || threadId;
-        if (!highlightId) return;
-  
-        // The timeout gives the DOM time to update, especially if a thread needs to open.
-        setTimeout(() => {
-          const element = document.getElementById(`comment-${highlightId}`);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            element.classList.add('animate-highlight');
-            setTimeout(() => {
-              element.classList.remove('animate-highlight');
-            }, 2000); // Duration must match the animation in tailwind.config.ts
-          }
-        }, 500);
-      };
-  
-      handleCommentHighlight();
-    }, [isLoading, figure, figureId, firestore]);
-
 
   if (isLoading || !figure) {
     return <FigureDetailSkeleton />;
@@ -349,12 +304,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
        <div className="mt-8 space-y-8">
         <CommunityRatings figure={figure} />
-        <CommentSection 
-            figureId={figure.id} 
-            figureName={figure.name}
-            initialOpenThreadId={initialOpenThreadId}
-            initialCommentView={initialCommentView}
-        />
+        <CommentSection figureId={figure.id} figureName={figure.name} />
         <RelatedFigures figure={figure} />
       </div>
     </div>

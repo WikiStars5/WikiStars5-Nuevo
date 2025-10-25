@@ -368,19 +368,11 @@ interface CommentThreadProps {
   comment: CommentType;
   figureId: string;
   figureName: string;
-  initialRepliesVisible: boolean;
 }
 
-export default function CommentThread({ comment, figureId, figureName, initialRepliesVisible }: CommentThreadProps) {
-  const [repliesVisible, setRepliesVisible] = useState(initialRepliesVisible);
+export default function CommentThread({ comment, figureId, figureName }: CommentThreadProps) {
+  const [repliesVisible, setRepliesVisible] = useState(false);
   const hasChildren = comment.children && comment.children.length > 0;
-
-  useEffect(() => {
-    // This allows the thread to be opened from the parent if a notification link is followed
-    if (initialRepliesVisible) {
-      setRepliesVisible(true);
-    }
-  }, [initialRepliesVisible]);
 
   const toggleReplies = () => {
     setRepliesVisible(prev => !prev);
@@ -404,7 +396,6 @@ export default function CommentThread({ comment, figureId, figureName, initialRe
               comment={child} 
               figureId={figureId} 
               figureName={figureName}
-              initialRepliesVisible={false} // Only the top-level thread can be opened initially
             />
           ))}
         </div>

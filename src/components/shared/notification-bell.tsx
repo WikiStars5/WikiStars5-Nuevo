@@ -17,29 +17,52 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatDateDistance } from '@/lib/utils';
 import type { Notification } from '@/lib/types';
+import { Dialog, DialogTrigger } from '../ui/dialog';
+import NotificationThreadDialog from './notification-thread-dialog';
 
 const NOTIFICATION_SOUND_URL = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/AUDIO--NOTIFICACION%2Flivechat.mp3?alt=media&token=6f7084e4-9bad-4599-9f72-5534ad2464b7';
 
-
 function NotificationItem({ notification }: { notification: Notification }) {
-  const Icon = MessageSquare;
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const getParamsFromLink = (link: string) => {
+    const url = new URL(link, window.location.origin);
+    const figureId = url.pathname.split('/').pop() || '';
+    const parentId = url.searchParams.get('thread') || '';
+    const replyId = url.searchParams.get('reply') || '';
+    return { figureId, parentId, replyId };
+  };
+
+  const { figureId, parentId, replyId } = getParamsFromLink(notification.link);
+
   return (
-    <Link href={notification.link} className="block">
-        <div className={cn(
-            "flex items-start gap-3 p-3 hover:bg-muted/50 rounded-md",
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogTrigger asChild>
+        <button className={cn(
+            "w-full text-left flex items-start gap-3 p-3 hover:bg-muted/50 rounded-md",
             !notification.isRead && "bg-primary/5"
         )}>
-        {!notification.isRead && <Circle className="h-2 w-2 mt-1.5 fill-primary text-primary flex-shrink-0" />}
-        <div className={cn("flex-1 space-y-1", notification.isRead && "pl-5")}>
-            <p className="text-sm">{notification.message}</p>
-            <p className="text-xs text-muted-foreground">
-            {formatDateDistance(notification.createdAt.toDate())}
-            </p>
-        </div>
-        </div>
-    </Link>
+          {!notification.isRead && <Circle className="h-2 w-2 mt-1.5 fill-primary text-primary flex-shrink-0" />}
+          <div className={cn("flex-1 space-y-1", notification.isRead && "pl-5")}>
+              <p className="text-sm">{notification.message}</p>
+              <p className="text-xs text-muted-foreground">
+              {formatDateDistance(notification.createdAt.toDate())}
+              </p>
+          </div>
+        </button>
+      </DialogTrigger>
+      {isDialogOpen && (
+        <NotificationThreadDialog
+          figureId={figureId}
+          parentId={parentId}
+          replyId={replyId}
+          onOpenChange={setIsDialogOpen}
+        />
+      )}
+    </Dialog>
   );
 }
+
 
 function NotificationSkeleton() {
     return (
