@@ -16,7 +16,7 @@ interface ProfileHeaderProps {
   figureId: string;
 }
 
-const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAT.png?alt=media&token=1700e71c-ce98-457a-9804-69b255e4ad98";
+const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAT2.png?alt=media&token=50973a60-0bff-4fcb-9c17-986f067d834e";
 
 export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) {
   const firestore = useFirestore();
