@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -244,7 +243,7 @@ export default function GoatBattle() {
 
   if (isLoading) {
     return (
-        <Card>
+        <Card className="bg-black">
             <CardHeader className="items-center text-center">
                 <Skeleton className="h-8 w-2/3" />
                 <Skeleton className="h-5 w-1/2" />
@@ -274,12 +273,12 @@ export default function GoatBattle() {
 
   if (!battleData || !battleData.endTime) {
     return (
-        <Card>
+        <Card className="bg-black">
             <CardHeader className="items-center text-center">
                  <CardTitle className="flex items-center gap-2 text-3xl">
                     <GoatIcon/> La Batalla del GOAT
                 </CardTitle>
-                <CardDescription>El evento no ha comenzado. Vuelve más tarde.</CardDescription>
+                <CardDescription className="text-muted-foreground">El evento no ha comenzado. Vuelve más tarde.</CardDescription>
             </CardHeader>
              <CardContent className="text-center text-muted-foreground">
                 El administrador aún no ha iniciado la batalla.
@@ -291,7 +290,7 @@ export default function GoatBattle() {
   const figureIdForShare = pathname.split('/').pop() || (messiData ? messiData.id : 'lionel-messi');
 
   return (
-    <Card className="relative">
+    <Card className="relative bg-black">
        <div className="absolute top-4 right-4">
           <ShareButton
             figureId={figureIdForShare}
@@ -302,7 +301,7 @@ export default function GoatBattle() {
         <CardTitle className="flex items-center gap-2 text-3xl">
           <GoatIcon/> La Batalla del GOAT
         </CardTitle>
-        <CardDescription className="max-w-md flex flex-col items-center text-center gap-2">
+        <CardDescription className="max-w-md flex flex-col items-center text-center gap-2 text-muted-foreground">
             <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
             <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={80} height={80} className="h-60 w-60" />
         </CardDescription>
@@ -384,5 +383,3 @@ export default function GoatBattle() {
     </Card>
   );
 }
-
-    

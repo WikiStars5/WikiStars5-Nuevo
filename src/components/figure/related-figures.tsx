@@ -145,14 +145,14 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     const isLimitReached = relatedItems.length >= 5;
 
     return (
-        <Card>
+        <Card className="bg-black">
             <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <CardTitle className="flex items-center gap-2">
                            <Users /> Perfiles Relacionados
                         </CardTitle>
-                        <CardDescription>Otros perfiles que podrían interesarte (Máx. 5).</CardDescription>
+                        <CardDescription className="text-muted-foreground">Otros perfiles que podrían interesarte (Máx. 5).</CardDescription>
                     </div>
                      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <TooltipProvider>

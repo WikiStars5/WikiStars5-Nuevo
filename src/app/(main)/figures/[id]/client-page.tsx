@@ -213,12 +213,12 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
               {isEditing ? (
                   <EditInformationForm figure={figure} onFormClose={() => setIsEditing(false)} />
               ) : (
-                <Card>
+                <Card className="bg-black">
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <div>
                                 <CardTitle>Información Detallada</CardTitle>
-                                <CardDescription>Datos biográficos y descriptivos de {figure.name}.</CardDescription>
+                                <CardDescription className="text-muted-foreground">Datos biográficos y descriptivos de {figure.name}.</CardDescription>
                             </div>
                             <Button variant="outline" onClick={() => setIsEditing(true)}>
                                 <Pencil className="mr-2 h-4 w-4" /> Editar
@@ -278,7 +278,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
               )}
           </TabsContent>
           <TabsContent value="actitud" className="mt-4">
-            <Card>
+            <Card className="bg-black">
               <CardContent className="p-6">
                 <AttitudeVoting figure={figure} />
               </CardContent>

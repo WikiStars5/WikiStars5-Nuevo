@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -246,12 +245,12 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   };
 
   return (
-    <Card>
+    <Card className="bg-black">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <MessageSquare /> Opiniones y Discusión
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-muted-foreground">
           Comparte tu opinión sobre {figureName}. Sé respetuoso y mantén la conversación constructiva.
         </CardDescription>
       </CardHeader>

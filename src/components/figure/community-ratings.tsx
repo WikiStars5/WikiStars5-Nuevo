@@ -57,10 +57,10 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
     const allRatings = [5, 4, 3, 2, 1, 0];
         
     return (
-        <Card>
+        <Card className="bg-black">
             <CardHeader>
                 <CardTitle>Calificaciones de la Comunidad</CardTitle>
-                <CardDescription>Resumen de las calificaciones que los usuarios han dado al dejar una opinión sobre {figure.name}.</CardDescription>
+                <CardDescription className="text-muted-foreground">Resumen de las calificaciones que los usuarios han dado al dejar una opinión sobre {figure.name}.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

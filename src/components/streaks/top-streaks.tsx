@@ -115,10 +115,10 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
     }, [firestore, figureId]);
 
     return (
-        <Card>
+        <Card className="bg-black">
             <CardHeader>
                 <CardTitle>Top Rachas Activas</CardTitle>
-                <CardDescription>Los usuarios con las rachas de comentarios más largas para este perfil.</CardDescription>
+                <CardDescription className="text-muted-foreground">Los usuarios con las rachas de comentarios más largas para este perfil.</CardDescription>
             </CardHeader>
             <CardContent>
                 {isLoading ? (
