@@ -17,7 +17,7 @@ export default function Footer() {
             href="/admin/login"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            Admin Login
+            Login
           </Link>
           <Link
             href="#"
