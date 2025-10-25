@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -73,22 +73,22 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
     )
 }
 
-function ThreadRenderer({ commentId, allCommentsMap, replyId, figureId, figureName, onReplySuccess }: { commentId: string, allCommentsMap: Map<string, Comment>, replyId: string, figureId: string, figureName: string, onReplySuccess: () => void }) {
-    const comment = allCommentsMap.get(commentId);
+function ThreadRenderer({ comment, allCommentsMap, replyId, figureId, figureName, onReplySuccess }: { comment: Comment, allCommentsMap: Map<string, Comment>, replyId: string, figureId: string, figureName: string, onReplySuccess: () => void }) {
     if (!comment) return null;
 
-    const children = Array.from(allCommentsMap.values()).filter(c => c.parentId === commentId);
+    const children = comment.children || [];
+    const isReplyingToThis = comment.id === replyId;
 
     return (
         <div className="space-y-4">
-            <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
+            <CommentDisplay comment={comment} isHighlighted={isReplyingToThis} />
             
             {children.length > 0 && (
                  <div className="pl-8 border-l-2 ml-4 space-y-4">
                     {children.map(child => (
                         <ThreadRenderer 
                             key={child.id} 
-                            commentId={child.id}
+                            comment={child}
                             allCommentsMap={allCommentsMap} 
                             replyId={replyId} 
                             figureId={figureId}
@@ -98,7 +98,7 @@ function ThreadRenderer({ commentId, allCommentsMap, replyId, figureId, figureNa
                     ))}
                 </div>
             )}
-             {comment.id === replyId && (
+             {isReplyingToThis && (
                 <div className="pl-8 border-l-2 ml-4">
                     <ReplyForm
                         figureId={figureId}
@@ -113,6 +113,7 @@ function ThreadRenderer({ commentId, allCommentsMap, replyId, figureId, figureNa
     )
 }
 
+
 export default function NotificationThreadDialog({
   figureId,
   parentId,
@@ -122,65 +123,89 @@ export default function NotificationThreadDialog({
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
     const [isLoading, setIsLoading] = useState(true);
-    const [threadComments, setThreadComments] = useState<Map<string, Comment>>(new Map());
+    const [rootComment, setRootComment] = useState<Comment | null>(null);
+
+     const getDescendantIds = async (startId: string): Promise<string[]> => {
+        const commentsRef = collection(firestore, `figures/${figureId}/comments`);
+        const q = query(commentsRef, where('parentId', '==', startId));
+        const snapshot = await getDocs(q);
+        
+        let ids: string[] = snapshot.docs.map(doc => doc.id);
+        
+        for (const doc of snapshot.docs) {
+            const childIds = await getDescendantIds(doc.id);
+            ids = ids.concat(childIds);
+        }
+        
+        return ids;
+    };
 
     useEffect(() => {
-        const fetchThread = async () => {
+        const fetchFullThread = async () => {
             if (!firestore) return;
             setIsLoading(true);
 
-            const commentsMap = new Map<string, Comment>();
-            const commentsRef = collection(firestore, `figures/${figureId}/comments`);
-
-            const fetchAncestors = async (currentId: string) => {
-                if (!currentId || commentsMap.has(currentId)) return;
-
-                const docRef = doc(commentsRef, currentId);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    const commentData = { id: docSnap.id, ...docSnap.data() } as Comment;
-                    commentsMap.set(currentId, commentData);
-                    if (commentData.parentId) {
-                        await fetchAncestors(commentData.parentId);
-                    }
-                }
-            };
-            
-            const fetchDescendants = async (pId: string) => {
-                 const q = query(commentsRef, where('parentId', '==', pId));
-                 const snapshot = await getDocs(q);
-                 for (const document of snapshot.docs) {
-                     const commentData = { id: document.id, ...document.data() } as Comment;
-                     if (!commentsMap.has(document.id)) {
-                        commentsMap.set(document.id, commentData);
-                        await fetchDescendants(document.id);
-                     }
-                 }
-            }
-            
             try {
-                // Fetch all ancestors starting from the reply
-                await fetchAncestors(replyId);
+                // 1. Fetch the root comment of the thread
+                const rootCommentRef = doc(firestore, `figures/${figureId}/comments`, parentId);
+                const rootSnap = await getDoc(rootCommentRef);
                 
-                // Fetch all descendants starting from the root parent
-                await fetchDescendants(parentId);
+                if (!rootSnap.exists()) {
+                    throw new Error("El comentario principal no fue encontrado.");
+                }
 
-                setThreadComments(commentsMap);
+                const rootData = { id: rootSnap.id, ...rootSnap.data() } as Comment;
+
+                // 2. Fetch all descendant IDs starting from the root
+                const descendantIds = await getDescendantIds(parentId);
+                
+                const allIdsInThread = [parentId, ...descendantIds];
+                
+                // 3. Fetch all comments in the thread
+                const commentsMap = new Map<string, Comment>();
+                commentsMap.set(rootData.id, { ...rootData, children: [] });
+
+                 if (allIdsInThread.length > 0) {
+                    const commentsQuery = query(collection(firestore, `figures/${figureId}/comments`), where('__name__', 'in', allIdsInThread));
+                    const commentsSnapshot = await getDocs(commentsQuery);
+                    commentsSnapshot.forEach(doc => {
+                         if (!commentsMap.has(doc.id)) {
+                             commentsMap.set(doc.id, { id: doc.id, ...doc.data(), children: [] } as Comment);
+                         }
+                    });
+                }
+                
+                // 4. Build the tree structure
+                commentsMap.forEach(comment => {
+                    if (comment.parentId && commentsMap.has(comment.parentId)) {
+                        const parent = commentsMap.get(comment.parentId)!;
+                        parent.children!.push(comment);
+                    }
+                });
+
+                // Sort children by date
+                commentsMap.forEach(comment => {
+                    if (comment.children) {
+                        comment.children.sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+                    }
+                });
+
+                setRootComment(commentsMap.get(parentId) || null);
 
             } catch (error) {
-                console.error("Error fetching notification thread:", error);
+                console.error("Error fetching full thread:", error);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        fetchThread();
-    }, [firestore, figureId, parentId, replyId]);
+        fetchFullThread();
+    }, [firestore, figureId, parentId]);
+
 
     // Scroll to the highlighted comment after rendering
     useEffect(() => {
-        if (!isLoading && threadComments.size > 0) {
+        if (!isLoading && rootComment) {
             setTimeout(() => {
                 const element = document.getElementById(`comment-${replyId}`);
                 if (element) {
@@ -188,7 +213,7 @@ export default function NotificationThreadDialog({
                 }
             }, 100);
         }
-    }, [isLoading, threadComments, replyId]);
+    }, [isLoading, rootComment, replyId]);
 
 
     return (
@@ -206,10 +231,10 @@ export default function NotificationThreadDialog({
                         <div className="pl-8"><CommentDisplaySkeleton /></div>
                     </div>
                 ) : (
-                    threadComments.size > 0 ? (
+                    rootComment ? (
                         <ThreadRenderer 
-                            commentId={parentId}
-                            allCommentsMap={threadComments}
+                            comment={rootComment}
+                            allCommentsMap={new Map()} // This map isn't needed by the renderer itself anymore
                             replyId={replyId}
                             figureId={figureId}
                             figureName={figureName}
