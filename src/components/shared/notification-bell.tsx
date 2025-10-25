@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, writeBatch, doc } from 'firebase/firestore';
@@ -17,6 +17,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatDateDistance } from '@/lib/utils';
 import type { Notification } from '@/lib/types';
+
+const NOTIFICATION_SOUND_URL = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/AUDIO--NOTIFICACION%2Flivechat.mp3?alt=media&token=6f7084e4-9bad-4599-9f72-5534ad2464b7';
 
 
 function NotificationItem({ notification }: { notification: Notification }) {
@@ -52,6 +54,7 @@ export default function NotificationBell() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
+  const previousUnreadCountRef = useRef<number>(0);
 
   const notificationsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -67,6 +70,17 @@ export default function NotificationBell() {
   const unreadNotifications = notifications?.filter(n => !n.isRead) || [];
   const hasUnread = unreadNotifications.length > 0;
 
+  useEffect(() => {
+    // Play sound only if new unread notifications have arrived.
+    if (unreadNotifications.length > previousUnreadCountRef.current) {
+        const audio = new Audio(NOTIFICATION_SOUND_URL);
+        audio.play().catch(e => console.error("Error playing notification sound:", e));
+    }
+    // Update the ref with the new count for the next check.
+    previousUnreadCountRef.current = unreadNotifications.length;
+  }, [unreadNotifications.length]);
+
+
   const handleOpenChange = async (open: boolean) => {
     setIsOpen(open);
     if (open && hasUnread && firestore && user) {
@@ -77,6 +91,8 @@ export default function NotificationBell() {
             batch.update(notifRef, { isRead: true });
         });
         await batch.commit();
+        // After opening, reset the count to prevent sound on next data fetch without new notifications
+        previousUnreadCountRef.current = 0;
     }
   }
 
