@@ -118,6 +118,16 @@ export interface CommentVote {
   createdAt: Timestamp;
 }
 
+export interface Notification {
+  id: string;
+  userId: string;
+  type: 'comment_reply';
+  message: string;
+  isRead: boolean;
+  createdAt: Timestamp;
+  link: string;
+}
+
 export interface Streak {
   id: string; // The ID will now be the figureId
   userId: string;

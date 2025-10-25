@@ -13,6 +13,7 @@ import { Loader2, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
+import { Comment as CommentType } from '@/lib/types';
 
 
 const replySchema = z.object({
@@ -23,12 +24,13 @@ type ReplyFormValues = z.infer<typeof replySchema>;
 
 interface ReplyFormProps {
   figureId: string;
+  figureName: string;
   parentId: string;
   depth: number;
   onReplySuccess: () => void;
 }
 
-export default function ReplyForm({ figureId, parentId, depth, onReplySuccess }: ReplyFormProps) {
+export default function ReplyForm({ figureId, figureName, parentId, depth, onReplySuccess }: ReplyFormProps) {
   const { user } = useUser(); // We assume user exists because Reply button is only shown to logged in users
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -82,6 +84,28 @@ export default function ReplyForm({ figureId, parentId, depth, onReplySuccess }:
       };
 
       await addDocumentNonBlocking(commentsColRef, newReply);
+      
+      // --- Create Notification ---
+      const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentId);
+      const parentCommentSnap = await getDoc(parentCommentRef);
+      if (parentCommentSnap.exists()) {
+        const parentCommentData = parentCommentSnap.data() as CommentType;
+        const parentAuthorId = parentCommentData.userId;
+
+        // Don't notify if you reply to yourself
+        if (parentAuthorId !== user.uid) {
+            const notificationsColRef = collection(firestore, 'users', parentAuthorId, 'notifications');
+            const notification = {
+                userId: parentAuthorId,
+                type: 'comment_reply',
+                message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
+                isRead: false,
+                createdAt: serverTimestamp(),
+                link: `/figures/${figureId}?comment=${parentCommentSnap.id}`
+            };
+            await addDocumentNonBlocking(notificationsColRef, notification);
+        }
+      }
 
       // --- Streak Update ---
       const streakResult = await updateStreak({
