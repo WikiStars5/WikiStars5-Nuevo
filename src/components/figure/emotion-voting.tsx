@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -24,7 +25,7 @@ const emotionOptions: {
 }[] = [
   { id: 'alegria', label: 'Alegría', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Falegria.gif?alt=media&token=74d9307f-4b9d-4dba-8f52-ae51de1016bd', colorClass: 'border-yellow-400', textColorClass: 'text-yellow-400' },
   { id: 'envidia', label: 'Envidia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Fenvidia.gif?alt=media&token=38b3a744-8c82-45e1-883a-4467554b901e', colorClass: 'border-green-500', textColorClass: 'text-green-500' },
-  { id: 'tristeza', label: 'Tristeza', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Ftristeza.gif?alt=media&token=ac839352-0943-4e4c-bbcb-7243b67c1323', colorClass: 'border-blue-500', textColorClass: 'text-blue-500' },
+  { id: 'tristeza', label: 'Tristeza', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Ftrizteza.gif?alt=media&token=858bdee9-659b-43b8-8199-dc49d120fb17', colorClass: 'border-blue-500', textColorClass: 'text-blue-500' },
   { id: 'miedo', label: 'Miedo', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Fmiedo.gif?alt=media&token=8d277b5f-1558-46b3-9097-98782a2491a5', colorClass: 'border-purple-500', textColorClass: 'text-purple-500' },
   { id: 'desagrado', label: 'Desagrado', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Fdesagrado.gif?alt=media&token=e9e2b17f-d51a-4710-91a1-945761a293ad', colorClass: 'border-lime-600', textColorClass: 'text-lime-600' },
   { id: 'furia', label: 'Furia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Ffuria.gif?alt=media&token=9d65a477-15b5-462a-ad01-953310b0bfb6', colorClass: 'border-red-500', textColorClass: 'text-red-500' },
