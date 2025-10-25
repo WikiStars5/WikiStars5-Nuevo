@@ -29,9 +29,13 @@ interface InstallPwaButtonProps {
 
 export function InstallPwaButton({ asMenuItem = false }: InstallPwaButtonProps) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
+    // This ensures the component only renders its full UI on the client-side
+    setIsClient(true);
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -69,8 +73,12 @@ export function InstallPwaButton({ asMenuItem = false }: InstallPwaButtonProps) 
 
   const canInstall = !!deferredPrompt;
 
+  // Don't render anything on the server or before the client has mounted
+  if (!isClient || !canInstall) {
+    return null;
+  }
+
   if (asMenuItem) {
-    if (!canInstall) return null; // Don't show in dropdown if not installable
     return (
       <DropdownMenuItem onSelect={handleInstallClick}>
         <Download className="mr-2 h-4 w-4" />
@@ -83,12 +91,11 @@ export function InstallPwaButton({ asMenuItem = false }: InstallPwaButtonProps) 
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={cn(!canInstall && "cursor-not-allowed")}>
+          <div>
             <Button
               variant="ghost"
               size="icon"
               onClick={handleInstallClick}
-              disabled={!canInstall}
               className={cn(
                   "text-foreground/70 hover:text-foreground",
                   canInstall && "animate-color-pulse"
@@ -100,7 +107,7 @@ export function InstallPwaButton({ asMenuItem = false }: InstallPwaButtonProps) 
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{canInstall ? 'Instalar aplicación' : 'Instalación no disponible en este momento.'}</p>
+          <p>Instalar aplicación</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
