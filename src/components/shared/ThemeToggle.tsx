@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -9,7 +10,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
-import { Sun, Moon, Laptop, Ghost } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 
 export function ThemeToggle() {
   const { setTheme } = useTheme();
@@ -30,14 +31,6 @@ export function ThemeToggle() {
           <DropdownMenuItem onClick={() => setTheme('dark')}>
             <Moon className="mr-2 h-4 w-4" />
             <span>Oscuro</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme('halloween')}>
-            <Ghost className="mr-2 h-4 w-4" />
-            <span>Halloween</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme('system')}>
-            <Laptop className="mr-2 h-4 w-4" />
-            <span>Sistema</span>
           </DropdownMenuItem>
         </DropdownMenuSubContent>
       </DropdownMenuPortal>
