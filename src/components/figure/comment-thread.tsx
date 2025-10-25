@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where } from 'firebase/firestore';
@@ -349,6 +350,7 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                     <ReplyForm 
                         figureId={figureId} 
                         parentId={comment.id}
+                        threadId={comment.threadId || comment.id} // Pass root comment ID
                         figureName={figureName}
                         depth={comment.depth}
                         onReplySuccess={() => {

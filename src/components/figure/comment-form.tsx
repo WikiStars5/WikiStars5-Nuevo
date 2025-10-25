@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -176,7 +177,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         transaction.update(figureRef, updates);
         
         const newCommentRef = doc(commentsColRef);
-        const newCommentPayload = {
+        const newCommentPayload: Omit<Comment, 'id' | 'children' | 'createdAt'> & { createdAt: any } = {
+            threadId: newCommentRef.id, // For root comments, threadId is its own id
             figureId: figureId,
             userId: currentUser!.uid,
             text: data.text,

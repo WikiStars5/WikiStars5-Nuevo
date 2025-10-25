@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -26,11 +27,12 @@ interface ReplyFormProps {
   figureId: string;
   figureName: string;
   parentId: string;
+  threadId: string; // The ID of the root comment of the thread
   depth: number;
   onReplySuccess: (newReplyId: string) => void;
 }
 
-export default function ReplyForm({ figureId, figureName, parentId, depth, onReplySuccess }: ReplyFormProps) {
+export default function ReplyForm({ figureId, figureName, parentId, threadId, depth, onReplySuccess }: ReplyFormProps) {
   const { user } = useUser(); // We assume user exists because Reply button is only shown to logged in users
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -67,7 +69,7 @@ export default function ReplyForm({ figureId, figureName, parentId, depth, onRep
       const displayName = userProfileData.username || user.displayName || 'Usuario';
 
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-      const newReply = {
+      const newReply: Omit<CommentType, 'id' | 'children' | 'createdAt'> & { createdAt: any } = {
         figureId: figureId,
         userId: user.uid,
         text: data.text,
@@ -79,6 +81,7 @@ export default function ReplyForm({ figureId, figureName, parentId, depth, onRep
         likes: 0,
         dislikes: 0,
         parentId: parentId,
+        threadId: threadId, // Add threadId to the reply document
         depth: depth + 1,
         rating: -1, // Replies don't have ratings
       };
@@ -102,7 +105,7 @@ export default function ReplyForm({ figureId, figureName, parentId, depth, onRep
                 message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
                 isRead: false,
                 createdAt: serverTimestamp(),
-                link: `/figures/${figureId}?thread=${parentId}&reply=${newReplyId}&view=mine`
+                link: `/figures/${figureId}?thread=${threadId}&reply=${newReplyId}`
             };
             await addDocumentNonBlocking(notificationsColRef, notification);
         }

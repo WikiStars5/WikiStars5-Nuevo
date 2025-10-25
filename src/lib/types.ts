@@ -101,6 +101,7 @@ export interface Comment {
   likes?: number;
   dislikes?: number;
   parentId: string | null;
+  threadId?: string; // ID of the root comment in the thread
   depth: number;
   children?: Comment[];
   // Denormalized user data for display
