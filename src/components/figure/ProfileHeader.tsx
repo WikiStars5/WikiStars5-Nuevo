@@ -10,6 +10,7 @@ import PersonalStreak from '../streaks/personal-streak';
 import { ShareButton } from '../shared/ShareButton';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 interface ProfileHeaderProps {
   figure: Figure;
@@ -37,7 +38,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
      (figure.name === 'Cristiano Ronaldo' && battleWinner === 'ronaldo'));
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden bg-black border border-white/20 shadow-md">
       <CardContent className="p-6 md:p-8">
         <div className="relative flex flex-col items-center gap-4 md:flex-row md:gap-8">
           <div className="relative flex-shrink-0 w-28 h-28 md:w-36 md:h-36">
