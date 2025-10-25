@@ -72,6 +72,8 @@ export default function GoatBattle() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+  const pathname = usePathname();
+
   const [isVoting, setIsVoting] = useState(false);
 
   const [messiData, setMessiData] = useState<PlayerData | null>(null);
@@ -268,7 +270,7 @@ export default function GoatBattle() {
     )
   }
 
-  if (!messiData || !ronaldoData) return null; // Should not happen if not loading
+  if (!messiData || !ronaldoData) return null;
 
   if (!battleData || !battleData.endTime) {
     return (
@@ -286,7 +288,6 @@ export default function GoatBattle() {
     )
   }
   
-  const pathname = usePathname();
   const figureIdForShare = pathname.split('/').pop() || (messiData ? messiData.id : 'lionel-messi');
 
   return (
@@ -383,3 +384,5 @@ export default function GoatBattle() {
     </Card>
   );
 }
+
+    
