@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -148,25 +147,29 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                 key={id}
                 variant="outline"
                 className={cn(
-                  'relative h-auto flex-col items-center justify-center gap-2 border-2 p-4 transition-all duration-200',
-                  'flex h-24 flex-col items-center justify-center gap-2',
+                  'relative h-auto flex-col items-center justify-start gap-2 border-2 p-4 transition-all duration-200',
+                  'flex h-36 flex-col',
                    isSelected ? `${colorClass} bg-card shadow-inner` : 'border-border hover:bg-muted/50',
                    isVoting === id ? 'cursor-not-allowed' : ''
                 )}
                 onClick={() => handleVote(id)}
                 disabled={!!isVoting}
               >
-                 <div className={cn("absolute top-2 left-2 flex items-center gap-1.5", isSelected ? textColorClass : 'text-muted-foreground')}>
-                   <Image src={gifUrl} alt={label} width={20} height={20} unoptimized />
-                </div>
                 {isVoting === id ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <div className="flex-1 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
                 ) : (
                     <>
-                        <span className={cn("font-semibold", isSelected ? textColorClass : '')}>{label}</span>
-                        <span className={cn("text-xl font-bold", isSelected ? textColorClass : '')}>
-                        {figure.emotion?.[id] ?? 0}
-                        </span>
+                        <div className="flex-1 flex items-center justify-center">
+                             <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
+                        </div>
+                        <div className="text-center">
+                            <span className={cn("font-semibold", isSelected ? textColorClass : '')}>{label}</span>
+                            <span className={cn("block text-xl font-bold", isSelected ? textColorClass : '')}>
+                            {figure.emotion?.[id] ?? 0}
+                            </span>
+                        </div>
                     </>
                 )}
               </Button>
