@@ -27,7 +27,7 @@ const emotionOptions: {
   { id: 'tristeza', label: 'Tristeza', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Ftristeza.gif?alt=media&token=ac839352-0943-4e4c-bbcb-7243b67c1323', colorClass: 'border-blue-500', textColorClass: 'text-blue-500' },
   { id: 'miedo', label: 'Miedo', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Fmiedo.gif?alt=media&token=8d277b5f-1558-46b3-9097-98782a2491a5', colorClass: 'border-purple-500', textColorClass: 'text-purple-500' },
   { id: 'desagrado', label: 'Desagrado', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Fdesagrado.gif?alt=media&token=e9e2b17f-d51a-4710-91a1-945761a293ad', colorClass: 'border-lime-600', textColorClass: 'text-lime-600' },
-  { id: 'furia', label: 'Furia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Ffuria.gif?alt=media&token=a7114251-3433-4f6c-b349-2f5a65c2759e', colorClass: 'border-red-500', textColorClass: 'text-red-500' },
+  { id: 'furia', label: 'Furia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/gif%2Ffuria.gif?alt=media&token=9d65a477-15b5-462a-ad01-953310b0bfb6', colorClass: 'border-red-500', textColorClass: 'text-red-500' },
 ];
 
 interface EmotionVotingProps {
@@ -160,7 +160,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                     <Loader2 className="h-8 w-8 animate-spin" />
                   </div>
                 ) : (
-                    <>
+                    <div className="flex h-full flex-col items-center justify-center">
                         <div className="flex-1 flex items-center justify-center">
                              <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
                         </div>
@@ -170,7 +170,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                             {figure.emotion?.[id] ?? 0}
                             </span>
                         </div>
-                    </>
+                    </div>
                 )}
               </Button>
             );
