@@ -285,7 +285,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
             </Card>
           </TabsContent>
           <TabsContent value="emocion" className="mt-4">
-            <Card>
+            <Card className="bg-black">
               <CardContent className="p-6">
                  <EmotionVoting figure={figure} />
               </CardContent>
