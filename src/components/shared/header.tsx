@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -63,7 +62,8 @@ export default function Header() {
             </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <InstallPwaButton />
           
           {isUserLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
