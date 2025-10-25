@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-import { collection, query, orderBy, where } from 'firebase/firestore';
+import React, { useMemo, useState, useEffect } from 'react';
+import { collection, query, orderBy, where, doc, getDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import type { Comment } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -49,6 +49,7 @@ export default function CommentList({ figureId, figureName }: { figureId: string
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [mineFilter, setMineFilter] = useState<MineFilterType>('unanswered');
+  const [highlightedParentId, setHighlightedParentId] = useState<string | null>(null);
 
 
   const commentsQuery = useMemoFirebase(() => {
@@ -64,6 +65,26 @@ export default function CommentList({ figureId, figureName }: { figureId: string
 
 
   const { data: comments, isLoading } = useCollection<Comment>(commentsQuery);
+
+  useEffect(() => {
+    const findAndSetHighlightedParent = async () => {
+      if (typeof window === 'undefined' || !firestore || !comments) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const commentId = params.get('comment');
+
+      if (commentId) {
+        const targetComment = comments.find(c => c.id === commentId);
+        if (targetComment?.parentId) {
+          setHighlightedParentId(targetComment.parentId);
+        } else if (targetComment) {
+          // If the highlighted comment is itself a root comment
+          setHighlightedParentId(targetComment.id);
+        }
+      }
+    };
+    findAndSetHighlightedParent();
+  }, [comments, firestore]);
 
   const filteredComments = useMemo(() => {
     if (!comments) return [];
@@ -144,7 +165,7 @@ export default function CommentList({ figureId, figureName }: { figureId: string
 
       {visibleComments.length > 0 ? (
         visibleComments.map((comment) => (
-            <CommentThread key={comment.id} comment={comment} figureId={figureId} figureName={figureName} />
+            <CommentThread key={comment.id} comment={comment} figureId={figureId} figureName={figureName} initialRepliesVisible={comment.id === highlightedParentId} />
         ))
       ) : (
         <div className="text-center py-10">

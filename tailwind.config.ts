@@ -95,10 +95,15 @@ export default {
             height: '0',
           },
         },
+        highlight: {
+          '0%': { backgroundColor: 'hsl(var(--primary) / 0.2)' },
+          '100%': { backgroundColor: 'transparent' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'highlight': 'highlight 2s ease-out',
       },
     },
   },

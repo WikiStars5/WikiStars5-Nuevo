@@ -209,7 +209,7 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
     }
 
     return (
-        <div className="flex items-start gap-4 rounded-lg border bg-card text-card-foreground p-4">
+        <div id={`comment-${comment.id}`} className="flex items-start gap-4 rounded-lg border bg-card text-card-foreground p-4 transition-colors duration-1000">
             <Avatar className="h-10 w-10">
                  <Link href={`/u/${comment.userDisplayName}`}><AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} /></Link>
                 <AvatarFallback><Link href={`/u/${comment.userDisplayName}`}>{getAvatarFallback()}</Link></AvatarFallback>
@@ -348,9 +348,9 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                  {isReplying && (
                     <ReplyForm 
                         figureId={figureId} 
-                        parentId={comment.id} 
-                        depth={comment.depth}
+                        parentId={comment.id}
                         figureName={figureName}
+                        depth={comment.depth}
                         onReplySuccess={() => {
                             setIsReplying(false);
                             if (!repliesVisible) {

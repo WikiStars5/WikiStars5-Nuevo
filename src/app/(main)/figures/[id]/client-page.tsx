@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { doc, collection } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -121,6 +121,29 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
   }, [firestore, figureId]);
 
   const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
+
+   useEffect(() => {
+    // Only run this effect on the client side after the component mounts
+    if (typeof window === 'undefined' || isLoading || !figure) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const commentId = params.get('comment');
+
+    if (commentId) {
+      setTimeout(() => {
+        const element = document.getElementById(`comment-${commentId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('animate-highlight');
+          // Remove the animation class after it finishes to allow re-triggering
+          setTimeout(() => {
+            element.classList.remove('animate-highlight');
+          }, 2000); // Must match animation duration
+        }
+      }, 500); // A slight delay to ensure the DOM is ready
+    }
+  }, [isLoading, figure, figureId]);
+
 
   if (isLoading || !figure) {
     return <FigureDetailSkeleton />;
