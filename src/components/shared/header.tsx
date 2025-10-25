@@ -64,12 +64,11 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          <InstallPwaButton />
-
           {isUserLoading ? (
-            <Skeleton className="h-10 w-10 rounded-full" />
+            <Skeleton className="h-10 w-20" />
           ) : user ? (
             <>
+              <InstallPwaButton />
               <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
                 <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
               </Dialog>
@@ -130,6 +129,8 @@ export default function Header() {
                     <span>Crear Perfil Web</span>
                   </DropdownMenuItem>
 
+                  <InstallPwaButton asMenuItem={true} />
+                  
                   <ThemeToggle />
 
                   <DropdownMenuSeparator />
@@ -143,6 +144,7 @@ export default function Header() {
             </>
           ) : (
              <div className="flex items-center gap-2">
+                <InstallPwaButton />
                 <Button asChild>
                     <Link href="/admin/login">
                         <LogIn className="mr-2 h-4 w-4" />
