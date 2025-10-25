@@ -25,7 +25,10 @@ function NotificationItem({ notification }: { notification: Notification }) {
   const Icon = MessageSquare;
   return (
     <Link href={notification.link} className="block">
-        <div className="flex items-start gap-3 p-3 hover:bg-muted/50 rounded-md">
+        <div className={cn(
+            "flex items-start gap-3 p-3 hover:bg-muted/50 rounded-md",
+            !notification.isRead && "bg-primary/5"
+        )}>
         {!notification.isRead && <Circle className="h-2 w-2 mt-1.5 fill-primary text-primary flex-shrink-0" />}
         <div className={cn("flex-1 space-y-1", notification.isRead && "pl-5")}>
             <p className="text-sm">{notification.message}</p>
