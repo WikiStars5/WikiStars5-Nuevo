@@ -58,6 +58,8 @@ export default function CommentList({ figureId, figureName, initialOpenThreadId,
   const [mineFilter, setMineFilter] = useState<MineFilterType>('answered');
 
   useEffect(() => {
+    // If the initial view is 'mine', ensure the 'answered' tab is selected by default,
+    // as this is where replies will appear.
     if (initialCommentView === 'mine') {
         setActiveFilter('mine');
         setMineFilter('answered');

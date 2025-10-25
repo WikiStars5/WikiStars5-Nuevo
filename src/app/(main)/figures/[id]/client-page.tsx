@@ -115,7 +115,15 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
   const [isEditing, setIsEditing] = useState(false);
   const [initialOpenThreadId, setInitialOpenThreadId] = useState<string | null>(null);
-  const [initialCommentView, setInitialCommentView] = useState<string | undefined>(undefined);
+
+  // Directly initialize state from URL parameters
+  const [initialCommentView, setInitialCommentView] = useState(() => {
+      if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          return params.get('view') === 'mine' ? 'mine' : 'all';
+      }
+      return 'all';
+  });
 
   const figureDocRef = useMemoFirebase(() => {
     if (!firestore || !figureId) return null;
@@ -131,18 +139,14 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
         const params = new URLSearchParams(window.location.search);
         const replyId = params.get('reply');
         const threadId = params.get('thread');
-        const view = params.get('view');
+        
+        // This is now handled by initial state, but we keep the logic to open threads
+        // and highlight comments, which runs after the initial render.
   
-        if (view === 'mine') {
-            setInitialCommentView('mine');
-        }
-
-        // If a thread ID is specified, open it. This is for replies.
         if (threadId) {
           setInitialOpenThreadId(threadId);
         }
   
-        // The ID to highlight can be a reply or a top-level comment.
         const highlightId = replyId || threadId;
         if (!highlightId) return;
   
@@ -156,7 +160,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
               element.classList.remove('animate-highlight');
             }, 2000); // Duration must match the animation in tailwind.config.ts
           }
-        }, 500); // 500ms delay to ensure the thread is open before scrolling.
+        }, 500);
       };
   
       handleCommentHighlight();
