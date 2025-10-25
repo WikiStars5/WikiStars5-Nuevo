@@ -59,34 +59,6 @@ export default function LoginPage() {
         });
   };
 
-  const handlePasswordReset = () => {
-    const email = form.getValues('email');
-    if (!email) {
-      form.setError('email', {
-        type: 'manual',
-        message: 'Por favor, introduce tu correo para restablecer la contraseña.',
-      });
-      return;
-    }
-    if (!auth) return;
-
-    sendPasswordResetEmail(auth, email)
-      .then(() => {
-        toast({
-            title: 'Correo Enviado',
-            description: 'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.',
-        });
-      })
-      .catch((error) => {
-        console.error('Password reset error:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'No se pudo enviar el correo de restablecimiento. Verifica que el correo sea correcto.',
-        });
-      });
-  };
-  
   if (isUserLoading || (user && !user.isAnonymous)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -132,14 +104,6 @@ export default function LoginPage() {
                     <FormItem>
                         <div className="flex items-center">
                             <FormLabel>Contraseña</FormLabel>
-                             <Button
-                                type="button"
-                                variant="link"
-                                className="ml-auto h-auto p-0 text-sm"
-                                onClick={handlePasswordReset}
-                              >
-                                ¿Olvidaste tu contraseña?
-                              </Button>
                         </div>
                       <FormControl>
                         <div className="relative">
@@ -165,6 +129,7 @@ export default function LoginPage() {
                 <Button type="submit" className="w-full">
                   Iniciar Sesión
                 </Button>
+                <p className="px-8 text-center text-sm text-muted-foreground">Por el momento no es posible recuperar la contraseña si te olvidaste.</p>
               </form>
             </Form>
           </CardContent>
