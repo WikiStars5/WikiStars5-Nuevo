@@ -33,7 +33,13 @@ function NotificationItem({ notification }: { notification: Notification }) {
     return { figureId, parentId, replyId };
   };
 
+  const getFigureNameFromMessage = (message: string): string => {
+      const match = message.match(/en el perfil de (.*?)\.$/);
+      return match ? match[1] : '';
+  }
+
   const { figureId, parentId, replyId } = getParamsFromLink(notification.link);
+  const figureName = getFigureNameFromMessage(notification.message);
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -56,6 +62,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
           figureId={figureId}
           parentId={parentId}
           replyId={replyId}
+          figureName={figureName}
           onOpenChange={setIsDialogOpen}
         />
       )}

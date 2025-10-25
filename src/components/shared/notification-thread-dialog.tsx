@@ -18,6 +18,7 @@ interface NotificationThreadDialogProps {
   figureId: string;
   parentId: string;
   replyId: string;
+  figureName: string;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -78,6 +79,7 @@ export default function NotificationThreadDialog({
   figureId,
   parentId,
   replyId,
+  figureName,
   onOpenChange,
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
@@ -101,8 +103,8 @@ export default function NotificationThreadDialog({
         <DialogContent className="sm:max-w-xl">
             <DialogHeader>
                 <DialogTitle>Nueva Respuesta</DialogTitle>
-                <DialogDescription>
-                    Alguien ha respondido a tu comentario.
+                 <DialogDescription>
+                    Alguien ha respondido a tu comentario en el perfil de <span className="font-semibold text-primary">{figureName}</span>.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
@@ -123,7 +125,7 @@ export default function NotificationThreadDialog({
                             <div className="pl-8 border-l-2 ml-4">
                                 <ReplyForm
                                     figureId={figureId}
-                                    figureName={''} // Not needed for this specific reply context
+                                    figureName={figureName}
                                     parentId={parentId}
                                     depth={parentComment.depth}
                                     onReplySuccess={() => onOpenChange(false)}
