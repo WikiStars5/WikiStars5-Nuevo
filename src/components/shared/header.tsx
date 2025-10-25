@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Sun, Moon, Laptop, Ghost, Download } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
@@ -63,7 +63,7 @@ export default function Header() {
             </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {isUserLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
           ) : user ? (
@@ -76,6 +76,8 @@ export default function Header() {
                 <CreateProfileFromWebDialog onProfileCreated={() => setIsWebProfileDialogOpen(false)} />
               </Dialog>
               
+              <InstallPwaButton />
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -142,14 +144,17 @@ export default function Header() {
               </DropdownMenu>
             </>
           ) : (
-            pathname === '/' && (
-              <Button asChild>
-                  <Link href="/login">
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Iniciar Sesión
-                  </Link>
-              </Button>
-            )
+             <div className="flex items-center gap-2">
+                <InstallPwaButton />
+                {pathname === '/' && (
+                  <Button asChild>
+                      <Link href="/login">
+                          <LogIn className="mr-2 h-4 w-4" />
+                          Iniciar Sesión
+                      </Link>
+                  </Button>
+                )}
+             </div>
           )}
         </div>
       </div>
