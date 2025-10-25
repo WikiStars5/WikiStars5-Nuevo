@@ -7,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Figure } from '@/lib/types';
 import { useFirestore } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 export default function HashtagClientPage({ tag }: { tag: string }) {
@@ -18,24 +20,34 @@ export default function HashtagClientPage({ tag }: { tag: string }) {
   useEffect(() => {
     const fetchFigures = async () => {
       if (!firestore) return;
-      try {
-        setIsLoading(true);
-        const figuresCollection = collection(firestore, 'figures');
-        // Search in the lowercase field for case-insensitivity
-        const firestoreQuery = query(
-          figuresCollection,
-          where('tagsLower', 'array-contains', tag.toLowerCase()),
-          where('approved', '==', true)
-        );
-        const snapshot = await getDocs(firestoreQuery);
-        const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
-        setFigures(results);
-      } catch (err) {
-        setError('Failed to load figures for this hashtag.');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
+      
+      setIsLoading(true);
+      setError(null);
+      const figuresCollection = collection(firestore, 'figures');
+      // Search in the lowercase field for case-insensitivity
+      const firestoreQuery = query(
+        figuresCollection,
+        where('tagsLower', 'array-contains', tag.toLowerCase()),
+        where('approved', '==', true)
+      );
+
+      getDocs(firestoreQuery)
+        .then(snapshot => {
+          const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
+          setFigures(results);
+        })
+        .catch(err => {
+            const contextualError = new FirestorePermissionError({
+                operation: 'list',
+                path: 'figures',
+            });
+            setError(contextualError.message);
+            console.error(err);
+            errorEmitter.emit('permission-error', contextualError);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     };
     
     if (firestore) {
