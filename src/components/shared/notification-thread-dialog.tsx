@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -16,7 +15,7 @@ import { StarRating } from './star-rating';
 
 interface NotificationThreadDialogProps {
   figureId: string;
-  parentId: string; 
+  parentId: string;
   replyId: string;
   figureName: string;
   onOpenChange: (open: boolean) => void;
@@ -74,23 +73,45 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
     )
 }
 
-function ThreadRenderer({ comment, allCommentsInTree, replyId }: { comment: Comment; allCommentsInTree: Map<string, Comment>; replyId: string }) {
-    const children = Array.from(allCommentsInTree.values()).filter(c => c.parentId === comment.id);
+function ThreadRenderer({ commentId, allCommentsMap, replyId, figureId, figureName, onReplySuccess }: { commentId: string, allCommentsMap: Map<string, Comment>, replyId: string, figureId: string, figureName: string, onReplySuccess: () => void }) {
+    const comment = allCommentsMap.get(commentId);
+    if (!comment) return null;
+
+    const children = Array.from(allCommentsMap.values()).filter(c => c.parentId === commentId);
 
     return (
         <div className="space-y-4">
             <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
+            
             {children.length > 0 && (
                  <div className="pl-8 border-l-2 ml-4 space-y-4">
                     {children.map(child => (
-                        <ThreadRenderer key={child.id} comment={child} allCommentsInTree={allCommentsInTree} replyId={replyId} />
+                        <ThreadRenderer 
+                            key={child.id} 
+                            commentId={child.id}
+                            allCommentsMap={allCommentsMap} 
+                            replyId={replyId} 
+                            figureId={figureId}
+                            figureName={figureName}
+                            onReplySuccess={onReplySuccess}
+                        />
                     ))}
+                </div>
+            )}
+             {comment.id === replyId && (
+                <div className="pl-8 border-l-2 ml-4">
+                    <ReplyForm
+                        figureId={figureId}
+                        figureName={figureName}
+                        parentId={replyId} 
+                        depth={comment.depth} 
+                        onReplySuccess={onReplySuccess}
+                    />
                 </div>
             )}
         </div>
     )
 }
-
 
 export default function NotificationThreadDialog({
   figureId,
@@ -100,57 +121,66 @@ export default function NotificationThreadDialog({
   onOpenChange,
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
-
-    const threadQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        
-        const figureCommentsRef = collection(firestore, `figures/${figureId}/comments`);
-        return query(figureCommentsRef, where('parentId', '==', parentId));
-    }, [firestore, figureId, parentId]);
-    
-    const { data: allComments, isLoading } = useCollection<Comment>(threadQuery);
-
-    const [parentComment, setParentComment] = useState<Comment | null>(null);
-    const [isParentLoading, setIsParentLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [threadComments, setThreadComments] = useState<Map<string, Comment>>(new Map());
 
     useEffect(() => {
-        const fetchParent = async () => {
+        const fetchThread = async () => {
             if (!firestore) return;
-            setIsParentLoading(true);
-            const parentRef = doc(firestore, `figures/${figureId}/comments`, parentId);
-            const docSnap = await getDoc(parentRef);
-            if (docSnap.exists()) {
-                setParentComment({ id: docSnap.id, ...docSnap.data() } as Comment);
-            }
-            setIsParentLoading(false);
-        };
-        fetchParent();
-    }, [firestore, figureId, parentId]);
+            setIsLoading(true);
 
+            const commentsMap = new Map<string, Comment>();
+            const commentsRef = collection(firestore, `figures/${figureId}/comments`);
 
-    const threadTree = useMemo(() => {
-        if (!parentComment || !allComments) return null;
+            const fetchAncestors = async (currentId: string) => {
+                if (!currentId || commentsMap.has(currentId)) return;
 
-        const commentMap = new Map<string, Comment>();
-        // Add parent and all its children to the map
-        commentMap.set(parentComment.id, { ...parentComment, children: [] });
-        allComments.forEach(c => commentMap.set(c.id, { ...c, children: [] }));
+                const docRef = doc(commentsRef, currentId);
+                const docSnap = await getDoc(docRef);
 
-        const buildRecursiveTree = (id: string): Comment | null => {
-            const comment = commentMap.get(id);
-            if (!comment) return null;
+                if (docSnap.exists()) {
+                    const commentData = { id: docSnap.id, ...docSnap.data() } as Comment;
+                    commentsMap.set(currentId, commentData);
+                    if (commentData.parentId) {
+                        await fetchAncestors(commentData.parentId);
+                    }
+                }
+            };
             
-            const children = allComments.filter(c => c.parentId === id);
-            comment.children = children.map(child => buildRecursiveTree(child.id)).filter(Boolean) as Comment[];
-            return comment;
-        }
+            const fetchDescendants = async (pId: string) => {
+                 const q = query(commentsRef, where('parentId', '==', pId));
+                 const snapshot = await getDocs(q);
+                 for (const document of snapshot.docs) {
+                     const commentData = { id: document.id, ...document.data() } as Comment;
+                     if (!commentsMap.has(document.id)) {
+                        commentsMap.set(document.id, commentData);
+                        await fetchDescendants(document.id);
+                     }
+                 }
+            }
+            
+            try {
+                // Fetch all ancestors starting from the reply
+                await fetchAncestors(replyId);
+                
+                // Fetch all descendants starting from the root parent
+                await fetchDescendants(parentId);
 
-        return buildRecursiveTree(parentId);
-    }, [allComments, parentId, parentComment]);
+                setThreadComments(commentsMap);
 
+            } catch (error) {
+                console.error("Error fetching notification thread:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
+        fetchThread();
+    }, [firestore, figureId, parentId, replyId]);
+
+    // Scroll to the highlighted comment after rendering
     useEffect(() => {
-        if (threadTree) {
+        if (!isLoading && threadComments.size > 0) {
             setTimeout(() => {
                 const element = document.getElementById(`comment-${replyId}`);
                 if (element) {
@@ -158,7 +188,7 @@ export default function NotificationThreadDialog({
                 }
             }, 100);
         }
-    }, [threadTree, replyId]);
+    }, [isLoading, threadComments, replyId]);
 
 
     return (
@@ -170,37 +200,26 @@ export default function NotificationThreadDialog({
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
-                {isLoading || isParentLoading ? (
+                {isLoading ? (
                     <div className="space-y-4">
                         <CommentDisplaySkeleton />
                         <div className="pl-8"><CommentDisplaySkeleton /></div>
                     </div>
                 ) : (
-                    <>
-                        {threadTree && allComments ? (
-                            <>
-                                <ThreadRenderer 
-                                    comment={threadTree} 
-                                    allCommentsInTree={new Map(allComments.map(c => [c.id, c]))} 
-                                    replyId={replyId} 
-                                />
-                                <div className="pl-8 border-l-2 ml-4">
-                                     <ReplyForm
-                                        figureId={figureId}
-                                        figureName={figureName}
-                                        parentId={replyId} 
-                                        depth={threadTree.depth + 1} 
-                                        onReplySuccess={() => onOpenChange(false)}
-                                    />
-                                </div>
-                            </>
-                        ) : (
-                            <p className="text-center text-muted-foreground">No se pudo cargar el hilo del comentario.</p>
-                        )}
-                    </>
+                    threadComments.size > 0 ? (
+                        <ThreadRenderer 
+                            commentId={parentId}
+                            allCommentsMap={threadComments}
+                            replyId={replyId}
+                            figureId={figureId}
+                            figureName={figureName}
+                            onReplySuccess={() => onOpenChange(false)}
+                        />
+                    ) : (
+                        <p className="text-center text-muted-foreground">No se pudo cargar el hilo del comentario.</p>
+                    )
                 )}
             </div>
         </DialogContent>
     );
 }
-
