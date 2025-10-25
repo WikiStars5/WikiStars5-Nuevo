@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Loader2, Timer } from 'lucide-react';
+import { Loader2, Timer, Share2 } from 'lucide-react';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import type { GoatBattle, GoatVote, Figure } from '@/lib/types';
 import { doc, runTransaction, serverTimestamp, increment, getDoc, query, where, collection, getDocs, limit, Timestamp, writeBatch, updateDoc } from 'firebase/firestore';
@@ -14,12 +14,15 @@ import { useToast } from '@/hooks/use-toast';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { onAuthStateChanged, type Auth, type User as FirebaseUser } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
+import { ShareButton } from '../shared/ShareButton';
+import { usePathname } from 'next/navigation';
 
 const BATTLE_ID = 'messi-vs-ronaldo';
 const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAT2.png?alt=media&token=50973a60-0bff-4fcb-9c17-986f067d834e";
 
 
 interface PlayerData {
+  id: string;
   name: string;
   imageUrl: string;
 }
@@ -47,6 +50,7 @@ async function fetchFigureByName(firestore: any, name: string): Promise<PlayerDa
     if (snapshot.empty) {
         // Fallback data if not found in DB
         return {
+            id: name.toLowerCase().replace(' ', '-'),
             name,
             imageUrl: name === 'Lionel Messi'
                 ? 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Lionel_Messi_20180626.jpg'
@@ -56,6 +60,7 @@ async function fetchFigureByName(firestore: any, name: string): Promise<PlayerDa
     const figureDoc = snapshot.docs[0];
     const data = figureDoc.data() as Figure;
     return {
+        id: figureDoc.id,
         name: data.name,
         imageUrl: data.imageUrl,
     };
@@ -280,10 +285,19 @@ export default function GoatBattle() {
         </Card>
     )
   }
+  
+  const pathname = usePathname();
+  const figureIdForShare = pathname.split('/').pop() || (messiData ? messiData.id : 'lionel-messi');
 
   return (
-    <Card>
-      <CardHeader className="items-center text-center">
+    <Card className="relative">
+       <div className="absolute top-4 right-4">
+          <ShareButton
+            figureId={figureIdForShare}
+            figureName="La Batalla del GOAT: Messi vs Ronaldo"
+          />
+        </div>
+      <CardHeader className="items-center text-center pt-8">
         <CardTitle className="flex items-center gap-2 text-3xl">
           <GoatIcon/> La Batalla del GOAT
         </CardTitle>
@@ -369,7 +383,3 @@ export default function GoatBattle() {
     </Card>
   );
 }
-
-    
-
-    

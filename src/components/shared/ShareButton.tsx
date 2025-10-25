@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -75,8 +76,8 @@ export function ShareButton({ figureName, figureId, showText = false }: ShareBut
   // If Web Share API is supported, show a direct share button.
   const handleNativeShare = async () => {
     if (navigator.share) {
-      const shareTitle = `¡Mira a ${figureName} en WikiStars5!`;
-      const shareText = `¡Echa un vistazo al perfil, opiniones y calificaciones de ${figureName} en WikiStars5!`;
+      const shareTitle = `¡Echa un vistazo a ${figureName} en WikiStars5!`;
+      const shareText = `¡Únete a la conversación sobre ${figureName} en WikiStars5! Vota, comenta y mira lo que otros piensan.`;
       try {
         await navigator.share({
           title: shareTitle,
@@ -107,7 +108,7 @@ export function ShareButton({ figureName, figureId, showText = false }: ShareBut
   // --- Fallback for browsers that don't support Web Share API (e.g., desktop) ---
 
   const encodedUrl = encodeURIComponent(currentUrl);
-  const shareTitle = `¡Mira a ${figureName} en WikiStars5!`;
+  const shareTitle = `¡Echa un vistazo a ${figureName} en WikiStars5!`;
   const encodedTitle = encodeURIComponent(shareTitle);
   const emailSubject = encodeURIComponent(`Perfil de ${figureName} en WikiStars5`);
   const emailBody = encodeURIComponent(`Hola,\n\nEcha un vistazo al perfil de ${figureName} en WikiStars5:\n`);
