@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -20,14 +19,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Sun, Moon, Laptop } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Sun, Moon, Laptop, Ghost } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
 import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog';
 import SearchBar from './search-bar';
-import { InstallPwaButton } from './InstallPwaButton';
 import { ThemeToggle } from './ThemeToggle';
+import { InstallPwaButton } from './InstallPwaButton';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
