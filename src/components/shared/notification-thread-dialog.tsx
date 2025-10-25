@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, doc, getDocs, getDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, query, where, orderBy, writeBatch } from 'firebase/firestore';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -74,14 +74,14 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
     )
 }
 
-function ThreadRenderer({ comment, figureId, figureName, replyId, onReplySuccess }: { comment: Comment, figureId: string, figureName: string, replyId: string, onReplySuccess: () => void }) {
+function ThreadRenderer({ comment, figureId, figureName, parentId, replyId, onReplySuccess }: { comment: Comment, figureId: string, figureName: string, parentId: string, replyId: string, onReplySuccess: () => void }) {
     if (!comment) return null;
 
     const children = comment.children || [];
 
     return (
         <div className="space-y-4">
-            <CommentDisplay comment={comment} isHighlighted={comment.id === parentId} />
+            <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
             
             {children.length > 0 && (
                  <div className="pl-8 border-l-2 ml-4 space-y-4">
@@ -89,6 +89,7 @@ function ThreadRenderer({ comment, figureId, figureName, replyId, onReplySuccess
                         <ThreadRenderer 
                             key={child.id} 
                             comment={child}
+                            parentId={parentId}
                             replyId={replyId} 
                             figureId={figureId}
                             figureName={figureName}
@@ -120,8 +121,8 @@ export default function NotificationThreadDialog({
   onOpenChange,
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
+    const [threadTree, setThreadTree] = useState<Comment | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [rootComment, setRootComment] = useState<Comment | null>(null);
 
     useEffect(() => {
         const fetchFullThread = async () => {
@@ -131,15 +132,17 @@ export default function NotificationThreadDialog({
             try {
                 const commentsRef = collection(firestore, `figures/${figureId}/comments`);
                 
-                // Get the direct parent comment first
-                const parentSnap = await getDoc(doc(commentsRef, parentId));
+                // Fetch the main parent comment and all comments belonging to that thread
+                const q = query(commentsRef, where('threadId', '==', parentId));
+                
+                const [parentSnap, childrenSnap] = await Promise.all([
+                    getDoc(doc(commentsRef, parentId)),
+                    getDocs(q)
+                ]);
+
                 if (!parentSnap.exists()) {
                     throw new Error("El comentario principal no fue encontrado.");
                 }
-
-                // Query for all replies to the parent comment
-                const q = query(commentsRef, where('parentId', '==', parentId));
-                const childrenSnap = await getDocs(q);
 
                 const allCommentsRaw: Comment[] = [
                     { id: parentSnap.id, ...parentSnap.data() } as Comment,
@@ -167,11 +170,11 @@ export default function NotificationThreadDialog({
                     }
                 });
                 
-                setRootComment(commentMap.get(parentId) || null);
+                setThreadTree(commentMap.get(parentId) || null);
 
             } catch (error) {
                 console.error("Error fetching full thread:", error);
-                setRootComment(null);
+                setThreadTree(null);
             } finally {
                 setIsLoading(false);
             }
@@ -181,7 +184,7 @@ export default function NotificationThreadDialog({
     }, [firestore, figureId, parentId]);
 
     useEffect(() => {
-        if (!isLoading && rootComment) {
+        if (!isLoading && threadTree) {
             setTimeout(() => {
                 const element = document.getElementById(`comment-${replyId}`);
                 if (element) {
@@ -189,7 +192,7 @@ export default function NotificationThreadDialog({
                 }
             }, 100);
         }
-    }, [isLoading, rootComment, replyId]);
+    }, [isLoading, threadTree, replyId]);
 
     return (
         <DialogContent className="sm:max-w-xl">
@@ -206,9 +209,10 @@ export default function NotificationThreadDialog({
                         <div className="pl-8"><CommentDisplaySkeleton /></div>
                     </div>
                 ) : (
-                    rootComment ? (
+                    threadTree ? (
                         <ThreadRenderer 
-                            comment={rootComment}
+                            comment={threadTree}
+                            parentId={parentId}
                             replyId={replyId}
                             figureId={figureId}
                             figureName={figureName}
