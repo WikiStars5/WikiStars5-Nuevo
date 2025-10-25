@@ -31,12 +31,13 @@ import Link from 'next/link';
 interface CommentItemProps {
   comment: CommentType, 
   figureId: string,
+  figureName: string,
   hasChildren: boolean,
   repliesVisible: boolean,
   toggleReplies: () => void,
 }
 
-function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleReplies }: CommentItemProps) {
+function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisible, toggleReplies }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -349,7 +350,7 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                         figureId={figureId} 
                         parentId={comment.id} 
                         depth={comment.depth}
-                        figureName=""
+                        figureName={figureName}
                         onReplySuccess={() => {
                             setIsReplying(false);
                             if (!repliesVisible) {
@@ -366,9 +367,10 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
 interface CommentThreadProps {
   comment: CommentType;
   figureId: string;
+  figureName: string;
 }
 
-export default function CommentThread({ comment, figureId }: CommentThreadProps) {
+export default function CommentThread({ comment, figureId, figureName }: CommentThreadProps) {
   const [repliesVisible, setRepliesVisible] = useState(false);
   const hasChildren = comment.children && comment.children.length > 0;
 
@@ -380,7 +382,8 @@ export default function CommentThread({ comment, figureId }: CommentThreadProps)
     <div className="flex flex-col">
       <CommentItem 
         comment={comment} 
-        figureId={figureId} 
+        figureId={figureId}
+        figureName={figureName}
         hasChildren={!!hasChildren}
         repliesVisible={repliesVisible}
         toggleReplies={toggleReplies}
@@ -388,7 +391,7 @@ export default function CommentThread({ comment, figureId }: CommentThreadProps)
       {hasChildren && repliesVisible && (
         <div className="ml-8 mt-4 space-y-4 border-l-2 pl-4">
           {comment.children!.map(child => (
-            <CommentThread key={child.id} comment={child} figureId={figureId} />
+            <CommentThread key={child.id} comment={child} figureId={figureId} figureName={figureName}/>
           ))}
         </div>
       )}

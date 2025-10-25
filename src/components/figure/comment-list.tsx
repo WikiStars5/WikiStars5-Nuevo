@@ -43,7 +43,7 @@ function buildCommentTree(comments: Comment[]): Comment[] {
 type FilterType = 'all' | 'mine' | number;
 type MineFilterType = 'unanswered' | 'answered';
 
-export default function CommentList({ figureId }: { figureId: string }) {
+export default function CommentList({ figureId, figureName }: { figureId: string, figureName: string }) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
@@ -144,7 +144,7 @@ export default function CommentList({ figureId }: { figureId: string }) {
 
       {visibleComments.length > 0 ? (
         visibleComments.map((comment) => (
-            <CommentThread key={comment.id} comment={comment} figureId={figureId} />
+            <CommentThread key={comment.id} comment={comment} figureId={figureId} figureName={figureName} />
         ))
       ) : (
         <div className="text-center py-10">

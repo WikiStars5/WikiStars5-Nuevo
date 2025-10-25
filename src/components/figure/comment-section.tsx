@@ -14,7 +14,7 @@ export default function CommentSection({ figureId, figureName }: CommentSectionP
     <div className="space-y-6">
       <CommentForm figureId={figureId} figureName={figureName} />
       <Separator />
-      <CommentList figureId={figureId} />
+      <CommentList figureId={figureId} figureName={figureName} />
     </div>
   );
 }
