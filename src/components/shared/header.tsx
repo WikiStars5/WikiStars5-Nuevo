@@ -75,7 +75,7 @@ export default function Header() {
                <Dialog open={isWebProfileDialogOpen} onOpenChange={setIsWebProfileDialogOpen}>
                 <CreateProfileFromWebDialog onProfileCreated={() => setIsWebProfileDialogOpen(false)} />
               </Dialog>
-              
+
               <InstallPwaButton />
 
               <DropdownMenu>
