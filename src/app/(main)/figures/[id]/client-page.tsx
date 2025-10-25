@@ -21,6 +21,7 @@ import CommunityRatings from '@/components/figure/community-ratings';
 import RelatedFigures from '@/components/figure/related-figures';
 import TopStreaks from '@/components/streaks/top-streaks';
 import GoatBattle from '@/components/figure/goat-battle';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
@@ -183,32 +184,35 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
       <div className="mt-6">
         <Tabs defaultValue="actitud" className="w-full">
-          <TabsList className={`grid w-full ${isGoatCandidate ? 'grid-cols-5' : 'grid-cols-4'}`}>
-            <TabsTrigger value="informacion">
-              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
-              Información
-            </TabsTrigger>
-            <TabsTrigger value="actitud">
-               <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="2" />
-              </svg>
-              Actitud
-            </TabsTrigger>
-            <TabsTrigger value="emocion">
-             <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
-              Emoción
-            </TabsTrigger>
-            <TabsTrigger value="rachas">
-              <Flame className="mr-2 h-4 w-4" />
-              Rachas
-            </TabsTrigger>
-            {isGoatCandidate && (
-              <TabsTrigger value="goat">
-                <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 16h3a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-3v10z" /><path d="M11 16v-10" /><path d="M7 10h1.5a1.5 1.5 0 0 1 0 3h-1.5a1.5 1.5 0 0 1 0 3h2" /><path d="M4 16v-5" /></svg>
-                GOAT
+          <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className="inline-flex h-auto">
+              <TabsTrigger value="informacion">
+                <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
+                Información
               </TabsTrigger>
-            )}
-          </TabsList>
+              <TabsTrigger value="actitud">
+                <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
+                Actitud
+              </TabsTrigger>
+              <TabsTrigger value="emocion">
+              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
+                Emoción
+              </TabsTrigger>
+              <TabsTrigger value="rachas">
+                <Flame className="mr-2 h-4 w-4" />
+                Rachas
+              </TabsTrigger>
+              {isGoatCandidate && (
+                <TabsTrigger value="goat">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 16h3a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-3v10z" /><path d="M11 16v-10" /><path d="M7 10h1.5a1.5 1.5 0 0 1 0 3h-1.5a1.5 1.5 0 0 1 0 3h2" /><path d="M4 16v-5" /></svg>
+                  GOAT
+                </TabsTrigger>
+              )}
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
           <TabsContent value="informacion" className="mt-4">
               {isEditing ? (
                   <EditInformationForm figure={figure} onFormClose={() => setIsEditing(false)} />
