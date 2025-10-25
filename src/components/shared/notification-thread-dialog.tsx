@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, doc, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, query, where, orderBy } from 'firebase/firestore';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -80,7 +81,7 @@ function ThreadRenderer({ comment, figureId, figureName, replyId, onReplySuccess
 
     return (
         <div className="space-y-4">
-            <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
+            <CommentDisplay comment={comment} isHighlighted={comment.id === parentId} />
             
             {children.length > 0 && (
                  <div className="pl-8 border-l-2 ml-4 space-y-4">
@@ -129,16 +130,16 @@ export default function NotificationThreadDialog({
 
             try {
                 const commentsRef = collection(firestore, `figures/${figureId}/comments`);
-                const q = query(commentsRef, where('parentId', '==', parentId));
                 
-                const [parentSnap, childrenSnap] = await Promise.all([
-                    getDoc(doc(commentsRef, parentId)),
-                    getDocs(q)
-                ]);
-
+                // Get the direct parent comment first
+                const parentSnap = await getDoc(doc(commentsRef, parentId));
                 if (!parentSnap.exists()) {
                     throw new Error("El comentario principal no fue encontrado.");
                 }
+
+                // Query for all replies to the parent comment
+                const q = query(commentsRef, where('parentId', '==', parentId));
+                const childrenSnap = await getDocs(q);
 
                 const allCommentsRaw: Comment[] = [
                     { id: parentSnap.id, ...parentSnap.data() } as Comment,
@@ -153,7 +154,6 @@ export default function NotificationThreadDialog({
                 commentMap.forEach(comment => {
                     if (comment.parentId && commentMap.has(comment.parentId)) {
                         const parent = commentMap.get(comment.parentId)!;
-                        // Ensure children array exists
                         if (!parent.children) {
                             parent.children = [];
                         }
@@ -180,7 +180,6 @@ export default function NotificationThreadDialog({
         fetchFullThread();
     }, [firestore, figureId, parentId]);
 
-    // Scroll to the highlighted comment after rendering
     useEffect(() => {
         if (!isLoading && rootComment) {
             setTimeout(() => {
@@ -223,5 +222,3 @@ export default function NotificationThreadDialog({
         </DialogContent>
     );
 }
-
-    
