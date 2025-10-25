@@ -88,20 +88,26 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        const path: string =
-          memoizedTargetRefOrQuery.type === 'collection'
+        let path = 'unknown';
+        try {
+          // This attempts to get the path, but might fail if the object structure is unexpected.
+          path = memoizedTargetRefOrQuery.type === 'collection'
             ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
+            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+        } catch (e) {
+          console.warn("Could not determine path for useCollection permission error.");
+        }
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',
-          path,
-        })
+          path: path,
+        });
 
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
+        setError(contextualError);
+        setData(null);
+        setIsLoading(false);
 
+        // Crucially, emit the error so the global listener can catch it.
         errorEmitter.emit('permission-error', contextualError);
       }
     );
