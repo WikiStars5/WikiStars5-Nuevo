@@ -27,7 +27,7 @@ interface ReplyFormProps {
   figureName: string;
   parentId: string;
   depth: number;
-  onReplySuccess: () => void;
+  onReplySuccess: (newReplyId: string) => void;
 }
 
 export default function ReplyForm({ figureId, figureName, parentId, depth, onReplySuccess }: ReplyFormProps) {
@@ -83,7 +83,8 @@ export default function ReplyForm({ figureId, figureName, parentId, depth, onRep
         rating: -1, // Replies don't have ratings
       };
 
-      await addDocumentNonBlocking(commentsColRef, newReply);
+      const newReplyRef = await addDocumentNonBlocking(commentsColRef, newReply);
+      const newReplyId = newReplyRef.id;
       
       // --- Create Notification ---
       const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentId);
@@ -101,7 +102,7 @@ export default function ReplyForm({ figureId, figureName, parentId, depth, onRep
                 message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
                 isRead: false,
                 createdAt: serverTimestamp(),
-                link: `/figures/${figureId}?comment=${parentCommentSnap.id}`
+                link: `/figures/${figureId}?thread=${parentId}&reply=${newReplyId}`
             };
             await addDocumentNonBlocking(notificationsColRef, notification);
         }
@@ -128,7 +129,7 @@ export default function ReplyForm({ figureId, figureName, parentId, depth, onRep
         title: '¡Respuesta Publicada!',
       });
       form.reset();
-      onReplySuccess();
+      onReplySuccess(newReplyId);
     } catch (error) {
       console.error('Error al publicar respuesta:', error);
       toast({
@@ -155,7 +156,7 @@ export default function ReplyForm({ figureId, figureName, parentId, depth, onRep
             rows={2}
             />
             <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={onReplySuccess} disabled={isSubmitting}>
+                <Button variant="ghost" size="sm" onClick={() => onReplySuccess('')} disabled={isSubmitting}>
                     Cancelar
                 </Button>
                 <Button type="submit" size="sm" disabled={isSubmitting}>

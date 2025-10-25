@@ -125,41 +125,36 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
   useEffect(() => {
     const handleCommentHighlight = async () => {
-      // Only run on client after component mounts and data is loaded
-      if (typeof window === 'undefined' || !firestore || isLoading || !figure) return;
-
-      const params = new URLSearchParams(window.location.search);
-      const commentId = params.get('comment');
-      if (!commentId) return;
-
-      // Find the parent thread to open
-      const commentRef = doc(firestore, 'figures', figureId, 'comments', commentId);
-      const commentSnap = await getDoc(commentRef);
-      if (commentSnap.exists()) {
-        const commentData = commentSnap.data() as Comment;
-        if (commentData.parentId) {
-          setInitialOpenThreadId(commentData.parentId);
-        } else {
-          // If it's a root comment, we don't need to open any thread, just highlight it.
-          setInitialOpenThreadId(null); 
+        if (typeof window === 'undefined' || isLoading || !figure) return;
+  
+        const params = new URLSearchParams(window.location.search);
+        const replyId = params.get('reply');
+        const threadId = params.get('thread');
+  
+        // If a thread ID is specified, open it. This is for replies.
+        if (threadId) {
+          setInitialOpenThreadId(threadId);
         }
-      }
-
-      // Allow time for the DOM to update, especially if a thread needs to open
-      setTimeout(() => {
-        const element = document.getElementById(`comment-${commentId}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.classList.add('animate-highlight');
-          setTimeout(() => {
-            element.classList.remove('animate-highlight');
-          }, 2000); // Must match animation duration
-        }
-      }, 500);
-    };
-
-    handleCommentHighlight();
-  }, [isLoading, figure, figureId, firestore]);
+  
+        // The ID to highlight can be a reply or a top-level comment.
+        const highlightId = replyId || threadId;
+        if (!highlightId) return;
+  
+        // The timeout gives the DOM time to update, especially if a thread needs to open.
+        setTimeout(() => {
+          const element = document.getElementById(`comment-${highlightId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('animate-highlight');
+            setTimeout(() => {
+              element.classList.remove('animate-highlight');
+            }, 2000); // Duration must match the animation in tailwind.config.ts
+          }
+        }, 500); // 500ms delay to ensure the thread is open before scrolling.
+      };
+  
+      handleCommentHighlight();
+    }, [isLoading, figure, figureId, firestore]);
 
 
   if (isLoading || !figure) {
