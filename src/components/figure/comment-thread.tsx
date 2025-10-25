@@ -191,7 +191,7 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
     }
 
     return (
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-4 rounded-lg border bg-card text-card-foreground p-4">
             <Avatar className="h-10 w-10">
                  <Link href={`/u/${comment.userDisplayName}`}><AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} /></Link>
                 <AvatarFallback><Link href={`/u/${comment.userDisplayName}`}>{getAvatarFallback()}</Link></AvatarFallback>
