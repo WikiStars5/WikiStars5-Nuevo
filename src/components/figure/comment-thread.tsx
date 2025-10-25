@@ -1,6 +1,6 @@
 'use client';
 
-import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking } from '@/firebase';
 import type { Comment as CommentType, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -110,46 +110,63 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
         }
     };
     
+    // Finds all descendant comments of a given comment ID
+    const findDescendants = async (commentId: string, allComments: CommentType[]): Promise<string[]> => {
+      const children = allComments.filter(c => c.parentId === commentId);
+      let descendantIds: string[] = children.map(c => c.id);
+      
+      for (const child of children) {
+        const grandChildrenIds = await findDescendants(child.id, allComments);
+        descendantIds = descendantIds.concat(grandChildrenIds);
+      }
+      
+      return descendantIds;
+    };
+
+
     const handleDelete = async () => {
         if (!firestore || !isOwner) return;
         setIsDeleting(true);
 
         const figureRef = doc(firestore, 'figures', figureId);
-        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+        const commentsColRef = collection(firestore, `figures/${figureId}/comments`);
 
         try {
-            await runTransaction(firestore, async (transaction) => {
-                const commentDoc = await transaction.get(commentRef);
-                if (!commentDoc.exists()) {
-                    throw new Error("Este comentario ya no existe.");
-                }
+            const allCommentsSnapshot = await getDocs(commentsColRef);
+            const allComments = allCommentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as CommentType);
 
-                const commentData = commentDoc.data() as CommentType;
+            // Find all replies to be deleted
+            const descendantIds = await findDescendants(comment.id, allComments);
+            
+            const batch = writeBatch(firestore);
 
-                // Only adjust ratings if this comment had a valid rating
-                if (typeof commentData.rating === 'number' && commentData.rating >= 0) {
-                     const figureDoc = await transaction.get(figureRef);
-                    if (!figureDoc.exists()) {
-                        throw new Error("La figura asociada no fue encontrada.");
-                    }
-                    const updates: { [key: string]: any } = {};
-                    updates['ratingCount'] = increment(-1);
-                    updates['totalRating'] = increment(-commentData.rating);
-                    updates[`ratingsBreakdown.${commentData.rating}`] = increment(-1);
-                    
-                    transaction.update(figureRef, updates);
-                }
-
-                // Finally, delete the comment itself
-                transaction.delete(commentRef);
+            // Delete all descendant comments
+            descendantIds.forEach(id => {
+                const commentRef = doc(commentsColRef, id);
+                batch.delete(commentRef);
             });
+            
+            // Delete the main comment itself
+            const mainCommentRef = doc(commentsColRef, comment.id);
+            batch.delete(mainCommentRef);
+
+            // Adjust figure's rating if the main comment had one
+            if (typeof comment.rating === 'number' && comment.rating >= 0) {
+                 const updates: { [key: string]: any } = {};
+                updates['ratingCount'] = increment(-1);
+                updates['totalRating'] = increment(-comment.rating);
+                updates[`ratingsBreakdown.${comment.rating}`] = increment(-1);
+                batch.update(figureRef, updates);
+            }
+            
+            await batch.commit();
 
             toast({
                 title: "Comentario Eliminado",
-                description: "Tu comentario ha sido eliminado correctamente.",
+                description: "Tu comentario y todas sus respuestas han sido eliminados.",
             });
         } catch (error: any) {
-            console.error("Error al eliminar comentario:", error);
+            console.error("Error al eliminar comentario y sus respuestas:", error);
             toast({
                 title: "Error al Eliminar",
                 description: error.message || "No se pudo eliminar el comentario.",
@@ -293,7 +310,7 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                                     <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                        tu comentario y su calificación asociada de nuestros servidores.
+                                        tu comentario y todas sus respuestas.
                                     </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -332,6 +349,7 @@ function CommentItem({ comment, figureId, hasChildren, repliesVisible, toggleRep
                         figureId={figureId} 
                         parentId={comment.id} 
                         depth={comment.depth}
+                        figureName=""
                         onReplySuccess={() => {
                             setIsReplying(false);
                             if (!repliesVisible) {
