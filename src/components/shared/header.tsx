@@ -130,8 +130,6 @@ export default function Header() {
                     <span>Crear Perfil Web</span>
                   </DropdownMenuItem>
 
-                  <InstallPwaButton asMenuItem={true} />
-
                   <ThemeToggle />
 
                   <DropdownMenuSeparator />
@@ -145,15 +143,12 @@ export default function Header() {
             </>
           ) : (
              <div className="flex items-center gap-2">
-                <InstallPwaButton />
-                {pathname === '/' && (
-                  <Button asChild>
-                      <Link href="/login">
-                          <LogIn className="mr-2 h-4 w-4" />
-                          Iniciar Sesión
-                      </Link>
-                  </Button>
-                )}
+                <Button asChild>
+                    <Link href="/admin/login">
+                        <LogIn className="mr-2 h-4 w-4" />
+                        Iniciar Sesión
+                    </Link>
+                </Button>
              </div>
           )}
         </div>
