@@ -1,8 +1,9 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc } from 'firebase/firestore';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,7 +16,7 @@ import { StarRating } from './star-rating';
 
 interface NotificationThreadDialogProps {
   figureId: string;
-  parentId: string; // This is the top-level comment ID
+  parentId: string; 
   replyId: string;
   figureName: string;
   onOpenChange: (open: boolean) => void;
@@ -73,7 +74,6 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
     )
 }
 
-// Recursive component to render the thread
 function ThreadRenderer({ comment, allCommentsInTree, replyId }: { comment: Comment; allCommentsInTree: Map<string, Comment>; replyId: string }) {
     const children = Array.from(allCommentsInTree.values()).filter(c => c.parentId === comment.id);
 
@@ -101,22 +101,39 @@ export default function NotificationThreadDialog({
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
 
-    // Query for the parent comment and all comments that have it as an ancestor
     const threadQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        // This is a simplification. A real implementation for deep nesting might require a different data model
-        // or multiple queries. For now, we get the parent and its direct children.
-        // A more robust way is often to store an array of ancestors in each comment doc.
-        // Let's try fetching all comments for the figure and filtering client side for simplicity here.
-        return query(collection(firestore, `figures/${figureId}/comments`));
+        
+        const figureCommentsRef = collection(firestore, `figures/${figureId}/comments`);
+        return query(figureCommentsRef, where('parentId', '==', parentId));
     }, [firestore, figureId, parentId]);
     
     const { data: allComments, isLoading } = useCollection<Comment>(threadQuery);
 
+    const [parentComment, setParentComment] = useState<Comment | null>(null);
+    const [isParentLoading, setIsParentLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchParent = async () => {
+            if (!firestore) return;
+            setIsParentLoading(true);
+            const parentRef = doc(firestore, `figures/${figureId}/comments`, parentId);
+            const docSnap = await getDoc(parentRef);
+            if (docSnap.exists()) {
+                setParentComment({ id: docSnap.id, ...docSnap.data() } as Comment);
+            }
+            setIsParentLoading(false);
+        };
+        fetchParent();
+    }, [firestore, figureId, parentId]);
+
+
     const threadTree = useMemo(() => {
-        if (!allComments) return null;
+        if (!parentComment || !allComments) return null;
 
         const commentMap = new Map<string, Comment>();
+        // Add parent and all its children to the map
+        commentMap.set(parentComment.id, { ...parentComment, children: [] });
         allComments.forEach(c => commentMap.set(c.id, { ...c, children: [] }));
 
         const buildRecursiveTree = (id: string): Comment | null => {
@@ -129,12 +146,11 @@ export default function NotificationThreadDialog({
         }
 
         return buildRecursiveTree(parentId);
-    }, [allComments, parentId]);
+    }, [allComments, parentId, parentComment]);
 
 
     useEffect(() => {
         if (threadTree) {
-            // Scroll to the highlighted comment after it's rendered
             setTimeout(() => {
                 const element = document.getElementById(`comment-${replyId}`);
                 if (element) {
@@ -154,7 +170,7 @@ export default function NotificationThreadDialog({
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
-                {isLoading ? (
+                {isLoading || isParentLoading ? (
                     <div className="space-y-4">
                         <CommentDisplaySkeleton />
                         <div className="pl-8"><CommentDisplaySkeleton /></div>
@@ -172,8 +188,8 @@ export default function NotificationThreadDialog({
                                      <ReplyForm
                                         figureId={figureId}
                                         figureName={figureName}
-                                        parentId={replyId} // You reply to the last message in the thread
-                                        depth={threadTree.depth + 1} // This is an approximation, but ok for now
+                                        parentId={replyId} 
+                                        depth={threadTree.depth + 1} 
                                         onReplySuccess={() => onOpenChange(false)}
                                     />
                                 </div>
@@ -187,3 +203,4 @@ export default function NotificationThreadDialog({
         </DialogContent>
     );
 }
+
