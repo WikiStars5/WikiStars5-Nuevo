@@ -2,21 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { doc, getDoc, collection, query, where } from 'firebase/firestore';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Comment } from '@/lib/types';
 import ReplyForm from '../figure/reply-form';
 import { countries } from '@/lib/countries';
 import { StarRating } from './star-rating';
+import { CornerDownRight } from 'lucide-react';
 
 interface NotificationThreadDialogProps {
   figureId: string;
-  parentId: string;
+  parentId: string; // This is the top-level comment ID
   replyId: string;
   figureName: string;
   onOpenChange: (open: boolean) => void;
@@ -34,13 +34,12 @@ function CommentDisplaySkeleton() {
     );
 }
 
-
-function CommentDisplay({ comment }: { comment: Comment }) {
+function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, isHighlighted?: boolean }) {
     const country = comment.userCountry ? countries.find(c => c.name === comment.userCountry) : null;
-    const getAvatarFallback = () => comment.userDisplayName?.charAt(0) || 'U';
+    const getAvatarFallback = () => comment.userDisplayName?.charAt(0).toUpperCase() || 'U';
 
     return (
-        <div className="flex items-start gap-4 rounded-lg border bg-card text-card-foreground p-4">
+        <div id={`comment-${comment.id}`} className={`flex items-start gap-4 rounded-lg border p-4 ${isHighlighted ? 'bg-primary/10 border-primary' : 'bg-card'}`}>
             <Avatar className="h-10 w-10">
                 <Link href={`/u/${comment.userDisplayName}`}>
                     <AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} />
@@ -75,6 +74,23 @@ function CommentDisplay({ comment }: { comment: Comment }) {
     )
 }
 
+// Recursive component to render the thread
+function ThreadRenderer({ comment, replyId }: { comment: Comment, replyId: string }) {
+    return (
+        <div className="space-y-4">
+            <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
+            {comment.children && comment.children.length > 0 && (
+                 <div className="pl-8 border-l-2 ml-4 space-y-4">
+                    {comment.children.map(child => (
+                        <ThreadRenderer key={child.id} comment={child} replyId={replyId} />
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}
+
+
 export default function NotificationThreadDialog({
   figureId,
   parentId,
@@ -83,27 +99,77 @@ export default function NotificationThreadDialog({
   onOpenChange,
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
+    const [thread, setThread] = useState<Comment | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const parentCommentRef = useMemoFirebase(() => {
+    const commentsCollectionRef = useMemoFirebase(() => {
         if (!firestore) return null;
-        return doc(firestore, `figures/${figureId}/comments`, parentId);
-    }, [firestore, figureId, parentId]);
+        return collection(firestore, `figures/${figureId}/comments`);
+    }, [firestore, figureId]);
 
-    const replyCommentRef = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return doc(firestore, `figures/${figureId}/comments`, replyId);
-    }, [firestore, figureId, replyId]);
+    const { data: comments, isLoading: areCommentsLoading } = useCollection<Comment>(commentsCollectionRef);
 
-    const { data: parentComment, isLoading: isParentLoading } = useDoc<Comment>(parentCommentRef);
-    const { data: replyComment, isLoading: isReplyLoading } = useDoc<Comment>(replyCommentRef);
+    useEffect(() => {
+        if (areCommentsLoading || !comments) return;
 
-    const isLoading = isParentLoading || isReplyLoading;
+        const buildThread = () => {
+            const commentMap: { [key: string]: Comment } = {};
+            comments.forEach(c => {
+                commentMap[c.id] = { ...c, children: [] };
+            });
+
+            const rootComment = commentMap[parentId];
+            if (!rootComment) {
+                 setIsLoading(false);
+                 return;
+            }
+
+            // Function to find the path to the reply
+            const findPath = (currentId: string): Comment | null => {
+                const currentComment = commentMap[currentId];
+                if (!currentComment) return null;
+
+                if (currentId === parentId) return currentComment;
+
+                const parent = findPath(currentComment.parentId!);
+                if (parent) {
+                    parent.children = [currentComment]; // only include the child in the path
+                    return parent;
+                }
+                return null;
+            };
+
+            const replyComment = commentMap[replyId];
+            if (replyComment) {
+                findPath(replyComment.parentId!);
+            }
+
+            setThread(rootComment);
+            setIsLoading(false);
+        };
+
+        buildThread();
+
+    }, [comments, areCommentsLoading, parentId, replyId]);
+    
+    useEffect(() => {
+        if (thread) {
+            // Scroll to the highlighted comment after it's rendered
+            setTimeout(() => {
+                const element = document.getElementById(`comment-${replyId}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+    }, [thread, replyId]);
+
 
     return (
         <DialogContent className="sm:max-w-xl">
             <DialogHeader>
                 <DialogTitle>Nueva Respuesta</DialogTitle>
-                 <DialogDescription>
+                <DialogDescription>
                     Alguien ha respondido a tu comentario en el perfil de <span className="font-semibold text-primary">{figureName}</span>.
                 </DialogDescription>
             </DialogHeader>
@@ -115,22 +181,21 @@ export default function NotificationThreadDialog({
                     </div>
                 ) : (
                     <>
-                        {parentComment && <CommentDisplay comment={parentComment} />}
-                        {replyComment && (
-                            <div className="pl-8 border-l-2 ml-4">
-                                <CommentDisplay comment={replyComment} />
-                            </div>
-                        )}
-                        {parentComment && (
-                            <div className="pl-8 border-l-2 ml-4">
-                                <ReplyForm
-                                    figureId={figureId}
-                                    figureName={figureName}
-                                    parentId={parentId}
-                                    depth={parentComment.depth}
-                                    onReplySuccess={() => onOpenChange(false)}
-                                />
-                            </div>
+                        {thread ? (
+                            <>
+                                <ThreadRenderer comment={thread} replyId={replyId} />
+                                <div className="pl-8 border-l-2 ml-4">
+                                     <ReplyForm
+                                        figureId={figureId}
+                                        figureName={figureName}
+                                        parentId={replyId} // You reply to the last message in the thread
+                                        depth={thread.depth + 1} // This is an approximation, but ok for now
+                                        onReplySuccess={() => onOpenChange(false)}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-center text-muted-foreground">No se pudo cargar el hilo del comentario.</p>
                         )}
                     </>
                 )}
