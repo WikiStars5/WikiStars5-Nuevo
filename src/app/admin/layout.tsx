@@ -20,6 +20,7 @@ import { useAuth, useUser, useAdmin } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
+import Image from 'next/image';
 
 function AccessDenied() {
   const router = useRouter();
@@ -92,7 +93,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-6">
                 <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-                    <Logo className="h-6 w-6 text-primary" />
+                    <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6" alt="WikiStars5 Logo" width={24} height={24} className="h-6 w-6" />
                     <span className="font-headline text-primary">WikiStars5</span>
                 </Link>
                  <div className="hidden md:block w-96">

@@ -18,6 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Eye, EyeOff } from 'lucide-react';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 const loginSchema = z.object({
   email: z.string().email('Por favor, introduce un correo electrónico válido.'),
@@ -98,7 +99,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md">
          <div className="flex justify-center mb-6">
             <Link href="/" className="flex items-center gap-2 font-bold text-2xl">
-                <Logo className="h-8 w-8 text-primary" />
+                <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6" alt="WikiStars5 Logo" width={32} height={32} className="h-8 w-8" />
                 <span className="font-headline">WikiStars5</span>
             </Link>
         </div>
