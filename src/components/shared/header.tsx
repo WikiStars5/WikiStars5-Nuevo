@@ -64,6 +64,8 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+          <InstallPwaButton />
+
           {isUserLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
           ) : user ? (
@@ -75,8 +77,6 @@ export default function Header() {
                <Dialog open={isWebProfileDialogOpen} onOpenChange={setIsWebProfileDialogOpen}>
                 <CreateProfileFromWebDialog onProfileCreated={() => setIsWebProfileDialogOpen(false)} />
               </Dialog>
-
-              <InstallPwaButton />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
