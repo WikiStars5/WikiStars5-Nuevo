@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { doc, getDoc, collection, query, where } from 'firebase/firestore';
-import { useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,7 +12,6 @@ import type { Comment } from '@/lib/types';
 import ReplyForm from '../figure/reply-form';
 import { countries } from '@/lib/countries';
 import { StarRating } from './star-rating';
-import { CornerDownRight } from 'lucide-react';
 
 interface NotificationThreadDialogProps {
   figureId: string;
@@ -39,7 +38,7 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
     const getAvatarFallback = () => comment.userDisplayName?.charAt(0).toUpperCase() || 'U';
 
     return (
-        <div id={`comment-${comment.id}`} className={`flex items-start gap-4 rounded-lg border p-4 ${isHighlighted ? 'bg-primary/10 border-primary' : 'bg-card'}`}>
+        <div id={`comment-${comment.id}`} className={`flex items-start gap-4 rounded-lg border p-4 transition-all duration-500 ${isHighlighted ? 'bg-primary/10 border-primary animate-highlight' : 'bg-card'}`}>
             <Avatar className="h-10 w-10">
                 <Link href={`/u/${comment.userDisplayName}`}>
                     <AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} />
@@ -75,14 +74,16 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
 }
 
 // Recursive component to render the thread
-function ThreadRenderer({ comment, replyId }: { comment: Comment, replyId: string }) {
+function ThreadRenderer({ comment, allCommentsInTree, replyId }: { comment: Comment; allCommentsInTree: Map<string, Comment>; replyId: string }) {
+    const children = Array.from(allCommentsInTree.values()).filter(c => c.parentId === comment.id);
+
     return (
         <div className="space-y-4">
             <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
-            {comment.children && comment.children.length > 0 && (
+            {children.length > 0 && (
                  <div className="pl-8 border-l-2 ml-4 space-y-4">
-                    {comment.children.map(child => (
-                        <ThreadRenderer key={child.id} comment={child} replyId={replyId} />
+                    {children.map(child => (
+                        <ThreadRenderer key={child.id} comment={child} allCommentsInTree={allCommentsInTree} replyId={replyId} />
                     ))}
                 </div>
             )}
@@ -99,61 +100,40 @@ export default function NotificationThreadDialog({
   onOpenChange,
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
-    const [thread, setThread] = useState<Comment | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
 
-    const commentsCollectionRef = useMemoFirebase(() => {
+    // Query for the parent comment and all comments that have it as an ancestor
+    const threadQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return collection(firestore, `figures/${figureId}/comments`);
-    }, [firestore, figureId]);
-
-    const { data: comments, isLoading: areCommentsLoading } = useCollection<Comment>(commentsCollectionRef);
-
-    useEffect(() => {
-        if (areCommentsLoading || !comments) return;
-
-        const buildThread = () => {
-            const commentMap: { [key: string]: Comment } = {};
-            comments.forEach(c => {
-                commentMap[c.id] = { ...c, children: [] };
-            });
-
-            const rootComment = commentMap[parentId];
-            if (!rootComment) {
-                 setIsLoading(false);
-                 return;
-            }
-
-            // Function to find the path to the reply
-            const findPath = (currentId: string): Comment | null => {
-                const currentComment = commentMap[currentId];
-                if (!currentComment) return null;
-
-                if (currentId === parentId) return currentComment;
-
-                const parent = findPath(currentComment.parentId!);
-                if (parent) {
-                    parent.children = [currentComment]; // only include the child in the path
-                    return parent;
-                }
-                return null;
-            };
-
-            const replyComment = commentMap[replyId];
-            if (replyComment) {
-                findPath(replyComment.parentId!);
-            }
-
-            setThread(rootComment);
-            setIsLoading(false);
-        };
-
-        buildThread();
-
-    }, [comments, areCommentsLoading, parentId, replyId]);
+        // This is a simplification. A real implementation for deep nesting might require a different data model
+        // or multiple queries. For now, we get the parent and its direct children.
+        // A more robust way is often to store an array of ancestors in each comment doc.
+        // Let's try fetching all comments for the figure and filtering client side for simplicity here.
+        return query(collection(firestore, `figures/${figureId}/comments`));
+    }, [firestore, figureId, parentId]);
     
+    const { data: allComments, isLoading } = useCollection<Comment>(threadQuery);
+
+    const threadTree = useMemo(() => {
+        if (!allComments) return null;
+
+        const commentMap = new Map<string, Comment>();
+        allComments.forEach(c => commentMap.set(c.id, { ...c, children: [] }));
+
+        const buildRecursiveTree = (id: string): Comment | null => {
+            const comment = commentMap.get(id);
+            if (!comment) return null;
+            
+            const children = allComments.filter(c => c.parentId === id);
+            comment.children = children.map(child => buildRecursiveTree(child.id)).filter(Boolean) as Comment[];
+            return comment;
+        }
+
+        return buildRecursiveTree(parentId);
+    }, [allComments, parentId]);
+
+
     useEffect(() => {
-        if (thread) {
+        if (threadTree) {
             // Scroll to the highlighted comment after it's rendered
             setTimeout(() => {
                 const element = document.getElementById(`comment-${replyId}`);
@@ -162,7 +142,7 @@ export default function NotificationThreadDialog({
                 }
             }, 100);
         }
-    }, [thread, replyId]);
+    }, [threadTree, replyId]);
 
 
     return (
@@ -181,15 +161,19 @@ export default function NotificationThreadDialog({
                     </div>
                 ) : (
                     <>
-                        {thread ? (
+                        {threadTree && allComments ? (
                             <>
-                                <ThreadRenderer comment={thread} replyId={replyId} />
+                                <ThreadRenderer 
+                                    comment={threadTree} 
+                                    allCommentsInTree={new Map(allComments.map(c => [c.id, c]))} 
+                                    replyId={replyId} 
+                                />
                                 <div className="pl-8 border-l-2 ml-4">
                                      <ReplyForm
                                         figureId={figureId}
                                         figureName={figureName}
                                         parentId={replyId} // You reply to the last message in the thread
-                                        depth={thread.depth + 1} // This is an approximation, but ok for now
+                                        depth={threadTree.depth + 1} // This is an approximation, but ok for now
                                         onReplySuccess={() => onOpenChange(false)}
                                     />
                                 </div>
