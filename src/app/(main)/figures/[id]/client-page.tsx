@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { doc, collection } from 'firebase/firestore';
+import { doc, getDoc, collection } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Figure } from '@/lib/types';
+import type { Figure, Comment } from '@/lib/types';
 import ProfileHeader from '@/components/figure/ProfileHeader';
 import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
@@ -114,6 +114,7 @@ const formatHeight = (cm?: number): string | null => {
 export default function FigureDetailClient({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
   const [isEditing, setIsEditing] = useState(false);
+  const [initialOpenThreadId, setInitialOpenThreadId] = useState<string | null>(null);
 
   const figureDocRef = useMemoFirebase(() => {
     if (!firestore || !figureId) return null;
@@ -122,27 +123,43 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
   const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
 
-   useEffect(() => {
-    // Only run this effect on the client side after the component mounts
-    if (typeof window === 'undefined' || isLoading || !figure) return;
-    
-    const params = new URLSearchParams(window.location.search);
-    const commentId = params.get('comment');
+  useEffect(() => {
+    const handleCommentHighlight = async () => {
+      // Only run on client after component mounts and data is loaded
+      if (typeof window === 'undefined' || !firestore || isLoading || !figure) return;
 
-    if (commentId) {
+      const params = new URLSearchParams(window.location.search);
+      const commentId = params.get('comment');
+      if (!commentId) return;
+
+      // Find the parent thread to open
+      const commentRef = doc(firestore, 'figures', figureId, 'comments', commentId);
+      const commentSnap = await getDoc(commentRef);
+      if (commentSnap.exists()) {
+        const commentData = commentSnap.data() as Comment;
+        if (commentData.parentId) {
+          setInitialOpenThreadId(commentData.parentId);
+        } else {
+          // If it's a root comment, we don't need to open any thread, just highlight it.
+          setInitialOpenThreadId(null); 
+        }
+      }
+
+      // Allow time for the DOM to update, especially if a thread needs to open
       setTimeout(() => {
         const element = document.getElementById(`comment-${commentId}`);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
           element.classList.add('animate-highlight');
-          // Remove the animation class after it finishes to allow re-triggering
           setTimeout(() => {
             element.classList.remove('animate-highlight');
           }, 2000); // Must match animation duration
         }
-      }, 500); // A slight delay to ensure the DOM is ready
-    }
-  }, [isLoading, figure, figureId]);
+      }, 500);
+    };
+
+    handleCommentHighlight();
+  }, [isLoading, figure, figureId, firestore]);
 
 
   if (isLoading || !figure) {
@@ -327,7 +344,11 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
        <div className="mt-8 space-y-8">
         <CommunityRatings figure={figure} />
-        <CommentSection figureId={figure.id} figureName={figure.name} />
+        <CommentSection 
+            figureId={figure.id} 
+            figureName={figure.name}
+            initialOpenThreadId={initialOpenThreadId}
+        />
         <RelatedFigures figure={figure} />
       </div>
     </div>

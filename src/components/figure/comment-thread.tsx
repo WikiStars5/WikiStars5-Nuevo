@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
 import { MessageCircle, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -368,11 +368,19 @@ interface CommentThreadProps {
   comment: CommentType;
   figureId: string;
   figureName: string;
+  initialRepliesVisible: boolean;
 }
 
-export default function CommentThread({ comment, figureId, figureName }: CommentThreadProps) {
-  const [repliesVisible, setRepliesVisible] = useState(false);
+export default function CommentThread({ comment, figureId, figureName, initialRepliesVisible }: CommentThreadProps) {
+  const [repliesVisible, setRepliesVisible] = useState(initialRepliesVisible);
   const hasChildren = comment.children && comment.children.length > 0;
+
+  useEffect(() => {
+    // This allows the thread to be opened from the parent if a notification link is followed
+    if (initialRepliesVisible) {
+      setRepliesVisible(true);
+    }
+  }, [initialRepliesVisible]);
 
   const toggleReplies = () => {
     setRepliesVisible(prev => !prev);
@@ -391,7 +399,13 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
       {hasChildren && repliesVisible && (
         <div className="ml-8 mt-4 space-y-4 border-l-2 pl-4">
           {comment.children!.map(child => (
-            <CommentThread key={child.id} comment={child} figureId={figureId} figureName={figureName}/>
+            <CommentThread 
+              key={child.id} 
+              comment={child} 
+              figureId={figureId} 
+              figureName={figureName}
+              initialRepliesVisible={false} // Only the top-level thread can be opened initially
+            />
           ))}
         </div>
       )}
