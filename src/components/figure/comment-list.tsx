@@ -47,14 +47,22 @@ interface CommentListProps {
   figureId: string;
   figureName: string;
   initialOpenThreadId: string | null;
+  initialCommentView?: string;
 }
 
-export default function CommentList({ figureId, figureName, initialOpenThreadId }: CommentListProps) {
+export default function CommentList({ figureId, figureName, initialOpenThreadId, initialCommentView }: CommentListProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [mineFilter, setMineFilter] = useState<MineFilterType>('unanswered');
+  const [activeFilter, setActiveFilter] = useState<FilterType>(initialCommentView === 'mine' ? 'mine' : 'all');
+  const [mineFilter, setMineFilter] = useState<MineFilterType>('answered');
+
+  useEffect(() => {
+    if (initialCommentView === 'mine') {
+        setActiveFilter('mine');
+        setMineFilter('answered');
+    }
+  }, [initialCommentView]);
 
 
   const commentsQuery = useMemoFirebase(() => {

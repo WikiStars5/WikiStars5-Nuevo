@@ -102,7 +102,7 @@ export default function ReplyForm({ figureId, figureName, parentId, depth, onRep
                 message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
                 isRead: false,
                 createdAt: serverTimestamp(),
-                link: `/figures/${figureId}?thread=${parentId}&reply=${newReplyId}`
+                link: `/figures/${figureId}?thread=${parentId}&reply=${newReplyId}&view=mine`
             };
             await addDocumentNonBlocking(notificationsColRef, notification);
         }

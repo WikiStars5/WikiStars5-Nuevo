@@ -115,6 +115,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
   const [isEditing, setIsEditing] = useState(false);
   const [initialOpenThreadId, setInitialOpenThreadId] = useState<string | null>(null);
+  const [initialCommentView, setInitialCommentView] = useState<string | undefined>(undefined);
 
   const figureDocRef = useMemoFirebase(() => {
     if (!firestore || !figureId) return null;
@@ -130,7 +131,12 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
         const params = new URLSearchParams(window.location.search);
         const replyId = params.get('reply');
         const threadId = params.get('thread');
+        const view = params.get('view');
   
+        if (view === 'mine') {
+            setInitialCommentView('mine');
+        }
+
         // If a thread ID is specified, open it. This is for replies.
         if (threadId) {
           setInitialOpenThreadId(threadId);
@@ -343,6 +349,7 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
             figureId={figure.id} 
             figureName={figure.name}
             initialOpenThreadId={initialOpenThreadId}
+            initialCommentView={initialCommentView}
         />
         <RelatedFigures figure={figure} />
       </div>

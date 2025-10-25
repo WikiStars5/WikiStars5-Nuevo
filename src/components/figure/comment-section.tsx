@@ -8,9 +8,10 @@ interface CommentSectionProps {
   figureId: string;
   figureName: string;
   initialOpenThreadId: string | null;
+  initialCommentView?: string;
 }
 
-export default function CommentSection({ figureId, figureName, initialOpenThreadId }: CommentSectionProps) {
+export default function CommentSection({ figureId, figureName, initialOpenThreadId, initialCommentView }: CommentSectionProps) {
   return (
     <div className="space-y-6">
       <CommentForm figureId={figureId} figureName={figureName} />
@@ -19,6 +20,7 @@ export default function CommentSection({ figureId, figureName, initialOpenThread
         figureId={figureId} 
         figureName={figureName}
         initialOpenThreadId={initialOpenThreadId}
+        initialCommentView={initialCommentView}
       />
     </div>
   );
