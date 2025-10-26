@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
 import Image from 'next/image';
@@ -19,12 +20,6 @@ export default function Footer() {
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
             Login
-          </Link>
-          <Link
-            href="#"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Privacy Policy
           </Link>
         </nav>
       </div>
