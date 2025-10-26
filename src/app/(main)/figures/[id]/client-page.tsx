@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { doc, getDoc, collection } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import RelatedFigures from '@/components/figure/related-figures';
 import TopStreaks from '@/components/streaks/top-streaks';
 import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { useSearchParams } from 'next/navigation';
 
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
@@ -111,9 +113,9 @@ const formatHeight = (cm?: number): string | null => {
     return `${(cm / 100).toFixed(2)} m`;
 };
 
-
-export default function FigureDetailClient({ figureId }: { figureId: string }) {
+function FigureDetailContent({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
 
   const figureDocRef = useMemoFirebase(() => {
@@ -122,6 +124,10 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
   }, [firestore, figureId]);
 
   const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
+
+  const tabParam = searchParams.get('tab');
+  const isGoatCandidate = figure?.name === 'Lionel Messi' || figure?.name === 'Cristiano Ronaldo';
+  const defaultTab = (isGoatCandidate && tabParam === 'goat') ? 'goat' : 'actitud';
 
   if (isLoading || !figure) {
     return <FigureDetailSkeleton />;
@@ -176,14 +182,13 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
 
   const hasInfo = infoItems.some(item => !!item.value);
   const hasSocialLinks = figure.socialLinks && Object.values(figure.socialLinks).some(link => !!link);
-  const isGoatCandidate = figure.name === 'Lionel Messi' || figure.name === 'Cristiano Ronaldo';
 
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
       <ProfileHeader figure={figure} figureId={figure.id} />
 
       <div className="mt-6">
-        <Tabs defaultValue="actitud" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <ScrollArea className="w-full whitespace-nowrap">
             <TabsList className="inline-flex h-auto">
               <TabsTrigger value="informacion">
@@ -312,5 +317,13 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
         <RelatedFigures figure={figure} />
       </div>
     </div>
+  );
+}
+
+export default function FigureDetailClient({ figureId }: { figureId: string }) {
+  return (
+    <Suspense fallback={<FigureDetailSkeleton />}>
+      <FigureDetailContent figureId={figureId} />
+    </Suspense>
   );
 }
