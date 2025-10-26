@@ -126,11 +126,13 @@ export default function Header() {
                       <UserPlus className="mr-2 h-4 w-4" />
                       <span>Crear Perfil de Personaje</span>
                   </DropdownMenuItem>
-
-                  <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
-                    <Globe className="mr-2 h-4 w-4" />
-                    <span>Crear Perfil Web</span>
-                  </DropdownMenuItem>
+                  
+                  {isAdmin && (
+                    <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
+                      <Globe className="mr-2 h-4 w-4" />
+                      <span>Crear Perfil Web</span>
+                    </DropdownMenuItem>
+                  )}
 
                   <InstallPwaButton asMenuItem={true} />
                   
