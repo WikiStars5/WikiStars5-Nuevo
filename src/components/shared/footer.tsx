@@ -20,7 +20,7 @@ export default function Footer() {
           </Link>
         </nav>
         <p className="text-sm text-muted-foreground text-center md:text-right">
-          &copy; 2025 WikiStars5. All rights reserved.
+          &copy; 2024 WikiStars5. All rights reserved.
         </p>
       </div>
     </footer>
