@@ -22,10 +22,10 @@ const allAttitudeOptions: {
   colorClass: string;
   selectedClass: string;
 }[] = [
-  { id: 'neutral', label: 'Neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=1d4c2196-a07e-4f51-b054-c9c4b5749f91', colorClass: 'border-gray-500', selectedClass: 'bg-gray-900/30' },
-  { id: 'fan', label: 'Fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=e9e51c86-13d8-4cff-8f78-14434220b3f5', colorClass: 'border-yellow-400', selectedClass: 'bg-yellow-900/30' },
+  { id: 'neutral', label: 'Neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=aac1fe00-4e42-49d1-98a2-3dab605987d3', colorClass: 'border-gray-500', selectedClass: 'bg-gray-900/30' },
+  { id: 'fan', label: 'Fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=a937aee9-04b6-48e8-bf37-25eef5f28e90', colorClass: 'border-yellow-400', selectedClass: 'bg-yellow-900/30' },
   { id: 'simp', label: 'Simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-pink-400', selectedClass: 'bg-pink-900/30' },
-  { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater.png?alt=media&token=4256247f-8700-4050-b442-23c2a6886e92', colorClass: 'border-red-500', selectedClass: 'bg-red-900/30' },
+  { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater.PNG?alt=media&token=fe668449-8713-4189-8305-e5aff5ca36fa', colorClass: 'border-red-500', selectedClass: 'bg-red-900/30' },
 ];
 
 
