@@ -26,7 +26,6 @@ import { Dialog, DialogTrigger } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
 import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog';
 import SearchBar from './search-bar';
-import { ThemeToggle } from './ThemeToggle';
 import { InstallPwaButton } from './InstallPwaButton';
 import NotificationBell from './notification-bell';
 import Image from 'next/image';
@@ -136,8 +135,6 @@ export default function Header() {
 
                   <InstallPwaButton asMenuItem={true} />
                   
-                  <ThemeToggle />
-
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem onClick={handleLogout}>
