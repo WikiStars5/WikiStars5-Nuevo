@@ -42,7 +42,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Code+Pro&display=swap"
           rel="stylesheet"
         />
-        <meta name="theme-color" content="#F0F0F5" />
+        <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased')}>
         <Providers>
