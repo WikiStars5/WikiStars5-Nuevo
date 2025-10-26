@@ -11,19 +11,23 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote } from '@/lib/types';
 import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
+import Image from 'next/image';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
 const allAttitudeOptions: {
   id: AttitudeOption;
   label: string;
-  icon: React.ElementType;
+  gifUrl: string;
+  colorClass: string;
+  selectedClass: string;
 }[] = [
-  { id: 'neutral', label: 'Neutral', icon: User },
-  { id: 'fan', label: 'Fan', icon: Star },
-  { id: 'simp', label: 'Simp', icon: Heart },
-  { id: 'hater', label: 'Hater', icon: ThumbsDown },
+  { id: 'neutral', label: 'Neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=1d4c2196-a07e-4f51-b054-c9c4b5749f91', colorClass: 'border-gray-500', selectedClass: 'bg-gray-900/30' },
+  { id: 'fan', label: 'Fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=e9e51c86-13d8-4cff-8f78-14434220b3f5', colorClass: 'border-yellow-400', selectedClass: 'bg-yellow-900/30' },
+  { id: 'simp', label: 'Simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-pink-400', selectedClass: 'bg-pink-900/30' },
+  { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater.png?alt=media&token=4256247f-8700-4050-b442-23c2a6886e92', colorClass: 'border-red-500', selectedClass: 'bg-red-900/30' },
 ];
+
 
 interface AttitudeVotingProps {
   figure: Figure;
@@ -167,31 +171,38 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
         <p className="text-muted-foreground">Define tu actitud hacia {figure.name}. Tu voto es anónimo.</p>
       </div>
       <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
-        {attitudeOptions.map(({ id, label, icon: Icon }) => (
+        {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
+          const isSelected = userVote?.vote === id;
+          return (
           <Button
             key={id}
             variant="outline"
             className={cn(
-              'h-auto flex-col items-center justify-center gap-2 border-2 p-4 transition-all duration-200',
-              'flex h-24 flex-col items-center justify-center gap-2',
-              userVote?.vote === id
-                ? 'border-primary bg-primary/10'
-                : 'border-border hover:border-primary/50 hover:bg-primary/5'
+              'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200',
+              'bg-black hover:bg-neutral-900',
+              isSelected ? `border-2 ${colorClass} ${selectedClass}` : `border ${colorClass}`,
+               isVoting === id ? 'cursor-not-allowed' : ''
             )}
             onClick={() => handleVote(id)}
             disabled={!!isVoting}
           >
             {isVoting === id ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <Loader2 className="h-8 w-8 animate-spin" />
             ) : (
-              <Icon className="h-6 w-6" />
+                <div className="flex h-full flex-col items-center justify-center text-center">
+                    <div className="flex-1 flex items-center justify-center">
+                         <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
+                    </div>
+                    <div>
+                        <span className="font-semibold text-sm">{label}</span>
+                        <span className="block text-lg font-bold">
+                          {figure.attitude?.[id] ?? 0}
+                        </span>
+                    </div>
+                </div>
             )}
-            <span className="font-semibold">{label}</span>
-            <span className="text-xl font-bold">
-              {figure.attitude?.[id] ?? 0}
-            </span>
           </Button>
-        ))}
+        )})}
       </div>
       <p className="mt-4 text-center text-sm text-muted-foreground">
         Total de respuestas: {totalVotes}
