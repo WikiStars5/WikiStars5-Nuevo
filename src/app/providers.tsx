@@ -6,18 +6,18 @@ import { ThemeProvider } from 'next-themes';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="dark"
-      forcedTheme="dark"
-      disableTransitionOnChange
-      suppressHydrationWarning
-    >
-      <FirebaseClientProvider>
-        <StreakAnimationProvider>
+    <FirebaseClientProvider>
+      <StreakAnimationProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          forcedTheme="dark"
+          disableTransitionOnChange
+          suppressHydrationWarning
+        >
           {children}
-        </StreakAnimationProvider>
-      </FirebaseClientProvider>
-    </ThemeProvider>
+        </ThemeProvider>
+      </StreakAnimationProvider>
+    </FirebaseClientProvider>
   );
 }
