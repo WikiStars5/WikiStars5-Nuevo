@@ -53,9 +53,11 @@ export function ShareButton({ figureName, figureId, showText = false }: ShareBut
   useEffect(() => {
     // Ensure this runs only on the client
     if (typeof window !== 'undefined') {
-      const isGoatCandidate = figureName === 'Lionel Messi' || figureName === 'Cristiano Ronaldo' || figureName.includes('La Batalla del GOAT');
-      const urlSuffix = isGoatCandidate ? '?tab=goat' : '';
-      setCurrentUrl(`${window.location.origin}/figures/${figureId}${urlSuffix}`);
+        const isGoatBattleShare = figureName.includes('La Batalla del GOAT');
+        const urlSuffix = isGoatBattleShare ? '?tab=goat' : '';
+        const baseUrl = `${window.location.origin}/figures/${figureId}`;
+        setCurrentUrl(`${baseUrl}${urlSuffix}`);
+
 
       if (navigator.share) {
         setIsWebShareSupported(true);
