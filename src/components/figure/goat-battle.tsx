@@ -309,7 +309,7 @@ export default function GoatBattle() {
 
   return (
     <Card className="relative bg-black">
-       <div className="absolute top-6 right-6 z-10">
+       <div className="absolute top-4 right-4 z-10">
           <ShareButton
             figureId={figureIdForShare}
             figureName="La Batalla del GOAT: Messi vs Ronaldo"
