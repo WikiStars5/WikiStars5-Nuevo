@@ -2,66 +2,6 @@
 import { Suspense } from 'react';
 import FigureDetailClient from './client-page';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getSdks } from '@/firebase/server';
-import type { Metadata, ResolvingMetadata } from 'next';
-import type { Figure } from '@/lib/types';
-
-type Props = {
-  params: { id: string }
-  searchParams: { [key: string]: string | string[] | undefined }
-}
-
-export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  const figureId = params.id;
-  const { firestore } = getSdks();
-
-  try {
-    const figureRef = firestore.collection('figures').doc(figureId);
-    const figureDoc = await figureRef.get();
-
-    if (!figureDoc.exists) {
-      // Devolver metadatos genéricos si no se encuentra el perfil
-      return {
-        title: 'Perfil no encontrado | WikiStars5',
-        description: 'El perfil que buscas no existe o fue eliminado.',
-      };
-    }
-
-    const figure = figureDoc.data() as Figure;
-    const previousImages = (await parent).openGraph?.images || [];
-
-    const title = `${figure.name} | WikiStars5`;
-    const description = `Mira el perfil de ${figure.name} en WikiStars5. Vota, comenta y descubre lo que otros piensan.`;
-    const imageUrl = figure.imageUrl;
-
-    return {
-      title,
-      description,
-      openGraph: {
-        title,
-        description,
-        images: imageUrl ? [imageUrl, ...previousImages] : [...previousImages],
-        url: `/figures/${figureId}`,
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title,
-        description,
-        images: imageUrl ? [imageUrl] : [],
-      },
-    };
-  } catch (error) {
-    console.error("Error generating metadata:", error);
-    return {
-      title: 'Error | WikiStars5',
-      description: 'Ocurrió un error al cargar la información del perfil.',
-    };
-  }
-}
-
 
 function FigureDetailSkeleton() {
   return (
