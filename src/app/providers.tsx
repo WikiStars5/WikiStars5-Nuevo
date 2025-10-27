@@ -11,6 +11,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       defaultTheme="dark"
       forcedTheme="dark"
       disableTransitionOnChange
+      suppressHydrationWarning
     >
       <FirebaseClientProvider>
         <StreakAnimationProvider>
