@@ -147,12 +147,14 @@ export default function Header() {
           ) : (
              <div className="flex items-center gap-2">
                 <InstallPwaButton />
-                <Button asChild>
-                    <Link href="/admin/login">
-                        <LogIn className="mr-2 h-4 w-4" />
-                        Iniciar Sesión
-                    </Link>
-                </Button>
+                {pathname === '/' && (
+                  <Button asChild>
+                      <Link href="/admin/login">
+                          <LogIn className="mr-2 h-4 w-4" />
+                          Iniciar Sesión
+                      </Link>
+                  </Button>
+                )}
              </div>
           )}
         </div>
