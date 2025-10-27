@@ -26,8 +26,9 @@ export async function generateMetadata({ params }: FigurePageProps): Promise<Met
     openGraph: {
       title: `Perfil de ${figureName} - WikiStars5`,
       description: description,
-      // We can't fetch the dynamic image URL without a server-side DB call,
-      // so we use a generic placeholder. This still greatly improves sharing previews.
+      // We use the application logo as a consistent and reliable fallback 
+      // to avoid the server-side fetching errors we encountered previously.
+      // This ensures a professional-looking preview for all shared links.
       images: [
         {
           url: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6',
