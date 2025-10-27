@@ -188,21 +188,32 @@ export default function GoatBattle() {
             }
 
             const currentVote = userVoteDoc.exists() ? userVoteDoc.data().vote : null;
-            const updates: { [key: string]: any } = {};
+            const updates: { [key: string]: number } = {};
+            const currentMessiVotes = battleDoc.data()?.messiVotes || 0;
+            const currentRonaldoVotes = battleDoc.data()?.ronaldoVotes || 0;
 
             if (currentVote === player) {
                 // User is retracting their vote
-                updates[`${player}Votes`] = increment(-1);
+                if (player === 'messi') {
+                    updates.messiVotes = Math.max(0, currentMessiVotes - 1);
+                } else {
+                    updates.ronaldoVotes = Math.max(0, currentRonaldoVotes - 1);
+                }
                 transaction.delete(userVoteRef);
                 toast({ title: "Voto cancelado" });
+
             } else {
                 // User is casting a new vote or changing their vote
-                updates[`${player}Votes`] = increment(1);
-                
-                if (currentVote) {
-                    // If changing vote, decrement the old one
-                    const otherPlayer = player === 'messi' ? 'ronaldo' : 'messi';
-                    updates[`${otherPlayer}Votes`] = increment(-1);
+                if (player === 'messi') {
+                    updates.messiVotes = currentMessiVotes + 1;
+                    if (currentVote === 'ronaldo') {
+                        updates.ronaldoVotes = Math.max(0, currentRonaldoVotes - 1);
+                    }
+                } else { // player is 'ronaldo'
+                    updates.ronaldoVotes = currentRonaldoVotes + 1;
+                    if (currentVote === 'messi') {
+                        updates.messiVotes = Math.max(0, currentMessiVotes - 1);
+                    }
                 }
                 
                 transaction.set(userVoteRef, { 
@@ -211,17 +222,6 @@ export default function GoatBattle() {
                     createdAt: serverTimestamp() 
                 });
                 toast({ title: `¡Has votado por ${player === 'messi' ? 'Messi' : 'Ronaldo'}!` });
-            }
-            
-            // Ensure vote counts don't go below zero
-            const currentMessiVotes = battleDoc.data()?.messiVotes || 0;
-            const currentRonaldoVotes = battleDoc.data()?.ronaldoVotes || 0;
-            
-            if (currentVote === 'messi' && (currentMessiVotes + (updates.messiVotes?.operand || 0)) < 0) {
-                 updates.messiVotes = -currentMessiVotes; // Set to 0
-            }
-            if (currentVote === 'ronaldo' && (currentRonaldoVotes + (updates.ronaldoVotes?.operand || 0)) < 0) {
-                 updates.ronaldoVotes = -currentRonaldoVotes; // Set to 0
             }
 
             transaction.update(battleRef, updates);
