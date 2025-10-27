@@ -39,10 +39,13 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
 
   return (
     <Card className="overflow-hidden bg-black border border-white/20 shadow-md">
-      <CardContent className="p-6 md:p-8">
+      <CardContent className="relative p-6 md:p-8">
+        <div className="absolute top-4 right-4 z-10">
+          <ShareButton figureId={figure.id} figureName={figure.name} />
+        </div>
         <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
-          <div className="relative flex-shrink-0 w-28 h-28 md:w-36 md:h-36">
-            <Button className="h-full w-full rounded-full border-4 border-card p-0 shadow-lg">
+          <div className="relative flex-shrink-0">
+            <Button className="h-28 w-28 md:h-36 md:w-36 rounded-full border-4 border-card p-0 shadow-lg">
                 <Image
                     src={figure.imageUrl}
                     alt={figure.name}
@@ -52,30 +55,23 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
                 />
             </Button>
           </div>
-          <div className="flex-1 w-full">
-            <div className="flex justify-between items-start">
-              <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                  <div className="flex items-center gap-3">
-                    <h1 className="text-3xl md:text-5xl font-bold tracking-tight font-headline">
-                      {figure.name}
-                    </h1>
-                    {isWinner && (
-                      <Image 
-                        src={GOAT_ICON_URL}
-                        alt="GOAT Icon"
-                        width={40}
-                        height={40}
-                        className="h-10 w-10"
-                      />
-                    )}
-                  </div>
-                  <div className="mt-2">
-                    <PersonalStreak figureId={figureId} />
-                  </div>
-              </div>
-              <div className="flex-shrink-0">
-                  <ShareButton figureId={figure.id} figureName={figure.name} />
-              </div>
+          <div className="flex-1 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-3">
+              <h1 className="text-3xl md:text-5xl font-bold tracking-tight font-headline">
+                {figure.name}
+              </h1>
+              {isWinner && (
+                <Image 
+                  src={GOAT_ICON_URL}
+                  alt="GOAT Icon"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10"
+                />
+              )}
+            </div>
+            <div className="mt-2 flex justify-center md:justify-start">
+              <PersonalStreak figureId={figureId} />
             </div>
           </div>
         </div>
@@ -83,3 +79,4 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
     </Card>
   );
 }
+
