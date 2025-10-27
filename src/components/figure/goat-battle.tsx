@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -162,13 +163,6 @@ export default function GoatBattle() {
   }, [battleEndTime, isBattleActive]);
 
 
-  const messiVotes = battleData?.messiVotes ?? 0;
-  const ronaldoVotes = battleData?.ronaldoVotes ?? 0;
-  const totalVotes = messiVotes + ronaldoVotes;
-
-  const messiPercentage = totalVotes > 0 ? (messiVotes / totalVotes) * 100 : 50;
-  const balanceRotation = totalVotes > 0 ? -((messiPercentage - 50) / 5) * 1 : 0;
-
   const handleVote = async (player: 'messi' | 'ronaldo') => {
     if (isVoting || !firestore || !auth || !isBattleActive) return;
     setIsVoting(true);
@@ -197,21 +191,37 @@ export default function GoatBattle() {
             const updates: { [key: string]: any } = {};
 
             if (currentVote === player) {
+                // User is retracting their vote
                 updates[`${player}Votes`] = increment(-1);
                 transaction.delete(userVoteRef);
                 toast({ title: "Voto cancelado" });
             } else {
-                 if (currentVote) {
+                // User is casting a new vote or changing their vote
+                updates[`${player}Votes`] = increment(1);
+                
+                if (currentVote) {
+                    // If changing vote, decrement the old one
                     const otherPlayer = player === 'messi' ? 'ronaldo' : 'messi';
                     updates[`${otherPlayer}Votes`] = increment(-1);
                 }
-                updates[`${player}Votes`] = increment(1);
+                
                 transaction.set(userVoteRef, { 
                     userId: currentUser!.uid, 
                     vote: player, 
                     createdAt: serverTimestamp() 
                 });
                 toast({ title: `¡Has votado por ${player === 'messi' ? 'Messi' : 'Ronaldo'}!` });
+            }
+            
+            // Ensure vote counts don't go below zero
+            const currentMessiVotes = battleDoc.data()?.messiVotes || 0;
+            const currentRonaldoVotes = battleDoc.data()?.ronaldoVotes || 0;
+            
+            if (currentVote === 'messi' && (currentMessiVotes + (updates.messiVotes?.operand || 0)) < 0) {
+                 updates.messiVotes = -currentMessiVotes; // Set to 0
+            }
+            if (currentVote === 'ronaldo' && (currentRonaldoVotes + (updates.ronaldoVotes?.operand || 0)) < 0) {
+                 updates.ronaldoVotes = -currentRonaldoVotes; // Set to 0
             }
 
             transaction.update(battleRef, updates);
@@ -228,6 +238,14 @@ export default function GoatBattle() {
         setIsVoting(false);
     }
   };
+
+  const messiVotes = battleData?.messiVotes ?? 0;
+  const ronaldoVotes = battleData?.ronaldoVotes ?? 0;
+  const totalVotes = messiVotes + ronaldoVotes;
+
+  const messiPercentage = totalVotes > 0 ? (messiVotes / totalVotes) * 100 : 50;
+  const balanceRotation = totalVotes > 0 ? -((messiPercentage - 50) / 5) * 1 : 0;
+
 
   const GoatIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -383,3 +401,5 @@ export default function GoatBattle() {
     </Card>
   );
 }
+
+    
