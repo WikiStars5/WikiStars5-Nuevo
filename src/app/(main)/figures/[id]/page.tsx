@@ -2,10 +2,44 @@
 import { Suspense } from 'react';
 import FigureDetailClient from './client-page';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Metadata } from 'next';
 
 type FigurePageProps = {
   params: { id: string };
 };
+
+// Generate dynamic metadata for SEO and social sharing
+export async function generateMetadata({ params }: FigurePageProps): Promise<Metadata> {
+  const { id } = params;
+
+  // Capitalize the name from the ID for the title. e.g., "lionel-messi" -> "Lionel Messi"
+  const figureName = id
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+  const description = `Explora el perfil, las opiniones y las calificaciones de ${figureName} en WikiStars5.`;
+
+  return {
+    title: `Perfil de ${figureName} - WikiStars5`,
+    description: description,
+    openGraph: {
+      title: `Perfil de ${figureName} - WikiStars5`,
+      description: description,
+      // We can't fetch the dynamic image URL without a server-side DB call,
+      // so we use a generic placeholder. This still greatly improves sharing previews.
+      images: [
+        {
+          url: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6',
+          width: 800,
+          height: 600,
+          alt: `Logo de WikiStars5`,
+        },
+      ],
+    },
+  };
+}
+
 
 function FigureDetailSkeleton() {
   return (
