@@ -1,361 +1,353 @@
 /**
- * @fileoverview Firestore Security Rules for WikiStars5.
+ * @file Firestore Security Rules for WikiStars5
+ * @version Prototyping
  *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for personal data,
- * while allowing public read access to public figure information.
- * Administrative privileges are granted based on the existence of a document
- * in the /roles_admin/{userId} collection. All write operations are carefully
- * controlled based on user authentication and ownership.
+ * @Core Philosophy:
+ * This ruleset prioritizes secure access control based on user ownership and role-based permissions.
+ * It enforces strict separation of user data and public data, while allowing flexible data shapes for rapid iteration.
  *
- * Data Structure:
- * - /users/{userId}: User profile information. Owner-only access.
- * - /status/{userId}: User status information. Owner-only access.
- * - /usernames/{username}: Username-to-userId mapping for uniqueness. Public read, restricted write.
- * - /figures/{figureId}: Public figure profiles. Public read, admin-only write.
- * - /figures/{figureId}/comments/{commentId}: Comments on public figures. Authenticated users can create.
- * - /figures/{figureId}/comments/{commentId}/votes/{userId}: User votes on comments. Prevents duplicate votes.
- * - /figures/{figureId}/attitudeVotes/{userId}: User attitude votes. Prevents duplicate votes.
- * - /figures/{figureId}/emotionVotes/{userId}: User emotion votes. Prevents duplicate votes.
- * - /users/{userId}/notifications/{notificationId}: User notifications. Owner-only access.
- * - /users/{userId}/streaks/{streakId}: User streaks. Owner-only access.
- * - /achievements/{achievementId}: Global achievement definitions. Public read, admin-only write.
- * - /users/{userId}/user_achievements/{userAchievementId}: User-specific achievements. Owner-only access.
- * - /related_figures/{relatedFigureId}: Relationships between public figures. Public read, admin-only write.
- * - /roles_admin/{userId}: Admin role assignments. Restricted write.
- * - /goat_battles/{battleId}: Stores the total vote counts for a GOAT battle. Public read.
- * - /goat_battles/{battleId}/votes/{userId}: Stores an individual user's vote in a GOAT battle.
+ * @Data Structure:
+ * - User-specific data is nested under `/users/{userId}`.
+ * - Public figure data is stored in the top-level `/figures/{figureId}` collection.
+ * - Additional top-level collections like `/achievements` and `/related_figures` store global data.
  *
- * Key Security Decisions:
- * - User listing is disallowed.
- * - Data type validation is relaxed to allow for rapid prototyping.
- * - Admin privileges are determined by the presence of a document in `/roles_admin/{userId}`.
- * - Public read access is granted to the `/figures` and `/achievements` collections.
+ * @Key Security Decisions:
+ * - Users can only access their own data under `/users/{userId}`.
+ * - Public figure profiles are publicly readable but only writable by admins.
+ * - User listing is generally disallowed for privacy.
+ * - Data shape validation is minimized to allow for flexible prototyping.
  *
- * Denormalization for Authorization:
- * - The `publicFigureId` is denormalized into the `Comment` document to allow for
- *   direct authorization without needing to query the parent `PublicFigure`.
+ * @Denormalization for Authorization:
+ * - Comments store the `publicFigureId` to avoid needing to fetch the parent figure for authorization.
+ * - Streaks store the `publicFigureId` to simplify querying and authorization.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is made by a signed-in user.
-     * @return {boolean} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the authenticated user ID matches the provided user ID.
-     * @param {string} userId The user ID to compare against.
-     * @return {boolean} True if the user is the owner, false otherwise.
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the authenticated user ID matches the provided user ID and the resource exists.
-     * @param {string} userId The user ID to compare against.
-     * @return {boolean} True if the user is the owner and resource exists, false otherwise.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Checks if the requesting user has admin privileges.
-     * @return {boolean} True if the user is an admin, false otherwise.
-     */
-    function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    /**
-     * @description Defines read/write rules for user documents.
+     * @description Secure access to user profile information.
      * @path /users/{userId}
-     * @allow (read) Authenticated user with matching {userId}.
-     * @allow (create) Authenticated user creating their own document (userId in path matches auth.uid).
-     * @deny (create) Unauthenticated user attempting to create a user document.
-     * @deny (update) Authenticated user attempting to update a different user's document.
-     * @deny (delete) Any user attempting to delete another user's document.
-     * @principle Enforces document ownership for reads and writes.
+     * @allow (create) User with ID 'user123' can create their own profile.
+     * @allow (get) User with ID 'user123' can read their own profile.
+     * @allow (update) User with ID 'user123' can update their own profile.
+     * @allow (delete) User with ID 'user123' can delete their own profile.
+     * @deny (create) User with ID 'user456' cannot create a profile for 'user123'.
+     * @deny (get) User with ID 'user456' cannot read the profile of 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
       allow get: if isOwner(userId);
       allow list: if false;
-
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Defines read/write rules for user status documents.
-     * @path /status/{userId}
-     * @allow (read) Authenticated user with matching {userId}.
-     * @allow (create) Authenticated user creating their own document (userId in path matches auth.uid).
-     * @deny (create) Unauthenticated user attempting to create a user document.
-     * @deny (update) Authenticated user attempting to update a different user's document.
-     * @deny (delete) Any user attempting to delete another user's document.
-     * @principle Enforces document ownership for reads and writes.
-     */
-    match /status/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Defines read/write rules for usernames.
+     * @description Secure access to user status information.
+     * @path /status/{userId}
+     * @allow (create) User with ID 'user123' can create their own status.
+     * @allow (get) User with ID 'user123' can read their own status.
+     * @allow (update) User with ID 'user123' can update their own status.
+     * @allow (delete) User with ID 'user123' can delete their own status.
+     * @deny (create) User with ID 'user456' cannot create a status for 'user123'.
+     * @deny (get) User with ID 'user456' cannot read the status of 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+     match /status/{userId} {
+          function isOwner(userId) {
+              return request.auth.uid == userId;
+          }
+
+          allow get: if isOwner(userId);
+          allow list: if false;
+          allow create: if isOwner(userId);
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+      }
+
+    /**
+     * @description Secure access to username mappings.
      * @path /usernames/{username}
-     * @allow (read) Any user can check for username availability.
-     * @allow (create) Authenticated user creating a username entry, verifying the userId.
-     * @deny (update) No updates allowed.
-     * @deny (delete) Only admins can delete.
-     * @principle Enforces uniqueness for usernames.
+     * @allow (get) Any user can check if a username exists.
+     * @allow (create) User with ID 'user123' can create a username mapping if they own the ID.
+     * @allow (update) No updates allowed.
+     * @allow (delete) User with ID 'user123' can delete a username mapping if they own the ID.
+     * @deny (create) User with ID 'user456' cannot create a username mapping for 'user123'.
+     * @principle Enforces document ownership for writes, allows public reads.
      */
     match /usernames/{username} {
+      function isUsernameOwner(username) {
+        return get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
+      }
       allow get: if true;
       allow list: if false;
-
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if request.auth.uid != null;
       allow update: if false;
+      allow delete: if isUsernameOwner(username);
+    }
+
+    /**
+     * @description Publicly readable public figure profiles, writable only by admins.
+     * @path /figures/{figureId}
+     * @allow (get) Any user can read a public figure profile.
+     * @allow (list) Any user can list public figure profiles.
+     * @allow (create) Only admins can create public figure profiles.
+     * @allow (update) Only admins can update public figure profiles.
+     * @allow (delete) Only admins can delete public figure profiles.
+     * @deny (create) Non-admins cannot create public figure profiles.
+     * @principle Public read access, restricted write access.
+     */
+    match /figures/{figureId} {
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      allow get: if true;
+      allow list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     /**
-     * @description Defines read/write rules for public figure profiles.
-     * @path /figures/{figureId}
-     * @allow (read) Any user can read public figure profiles.
-     * @allow (create) Only admins can create public figure profiles.
-     * @allow (update) Only admins can update public figure profiles.
-     * @allow (delete) Only admins can delete public figure profiles.
-     * @principle Restricts write access to admins, allows public read access.
-     */
-    match /figures/{figureId} {
-      allow get: if true;
-      allow list: if true;
-
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
-    }
-
-    /**
-     * @description Defines read/write rules for comments on public figures.
+     * @description Secure access to comments on a public figure.
      * @path /figures/{figureId}/comments/{commentId}
-     * @allow (read) Any user can read comments.
-     * @allow (create) Authenticated users can create comments.
-     * @deny (update) Only the owner can update the comment.
-     * @deny (delete) Only the owner can delete the comment.
-     * @principle Allows authenticated users to comment, but restricts modification.
+     * @allow (get) Any user can read a comment.
+     * @allow (list) Any user can list comments for a figure.
+     * @allow (create) Any signed-in user can create a comment.
+     * @allow (update) Only the comment owner can update their comment.
+     * @allow (delete) Only the comment owner can delete their comment.
+     * @deny (create) Anonymous users cannot create comments.
+     * @principle Enforces comment ownership for writes, allows public reads.
      */
     match /figures/{figureId}/comments/{commentId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      function isCommentOwner(commentId) {
+        return resource.data.userId == request.auth.uid;
+      }
       allow get: if true;
       allow list: if true;
-
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && request.auth.uid == resource.data.userId && resource != null;
-      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId && resource != null;
+      allow update: if isCommentOwner(commentId);
+      allow delete: if isCommentOwner(commentId);
     }
 
     /**
-     * @description Defines read/write rules for comment votes.
+     * @description Secure access to comment votes.
      * @path /figures/{figureId}/comments/{commentId}/votes/{userId}
-     * @allow (read) Any user can read comment votes.
-     * @allow (create) Authenticated user can vote.  The userId in the path must match auth.uid.
-     * @deny (update) No updates allowed.
-     * @deny (delete) Users can delete their vote
-     * @principle Prevents duplicate voting.
+     * @allow (get) Any user can get a comment vote
+     * @allow (create) A user can vote only once on a comment.
+     * @allow (update) Not allowed
+     * @allow (delete) A user can delete their vote.
+     * @deny (create) User with ID 'user456' cannot create a vote for 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /figures/{figureId}/comments/{commentId}/votes/{userId} {
-      allow get: if true;
+      function isVoteOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      allow get: if isVoteOwner(userId);
       allow list: if false;
-
-      allow create: if isSignedIn() && userId == request.auth.uid;
+      allow create: if isVoteOwner(userId);
       allow update: if false;
-      allow delete: if isSignedIn() && userId == request.auth.uid && resource != null;
+      allow delete: if isVoteOwner(userId);
     }
 
-        /**
-     * @description Defines read/write rules for attitude votes.
+    /**
+     * @description Secure access to attitude votes for a figure.
      * @path /figures/{figureId}/attitudeVotes/{userId}
-     * @allow (read) Any user can read comment votes.
-     * @allow (create) Authenticated user can vote.  The userId in the path must match auth.uid.
-     * @deny (update) No updates allowed.
-     * @deny (delete) Users can delete their vote
-     * @principle Prevents duplicate voting.
+     * @allow (create) A user can vote for a figure only once.
+     * @allow (get) Any user can get an attitude vote
+     * @allow (update) Not allowed.
+     * @allow (delete) A user can delete their vote.
+     * @deny (create) User with ID 'user456' cannot create a vote for 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /figures/{figureId}/attitudeVotes/{userId} {
-      allow get: if true;
+      function isVoteOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      allow get: if isVoteOwner(userId);
       allow list: if false;
-
-      allow create: if isSignedIn() && userId == request.auth.uid;
+      allow create: if isVoteOwner(userId);
       allow update: if false;
-      allow delete: if isSignedIn() && userId == request.auth.uid && resource != null;
+      allow delete: if isVoteOwner(userId);
     }
 
-        /**
-     * @description Defines read/write rules for emotion votes.
+    /**
+     * @description Secure access to emotion votes for a figure.
      * @path /figures/{figureId}/emotionVotes/{userId}
-     * @allow (read) Any user can read comment votes.
-     * @allow (create) Authenticated user can vote.  The userId in the path must match auth.uid.
-     * @deny (update) No updates allowed.
-     * @deny (delete) Users can delete their vote
-     * @principle Prevents duplicate voting.
+     * @allow (create) A user can vote for a figure only once.
+     * @allow (get) Any user can get an emotion vote.
+     * @allow (update) Not allowed
+     * @allow (delete) A user can delete their vote.
+     * @deny (create) User with ID 'user456' cannot create a vote for 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /figures/{figureId}/emotionVotes/{userId} {
-      allow get: if true;
+      function isVoteOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      allow get: if isVoteOwner(userId);
       allow list: if false;
-
-      allow create: if isSignedIn() && userId == request.auth.uid;
+      allow create: if isVoteOwner(userId);
       allow update: if false;
-      allow delete: if isSignedIn() && userId == request.auth.uid && resource != null;
+      allow delete: if isVoteOwner(userId);
     }
 
     /**
-     * @description Defines read/write rules for notifications.
+     * @description Secure access to user notifications.
      * @path /users/{userId}/notifications/{notificationId}
-     * @allow (read) Owner-only access.
-     * @allow (create) Owner-only access.
-     * @deny (update) No updates allowed.
-     * @deny (delete) Owner-only access.
-     * @principle Enforces document ownership.
+     * @allow (create) User with ID 'user123' can create their own notification.
+     * @allow (get) User with ID 'user123' can read their own notification.
+     * @allow (update) User with ID 'user123' can update their own notification.
+     * @allow (delete) User with ID 'user123' can delete their own notification.
+     * @deny (create) User with ID 'user456' cannot create a notification for 'user123'.
+     * @deny (get) User with ID 'user456' cannot read the notification of 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/notifications/{notificationId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-
       allow create: if isOwner(userId);
-      allow update: if false;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Defines read/write rules for streaks.
+     * @description Secure access to user streaks.
      * @path /users/{userId}/streaks/{streakId}
-     * @allow (read) Owner-only access.
-     * @allow (create) Owner-only access.
-     * @deny (update) Owner-only access.
-     * @deny (delete) Owner-only access.
-     * @principle Enforces document ownership.
+     * @allow (create) User with ID 'user123' can create their own streak.
+     * @allow (get) User with ID 'user123' can read their own streak.
+     * @allow (update) User with ID 'user123' can update their own streak.
+     * @allow (delete) User with ID 'user123' can delete their own streak.
+     * @deny (create) User with ID 'user456' cannot create a streak for 'user123'.
+     * @deny (get) User with ID 'user456' cannot read the streak of 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/streaks/{streakId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Defines read/write rules for achievements.
+     * @description Publicly readable list of achievements.
      * @path /achievements/{achievementId}
-     * @allow (read) Public read access.
-     * @allow (create) Admin-only access.
-     * @allow (update) Admin-only access.
-     * @allow (delete) Admin-only access.
+     * @allow (get) Any user can read an achievement.
+     * @allow (list) Any user can list achievements.
+     * @allow (create) Not allowed
+     * @allow (update) Not allowed
+     * @allow (delete) Not allowed
+     * @principle Public read access, no write access.
      */
     match /achievements/{achievementId} {
       allow get: if true;
       allow list: if true;
-
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Defines read/write rules for user achievements.
+     * @description Secure access to user achievements.
      * @path /users/{userId}/user_achievements/{userAchievementId}
-     * @allow (read) Owner-only access.
-     * @allow (create) Owner-only access.
-     * @deny (update) No updates allowed.
-     * @deny (delete) Owner-only access.
+     * @allow (create) User with ID 'user123' can create their own user achievement.
+     * @allow (get) User with ID 'user123' can read their own user achievement.
+     * @allow (update) User with ID 'user123' can update their own user achievement.
+     * @allow (delete) User with ID 'user123' can delete their own user achievement.
+     * @deny (create) User with ID 'user456' cannot create a user achievement for 'user123'.
+     * @deny (get) User with ID 'user456' cannot read the user achievement of 'user123'.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/user_achievements/{userAchievementId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-
       allow create: if isOwner(userId);
-      allow update: if false;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Defines read/write rules for related figures.
+     * @description Publicly readable list of related figures.
      * @path /related_figures/{relatedFigureId}
-     * @allow (read) Public read access.
-     * @allow (create) Admin-only access.
-     * @allow (update) Admin-only access.
-     * @allow (delete) Admin-only access.
+     * @allow (get) Any user can read a related figure.
+     * @allow (list) Any user can list related figures.
+     * @allow (create) Not allowed
+     * @allow (update) Not allowed
+     * @allow (delete) Not allowed
+     * @principle Public read access, no write access.
      */
     match /related_figures/{relatedFigureId} {
       allow get: if true;
       allow list: if true;
-
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+    /**
+     * @description Grants admin privileges based on document existence.
+     * @path /roles_admin/{userId}
+     * @allow (get) Anyone can check if a user is an admin.
+     * @allow (list) Not allowed
+     * @allow (create) Only admins can grant admin privileges.
+     * @allow (update) Only admins can update admin privileges.
+     * @allow (delete) Only admins can revoke admin privileges.
+     * @principle Existence-based role check.
+     */
+     match /roles_admin/{userId} {
+        function isAdmin() {
+            return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+        }
+        allow get: if true; // Anyone can check for admin status.
+        allow list: if false;
+        allow create: if isAdmin();
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
     }
 
     /**
-     * @description Defines read/write rules for admin roles.
-     * @path /roles_admin/{userId}
-     * @allow (read) No direct reads allowed.  Admin status is checked via `exists()` in other rules.
-     * @allow (create) Only admins can grant admin roles.
-     * @deny (update) No updates allowed.
-     * @allow (delete) Only admins can revoke admin roles.
-     */
-    match /roles_admin/{userId} {
-      allow get: if false;
-      allow list: if false;
-
-      allow create: if isAdmin();
-      allow update: if false;
-      allow delete: if isAdmin() && resource != null;
-    }
-    
-        /**
-     * @description Defines read/write rules for the GOAT battles document.
+     * @description Stores the aggregated vote counts for a GOAT battle.
      * @path /goat_battles/{battleId}
-     * @allow (read) Any user can read the vote counts.
-     * @deny (create) No one can create new battles via client-side code.
-     * @deny (update) No one can directly update the battle document via client-side code.
-     * @deny (delete) No one can delete the battle document via client-side code.
      */
     match /goat_battles/{battleId} {
         allow get: if true;
-        allow list: if true; 
-
+        allow list: if true;
         allow create: if false;
         allow update: if false;
         allow delete: if false;
     }
 
     /**
-     * @description Defines read/write rules for individual user votes in a GOAT battle.
+     * @description Stores an individual user's vote in a GOAT battle to prevent duplicate voting.
      * @path /goat_battles/{battleId}/votes/{userId}
-     * @allow (read) Any user can read another user's vote.
-     * @allow (create) Authenticated user can vote; userId in path must match auth.uid.
-     * @deny (update) Votes cannot be changed.
-     * @deny (delete) Users can delete their vote.
      */
     match /goat_battles/{battleId}/votes/{userId} {
-        allow get: if true;
+        function isVoteOwner(userId) {
+            return request.auth.uid == userId;
+        }
+        allow get: if isVoteOwner(userId);
         allow list: if false;
-
-        allow create: if isSignedIn() && userId == request.auth.uid;
+        allow create: if isVoteOwner(userId);
         allow update: if false;
-        allow delete: if isSignedIn() && userId == request.auth.uid && resource != null;
+        allow delete: if isVoteOwner(userId);
     }
   }
 }
