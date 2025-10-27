@@ -4,6 +4,6 @@
 runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
-  maxInstances: 100
+  maxInstances: 10
   # This setting automatically authorizes your app's domain for Firebase Auth.
   auth: true
