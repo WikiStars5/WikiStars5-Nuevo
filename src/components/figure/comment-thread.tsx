@@ -259,7 +259,7 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                         </div>
                     </div>
                 ) : (
-                    <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">{comment.text}</p>
+                    <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-1">{comment.text}</p>
                 )}
 
                 {!isEditing && (
