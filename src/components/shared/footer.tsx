@@ -12,7 +12,7 @@ export default function Footer() {
           <span className="font-headline text-primary">WikiStars5</span>
         </div>
         <p className="text-sm text-muted-foreground text-center order-last md:order-none">
-          &copy; 2025 WikiStars5. All rights reserved.
+          &copy; 2025 WikiStars5. Todos los derechos reservados.
         </p>
         <nav className="flex items-center justify-center md:justify-end gap-x-4 text-sm font-medium">
           <Link href="/admin/login" className="text-muted-foreground transition-colors hover:text-foreground">
