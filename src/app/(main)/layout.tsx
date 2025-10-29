@@ -19,10 +19,13 @@ export default function MainLayout({
   useEffect(() => {
     if (!user || !firestore) return;
 
-    const statusRef = doc(firestore, 'status', user.uid);
+    // Capture the uid in a variable within the effect's scope
+    const uid = user.uid;
+    const statusRef = doc(firestore, 'status', uid);
 
     const updateStatus = (isOnline: boolean) => {
-      setDoc(statusRef, { isOnline, lastChanged: serverTimestamp() }, { merge: true });
+      // Use the captured uid, which will persist in the cleanup function's closure
+      setDoc(doc(firestore, 'status', uid), { isOnline, lastChanged: serverTimestamp() }, { merge: true });
     };
 
     const handleVisibilityChange = () => {
@@ -54,8 +57,8 @@ export default function MainLayout({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
-      // On component unmount (e.g., logout), set status to offline
-      if (user && firestore) {
+      // On component unmount (e.g., logout), set status to offline using the captured uid
+      if (uid && firestore) {
         updateStatus(false);
       }
     };
