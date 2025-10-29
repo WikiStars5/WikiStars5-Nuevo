@@ -1,13 +1,12 @@
-
 'use client';
 
 import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged, User as FirebaseUser, Auth } from 'firebase/auth';
+import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore'; 
+import { onAuthStateChanged, User as FirebaseUser, Auth } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Heart, Star, ThumbsDown, User, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote } from '@/lib/types';
@@ -29,15 +28,10 @@ const allAttitudeOptions: {
   { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', colorClass: 'border-red-500', selectedClass: 'bg-red-900/30' },
 ];
 
-
 interface AttitudeVotingProps {
   figure: Figure;
 }
 
-/**
- * Waits for the next auth state change to get the new user.
- * This is useful after an anonymous sign-in is initiated.
- */
 function getNextUser(auth: Auth): Promise<FirebaseUser> {
   return new Promise((resolve, reject) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -51,7 +45,6 @@ function getNextUser(auth: Auth): Promise<FirebaseUser> {
     });
   });
 }
-
 
 export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const { user, isUserLoading } = useUser();
@@ -67,7 +60,6 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
 
   const userVoteRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // New path: users/{userId}/attitudeVotes/{figureId}
     return doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
   }, [firestore, user, figure.id]);
 
@@ -75,82 +67,64 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
 
   const handleVote = async (vote: AttitudeOption) => {
     if (isVoting || !firestore || !auth) return;
-
     setIsVoting(vote);
 
     try {
-        let currentUser = user;
+      let currentUser = user;
+      if (!currentUser) {
+        await initiateAnonymousSignIn(auth);
+        currentUser = await getNextUser(auth);
+      }
+      
+      const figureRef = doc(firestore, 'figures', figure.id);
+      const voteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figure.id);
 
-        if (!currentUser) {
-            await initiateAnonymousSignIn(auth);
-            currentUser = await getNextUser(auth);
+      await runTransaction(firestore, async (transaction) => {
+        const existingVoteDoc = await transaction.get(voteRef);
+        const figureDoc = await transaction.get(figureRef);
+
+        if (!figureDoc.exists()) {
+          throw new Error('¡El perfil no existe!');
         }
-        
-        const figureRef = doc(firestore, 'figures', figure.id);
-        // New path for user-specific vote tracking
-        const voteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figure.id);
 
-        await runTransaction(firestore, async (transaction) => {
-            const existingVoteDoc = await transaction.get(voteRef);
-            const figureDoc = await transaction.get(figureRef);
+        const newVoteData: Omit<AttitudeVote, 'id'> = {
+          userId: currentUser!.uid,
+          figureId: figure.id,
+          vote: vote,
+          createdAt: serverTimestamp(),
+        };
 
-            if (!figureDoc.exists()) {
-                throw new Error('¡El perfil no existe!');
-            }
-
-            const newVoteData: Omit<AttitudeVote, 'id'> = {
-                userId: currentUser!.uid,
-                figureId: figure.id,
-                vote: vote,
-                createdAt: serverTimestamp(),
-            };
-
-            if (existingVoteDoc.exists()) {
-                const previousVote = existingVoteDoc.data().vote as AttitudeOption;
-
-                if (previousVote === vote) {
-                    transaction.update(figureRef, {
-                        [`attitude.${vote}`]: increment(-1),
-                    });
-                    transaction.delete(voteRef);
-                    toast({
-                        title: 'Voto eliminado',
-                        description: `Has quitado tu voto de '${vote}'.`,
-                    });
-                } else {
-                    transaction.update(figureRef, {
-                        [`attitude.${previousVote}`]: increment(-1),
-                        [`attitude.${vote}`]: increment(1),
-                    });
-                    transaction.set(voteRef, newVoteData);
-                    toast({
-                        title: '¡Voto actualizado!',
-                        description: `Tu actitud hacia ${figure.name} ha sido actualizada a '${vote}'.`,
-                    });
-                }
-            } else {
-                transaction.update(figureRef, {
-                    [`attitude.${vote}`]: increment(1),
-                });
-                transaction.set(voteRef, newVoteData);
-                toast({
-                    title: '¡Voto registrado!',
-                    description: `Tu actitud hacia ${figure.name} ha sido registrada como '${vote}'.`,
-                });
-            }
-        });
+        if (existingVoteDoc.exists()) {
+          const previousVote = existingVoteDoc.data().vote as AttitudeOption;
+          if (previousVote === vote) {
+            transaction.update(figureRef, { [`attitude.${vote}`]: increment(-1) });
+            transaction.delete(voteRef);
+            toast({ title: 'Voto eliminado' });
+          } else {
+            transaction.update(figureRef, {
+              [`attitude.${previousVote}`]: increment(-1),
+              [`attitude.${vote}`]: increment(1),
+            });
+            transaction.set(voteRef, newVoteData);
+            toast({ title: '¡Voto actualizado!' });
+          }
+        } else {
+          transaction.update(figureRef, { [`attitude.${vote}`]: increment(1) });
+          transaction.set(voteRef, newVoteData);
+          toast({ title: '¡Voto registrado!' });
+        }
+      });
     } catch (error: any) {
-        console.error('Error al registrar el voto:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Error al votar',
-            description: error.message || 'No se pudo registrar tu voto. Inténtalo de nuevo.',
-        });
+      console.error('Error al registrar el voto:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error al votar',
+        description: error.message || 'No se pudo registrar tu voto.',
+      });
     } finally {
-        setIsVoting(null);
+      setIsVoting(null);
     }
-};
-
+  };
 
   const totalVotes = Object.values(figure.attitude || {}).reduce(
     (sum, count) => sum + count,
@@ -197,7 +171,7 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
                     <div>
                         <span className="font-semibold text-sm">{label}</span>
                         <span className="block text-lg font-bold">
-                          {figure.attitude?.[id] ?? 0}
+                        {figure.attitude?.[id] ?? 0}
                         </span>
                     </div>
                 </div>
