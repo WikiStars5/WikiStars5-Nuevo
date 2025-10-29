@@ -6,7 +6,7 @@ import { collection, query, where, getDocs, orderBy, Timestamp, Query, collectio
 import { useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { BarChart3, Users, PieChart, TrendingUp } from 'lucide-react';
+import { BarChart3, Users, PieChart, TrendingUp, Loader2 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Pie, Cell } from 'recharts';
 import { countries } from '@/lib/countries';
 import { Skeleton } from '../ui/skeleton';
@@ -68,47 +68,75 @@ export default function ActiveUsersChart() {
       setIsLoading(true);
 
       try {
-        const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
+        const now = new Date();
+        const hoursAgo = parseInt(timeRangeFilter, 10);
+        const startTime = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+
+        // This query gets all status changes in the time range
         const statusQuery = query(
+            collection(firestore, 'status'),
+            where('lastChanged', '>=', startTime),
+            orderBy('lastChanged', 'asc')
+        );
+
+        const statusSnapshot = await getDocs(statusQuery);
+        const allStatusChanges = statusSnapshot.docs.map(doc => ({
+            userId: doc.id,
+            isOnline: doc.data().isOnline,
+            lastChanged: doc.data().lastChanged.toDate(),
+        }));
+        
+        // Get unique user IDs to fetch their profiles
+        const userIds = [...new Set(allStatusChanges.map(s => s.userId))];
+
+        let filteredUserIds = userIds;
+        
+        if (countryFilter !== 'all' || genderFilter !== 'all') {
+            const profiles: { [key: string]: UserProfile } = {};
+            for (let i = 0; i < userIds.length; i += 30) {
+                const batchIds = userIds.slice(i, i + 30);
+                const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', batchIds));
+                const usersSnapshot = await getDocs(usersQuery);
+                usersSnapshot.forEach(doc => {
+                    profiles[doc.id] = { id: doc.id, ...doc.data() } as UserProfile
+                });
+            }
+            
+            if (countryFilter !== 'all') {
+                filteredUserIds = filteredUserIds.filter(id => profiles[id]?.country === countryFilter);
+            }
+            if (genderFilter !== 'all') {
+                filteredUserIds = filteredUserIds.filter(id => (profiles[id]?.gender || 'No especificado') === genderFilter);
+            }
+        }
+
+        const data = processStatusData(allStatusChanges, filteredUserIds, hoursAgo);
+        setChartData(data);
+
+        // For the pie charts, we need the *currently* active users
+        const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
+        const currentStatusQuery = query(
             collection(firestore, 'status'),
             where('isOnline', '==', true),
             where('lastChanged', '>=', oneMinuteAgo)
         );
+        const currentStatusSnapshot = await getDocs(currentStatusQuery);
+        const onlineUserIds = currentStatusSnapshot.docs.map(doc => doc.id).filter(id => filteredUserIds.includes(id));
+        
+        setTotalActive(onlineUserIds.length);
 
-        const statusSnapshot = await getDocs(statusQuery);
-        const onlineUserIds = statusSnapshot.docs.map(doc => doc.id);
-
-        if (onlineUserIds.length === 0) {
-            setTotalActive(0);
-            setChartData([]);
+        if (onlineUserIds.length > 0) {
+            const profilesToProcess: UserProfile[] = [];
+             for (let i = 0; i < onlineUserIds.length; i += 30) {
+                const batchIds = onlineUserIds.slice(i, i + 30);
+                const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', batchIds));
+                const usersSnapshot = await getDocs(usersQuery);
+                usersSnapshot.forEach(doc => profilesToProcess.push({ id: doc.id, ...doc.data() } as UserProfile));
+            }
+            processDemographics(profilesToProcess);
+        } else {
             processDemographics([]);
-            setIsLoading(false);
-            return;
         }
-
-        const userProfiles: UserProfile[] = [];
-        // Batch queries to avoid hitting Firestore limits on 'in' arrays
-        for (let i = 0; i < onlineUserIds.length; i += 30) {
-            const batchIds = onlineUserIds.slice(i, i + 30);
-            const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', batchIds));
-            const usersSnapshot = await getDocs(usersQuery);
-            usersSnapshot.forEach(doc => userProfiles.push({ id: doc.id, ...doc.data() } as UserProfile));
-        }
-        
-        let filteredProfiles = userProfiles;
-        if (countryFilter !== 'all') {
-            filteredProfiles = filteredProfiles.filter(p => p.country === countryFilter);
-        }
-        if (genderFilter !== 'all') {
-             filteredProfiles = filteredProfiles.filter(p => (p.gender || 'No especificado') === genderFilter);
-        }
-
-        setTotalActive(filteredProfiles.length);
-        processDemographics(filteredProfiles);
-        
-        // Trend data is harder with this model, so we'll show a simplified view for now.
-        // A full implementation would require logging active users periodically.
-        setChartData([{ date: 'Ahora', count: filteredProfiles.length }]);
 
       } catch (error) {
         console.error("Error fetching active user data:", error);
@@ -118,11 +146,53 @@ export default function ActiveUsersChart() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(interval);
-
   }, [firestore, countryFilter, genderFilter, timeRangeFilter]);
+  
+   const processStatusData = (
+    statusChanges: { userId: string, isOnline: boolean, lastChanged: Date }[],
+    filteredUserIds: string[],
+    timeRangeHours: number
+  ): ChartDataPoint[] => {
+    const now = new Date();
+    const data: { [key: string]: Set<string> } = {};
+
+    let formatOptions: Intl.DateTimeFormatOptions;
+    let getDateKey: (d: Date) => string;
+    
+    if (timeRangeHours <= 24) { // Group by hour
+        formatOptions = { hour: 'numeric', day: '2-digit', month: 'short' };
+        getDateKey = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()).toISOString();
+    } else { // Group by day
+        formatOptions = { day: '2-digit', month: 'short' };
+        getDateKey = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
+    }
+
+    statusChanges.forEach(change => {
+      if (change.isOnline && filteredUserIds.includes(change.userId)) {
+          const dateKey = getDateKey(change.lastChanged);
+          if (!data[dateKey]) {
+              data[dateKey] = new Set();
+          }
+          data[dateKey].add(change.userId);
+      }
+    });
+
+    const chartPoints: ChartDataPoint[] = [];
+    const interval = timeRangeHours <= 24 ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    let currentTime = new Date(now.getTime() - timeRangeHours * 60 * 60 * 1000);
+
+    while (currentTime <= now) {
+      const dateKey = getDateKey(currentTime);
+      chartPoints.push({
+        date: new Intl.DateTimeFormat('es-ES', formatOptions).format(new Date(dateKey)),
+        count: data[dateKey]?.size || 0,
+      });
+      currentTime = new Date(currentTime.getTime() + interval);
+    }
+    
+    return chartPoints;
+  };
+
 
   const processDemographics = (users: UserProfile[]) => {
      const genderCounts: { [key: string]: number } = { 'Masculino': 0, 'Femenino': 0, 'Otro': 0, 'No especificado': 0 };
@@ -148,10 +218,10 @@ export default function ActiveUsersChart() {
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-                 <CardTitle className="flex items-center gap-2"><TrendingUp/> Usuarios Activos (Tiempo Real)</CardTitle>
-                 <CardDescription>Usuarios actualmente en línea, con filtros demográficos.</CardDescription>
+                 <CardTitle className="flex items-center gap-2"><TrendingUp/> Usuarios Activos</CardTitle>
+                 <CardDescription>Usuarios en línea en tiempo real y tendencias de actividad, con filtros demográficos.</CardDescription>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <CountryCombobox
                     value={countryFilter}
                     onChange={setCountryFilter}
@@ -166,6 +236,14 @@ export default function ActiveUsersChart() {
                         <SelectItem value="No especificado">No especificado</SelectItem>
                     </SelectContent>
                 </Select>
+                 <Select value={timeRangeFilter} onValueChange={setTimeRangeFilter}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Periodo de tiempo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {timeRanges.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
         </div>
       </CardHeader>
@@ -174,7 +252,7 @@ export default function ActiveUsersChart() {
             <Card className="flex flex-col items-center justify-center p-6 bg-muted/50">
                 <Users className="h-8 w-8 text-muted-foreground" />
                 {isLoading ? <Skeleton className="h-9 w-12 mt-2" /> : <p className="text-3xl font-bold mt-2">{totalActive}</p>}
-                <p className="text-sm text-muted-foreground">Usuarios Activos Totales</p>
+                <p className="text-sm text-muted-foreground">Usuarios en Tiempo Real</p>
             </Card>
              <Card>
                 <CardHeader className="p-4"><CardTitle className="text-base flex items-center gap-2"><PieChart/>Por Género</CardTitle></CardHeader>
@@ -206,6 +284,33 @@ export default function ActiveUsersChart() {
                     ) : <p className="text-center text-sm text-muted-foreground py-10">Sin datos</p>}
                 </CardContent>
             </Card>
+        </div>
+         <div className="pt-4">
+             {isLoading ? (
+                <div className="w-full h-[300px] flex items-center justify-center">
+                    <Skeleton className="h-full w-full" />
+                </div>
+            ) : chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                    <Tooltip
+                        contentStyle={{
+                        background: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        }}
+                    />
+                    <Line type="monotone" dataKey="count" name="Usuarios Activos" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                    </LineChart>
+                </ResponsiveContainer>
+            ) : (
+                <div className="w-full h-[300px] flex flex-col items-center justify-center text-center">
+                    <p className="font-semibold">Sin datos de tendencia para mostrar</p>
+                    <p className="text-sm text-muted-foreground">Prueba a ajustar los filtros o espera a que haya más actividad.</p>
+                </div>
+            )}
         </div>
       </CardContent>
     </Card>
