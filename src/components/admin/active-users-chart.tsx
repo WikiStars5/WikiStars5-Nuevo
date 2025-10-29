@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { collection, query, where, getDocs, orderBy, Timestamp, Query, collectionGroup } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
@@ -62,8 +62,7 @@ export default function ActiveUsersChart() {
   const [genderFilter, setGenderFilter] = useState('all');
   const [timeRangeFilter, setTimeRangeFilter] = useState('24'); // Default to 24 hours
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
       if (!firestore) return;
       setIsLoading(true);
 
@@ -129,9 +128,11 @@ export default function ActiveUsersChart() {
             const profilesToProcess: UserProfile[] = [];
              for (let i = 0; i < onlineUserIds.length; i += 30) {
                 const batchIds = onlineUserIds.slice(i, i + 30);
-                const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', batchIds));
-                const usersSnapshot = await getDocs(usersQuery);
-                usersSnapshot.forEach(doc => profilesToProcess.push({ id: doc.id, ...doc.data() } as UserProfile));
+                if (batchIds.length > 0) {
+                  const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', batchIds));
+                  const usersSnapshot = await getDocs(usersQuery);
+                  usersSnapshot.forEach(doc => profilesToProcess.push({ id: doc.id, ...doc.data() } as UserProfile));
+                }
             }
             processDemographics(profilesToProcess);
         } else {
@@ -143,10 +144,21 @@ export default function ActiveUsersChart() {
       } finally {
         setIsLoading(false);
       }
-    };
+    }, [firestore, countryFilter, genderFilter, timeRangeFilter]);
 
-    fetchData();
-  }, [firestore, countryFilter, genderFilter, timeRangeFilter]);
+    // Effect to run fetchData when filters change
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    // Effect for periodic refresh
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchData();
+        }, 10000); // Refresh every 10 seconds
+
+        return () => clearInterval(interval);
+    }, [fetchData]); // Re-create interval if fetchData function changes
   
    const processStatusData = (
     statusChanges: { userId: string, isOnline: boolean, lastChanged: Date }[],
