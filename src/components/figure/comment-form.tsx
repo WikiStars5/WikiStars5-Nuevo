@@ -248,11 +248,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     <Card className="bg-black">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-            <MessageSquare /> Opiniones y Discusión
+            <MessageSquare /> Calificaciones y cometarios
         </CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Comparte tu opinión sobre {figureName}. Sé respetuoso y mantén la conversación constructiva.
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
