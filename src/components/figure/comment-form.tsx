@@ -1,51 +1,33 @@
 'use client';
 
 import { useState, useContext } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc } from 'firebase/firestore';
 import { useAuth, useFirestore, useUser } from '@/firebase';
-import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, Send, User } from 'lucide-react';
-import { onAuthStateChanged, User as FirebaseUser, Auth, updateProfile } from 'firebase/auth';
+import { Loader2, MessageSquare, Send, LogIn } from 'lucide-react';
 import StarInput from './star-input';
 import { Comment, Streak } from '@/lib/types';
-import { Input } from '../ui/input';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
-import { normalizeText } from '@/lib/keywords';
 
-const baseCommentSchema = z.object({
+const commentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(500, 'El comentario no puede superar los 500 caracteres.'),
   rating: z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.'),
-  username: z.string().optional(),
 });
 
-type CommentFormValues = z.infer<typeof baseCommentSchema>;
+type CommentFormValues = z.infer<typeof commentSchema>;
 
 interface CommentFormProps {
   figureId: string;
   figureName: string;
-}
-
-function getNextUser(auth: Auth): Promise<FirebaseUser> {
-  return new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        unsubscribe();
-        resolve(user);
-      }
-    }, (error) => {
-        unsubscribe();
-        reject(error);
-    });
-  });
 }
 
 const ratingSounds: { [key: number]: string } = {
@@ -57,101 +39,56 @@ const ratingSounds: { [key: number]: string } = {
 };
 
 export default function CommentForm({ figureId, figureName }: CommentFormProps) {
-  const { user, reloadUser } = useUser();
+  const { user } = useUser();
   const firestore = useFirestore();
-  const auth = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
 
-
-  // A user is a "first-time anonymous" if they are not logged in OR if they are anonymous and haven't set a display name yet.
-  const isFirstTimeAnonymous = (!user || (user.isAnonymous && !user.displayName));
-
-  const commentSchema = isFirstTimeAnonymous
-    ? baseCommentSchema.extend({
-        username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(20, 'El nombre no puede tener más de 20 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
-      })
-    : baseCommentSchema;
-
+  const isRegisteredUser = user && !user.isAnonymous;
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
-    defaultValues: { text: '', rating: null as any, username: user?.displayName || '' },
+    defaultValues: { text: '', rating: null as any },
   });
 
   const textValue = form.watch('text', '');
 
   const onSubmit = async (data: CommentFormValues) => {
-    if (!firestore || !auth) return;
+    if (!firestore || !user) return; // This check is for safety, user should exist at this point.
     setIsSubmitting(true);
-    form.clearErrors('username');
-
+    
     try {
-      let currentUser = user;
-      if (!currentUser) {
-        await initiateAnonymousSignIn(auth);
-        currentUser = await getNextUser(auth);
-      }
-      
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
-      let displayName = currentUser.displayName;
+      let displayName = user.displayName;
 
       await runTransaction(firestore, async (transaction) => {
-        let usernameDoc;
-        let figureDoc;
-        let previousCommentSnapshot;
-        let userProfileSnap;
+        const userProfileRef = doc(firestore, 'users', user!.uid);
 
-        const newUsername = data.username;
-        const userProfileRef = doc(firestore, 'users', currentUser!.uid);
-
-        // --- 1. All READS must happen first ---
-        if (isFirstTimeAnonymous && newUsername) {
-            const newUsernameLower = normalizeText(newUsername);
-            const usernameRef = doc(firestore, 'usernames', newUsernameLower);
-            usernameDoc = await transaction.get(usernameRef);
-        }
-
-        figureDoc = await transaction.get(figureRef);
-        userProfileSnap = await transaction.get(userProfileRef);
-
-        const previousCommentsQuery = query(
+        // --- 1. READS ---
+        const [figureDoc, userProfileSnap, previousCommentSnapshot] = await Promise.all([
+          transaction.get(figureRef),
+          transaction.get(userProfileRef),
+          getDocs(query(
             commentsColRef,
-            where('userId', '==', currentUser!.uid),
+            where('userId', '==', user!.uid),
             where('rating', '>=', 0),
             orderBy('rating'),
             orderBy('createdAt', 'desc'),
             limit(1)
-        );
-        previousCommentSnapshot = await getDocs(previousCommentsQuery);
+          ))
+        ]);
         
-        // --- 2. Validation after reads ---
-        if (usernameDoc && usernameDoc.exists()) {
-            throw new Error('El nombre de usuario ya está en uso.');
-        }
-
+        // --- 2. Validation ---
         if (!figureDoc.exists()) {
             throw new Error("Figure not found.");
         }
         
-        // --- 3. All WRITES happen last ---
+        // --- 3. WRITES ---
         const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
         displayName = displayName || userProfileData.username || 'Usuario';
-        
-        if (isFirstTimeAnonymous && newUsername) {
-            displayName = newUsername;
-            const newUsernameLower = normalizeText(newUsername);
-            const usernameRef = doc(firestore, 'usernames', newUsernameLower);
-            transaction.set(usernameRef, { userId: currentUser!.uid });
-            transaction.set(userProfileRef, {
-                username: newUsername,
-                usernameLower: newUsernameLower,
-                createdAt: serverTimestamp()
-            }, { merge: true });
-        }
         
         const previousCommentDoc = previousCommentSnapshot.docs[0];
         const previousComment = previousCommentDoc?.data() as Comment | undefined;
@@ -177,14 +114,14 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         
         const newCommentRef = doc(commentsColRef);
         const newCommentPayload: Omit<Comment, 'id' | 'children' | 'createdAt'> & { createdAt: any } = {
-            threadId: newCommentRef.id, // For root comments, threadId is its own id
+            threadId: newCommentRef.id,
             figureId: figureId,
-            userId: currentUser!.uid,
+            userId: user!.uid,
             text: data.text,
             rating: newRating,
             createdAt: serverTimestamp(),
-            userDisplayName: displayName,
-            userPhotoURL: currentUser!.isAnonymous ? null : currentUser!.photoURL,
+            userDisplayName: displayName!,
+            userPhotoURL: user!.photoURL,
             userCountry: userProfileData.country || null,
             userGender: userProfileData.gender || null,
             likes: 0,
@@ -195,22 +132,16 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         transaction.set(newCommentRef, newCommentPayload);
       });
 
-      // --- Post-Transaction Auth Update ---
-       if (isFirstTimeAnonymous && data.username && currentUser.displayName !== data.username) {
-            await updateProfile(currentUser, { displayName: data.username });
-            await reloadUser();
-      }
-
       // --- Streak Update ---
       const streakResult = await updateStreak({
         firestore,
         figureId,
-        userId: currentUser.uid,
+        userId: user.uid,
         userDisplayName: displayName!,
-        userPhotoURL: currentUser.photoURL,
-        userCountry: (await getDoc(doc(firestore, 'users', currentUser.uid))).data()?.country || null,
-        userGender: (await getDoc(doc(firestore, 'users', currentUser.uid))).data()?.gender || null,
-        isAnonymous: currentUser.isAnonymous,
+        userPhotoURL: user.photoURL,
+        userCountry: (await getDoc(doc(firestore, 'users', user.uid))).data()?.country || null,
+        userGender: (await getDoc(doc(firestore, 'users', user.uid))).data()?.gender || null,
+        isAnonymous: user.isAnonymous,
       });
 
       if (streakResult?.streakGained) {
@@ -227,18 +158,14 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         title: '¡Opinión Publicada!',
         description: 'Gracias por compartir tu comentario y calificación.',
       });
-      form.reset({text: '', rating: null as any, username: data.username || user?.displayName });
+      form.reset({text: '', rating: null as any});
     } catch (error: any) {
       console.error('Error al publicar comentario:', error);
-      if (error.message === 'El nombre de usuario ya está en uso.') {
-        form.setError('username', { type: 'manual', message: error.message });
-      } else {
-         toast({
+      toast({
             variant: 'destructive',
             title: 'Error al Publicar',
             description: 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
         });
-      }
     } finally {
       setIsSubmitting(false);
     }
@@ -252,84 +179,75 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {isFirstTimeAnonymous && (
-              <Card className="bg-muted/50">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg">¡Únete a la conversación!</CardTitle>
-                  <CardDescription>Para comentar, elige un nombre de usuario único. Esto también activará tus rachas de comentarios.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FormField
-                    control={form.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre de Usuario*</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Tu nombre público" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            <FormField
-              control={form.control}
-              name="rating"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Paso 2: Califica este perfil*</FormLabel>
-                  <FormControl>
-                    <StarInput 
-                        value={field.value}
-                        onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="text"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Paso 3: Escribe tu opinión*</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={`¿Qué opinas de ${figureName}?`}
-                      className="resize-none"
-                      rows={4}
-                      maxLength={500}
-                      {...field}
-                    />
-                  </FormControl>
-                   <div className="flex justify-between items-center pt-1">
+        {isRegisteredUser ? (
+            <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                control={form.control}
+                name="rating"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Paso 1: Califica este perfil*</FormLabel>
+                    <FormControl>
+                        <StarInput 
+                            value={field.value}
+                            onChange={field.onChange}
+                        />
+                    </FormControl>
                     <FormMessage />
-                    <div className="text-xs text-muted-foreground ml-auto">
-                      {textValue.length} / 500
-                    </div>
-                  </div>
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <Send />
+                    </FormItem>
                 )}
-                Publicar Opinión
-              </Button>
+                />
+                <FormField
+                control={form.control}
+                name="text"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Paso 2: Escribe tu opinión*</FormLabel>
+                    <FormControl>
+                        <Textarea
+                        placeholder={`¿Qué opinas de ${figureName}?`}
+                        className="resize-none"
+                        rows={4}
+                        maxLength={500}
+                        {...field}
+                        />
+                    </FormControl>
+                    <div className="flex justify-between items-center pt-1">
+                        <FormMessage />
+                        <div className="text-xs text-muted-foreground ml-auto">
+                        {textValue.length} / 500
+                        </div>
+                    </div>
+                    </FormItem>
+                )}
+                />
+                <div className="flex justify-end">
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                    <Loader2 className="animate-spin" />
+                    ) : (
+                    <Send />
+                    )}
+                    Publicar Opinión
+                </Button>
+                </div>
+            </form>
+            </Form>
+        ) : (
+            <div className="text-center rounded-lg border-2 border-dashed p-8 flex flex-col items-center">
+                 <h3 className="font-semibold text-lg">Únete a la Conversación</h3>
+                 <p className="text-muted-foreground mt-2 max-w-sm">
+                    Inicia sesión o crea una cuenta para dejar tu calificación y comentario, y para empezar a ganar rachas.
+                 </p>
+                 <Button asChild className="mt-4">
+                     <Link href="/login">
+                         <LogIn className="mr-2 h-4 w-4" />
+                         Iniciar Sesión o Registrarse
+                     </Link>
+                 </Button>
             </div>
-          </form>
-        </Form>
+        )}
       </CardContent>
     </Card>
   );
