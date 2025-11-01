@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -6,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc } from 'firebase/firestore';
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useAuth, useFirestore, useUser, EmailAuthProvider, linkWithCredential } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -76,12 +77,29 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     setIsSubmitting(true);
 
     try {
-        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-        const newUser = userCredential.user;
+        // This is the key change: if the user is anonymous, link the account.
+        if (user && user.isAnonymous) {
+            const credential = EmailAuthProvider.credential(data.email, data.password);
+            await linkWithCredential(user, credential);
+            // Now the anonymous user is a permanent user with the same UID.
+        } else {
+            // This case should ideally not be hit if the UI only shows this form to guests,
+            // but it's a safe fallback.
+            const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        }
 
-        await updateProfile(newUser, { displayName: data.username });
+        // The onAuthStateChanged listener in useUser will give us the updated user object.
+        // We just need to wait a moment for the state to propagate.
+        await new Promise(resolve => setTimeout(resolve, 500)); 
+        const permanentUser = auth.currentUser;
 
-        const userRef = doc(firestore, 'users', newUser.uid);
+        if (!permanentUser) {
+            throw new Error("No se pudo obtener el usuario actualizado después del registro.");
+        }
+
+        await updateProfile(permanentUser, { displayName: data.username });
+
+        const userRef = doc(firestore, 'users', permanentUser.uid);
         const usernameRef = doc(firestore, 'usernames', data.username.toLowerCase());
 
         await runTransaction(firestore, async (transaction) => {
@@ -89,12 +107,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             if (usernameDoc.exists()) {
                 throw new Error("El nombre de usuario ya está en uso.");
             }
-            transaction.set(usernameRef, { userId: newUser.uid });
+            transaction.set(usernameRef, { userId: permanentUser.uid });
+            // Use set with merge to update the existing user doc (from anonymous) or create a new one
             transaction.set(userRef, {
                 username: data.username,
                 usernameLower: data.username.toLowerCase(),
                 email: data.email,
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp() // Will only be set on creation
             }, { merge: true });
         });
 
@@ -102,13 +121,16 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             title: "¡Cuenta Creada!",
             description: "Ahora puedes calificar y comentar.",
         });
-        // The useUser hook will automatically update the UI
+        // The useUser hook will automatically re-render the component with the registered user UI.
 
     } catch (error: any) {
-        console.error("Error creating account:", error);
+        console.error("Error creating/linking account:", error);
         if (error.code === 'auth/email-already-in-use') {
             registerForm.setError('email', { message: 'Este correo electrónico ya está registrado.' });
-        } else if (error.message === 'El nombre de usuario ya está en uso.') {
+        } else if (error.code === 'auth/credential-already-in-use') {
+            registerForm.setError('email', { message: 'Este correo ya está vinculado a otra cuenta.' });
+        }
+        else if (error.message === 'El nombre de usuario ya está en uso.') {
             registerForm.setError('username', { message: error.message });
         } else {
              toast({
@@ -355,3 +377,5 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     </Card>
   );
 }
+
+    
