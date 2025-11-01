@@ -12,11 +12,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, Send, LogIn } from 'lucide-react';
+import { Loader2, MessageSquare, Send, LogIn, UserPlus } from 'lucide-react';
 import StarInput from './star-input';
 import { Comment, Streak } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { Input } from '../ui/input';
 
 const commentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(500, 'El comentario no puede superar los 500 caracteres.'),
@@ -24,6 +26,15 @@ const commentSchema = z.object({
 });
 
 type CommentFormValues = z.infer<typeof commentSchema>;
+
+const registerSchema = z.object({
+    username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
+    email: z.string().email('Introduce un correo electrónico válido.'),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres.'),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
+
 
 interface CommentFormProps {
   figureId: string;
@@ -41,18 +52,75 @@ const ratingSounds: { [key: number]: string } = {
 export default function CommentForm({ figureId, figureName }: CommentFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const auth = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
 
   const isRegisteredUser = user && !user.isAnonymous;
 
-  const form = useForm<CommentFormValues>({
+  const commentForm = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
     defaultValues: { text: '', rating: null as any },
   });
 
-  const textValue = form.watch('text', '');
+  const registerForm = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { username: '', email: '', password: '' },
+  });
+
+  const textValue = commentForm.watch('text', '');
+  
+  const handleRegistration = async (data: RegisterFormValues) => {
+    if (!auth || !firestore) return;
+    setIsSubmitting(true);
+
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        const newUser = userCredential.user;
+
+        await updateProfile(newUser, { displayName: data.username });
+
+        const userRef = doc(firestore, 'users', newUser.uid);
+        const usernameRef = doc(firestore, 'usernames', data.username.toLowerCase());
+
+        await runTransaction(firestore, async (transaction) => {
+            const usernameDoc = await transaction.get(usernameRef);
+            if (usernameDoc.exists()) {
+                throw new Error("El nombre de usuario ya está en uso.");
+            }
+            transaction.set(usernameRef, { userId: newUser.uid });
+            transaction.set(userRef, {
+                username: data.username,
+                usernameLower: data.username.toLowerCase(),
+                email: data.email,
+                createdAt: serverTimestamp()
+            }, { merge: true });
+        });
+
+        toast({
+            title: "¡Cuenta Creada!",
+            description: "Ahora puedes calificar y comentar.",
+        });
+        // The useUser hook will automatically update the UI
+
+    } catch (error: any) {
+        console.error("Error creating account:", error);
+        if (error.code === 'auth/email-already-in-use') {
+            registerForm.setError('email', { message: 'Este correo electrónico ya está registrado.' });
+        } else if (error.message === 'El nombre de usuario ya está en uso.') {
+            registerForm.setError('username', { message: error.message });
+        } else {
+             toast({
+                title: "Error al Registrar",
+                description: "No se pudo crear la cuenta. Inténtalo de nuevo.",
+                variant: "destructive",
+            });
+        }
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
 
   const onSubmit = async (data: CommentFormValues) => {
     if (!firestore || !user) return; // This check is for safety, user should exist at this point.
@@ -158,7 +226,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         title: '¡Opinión Publicada!',
         description: 'Gracias por compartir tu comentario y calificación.',
       });
-      form.reset({text: '', rating: null as any});
+      commentForm.reset({text: '', rating: null as any});
     } catch (error: any) {
       console.error('Error al publicar comentario:', error);
       toast({
@@ -180,10 +248,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       </CardHeader>
       <CardContent>
         {isRegisteredUser ? (
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <Form {...commentForm}>
+            <form onSubmit={commentForm.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
-                control={form.control}
+                control={commentForm.control}
                 name="rating"
                 render={({ field }) => (
                     <FormItem>
@@ -199,7 +267,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                 )}
                 />
                 <FormField
-                control={form.control}
+                control={commentForm.control}
                 name="text"
                 render={({ field }) => (
                     <FormItem>
@@ -235,17 +303,52 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             </form>
             </Form>
         ) : (
-            <div className="text-center rounded-lg border-2 border-dashed p-8 flex flex-col items-center">
-                 <h3 className="font-semibold text-lg">Únete a la Conversación</h3>
-                 <p className="text-muted-foreground mt-2 max-w-sm">
-                    Inicia sesión o crea una cuenta para dejar tu calificación y comentario, y para empezar a ganar rachas.
+            <div className="text-center rounded-lg border-2 border-dashed p-8">
+                 <h3 className="font-semibold text-lg">Crea una cuenta para comentar</h3>
+                 <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                    El registro es rápido y te permite unirte a la conversación y empezar a ganar rachas.
                  </p>
-                 <Button asChild className="mt-4">
-                     <Link href="/login">
-                         <LogIn className="mr-2 h-4 w-4" />
-                         Iniciar Sesión o Registrarse
-                     </Link>
-                 </Button>
+                 <Form {...registerForm}>
+                    <form onSubmit={registerForm.handleSubmit(handleRegistration)} className="mt-6 space-y-4 max-w-sm mx-auto text-left">
+                        <FormField
+                            control={registerForm.control}
+                            name="username"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Nombre de Usuario</FormLabel>
+                                    <FormControl><Input placeholder="Elige un nombre de usuario" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={registerForm.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Correo Electrónico</FormLabel>
+                                    <FormControl><Input type="email" placeholder="tu@correo.com" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={registerForm.control}
+                            name="password"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Contraseña</FormLabel>
+                                    <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" className="w-full" disabled={isSubmitting}>
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                            Crear Cuenta y Comentar
+                        </Button>
+                    </form>
+                 </Form>
             </div>
         )}
       </CardContent>
