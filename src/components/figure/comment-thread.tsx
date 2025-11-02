@@ -149,7 +149,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
             console.error("Error al eliminar comentario:", error);
             toast({
                 title: "Error al Eliminar",
-                description: error.message || "No se pudo eliminar el comentario.",
+                description: "No se pudo eliminar el comentario. Esto puede deberse a un problema de permisos si el comentario tiene respuestas.",
                 variant: "destructive",
             });
         } finally {
