@@ -128,13 +128,19 @@ service cloud.firestore {
       function isSignedIn() {
         return request.auth != null;
       }
-      function isCommentOwner(commentId) {
+      function isCommentOwner() {
         return resource.data.userId == request.auth.uid;
+      }
+      function isUpdatingVoteCounters() {
+        // Allows updates only to 'likes' and 'dislikes' fields.
+        let incomingKeys = request.resource.data.keys();
+        let existingKeys = resource.data.keys();
+        return incomingKeys.hasAll(['likes', 'dislikes']) && incomingKeys.size() == existingKeys.size() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']);
       }
       allow get: if true;
       allow list: if true;
       allow create: if isSignedIn();
-      allow update: if isCommentOwner(commentId);
+      allow update: if isSignedIn() && (isCommentOwner() || isUpdatingVoteCounters());
       allow delete: if isCommentOwner(commentId);
     }
 

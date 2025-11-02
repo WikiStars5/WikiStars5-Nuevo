@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -48,55 +47,25 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
     const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     const isOwner = user && user.uid === comment.userId;
-
-    const userVoteRef = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        return doc(firestore, `figures/${figureId}/comments/${comment.id}/votes`, user.uid);
-    }, [firestore, user, figureId, comment.id]);
-
-    const { data: userVote, isLoading: isVoteLoading } = useDoc<CommentVote>(userVoteRef);
+    
+    // This hook is no longer needed as we are not tracking individual user votes.
+    // const userVoteRef = ...
+    // const { data: userVote, isLoading: isVoteLoading } = useDoc<CommentVote>(userVoteRef);
 
     const country = countries.find(c => c.name === comment.userCountry);
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
         if (!firestore || !user || isVoting) return;
-
         setIsVoting(voteType);
-
-        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
-        const voteRef = doc(firestore, `figures/${figureId}/comments/${comment.id}/votes`, user.uid);
         
+        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+
         try {
-            await runTransaction(firestore, async (transaction) => {
-                const commentDoc = await transaction.get(commentRef);
-                const voteDoc = await transaction.get(voteRef);
-
-                if (!commentDoc.exists()) {
-                    throw new Error("El comentario ya no existe.");
-                }
-
-                const currentVote = voteDoc.exists() ? voteDoc.data().vote : null;
-                const updates: { [key: string]: any } = {};
-
-                if (currentVote === voteType) {
-                    updates[`${voteType}s`] = increment(-1);
-                    transaction.delete(voteRef);
-                } else {
-                    updates[`${voteType}s`] = increment(1);
-                    if (currentVote) {
-                        const otherType = voteType === 'like' ? 'dislike' : 'like';
-                        updates[`${otherType}s`] = increment(-1);
-                    }
-                    transaction.set(voteRef, { 
-                        userId: user.uid,
-                        commentId: comment.id,
-                        vote: voteType,
-                        createdAt: serverTimestamp(),
-                     });
-                }
-                
-                transaction.update(commentRef, updates);
+            // We directly update the counter without checking for a previous vote.
+            await updateDoc(commentRef, {
+                [`${voteType}s`]: increment(1)
             });
+
         } catch (error: any) {
             console.error("Error al votar:", error);
             toast({
@@ -259,9 +228,9 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && "text-blue-500")}
+                            className="flex items-center gap-1.5 h-8 px-2"
                             onClick={() => handleVote('like')}
-                            disabled={!user || !!isVoting || isVoteLoading}
+                            disabled={!user || !!isVoting}
                         >
                             {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
                             <span>{comment.likes ?? 0}</span>
@@ -269,9 +238,9 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && "text-red-500")}
+                            className="flex items-center gap-1.5 h-8 px-2"
                             onClick={() => handleVote('dislike')}
-                            disabled={!user || !!isVoting || isVoteLoading}
+                            disabled={!user || !!isVoting}
                         >
                             {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
                             <span>{comment.dislikes ?? 0}</span>
