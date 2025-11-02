@@ -26,24 +26,10 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
-  const firestore = getFirestore(firebaseApp);
-  // Enable multi-tab persistence to allow offline capabilities across tabs.
-  // This can help with connection stability and reduce timeout warnings.
-  try {
-    enableMultiTabIndexedDbPersistence(firestore);
-  } catch (error: any) {
-    if (error.code === 'failed-precondition') {
-      // This error means persistence is already enabled in another tab.
-      // This is a normal scenario and can be ignored.
-    } else {
-      console.error("Firebase: Could not enable multi-tab persistence.", error);
-    }
-  }
-
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: firestore,
+    firestore: getFirestore(firebaseApp),
   };
 }
 
@@ -69,3 +55,4 @@ export * from './error-emitter';
 export * from './auth/use-admin';
 export * from './auth/use-user';
 export { EmailAuthProvider, linkWithCredential, GoogleAuthProvider, signInWithPopup };
+
