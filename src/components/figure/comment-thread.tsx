@@ -371,8 +371,8 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                  {isReplying && (
                     <ReplyForm 
                         figureId={figureId}
-                        parentComment={comment}
                         figureName={figureName}
+                        parentComment={comment}
                         onReplySuccess={() => {
                             setIsReplying(false);
                             if (!repliesVisible) {

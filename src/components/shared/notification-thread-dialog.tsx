@@ -159,9 +159,7 @@ export default function NotificationThreadDialog({
                                      <ReplyForm
                                         figureId={figureId}
                                         figureName={figureName}
-                                        parentId={replyId} // We are replying to the new reply
-                                        threadId={replyComment.threadId || parentId} // Pass the threadId down
-                                        depth={replyComment.depth} 
+                                        parentComment={replyComment}
                                         onReplySuccess={() => onOpenChange(false)}
                                     />
                                  )}

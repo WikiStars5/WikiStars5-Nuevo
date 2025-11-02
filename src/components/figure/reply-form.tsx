@@ -65,7 +65,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
       
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       let newCommentText = data.text;
-      let newParentId = parentComment.id;
+      let newParentId: string | null = parentComment.id;
       let newThreadId = parentComment.threadId || parentComment.id;
       let newDepth = parentComment.depth + 1;
 
