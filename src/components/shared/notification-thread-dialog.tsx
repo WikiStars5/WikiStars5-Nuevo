@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -96,58 +97,75 @@ export default function NotificationThreadDialog({
   onOpenChange,
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
-    const [rootComment, setRootComment] = useState<Comment | null>(null);
-    const [replies, setReplies] = useState<Comment[]>([]);
+    const [threadComments, setThreadComments] = useState<Comment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const rootComment = useMemo(() => {
+        return threadComments.find(c => c.id === parentId);
+    }, [threadComments, parentId]);
     
-    // The comment to reply to, which is the one that was highlighted.
+    // The comment to reply to is the one that was highlighted (the notification source).
     const activeReplyTarget = useMemo(() => {
-        if (replyId) {
-            const target = replies.find(r => r.id === replyId);
-            if (target) return target;
-        }
-        return rootComment;
-    }, [replyId, rootComment, replies]);
+        return threadComments.find(c => c.id === replyId);
+    }, [threadComments, replyId]);
 
 
     useEffect(() => {
         const fetchComments = async () => {
             if (!firestore) return;
             setIsLoading(true);
+            setError(null);
             
             try {
                 const commentsRef = collection(firestore, `figures/${figureId}/comments`);
-                const rootRef = doc(commentsRef, parentId);
+                const commentChain: Comment[] = [];
+                let currentId = replyId;
 
-                const repliesQuery = query(
-                    commentsRef,
-                    where('parentId', '==', parentId),
-                    orderBy('createdAt', 'asc')
-                );
-
-                const [rootSnap, repliesSnap] = await Promise.all([
-                    getDoc(rootRef),
-                    getDocs(repliesQuery)
-                ]);
-
-                if (rootSnap.exists()) {
-                    const rootData = { id: rootSnap.id, ...rootSnap.data() } as Comment;
-                    setRootComment(rootData);
-                    const replyData = repliesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Comment));
-                    setReplies(replyData);
-                } else {
-                    console.error("Root comment not found.");
+                // Trace back from the reply to the root
+                while(currentId) {
+                    const docRef = doc(commentsRef, currentId);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const commentData = { id: docSnap.id, ...docSnap.data() } as Comment;
+                        commentChain.unshift(commentData); // Add to the beginning to maintain order
+                        currentId = commentData.parentId!;
+                    } else {
+                        // If any comment in the chain is missing, we stop.
+                        if (currentId === parentId) {
+                             setError("El comentario original de esta conversación ha sido eliminado.");
+                        } else {
+                             setError("Un comentario en esta conversación ha sido eliminado, no se puede mostrar el hilo completo.");
+                        }
+                        break;
+                    }
+                }
+                
+                // Ensure the root comment is the first one if the chain was incomplete
+                if (commentChain.length > 0 && commentChain[0].id !== parentId) {
+                    const rootRef = doc(commentsRef, parentId);
+                    const rootSnap = await getDoc(rootRef);
+                    if (rootSnap.exists()) {
+                         commentChain.unshift({ id: rootSnap.id, ...rootSnap.data() } as Comment);
+                    } else {
+                         setError("El comentario original de esta conversación ha sido eliminado.");
+                    }
+                }
+                
+                if (!error) {
+                    setThreadComments(commentChain);
                 }
 
-            } catch (error) {
-                console.error("Error fetching comments for notification dialog:", error);
+            } catch (err) {
+                console.error("Error fetching comments for notification dialog:", err);
+                setError("Ocurrió un error al cargar la conversación.");
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchComments();
-    }, [firestore, figureId, parentId]);
+    }, [firestore, figureId, parentId, replyId, error]);
 
      useEffect(() => {
         // Scroll to the highlighted comment after it's rendered
@@ -179,28 +197,27 @@ export default function NotificationThreadDialog({
                         <CommentDisplaySkeleton />
                         <div className="pl-8"><CommentDisplaySkeleton /></div>
                     </div>
+                ) : error ? (
+                    <p className="text-center text-destructive py-10">{error}</p>
                 ) : (
-                    rootComment ? (
-                        <div className="space-y-4">
-                            <CommentDisplay comment={rootComment} isHighlighted={rootComment.id === replyId} />
-                            <div className="pl-8 border-l-2 ml-4 space-y-4">
-                                {replies.map(reply => (
-                                    <CommentDisplay key={reply.id} comment={reply} isHighlighted={reply.id === replyId} />
-                                ))}
-                                 {rootComment && activeReplyTarget && (
-                                     <ReplyForm
-                                        figureId={figureId}
-                                        figureName={figureName}
-                                        parentComment={rootComment}
-                                        replyingTo={activeReplyTarget}
-                                        onReplySuccess={handleReplySuccess}
-                                    />
-                                 )}
-                            </div>
-                        </div>
-                    ) : (
-                        <p className="text-center text-muted-foreground">No se pudo cargar la conversación.</p>
-                    )
+                    <div className="space-y-4">
+                        {threadComments.map(comment => (
+                             <div key={comment.id} className={comment.parentId ? `pl-8 border-l-2 ml-4` : ''}>
+                                <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
+                             </div>
+                        ))}
+                        {rootComment && activeReplyTarget && (
+                             <div className="pl-8 border-l-2 ml-4">
+                                <ReplyForm
+                                    figureId={figureId}
+                                    figureName={figureName}
+                                    parentComment={rootComment}
+                                    replyingTo={activeReplyTarget}
+                                    onReplySuccess={handleReplySuccess}
+                                />
+                             </div>
+                        )}
+                    </div>
                 )}
             </div>
         </DialogContent>
