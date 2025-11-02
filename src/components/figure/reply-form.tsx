@@ -26,19 +26,16 @@ type ReplyFormValues = z.infer<typeof replySchema>;
 interface ReplyFormProps {
   figureId: string;
   figureName: string;
-  parentId: string;
-  threadId: string; // The ID of the root comment of the thread
-  depth: number;
+  parentComment: CommentType; // Pass the whole parent comment object
   onReplySuccess: (newReplyId: string) => void;
 }
 
-export default function ReplyForm({ figureId, figureName, parentId, threadId, depth, onReplySuccess }: ReplyFormProps) {
-  const { user } = useUser(); // We assume user exists because Reply button is only shown to logged in users
+export default function ReplyForm({ figureId, figureName, parentComment, onReplySuccess }: ReplyFormProps) {
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
-
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
@@ -47,10 +44,8 @@ export default function ReplyForm({ figureId, figureName, parentId, threadId, de
   
   const getAvatarFallback = () => {
     if (!user) return '?';
-    if (user.isAnonymous) return 'A';
     return user.displayName?.charAt(0) || user.email?.charAt(0) || 'U';
   };
-
 
   const onSubmit = async (data: ReplyFormValues) => {
     if (!firestore || !user) {
@@ -67,36 +62,52 @@ export default function ReplyForm({ figureId, figureName, parentId, threadId, de
       const userProfileSnap = await getDoc(userProfileRef);
       const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
       const displayName = userProfileData.username || user.displayName || 'Usuario';
-
+      
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
+      let newCommentText = data.text;
+      let newParentId = parentComment.id;
+      let newThreadId = parentComment.threadId || parentComment.id;
+      let newDepth = parentComment.depth + 1;
+
+      // The core logic change is here!
+      if (parentComment.depth >= 3) {
+          // If we are replying to a deep comment, create a new root comment with a quote.
+          newCommentText = `> @${parentComment.userDisplayName}: ${parentComment.text}\n\n${data.text}`;
+          newParentId = null;
+          newDepth = 0;
+          // The new threadId will be the ID of this new comment itself. We handle this in the payload.
+      }
+
+      const newReplyRef = doc(commentsColRef); // Generate ID beforehand
+      
+      if (newDepth === 0) {
+        newThreadId = newReplyRef.id;
+      }
+      
       const newReply: Omit<CommentType, 'id' | 'children' | 'createdAt'> & { createdAt: any } = {
         figureId: figureId,
         userId: user.uid,
-        text: data.text,
+        text: newCommentText,
         createdAt: serverTimestamp(),
         userDisplayName: displayName,
-        userPhotoURL: user.isAnonymous ? null : user.photoURL,
+        userPhotoURL: user.photoURL,
         userCountry: userProfileData.country || null,
         userGender: userProfileData.gender || null,
         likes: 0,
         dislikes: 0,
-        parentId: parentId,
-        threadId: threadId, // Add threadId to the reply document
-        depth: depth + 1,
+        parentId: newParentId,
+        threadId: newThreadId,
+        depth: newDepth,
         rating: -1, // Replies don't have ratings
       };
 
-      const newReplyRef = await addDocumentNonBlocking(commentsColRef, newReply);
+      await addDocumentNonBlocking(newReplyRef, newReply);
       const newReplyId = newReplyRef.id;
       
       // --- Create Notification ---
-      const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentId);
-      const parentCommentSnap = await getDoc(parentCommentRef);
-      if (parentCommentSnap.exists()) {
-        const parentCommentData = parentCommentSnap.data() as CommentType;
-        const parentAuthorId = parentCommentData.userId;
-
-        // Don't notify if you reply to yourself
+      // Only notify if it's a direct reply, not a new root comment
+      if (newParentId) {
+        const parentAuthorId = parentComment.userId;
         if (parentAuthorId !== user.uid) {
             const notificationsColRef = collection(firestore, 'users', parentAuthorId, 'notifications');
             const notification = {
@@ -105,7 +116,7 @@ export default function ReplyForm({ figureId, figureName, parentId, threadId, de
                 message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
                 isRead: false,
                 createdAt: serverTimestamp(),
-                link: `/figures/${figureId}?thread=${threadId}&reply=${newReplyId}`
+                link: `/figures/${figureId}?thread=${newThreadId}&reply=${newReplyId}`
             };
             await addDocumentNonBlocking(notificationsColRef, notification);
         }
@@ -120,13 +131,12 @@ export default function ReplyForm({ figureId, figureName, parentId, threadId, de
         userPhotoURL: user.photoURL,
         userCountry: userProfileData.country || null,
         userGender: userProfileData.gender || null,
-        isAnonymous: user.isAnonymous,
+        isAnonymous: false,
       });
 
       if (streakResult?.streakGained) {
         showStreakAnimation(streakResult.newStreakCount);
       }
-
 
       toast({
         title: '¡Respuesta Publicada!',

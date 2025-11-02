@@ -28,6 +28,7 @@ import { StarRating } from '../shared/star-rating';
 import { countries } from '@/lib/countries';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Card } from '../ui/card';
 
 interface CommentItemProps {
   comment: CommentType, 
@@ -209,6 +210,27 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
         return comment.userDisplayName?.charAt(0) || 'U';
     }
 
+    const renderCommentText = () => {
+        const parts = comment.text.split('\n\n');
+        const quoteMatch = parts[0].match(/^> @(.*?): (.*)/s);
+
+        if (quoteMatch) {
+            const [, user, quote] = quoteMatch;
+            const restOfText = parts.slice(1).join('\n\n');
+            return (
+                <>
+                    <Card className="mt-2 bg-card/50 border-l-4 border-primary/50 p-3 text-sm italic">
+                        <blockquote className="space-y-2">
+                           <p className="text-muted-foreground">@{user}: "{quote}"</p>
+                        </blockquote>
+                    </Card>
+                    <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-2">{restOfText}</p>
+                </>
+            );
+        }
+        return <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-1">{comment.text}</p>;
+    };
+
     return (
         <div id={`comment-${comment.id}`} className="flex items-start gap-4 rounded-lg border bg-card text-card-foreground p-4 transition-colors duration-1000">
             <Avatar className="h-10 w-10">
@@ -259,7 +281,7 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                         </div>
                     </div>
                 ) : (
-                    <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-1">{comment.text}</p>
+                    renderCommentText()
                 )}
 
                 {!isEditing && (
@@ -286,7 +308,7 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                             <span>{comment.dislikes ?? 0}</span>
                         </Button>
                         
-                        {user && comment.depth < 4 && (
+                        {user && (
                             <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => setIsReplying(!isReplying)}>
                                 <MessageCircle className="h-4 w-4" />
                                 <span>Responder</span>
@@ -348,11 +370,9 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                 )}
                  {isReplying && (
                     <ReplyForm 
-                        figureId={figureId} 
-                        parentId={comment.id}
-                        threadId={comment.threadId || comment.id} // Pass root comment ID
+                        figureId={figureId}
+                        parentComment={comment}
                         figureName={figureName}
-                        depth={comment.depth}
                         onReplySuccess={() => {
                             setIsReplying(false);
                             if (!repliesVisible) {
