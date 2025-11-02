@@ -184,10 +184,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
     try {
         if (user && user.isAnonymous) {
-            const credential = await signInWithPopup(auth, provider).then(result => GoogleAuthProvider.credentialFromResult(result));
+            const credential = GoogleAuthProvider.credentialFromResult(await signInWithPopup(auth, provider));
             if (credential) {
-                await linkWithCredential(user, credential);
-                await afterSignIn(user);
+                const result = await linkWithCredential(user, credential);
+                await afterSignIn(result.user);
             }
         } else {
             const result = await signInWithPopup(auth, provider);
@@ -199,11 +199,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         });
 
     } catch (error: any) {
-        // This is a common error when the user closes the popup.
-        // We don't want to show a scary error message for this.
         if (error.code === 'auth/popup-closed-by-user') {
             console.log("Google Sign-In popup closed by user.");
-            return; // Exit silently
+            setIsSubmitting(false); // Reset submitting state if popup is closed
+            return;
         }
         
         console.error("Error with Google Sign-In:", error);
@@ -213,7 +212,11 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             variant: "destructive",
         });
     } finally {
-        setIsSubmitting(false);
+        // This might be called too early if the popup is closed,
+        // so we moved it inside the specific error handler.
+        if (isSubmitting) {
+          setIsSubmitting(false);
+        }
     }
   };
 
