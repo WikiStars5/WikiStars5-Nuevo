@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc } from 'firebase/firestore';
-import { useAuth, useFirestore, useUser, EmailAuthProvider, linkWithCredential } from '@/firebase';
+import { useAuth, useFirestore, useUser, EmailAuthProvider, linkWithCredential, GoogleAuthProvider, signInWithPopup } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,6 +20,7 @@ import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { Input } from '../ui/input';
+import { Separator } from '../ui/separator';
 
 const commentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(500, 'El comentario no puede superar los 500 caracteres.'),
@@ -50,8 +51,18 @@ const ratingSounds: { [key: number]: string } = {
     5: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar5.mp3?alt=media&token=11cd84e2-7377-4972-a9b0-e0e716e2df46',
 };
 
+const GoogleIcon = () => (
+  <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.565-3.113-11.284-7.481l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
+    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C42.022,35.126,44,30.028,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+  </svg>
+);
+
+
 export default function CommentForm({ figureId, figureName }: CommentFormProps) {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
@@ -71,31 +82,57 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   });
 
   const textValue = commentForm.watch('text', '');
+
+  const afterSignIn = async (signedInUser: any) => {
+    if (!firestore) return;
+    const userRef = doc(firestore, 'users', signedInUser.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) return; // User already has a profile
+
+    const dataToUpdate: any = {
+      email: signedInUser.email,
+      username: signedInUser.displayName,
+      usernameLower: signedInUser.displayName ? signedInUser.displayName.toLowerCase() : null,
+      createdAt: serverTimestamp()
+    };
+    
+    // Create username doc if displayName exists
+    if (signedInUser.displayName) {
+        const usernameRef = doc(firestore, 'usernames', signedInUser.displayName.toLowerCase());
+        const usernameDoc = await getDoc(usernameRef);
+        if (!usernameDoc.exists()) {
+             await runTransaction(firestore, async (transaction) => {
+                transaction.set(usernameRef, { userId: signedInUser.uid });
+                transaction.set(userRef, dataToUpdate, { merge: true });
+            });
+        } else {
+             // Handle case where google display name is already taken
+            await runTransaction(firestore, async (transaction) => {
+                transaction.set(userRef, dataToUpdate, { merge: true });
+            });
+        }
+    } else {
+         await runTransaction(firestore, async (transaction) => {
+            transaction.set(userRef, dataToUpdate, { merge: true });
+        });
+    }
+  }
   
   const handleRegistration = async (data: RegisterFormValues) => {
     if (!auth || !firestore) return;
     setIsSubmitting(true);
 
     try {
-        // This is the key change: if the user is anonymous, link the account.
         if (user && user.isAnonymous) {
             const credential = EmailAuthProvider.credential(data.email, data.password);
             await linkWithCredential(user, credential);
-            // Now the anonymous user is a permanent user with the same UID.
         } else {
-            // This case should ideally not be hit if the UI only shows this form to guests,
-            // but it's a safe fallback.
-            const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+            await createUserWithEmailAndPassword(auth, data.email, data.password);
         }
 
-        // The onAuthStateChanged listener in useUser will give us the updated user object.
-        // We just need to wait a moment for the state to propagate.
-        await new Promise(resolve => setTimeout(resolve, 500)); 
         const permanentUser = auth.currentUser;
-
-        if (!permanentUser) {
-            throw new Error("No se pudo obtener el usuario actualizado después del registro.");
-        }
+        if (!permanentUser) throw new Error("No se pudo obtener el usuario actualizado.");
 
         await updateProfile(permanentUser, { displayName: data.username });
 
@@ -104,16 +141,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
         await runTransaction(firestore, async (transaction) => {
             const usernameDoc = await transaction.get(usernameRef);
-            if (usernameDoc.exists()) {
-                throw new Error("El nombre de usuario ya está en uso.");
-            }
+            if (usernameDoc.exists()) throw new Error("El nombre de usuario ya está en uso.");
             transaction.set(usernameRef, { userId: permanentUser.uid });
-            // Use set with merge to update the existing user doc (from anonymous) or create a new one
             transaction.set(userRef, {
                 username: data.username,
                 usernameLower: data.username.toLowerCase(),
                 email: data.email,
-                createdAt: serverTimestamp() // Will only be set on creation
+                createdAt: serverTimestamp()
             }, { merge: true });
         });
 
@@ -121,7 +155,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             title: "¡Cuenta Creada!",
             description: "Ahora puedes calificar y comentar.",
         });
-        // The useUser hook will automatically re-render the component with the registered user UI.
 
     } catch (error: any) {
         console.error("Error creating/linking account:", error);
@@ -144,8 +177,41 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    setIsSubmitting(true);
+    const provider = new GoogleAuthProvider();
+
+    try {
+        if (user && user.isAnonymous) {
+            const credential = await signInWithPopup(auth, provider).then(result => GoogleAuthProvider.credentialFromResult(result));
+            if (credential) {
+                await linkWithCredential(user, credential);
+                await afterSignIn(user);
+            }
+        } else {
+            const result = await signInWithPopup(auth, provider);
+            await afterSignIn(result.user);
+        }
+        toast({
+            title: "¡Sesión Iniciada con Google!",
+            description: "Ahora puedes calificar y comentar."
+        });
+
+    } catch (error: any) {
+        console.error("Error with Google Sign-In:", error);
+        toast({
+            title: "Error de Autenticación",
+            description: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
   const onSubmit = async (data: CommentFormValues) => {
-    if (!firestore || !user) return; // This check is for safety, user should exist at this point.
+    if (!firestore || !user) return;
     setIsSubmitting(true);
     
     try {
@@ -156,8 +222,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
       await runTransaction(firestore, async (transaction) => {
         const userProfileRef = doc(firestore, 'users', user!.uid);
-
-        // --- 1. READS ---
         const [figureDoc, userProfileSnap, previousCommentSnapshot] = await Promise.all([
           transaction.get(figureRef),
           transaction.get(userProfileRef),
@@ -171,12 +235,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
           ))
         ]);
         
-        // --- 2. Validation ---
-        if (!figureDoc.exists()) {
-            throw new Error("Figure not found.");
-        }
+        if (!figureDoc.exists()) throw new Error("Figure not found.");
         
-        // --- 3. WRITES ---
         const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
         displayName = displayName || userProfileData.username || 'Usuario';
         
@@ -222,7 +282,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         transaction.set(newCommentRef, newCommentPayload);
       });
 
-      // --- Streak Update ---
       const streakResult = await updateStreak({
         firestore,
         figureId,
@@ -237,7 +296,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       if (streakResult?.streakGained) {
         showStreakAnimation(streakResult.newStreakCount);
       }
-
 
       if (ratingSounds[data.rating]) {
         const audio = new Audio(ratingSounds[data.rating]);
@@ -269,7 +327,9 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {isRegisteredUser ? (
+        {isUserLoading ? (
+            <p>Cargando...</p>
+        ) : isRegisteredUser ? (
             <Form {...commentForm}>
             <form onSubmit={commentForm.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
@@ -371,11 +431,22 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                         </Button>
                     </form>
                  </Form>
+                 <div className="relative my-6">
+                    <Separator />
+                    <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-sm text-muted-foreground">O</span>
+                 </div>
+                 <Button
+                    variant="outline"
+                    className="w-full max-w-sm mx-auto"
+                    onClick={handleGoogleSignIn}
+                    disabled={isSubmitting}
+                 >
+                    <GoogleIcon />
+                    Continuar con Google
+                 </Button>
             </div>
         )}
       </CardContent>
     </Card>
   );
 }
-
-    

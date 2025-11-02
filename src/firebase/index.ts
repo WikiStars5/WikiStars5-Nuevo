@@ -9,6 +9,8 @@ import {
   User,
   EmailAuthProvider,
   linkWithCredential,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
@@ -52,6 +54,4 @@ export * from './errors';
 export * from './error-emitter';
 export * from './auth/use-admin';
 export * from './auth/use-user';
-export { EmailAuthProvider, linkWithCredential };
-
-    
+export { EmailAuthProvider, linkWithCredential, GoogleAuthProvider, signInWithPopup };
