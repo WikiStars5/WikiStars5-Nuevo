@@ -18,7 +18,7 @@ import StarInput from './star-input';
 import { Comment, Streak } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, User } from 'firebase/auth';
 import { Input } from '../ui/input';
 import { Separator } from '../ui/separator';
 
@@ -62,7 +62,7 @@ const GoogleIcon = () => (
 
 
 export default function CommentForm({ figureId, figureName }: CommentFormProps) {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, reloadUser } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
@@ -83,56 +83,64 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const textValue = commentForm.watch('text', '');
 
-  const afterSignIn = async (signedInUser: any) => {
+  const afterSignIn = async (signedInUser: User) => {
     if (!firestore) return;
     const userRef = doc(firestore, 'users', signedInUser.uid);
     const userSnap = await getDoc(userRef);
 
-    if (userSnap.exists()) return; // User already has a profile
+    if (userSnap.exists()) return; // User already has a profile in Firestore
 
-    const dataToUpdate: any = {
-      email: signedInUser.email,
-      username: signedInUser.displayName,
-      usernameLower: signedInUser.displayName ? signedInUser.displayName.toLowerCase() : null,
-      createdAt: serverTimestamp()
-    };
-    
-    // Create username doc if displayName exists
-    if (signedInUser.displayName) {
-        const usernameRef = doc(firestore, 'usernames', signedInUser.displayName.toLowerCase());
-        const usernameDoc = await getDoc(usernameRef);
-        if (!usernameDoc.exists()) {
-             await runTransaction(firestore, async (transaction) => {
-                transaction.set(usernameRef, { userId: signedInUser.uid });
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const dataToUpdate: any = {
+                email: signedInUser.email,
+                username: signedInUser.displayName,
+                usernameLower: signedInUser.displayName ? signedInUser.displayName.toLowerCase() : null,
+                createdAt: serverTimestamp()
+            };
+
+            if (signedInUser.displayName) {
+                const usernameRef = doc(firestore, 'usernames', signedInUser.displayName.toLowerCase());
+                const usernameDoc = await transaction.get(usernameRef);
+                if (usernameDoc.exists() && usernameDoc.data()?.userId !== signedInUser.uid) {
+                    // Username is taken, create profile without username
+                    delete dataToUpdate.username;
+                    delete dataToUpdate.usernameLower;
+                    transaction.set(userRef, dataToUpdate, { merge: true });
+                    toast({
+                        title: 'Nombre de usuario en uso',
+                        description: `El nombre "${signedInUser.displayName}" ya está en uso. Puedes cambiarlo en tu perfil.`,
+                        variant: 'destructive'
+                    });
+                } else {
+                    // Username is available
+                    transaction.set(usernameRef, { userId: signedInUser.uid });
+                    transaction.set(userRef, dataToUpdate, { merge: true });
+                }
+            } else {
+                // No display name from provider, just create user doc
                 transaction.set(userRef, dataToUpdate, { merge: true });
-            });
-        } else {
-             // Handle case where google display name is already taken
-            await runTransaction(firestore, async (transaction) => {
-                transaction.set(userRef, dataToUpdate, { merge: true });
-            });
-        }
-    } else {
-         await runTransaction(firestore, async (transaction) => {
-            transaction.set(userRef, dataToUpdate, { merge: true });
+            }
         });
+    } catch (error) {
+        console.error("Error creating user profile in transaction:", error);
     }
-  }
+  };
   
   const handleRegistration = async (data: RegisterFormValues) => {
     if (!auth || !firestore) return;
     setIsSubmitting(true);
 
     try {
+        let permanentUser: User;
         if (user && user.isAnonymous) {
             const credential = EmailAuthProvider.credential(data.email, data.password);
-            await linkWithCredential(user, credential);
+            const userCredential = await linkWithCredential(user, credential);
+            permanentUser = userCredential.user;
         } else {
-            await createUserWithEmailAndPassword(auth, data.email, data.password);
+            const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+            permanentUser = userCredential.user;
         }
-
-        const permanentUser = auth.currentUser;
-        if (!permanentUser) throw new Error("No se pudo obtener el usuario actualizado.");
 
         await updateProfile(permanentUser, { displayName: data.username });
 
@@ -142,6 +150,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         await runTransaction(firestore, async (transaction) => {
             const usernameDoc = await transaction.get(usernameRef);
             if (usernameDoc.exists()) throw new Error("El nombre de usuario ya está en uso.");
+            
             transaction.set(usernameRef, { userId: permanentUser.uid });
             transaction.set(userRef, {
                 username: data.username,
@@ -151,6 +160,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             }, { merge: true });
         });
 
+        await reloadUser(); // This will refresh the user state and trigger re-render
+        
         toast({
             title: "¡Cuenta Creada!",
             description: "Ahora puedes calificar y comentar.",
@@ -183,16 +194,22 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     const provider = new GoogleAuthProvider();
 
     try {
+        let finalUser: User;
         if (user && user.isAnonymous) {
-            const credential = GoogleAuthProvider.credentialFromResult(await signInWithPopup(auth, provider));
-            if (credential) {
-                const result = await linkWithCredential(user, credential);
-                await afterSignIn(result.user);
-            }
+            const result = await signInWithPopup(auth, provider);
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            if (!credential) throw new Error("No se pudo obtener la credencial de Google.");
+            
+            const linkResult = await linkWithCredential(user, credential);
+            finalUser = linkResult.user;
         } else {
             const result = await signInWithPopup(auth, provider);
-            await afterSignIn(result.user);
+            finalUser = result.user;
         }
+
+        await afterSignIn(finalUser);
+        await reloadUser(); // Refresh user state
+
         toast({
             title: "¡Sesión Iniciada con Google!",
             description: "Ahora puedes calificar y comentar."
@@ -200,23 +217,18 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
     } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user') {
+            // User closed the popup, do nothing.
             console.log("Google Sign-In popup closed by user.");
-            setIsSubmitting(false); // Reset submitting state if popup is closed
-            return;
+        } else {
+            console.error("Error with Google Sign-In:", error);
+            toast({
+                title: "Error de Autenticación",
+                description: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
+                variant: "destructive",
+            });
         }
-        
-        console.error("Error with Google Sign-In:", error);
-        toast({
-            title: "Error de Autenticación",
-            description: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
-            variant: "destructive",
-        });
     } finally {
-        // This might be called too early if the popup is closed,
-        // so we moved it inside the specific error handler.
-        if (isSubmitting) {
-          setIsSubmitting(false);
-        }
+        setIsSubmitting(false);
     }
   };
 
