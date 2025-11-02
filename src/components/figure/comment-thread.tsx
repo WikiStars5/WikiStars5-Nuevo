@@ -1,7 +1,7 @@
 
 'use client';
 
-import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking } from '@/firebase';
 import type { Comment as CommentType, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -113,55 +113,41 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
         if (!firestore || !isOwner) return;
         setIsDeleting(true);
 
-        const commentsColRef = collection(firestore, `figures/${figureId}/comments`);
+        const figureRef = doc(firestore, 'figures', figureId);
+        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
         
         try {
-            // First, check if there are any replies to this comment.
-            const repliesQuery = query(commentsColRef, where('parentId', '==', comment.id), limit(1));
-            const repliesSnapshot = await getDocs(repliesQuery);
+            await runTransaction(firestore, async (transaction) => {
+                 // The comment must exist to be deleted.
+                const commentDoc = await transaction.get(commentRef);
+                if (!commentDoc.exists()) {
+                    throw new Error("El comentario ya no existe.");
+                }
 
-            if (!repliesSnapshot.empty) {
-                // If there are replies, we cannot delete the comment.
-                toast({
-                    title: "No se puede eliminar",
-                    description: "No puedes eliminar un comentario que ya tiene respuestas.",
-                    variant: "destructive",
-                });
-                setIsDeleting(false);
-                return;
-            }
+                // Delete the single comment document.
+                transaction.delete(commentRef);
 
-            // If there are no replies, proceed with deletion.
-            const figureRef = doc(firestore, 'figures', figureId);
-            const commentRef = doc(commentsColRef, comment.id);
-
-            const batch = writeBatch(firestore);
-            
-            // Delete the comment itself
-            batch.delete(commentRef);
-
-            // Adjust figure's rating if the comment had one
-            if (typeof comment.rating === 'number' && comment.rating >= 0) {
-                const updates: { [key: string]: any } = {};
-                updates['ratingCount'] = increment(-1);
-                updates['totalRating'] = increment(-comment.rating);
-                updates[`ratingsBreakdown.${comment.rating}`] = increment(-1);
-                batch.update(figureRef, updates);
-            }
-            
-            await batch.commit();
+                // If the comment being deleted has a rating, adjust the figure's totals.
+                const commentData = commentDoc.data();
+                if (commentData && typeof commentData.rating === 'number' && commentData.rating >= 0) {
+                    const updates: { [key: string]: any } = {};
+                    updates['ratingCount'] = increment(-1);
+                    updates['totalRating'] = increment(-commentData.rating);
+                    updates[`ratingsBreakdown.${commentData.rating}`] = increment(-1);
+                    transaction.update(figureRef, updates);
+                }
+            });
 
             toast({
                 title: "Comentario Eliminado",
                 description: "Tu comentario ha sido eliminado.",
             });
-            // The component will disappear from the UI automatically due to real-time updates.
 
         } catch (error: any) {
             console.error("Error al eliminar comentario:", error);
             toast({
                 title: "Error al Eliminar",
-                description: "No se pudo eliminar el comentario. Por favor, inténtalo de nuevo.",
+                description: error.message || "No se pudo eliminar el comentario.",
                 variant: "destructive",
             });
         } finally {
