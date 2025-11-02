@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth, useFirestore, useUser, EmailAuthProvider, linkWithCredential, GoogleAuthProvider, signInWithPopup } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -21,6 +21,7 @@ import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { createUserWithEmailAndPassword, updateProfile, User } from 'firebase/auth';
 import { Input } from '../ui/input';
 import { Separator } from '../ui/separator';
+import { normalizeText } from '@/lib/keywords';
 
 const commentSchema = z.object({
   text: z.string().min(1, 'El comentario no puede estar vacío.').max(500, 'El comentario no puede superar los 500 caracteres.'),
@@ -85,47 +86,37 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const afterSignIn = async (signedInUser: User) => {
     if (!firestore) return;
+
     const userRef = doc(firestore, 'users', signedInUser.uid);
-    const userSnap = await getDoc(userRef);
+    const dataToSave: any = {
+        email: signedInUser.email,
+        createdAt: serverTimestamp(), // This will only be set on creation
+    };
 
-    if (userSnap.exists()) return; // User already has a profile in Firestore
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const dataToUpdate: any = {
-                email: signedInUser.email,
-                username: signedInUser.displayName,
-                usernameLower: signedInUser.displayName ? signedInUser.displayName.toLowerCase() : null,
-                createdAt: serverTimestamp()
-            };
-
-            if (signedInUser.displayName) {
-                const usernameRef = doc(firestore, 'usernames', signedInUser.displayName.toLowerCase());
-                const usernameDoc = await transaction.get(usernameRef);
-                if (usernameDoc.exists() && usernameDoc.data()?.userId !== signedInUser.uid) {
-                    // Username is taken, create profile without username
-                    delete dataToUpdate.username;
-                    delete dataToUpdate.usernameLower;
-                    transaction.set(userRef, dataToUpdate, { merge: true });
-                    toast({
-                        title: 'Nombre de usuario en uso',
-                        description: `El nombre "${signedInUser.displayName}" ya está en uso. Puedes cambiarlo en tu perfil.`,
-                        variant: 'destructive'
-                    });
-                } else {
-                    // Username is available
-                    transaction.set(usernameRef, { userId: signedInUser.uid });
-                    transaction.set(userRef, dataToUpdate, { merge: true });
-                }
-            } else {
-                // No display name from provider, just create user doc
-                transaction.set(userRef, dataToUpdate, { merge: true });
-            }
-        });
-    } catch (error) {
-        console.error("Error creating user profile in transaction:", error);
+    if (signedInUser.displayName) {
+        const usernameRef = doc(firestore, 'usernames', normalizeText(signedInUser.displayName));
+        const usernameDoc = await getDoc(usernameRef);
+        
+        if (!usernameDoc.exists()) {
+            // Username is available, claim it.
+            await setDoc(usernameRef, { userId: signedInUser.uid });
+            dataToSave.username = signedInUser.displayName;
+            dataToSave.usernameLower = normalizeText(signedInUser.displayName);
+        } else if (usernameDoc.data()?.userId !== signedInUser.uid) {
+            // Username is taken by someone else.
+            toast({
+                title: 'Nombre de usuario en uso',
+                description: `El nombre "${signedInUser.displayName}" ya está en uso. Puedes cambiarlo en tu perfil.`,
+                variant: 'destructive',
+            });
+        }
     }
+    
+    // Use set with merge:true to create or update the document safely.
+    await setDoc(userRef, dataToSave, { merge: true });
+    await reloadUser();
   };
+  
   
   const handleRegistration = async (data: RegisterFormValues) => {
     if (!auth || !firestore) return;
@@ -160,7 +151,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             }, { merge: true });
         });
 
-        await reloadUser(); // This will refresh the user state and trigger re-render
+        await reloadUser();
         
         toast({
             title: "¡Cuenta Creada!",
@@ -195,21 +186,19 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
     try {
         let finalUser: User;
+        // Check if there's a current anonymous user to link with
         if (user && user.isAnonymous) {
-            const result = await signInWithPopup(auth, provider);
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            if (!credential) throw new Error("No se pudo obtener la credencial de Google.");
-            
-            const linkResult = await linkWithCredential(user, credential);
-            finalUser = linkResult.user;
+            const result = await signInWithPopup(user, provider);
+            finalUser = result.user; // After linking, the user object is updated
         } else {
+            // No user or a non-anonymous user, so just sign in
             const result = await signInWithPopup(auth, provider);
             finalUser = result.user;
         }
 
+        // Now that authentication is complete, create/update the profile in Firestore
         await afterSignIn(finalUser);
-        await reloadUser(); // Refresh user state
-
+        
         toast({
             title: "¡Sesión Iniciada con Google!",
             description: "Ahora puedes calificar y comentar."
@@ -217,7 +206,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
     } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user') {
-            // User closed the popup, do nothing.
             console.log("Google Sign-In popup closed by user.");
         } else {
             console.error("Error with Google Sign-In:", error);
@@ -231,6 +219,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         setIsSubmitting(false);
     }
   };
+
 
   const onSubmit = async (data: CommentFormValues) => {
     if (!firestore || !user) return;
@@ -472,3 +461,5 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     </Card>
   );
 }
+
+    
