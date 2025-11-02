@@ -253,6 +253,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                 {!isEditing && (
                    <>
                     <div className="mt-2 flex items-center gap-1 text-muted-foreground">
+                        {/*
                         <Button 
                             variant="ghost" 
                             size="sm" 
@@ -273,6 +274,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                             {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
                             <span>{comment.dislikes ?? 0}</span>
                         </Button>
+                        */}
                         
                         {user && (
                             <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
