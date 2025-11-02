@@ -199,6 +199,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         });
 
     } catch (error: any) {
+        // This is a common error when the user closes the popup.
+        // We don't want to show a scary error message for this.
+        if (error.code === 'auth/popup-closed-by-user') {
+            console.log("Google Sign-In popup closed by user.");
+            return; // Exit silently
+        }
+        
         console.error("Error with Google Sign-In:", error);
         toast({
             title: "Error de Autenticación",
