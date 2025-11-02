@@ -337,7 +337,14 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
   const [activeReply, setActiveReply] = useState<CommentType | null>(null);
 
   const replies = useMemo(() => {
-    return allReplies.filter(reply => reply.parentId === comment.id).sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+    return allReplies
+      .filter(reply => reply.parentId === comment.id)
+      .sort((a, b) => {
+        // Handle cases where createdAt might not be populated yet for newly added comments
+        if (!a.createdAt) return 1;
+        if (!b.createdAt) return -1;
+        return a.createdAt.toMillis() - b.createdAt.toMillis();
+      });
   }, [allReplies, comment.id]);
 
   const hasReplies = replies.length > 0;
@@ -408,7 +415,8 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
             <ReplyForm
                 figureId={figureId}
                 figureName={figureName}
-                parentComment={comment} // Pass the root comment as parent
+                parentComment={comment} // Always reply to the root comment
+                replyingTo={activeReply} // The specific comment we're replying to (for @mention)
                 onReplySuccess={handleReplySuccess}
             />
          </div>

@@ -27,10 +27,11 @@ interface ReplyFormProps {
   figureId: string;
   figureName: string;
   parentComment: CommentType; // The root comment of the thread
+  replyingTo: CommentType; // The specific comment being replied to (for the @mention)
   onReplySuccess: (newReplyId: string) => void;
 }
 
-export default function ReplyForm({ figureId, figureName, parentComment, onReplySuccess }: ReplyFormProps) {
+export default function ReplyForm({ figureId, figureName, parentComment, replyingTo, onReplySuccess }: ReplyFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -39,7 +40,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { text: `@${parentComment.userDisplayName} ` },
+    defaultValues: { text: `@${replyingTo.userDisplayName} ` },
   });
   
   const getAvatarFallback = () => {
@@ -73,7 +74,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
         userGender: userProfileData.gender || null,
         likes: 0,
         dislikes: 0,
-        parentId: parentComment.id, // Always reply to the root comment
+        parentId: parentComment.id, // Always associate with the root comment
         rating: -1, // Replies don't have ratings
       };
 
@@ -81,8 +82,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
       const newReplyId = newReplyRef.id;
       
       // --- Create Notification ---
-      // Notify the person you are replying to (if they are not you)
-      const replyToAuthorId = parentComment.userId;
+      const replyToAuthorId = replyingTo.userId;
       if (replyToAuthorId !== user.uid) {
         const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
         const notification = {
@@ -135,7 +135,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
                 <Textarea
                 {...form.register('text')}
-                placeholder={`Respondiendo a ${parentComment.userDisplayName}...`}
+                placeholder={`Respondiendo a ${replyingTo.userDisplayName}...`}
                 className="text-sm"
                 rows={2}
                 />
