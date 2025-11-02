@@ -19,7 +19,6 @@ interface UpdateStreakParams {
     userPhotoURL: string | null;
     userCountry?: string | null;
     userGender?: string | null;
-    isAnonymous: boolean;
 }
 
 interface StreakUpdateResult {
@@ -114,5 +113,3 @@ export async function updateStreak({
         return null;
     }
 }
-
-    

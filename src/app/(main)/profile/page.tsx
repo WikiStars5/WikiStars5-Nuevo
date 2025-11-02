@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useAuth, EmailAuthProvider, linkWithCredential } from '@/firebase';
+import { useUser, useFirestore, useAuth } from '@/firebase';
 import { doc, getDoc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,10 +15,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, AlertTriangle, KeyRound } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,20 +31,12 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const linkSchema = z.object({
-  email: z.string().email({ message: "Introduce un correo válido." }),
-  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres." }),
-});
-type LinkAccountFormValues = z.infer<typeof linkSchema>;
-
 export default function ProfilePage() {
     const { user, isUserLoading, reloadUser } = useUser();
     const firestore = useFirestore();
     const auth = useAuth();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
-    const [isLinking, setIsLinking] = useState(false);
-    const [linkError, setLinkError] = useState<string | null>(null);
 
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
@@ -57,14 +48,6 @@ export default function ProfilePage() {
             country: '',
             gender: undefined,
             description: '',
-        }
-    });
-
-     const linkForm = useForm<LinkAccountFormValues>({
-        resolver: zodResolver(linkSchema),
-        defaultValues: {
-            email: '',
-            password: '',
         }
     });
 
@@ -147,11 +130,8 @@ export default function ProfilePage() {
                     country: data.country || null,
                     gender: data.gender || null,
                     description: data.description || null,
+                    email: user.email
                 };
-                
-                if (!user.isAnonymous) {
-                    dataToUpdate.email = user.email;
-                }
 
                 transaction.set(userRef, dataToUpdate, { merge: true });
             });
@@ -185,47 +165,6 @@ export default function ProfilePage() {
             setIsSaving(false);
         }
     };
-
-
-    const handleLinkEmailPassword = async (data: LinkAccountFormValues) => {
-        if (!auth || !user || !user.isAnonymous) return;
-    
-        setIsLinking(true);
-        setLinkError(null);
-    
-        try {
-            const credential = EmailAuthProvider.credential(data.email, data.password);
-            const result = await linkWithCredential(user, credential);
-            const permanentUser = result.user;
-          
-            const userRef = doc(firestore, 'users', permanentUser.uid);
-            // Ensure createdAt is set when converting the account
-            await setDoc(userRef, { 
-                email: permanentUser.email,
-                username: permanentUser.displayName || userData?.username, // Keep existing username if any
-                createdAt: serverTimestamp(),
-            }, { merge: true });
-    
-            toast({
-                title: "¡Cuenta Vinculada!",
-                description: "Has convertido tu cuenta de invitado en una cuenta permanente.",
-            });
-    
-            await reloadUser();
-    
-        } catch (error: any) {
-          console.error("Error linking with email/password:", error);
-          if (error.code === 'auth/email-already-in-use') {
-            setLinkError('Este correo electrónico ya está registrado con otra cuenta.');
-          } else if (error.code === 'auth/credential-already-in-use') {
-            setLinkError('Esta credencial ya está asociada con otro usuario.');
-          } else {
-            setLinkError('No se pudo vincular la cuenta. Inténtalo de nuevo.');
-          }
-        } finally {
-          setIsLinking(false);
-        }
-    };
     
     if (isUserLoading || isUserDataLoading) {
       return (
@@ -256,7 +195,6 @@ export default function ProfilePage() {
     }
 
     const getAvatarFallback = () => {
-        if (user?.isAnonymous) return 'G';
         return profileForm.getValues('username')?.charAt(0) || user?.email?.charAt(0) || 'U';
     }
 
@@ -297,7 +235,7 @@ export default function ProfilePage() {
                                     />
                                     <div className="space-y-2">
                                         <FormLabel>Correo Electrónico</FormLabel>
-                                        <Input type="email" value={user?.email || (user.isAnonymous ? 'Cuenta de invitado' : '')} disabled />
+                                        <Input type="email" value={user?.email || ''} disabled />
                                     </div>
                                 </div>
                                 <div>
@@ -371,60 +309,6 @@ export default function ProfilePage() {
                 </Form>
                 
                 <UserActivity />
-
-                {user.isAnonymous && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Vincular Cuenta</CardTitle>
-                            <CardDescription>Convierte tu cuenta de invitado en una cuenta permanente para no perder tu progreso. Elige un correo y contraseña.</CardDescription>
-                        </CardHeader>
-                         <Form {...linkForm}>
-                            <form onSubmit={linkForm.handleSubmit(handleLinkEmailPassword)}>
-                                <CardContent className="space-y-4">
-                                     {linkError && (
-                                        <Alert variant="destructive">
-                                            <AlertTriangle className="h-4 w-4" />
-                                            <AlertTitle>Error al Vincular</AlertTitle>
-                                            <AlertDescription>{linkError}</AlertDescription>
-                                        </Alert>
-                                    )}
-                                    <FormField
-                                        control={linkForm.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Correo Electrónico</FormLabel>
-                                            <FormControl>
-                                                <Input type="email" placeholder="tu@correo.com" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={linkForm.control}
-                                        name="password"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                            <FormLabel>Contraseña</FormLabel>
-                                            <FormControl>
-                                                <Input type="password" placeholder="••••••••" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </CardContent>
-                                <CardFooter>
-                                     <Button type="submit" disabled={isLinking} className="w-full">
-                                        {isLinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound />}
-                                        Crear Cuenta Permanente
-                                    </Button>
-                                </CardFooter>
-                            </form>
-                        </Form>
-                    </Card>
-                )}
             </div>
         </div>
     )

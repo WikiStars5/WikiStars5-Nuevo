@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -47,7 +46,6 @@ export default function Header() {
   };
 
   const getAvatarFallback = () => {
-    if (user?.isAnonymous) return 'G';
     return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U';
   }
 
@@ -91,8 +89,8 @@ export default function Header() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.isAnonymous ? 'Guest User' : (user.displayName || user.email)}</p>
-                      {!user.isAnonymous && (
+                      <p className="text-sm font-medium leading-none">{user.displayName || user.email}</p>
+                      {user.email && (
                         <p className="text-xs leading-none text-muted-foreground">
                           {user.email}
                         </p>
@@ -147,7 +145,7 @@ export default function Header() {
           ) : (
              <div className="flex items-center gap-2">
                 <InstallPwaButton />
-                {pathname === '/' && (
+                {pathname !== '/login' && (
                   <Button asChild>
                       <Link href="/login">
                           <LogIn className="mr-2 h-4 w-4" />

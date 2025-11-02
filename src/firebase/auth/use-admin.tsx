@@ -34,8 +34,8 @@ export const useAdmin = (): UseAdminResult => {
 
   // Step 4: Determine the admin status.
   const isAdmin = useMemo(() => {
-    // Cannot be admin if loading, no user, or user is anonymous.
-    if (isAdminLoading || !user || user.isAnonymous) {
+    // Cannot be admin if loading or no user.
+    if (isAdminLoading || !user) {
       return false;
     }
     

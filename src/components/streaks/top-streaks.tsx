@@ -154,7 +154,7 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                                                         />
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">{streak.isAnonymous ? 'Invitado' : 'Usuario Registrado'}</p>
+                                                <p className="text-xs text-muted-foreground">Usuario Registrado</p>
                                             </div>
                                         </Link>
                                     </div>

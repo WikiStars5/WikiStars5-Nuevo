@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useAuth, EmailAuthProvider, linkWithCredential } from '@/firebase';
+import { useUser, useFirestore, useAuth } from '@/firebase';
 import { doc, getDoc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,10 +15,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, AlertTriangle, KeyRound } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,7 +34,6 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function ProfilePage() {
     const { user, isUserLoading, reloadUser } = useUser();
     const firestore = useFirestore();
-    const auth = useAuth();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
 
