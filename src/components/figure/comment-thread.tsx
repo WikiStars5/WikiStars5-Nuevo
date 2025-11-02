@@ -48,24 +48,47 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
 
     const isOwner = user && user.uid === comment.userId;
     
-    // This hook is no longer needed as we are not tracking individual user votes.
-    // const userVoteRef = ...
-    // const { data: userVote, isLoading: isVoteLoading } = useDoc<CommentVote>(userVoteRef);
+    const userVoteRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, `figures/${figureId}/comments/${comment.id}/votes`, user.uid);
+    }, [firestore, user, figureId, comment.id]);
+
+    const { data: userVote, isLoading: isVoteLoading } = useDoc<CommentVote>(userVoteRef);
 
     const country = countries.find(c => c.name === comment.userCountry);
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
         if (!firestore || !user || isVoting) return;
         setIsVoting(voteType);
-        
+
         const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+        const voteRef = doc(firestore, `figures/${figureId}/comments/${comment.id}/votes`, user.uid);
 
         try {
-            // We directly update the counter without checking for a previous vote.
-            await updateDoc(commentRef, {
-                [`${voteType}s`]: increment(1)
-            });
+            await runTransaction(firestore, async (transaction) => {
+                const voteDoc = await transaction.get(voteRef);
+                const existingVote = voteDoc.exists() ? voteDoc.data().vote : null;
+                const updates: { [key: string]: any } = {};
 
+                if (existingVote === voteType) {
+                    // User is retracting their vote
+                    updates[`${voteType}s`] = increment(-1);
+                    transaction.delete(voteRef);
+                    toast({ title: "Voto eliminado" });
+                } else {
+                    // New vote or changing vote
+                    updates[`${voteType}s`] = increment(1);
+                    if (existingVote) {
+                        // Changing vote from like to dislike or vice-versa
+                        const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
+                        updates[`${otherVoteType}s`] = increment(-1);
+                    }
+                    transaction.set(voteRef, { vote: voteType, createdAt: serverTimestamp() });
+                    toast({ title: "¡Voto registrado!" });
+                }
+                
+                transaction.update(commentRef, updates);
+            });
         } catch (error: any) {
             console.error("Error al votar:", error);
             toast({
@@ -80,36 +103,41 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
 
     const handleDelete = async () => {
         if (!firestore || !isOwner) return;
-        setIsDeleting(true);
+        
+        // Prevent deletion if the comment has replies.
+        const repliesQuery = query(collection(firestore, `figures/${figureId}/comments`), where('parentId', '==', comment.id), limit(1));
+        const repliesSnapshot = await getDocs(repliesQuery);
+        if (!repliesSnapshot.empty) {
+            toast({
+                title: "No se puede eliminar",
+                description: "No puedes eliminar un comentario que ya tiene respuestas.",
+                variant: "destructive",
+            });
+            return;
+        }
 
-        const figureRef = doc(firestore, 'figures', figureId);
+        setIsDeleting(true);
         const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
         
         try {
-            await runTransaction(firestore, async (transaction) => {
-                 // The comment must exist to be deleted.
-                const commentDoc = await transaction.get(commentRef);
-                if (!commentDoc.exists()) {
-                    throw new Error("El comentario ya no existe.");
-                }
+            await deleteDoc(commentRef);
 
-                // Delete the single comment document.
-                transaction.delete(commentRef);
-
-                // If the comment being deleted has a rating, adjust the figure's totals.
-                const commentData = commentDoc.data();
-                if (commentData && typeof commentData.rating === 'number' && commentData.rating >= 0) {
+            // If the comment being deleted has a rating, adjust the figure's totals.
+            if (typeof comment.rating === 'number' && comment.rating >= 0) {
+                 const figureRef = doc(firestore, 'figures', figureId);
+                 await runTransaction(firestore, async (transaction) => {
+                    const figureDoc = await transaction.get(figureRef);
+                    if (!figureDoc.exists()) return;
                     const updates: { [key: string]: any } = {};
                     updates['ratingCount'] = increment(-1);
-                    updates['totalRating'] = increment(-commentData.rating);
-                    updates[`ratingsBreakdown.${commentData.rating}`] = increment(-1);
+                    updates['totalRating'] = increment(-comment.rating);
+                    updates[`ratingsBreakdown.${comment.rating}`] = increment(-1);
                     transaction.update(figureRef, updates);
-                }
-            });
+                 });
+            }
 
             toast({
                 title: "Comentario Eliminado",
-                description: "Tu comentario ha sido eliminado.",
             });
 
         } catch (error: any) {
@@ -228,7 +256,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="flex items-center gap-1.5 h-8 px-2"
+                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && 'text-primary' )}
                             onClick={() => handleVote('like')}
                             disabled={!user || !!isVoting}
                         >
@@ -238,7 +266,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="flex items-center gap-1.5 h-8 px-2"
+                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && 'text-destructive' )}
                             onClick={() => handleVote('dislike')}
                             disabled={!user || !!isVoting}
                         >

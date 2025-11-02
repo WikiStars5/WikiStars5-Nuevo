@@ -135,13 +135,18 @@ service cloud.firestore {
         // Allows updates only to 'likes' and 'dislikes' fields.
         let incomingKeys = request.resource.data.keys();
         let existingKeys = resource.data.keys();
-        return incomingKeys.hasAll(['likes', 'dislikes']) && incomingKeys.size() == existingKeys.size() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']);
+        // This rule is a bit simplified: it ensures no fields are added or removed,
+        // and that the only fields that CAN change are 'likes' and 'dislikes'.
+        // It's secure because other fields (like 'text') must remain identical.
+        return incomingKeys.hasAll(existingKeys) 
+            && existingKeys.hasAll(incomingKeys) 
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']);
       }
       allow get: if true;
       allow list: if true;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (isCommentOwner() || isUpdatingVoteCounters());
-      allow delete: if isCommentOwner(commentId);
+      allow delete: if isCommentOwner();
     }
 
     /**
@@ -161,7 +166,7 @@ service cloud.firestore {
       allow get: if isVoteOwner(userId);
       allow list: if false;
       allow create: if isVoteOwner(userId);
-      allow update: if false;
+      allow update: if isVoteOwner(userId);
       allow delete: if isVoteOwner(userId);
     }
 
