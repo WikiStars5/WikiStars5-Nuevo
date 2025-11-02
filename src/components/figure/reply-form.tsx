@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -25,12 +26,11 @@ type ReplyFormValues = z.infer<typeof replySchema>;
 interface ReplyFormProps {
   figureId: string;
   figureName: string;
-  rootComment: CommentType;
-  replyToComment: CommentType;
+  parentComment: CommentType; // The root comment of the thread
   onReplySuccess: (newReplyId: string) => void;
 }
 
-export default function ReplyForm({ figureId, figureName, rootComment, replyToComment, onReplySuccess }: ReplyFormProps) {
+export default function ReplyForm({ figureId, figureName, parentComment, onReplySuccess }: ReplyFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -39,7 +39,7 @@ export default function ReplyForm({ figureId, figureName, rootComment, replyToCo
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { text: `@${replyToComment.userDisplayName} ` },
+    defaultValues: { text: `@${parentComment.userDisplayName} ` },
   });
   
   const getAvatarFallback = () => {
@@ -62,7 +62,7 @@ export default function ReplyForm({ figureId, figureName, rootComment, replyToCo
       
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
-      const newReply: Omit<CommentType, 'id' | 'children' | 'createdAt'> & { createdAt: any } = {
+      const newReply: Omit<CommentType, 'id' | 'createdAt'> & { createdAt: any } = {
         figureId: figureId,
         userId: user.uid,
         text: data.text,
@@ -73,7 +73,7 @@ export default function ReplyForm({ figureId, figureName, rootComment, replyToCo
         userGender: userProfileData.gender || null,
         likes: 0,
         dislikes: 0,
-        parentId: rootComment.id, // Always reply to the root comment
+        parentId: parentComment.id, // Always reply to the root comment
         rating: -1, // Replies don't have ratings
       };
 
@@ -82,7 +82,7 @@ export default function ReplyForm({ figureId, figureName, rootComment, replyToCo
       
       // --- Create Notification ---
       // Notify the person you are replying to (if they are not you)
-      const replyToAuthorId = replyToComment.userId;
+      const replyToAuthorId = parentComment.userId;
       if (replyToAuthorId !== user.uid) {
         const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
         const notification = {
@@ -91,7 +91,7 @@ export default function ReplyForm({ figureId, figureName, rootComment, replyToCo
             message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
             isRead: false,
             createdAt: serverTimestamp(),
-            link: `/figures/${figureId}?thread=${rootComment.id}&reply=${newReplyId}`
+            link: `/figures/${figureId}?thread=${parentComment.id}&reply=${newReplyId}`
         };
         await addDocumentNonBlocking(notificationsColRef, notification);
       }
@@ -105,6 +105,7 @@ export default function ReplyForm({ figureId, figureName, rootComment, replyToCo
         userPhotoURL: user.photoURL,
         userCountry: userProfileData.country || null,
         userGender: userProfileData.gender || null,
+        isAnonymous: user.isAnonymous
       });
 
       toast({
@@ -134,7 +135,7 @@ export default function ReplyForm({ figureId, figureName, rootComment, replyToCo
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
                 <Textarea
                 {...form.register('text')}
-                placeholder={`Respondiendo a ${replyToComment.userDisplayName}...`}
+                placeholder={`Respondiendo a ${parentComment.userDisplayName}...`}
                 className="text-sm"
                 rows={2}
                 />

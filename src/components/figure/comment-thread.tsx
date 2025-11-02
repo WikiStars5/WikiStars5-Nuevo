@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where } from 'firebase/firestore';
@@ -8,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
 import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -171,7 +172,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
             });
             setIsEditing(false);
         } catch (error) {
-            console.error("Error updating comment:", error);
+            console.error("updating comment:", error);
             toast({
                 title: "Error al Actualizar",
                 description: "No se pudo guardar tu comentario.",
@@ -280,7 +281,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                         
                         {user && (
                             <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
-                                <MessageCircle className="h-4 w-4" />
+                                <MessageSquare className="h-4 w-4" />
                                 <span>Responder</span>
                             </Button>
                         )}
@@ -342,11 +343,9 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
   const hasReplies = replies.length > 0;
 
   const handleReplyClick = (targetComment: CommentType) => {
-    // Show replies if they are hidden
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
-    // Set the active comment to reply to
     setActiveReply(targetComment);
   }
 
@@ -357,7 +356,7 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
   const toggleReplies = () => {
     setRepliesVisible(prev => !prev);
     if (repliesVisible) {
-        setActiveReply(null); // Hide reply form when collapsing
+        setActiveReply(null);
     }
   }
 
@@ -372,7 +371,7 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
       {hasReplies && (
         <Button
             variant="link"
-            className="p-0 h-auto text-sm font-semibold text-primary"
+            className="p-0 h-auto text-sm font-semibold text-primary ml-14"
             onClick={toggleReplies}
         >
             {repliesVisible ? (
@@ -409,8 +408,7 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
             <ReplyForm
                 figureId={figureId}
                 figureName={figureName}
-                rootComment={comment}
-                replyToComment={activeReply}
+                parentComment={comment} // Pass the root comment as parent
                 onReplySuccess={handleReplySuccess}
             />
          </div>

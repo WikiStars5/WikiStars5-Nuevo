@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -99,7 +100,16 @@ export default function NotificationThreadDialog({
     const [rootComment, setRootComment] = useState<Comment | null>(null);
     const [replies, setReplies] = useState<Comment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeReply, setActiveReply] = useState<Comment | null>(null);
+    
+    // The comment to reply to, which is the one that was highlighted.
+    const activeReplyTarget = useMemo(() => {
+        if (replyId) {
+            const target = replies.find(r => r.id === replyId);
+            if (target) return target;
+        }
+        return rootComment;
+    }, [replyId, rootComment, replies]);
+
 
     useEffect(() => {
         const fetchComments = async () => {
@@ -126,9 +136,6 @@ export default function NotificationThreadDialog({
                     setRootComment(rootData);
                     const replyData = repliesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Comment));
                     setReplies(replyData);
-                    
-                    const targetReply = replyData.find(r => r.id === replyId) || rootData;
-                    setActiveReply(targetReply);
                 } else {
                     console.error("Root comment not found.");
                 }
@@ -141,7 +148,7 @@ export default function NotificationThreadDialog({
         };
 
         fetchComments();
-    }, [firestore, figureId, parentId, replyId]);
+    }, [firestore, figureId, parentId]);
 
      useEffect(() => {
         // Scroll to the highlighted comment after it's rendered
@@ -156,7 +163,6 @@ export default function NotificationThreadDialog({
     }, [isLoading, replyId]);
 
     const handleReplySuccess = () => {
-        setActiveReply(null);
         onOpenChange(false); // Close dialog on successful reply
     };
 
@@ -182,12 +188,11 @@ export default function NotificationThreadDialog({
                                 {replies.map(reply => (
                                     <CommentDisplay key={reply.id} comment={reply} isHighlighted={reply.id === replyId} />
                                 ))}
-                                 {activeReply && (
+                                 {activeReplyTarget && (
                                      <ReplyForm
                                         figureId={figureId}
                                         figureName={figureName}
-                                        rootComment={rootComment}
-                                        replyToComment={activeReply}
+                                        parentComment={activeReplyTarget}
                                         onReplySuccess={handleReplySuccess}
                                     />
                                  )}
