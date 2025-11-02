@@ -90,8 +90,14 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     const userRef = doc(firestore, 'users', signedInUser.uid);
     const dataToSave: any = {
         email: signedInUser.email,
-        createdAt: serverTimestamp(), // This will only be set on creation
     };
+    
+    // Ensure createdAt is only set if the document doesn't exist
+    const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+        dataToSave.createdAt = serverTimestamp();
+    }
+
 
     if (signedInUser.displayName) {
         const usernameRef = doc(firestore, 'usernames', normalizeText(signedInUser.displayName));
@@ -185,38 +191,49 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     const provider = new GoogleAuthProvider();
 
     try {
-        let finalUser: User;
-        // Check if there's a current anonymous user to link with
-        if (user && user.isAnonymous) {
-            const result = await signInWithPopup(user, provider);
-            finalUser = result.user; // After linking, the user object is updated
-        } else {
-            // No user or a non-anonymous user, so just sign in
-            const result = await signInWithPopup(auth, provider);
-            finalUser = result.user;
-        }
+      let finalUser: User;
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      
+      if (!credential) {
+        throw new Error("No se pudo obtener la credencial de Google.");
+      }
 
-        // Now that authentication is complete, create/update the profile in Firestore
-        await afterSignIn(finalUser);
-        
-        toast({
-            title: "¡Sesión Iniciada con Google!",
-            description: "Ahora puedes calificar y comentar."
-        });
+      // If there's an anonymous user, link the new Google credential to it.
+      if (user && user.isAnonymous) {
+        const linkResult = await linkWithCredential(user, credential);
+        finalUser = linkResult.user; // The user is now upgraded.
+      } else {
+        // If there's no anonymous user, the sign-in itself is the final result.
+        finalUser = result.user;
+      }
+      
+      await afterSignIn(finalUser);
+      
+      toast({
+        title: "¡Sesión Iniciada con Google!",
+        description: "Ahora puedes calificar y comentar."
+      });
 
     } catch (error: any) {
-        if (error.code === 'auth/popup-closed-by-user') {
-            console.log("Google Sign-In popup closed by user.");
-        } else {
-            console.error("Error with Google Sign-In:", error);
-            toast({
-                title: "Error de Autenticación",
-                description: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
-                variant: "destructive",
-            });
-        }
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.log("Google Sign-In popup closed by user.");
+      } else if (error.code === 'auth/credential-already-in-use') {
+        toast({
+            title: "Cuenta ya en uso",
+            description: "Esta cuenta de Google ya está vinculada a otro usuario.",
+            variant: "destructive",
+        });
+      } else {
+        console.error("Error with Google Sign-In:", error);
+        toast({
+          title: "Error de Autenticación",
+          description: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
+          variant: "destructive",
+        });
+      }
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
