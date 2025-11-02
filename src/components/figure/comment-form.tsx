@@ -86,36 +86,46 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const afterSignIn = async (signedInUser: User) => {
     if (!firestore) return;
+    setIsSubmitting(true);
+    try {
+        const userRef = doc(firestore, 'users', signedInUser.uid);
+        const dataToSave: any = {
+            email: signedInUser.email,
+        };
 
-    const userRef = doc(firestore, 'users', signedInUser.uid);
-    const dataToSave: any = {
-        email: signedInUser.email,
-    };
-    
-    const userDoc = await getDoc(userRef);
-    if (!userDoc.exists()) {
-        dataToSave.createdAt = serverTimestamp();
-    }
-
-    if (signedInUser.displayName) {
-        const usernameRef = doc(firestore, 'usernames', normalizeText(signedInUser.displayName));
-        const usernameDoc = await getDoc(usernameRef);
-        
-        if (!usernameDoc.exists()) {
-            await setDoc(usernameRef, { userId: signedInUser.uid });
-            dataToSave.username = signedInUser.displayName;
-            dataToSave.usernameLower = normalizeText(signedInUser.displayName);
-        } else if (usernameDoc.data()?.userId !== signedInUser.uid) {
-            toast({
-                title: 'Nombre de usuario en uso',
-                description: `El nombre "${signedInUser.displayName}" ya está en uso. Puedes cambiarlo en tu perfil.`,
-                variant: 'destructive',
-            });
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists()) {
+            dataToSave.createdAt = serverTimestamp();
         }
+
+        if (signedInUser.displayName && (!userDoc.exists() || !userDoc.data()?.username)) {
+            const usernameRef = doc(firestore, 'usernames', normalizeText(signedInUser.displayName));
+            const usernameDoc = await getDoc(usernameRef);
+            
+            if (!usernameDoc.exists()) {
+                await setDoc(usernameRef, { userId: signedInUser.uid });
+                dataToSave.username = signedInUser.displayName;
+                dataToSave.usernameLower = normalizeText(signedInUser.displayName);
+            } else if (usernameDoc.data()?.userId !== signedInUser.uid) {
+                toast({
+                    title: 'Nombre de usuario en uso',
+                    description: `El nombre "${signedInUser.displayName}" ya está en uso. Puedes cambiarlo en tu perfil.`,
+                    variant: 'destructive',
+                });
+            }
+        }
+        
+        await setDoc(userRef, dataToSave, { merge: true });
+        await reloadUser();
+        toast({
+            title: "¡Sesión Iniciada!",
+            description: "Ahora puedes calificar y comentar."
+        });
+    } catch (error) {
+        console.error("Error during afterSignIn:", error);
+    } finally {
+        setIsSubmitting(false);
     }
-    
-    await setDoc(userRef, dataToSave, { merge: true });
-    await reloadUser();
   };
   
   
@@ -186,37 +196,25 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     const provider = new GoogleAuthProvider();
 
     try {
-        // Always sign in with popup first to get the credential
         const result = await signInWithPopup(auth, provider);
         const credential = GoogleAuthProvider.credentialFromResult(result);
-        
+
         if (!credential) {
             throw new Error("No se pudo obtener la credencial de Google.");
         }
+        
+        const googleUser = result.user;
 
-        let finalUser: User;
-
-        // Check if there's a current anonymous user to link with
-        if (user && user.isAnonymous) {
-            const linkResult = await linkWithCredential(user, credential);
-            finalUser = linkResult.user; // After linking, the user object is updated
+        if (user && user.isAnonymous && user.uid !== googleUser.uid) {
+            await linkWithCredential(user, credential);
+            await afterSignIn(user); 
         } else {
-            // No user or a non-anonymous user, so the signed-in user is the final one
-            finalUser = result.user;
+            await afterSignIn(googleUser);
         }
 
-        // Now, with the definitive user (either newly signed-in or upgraded), create the profile
-        await afterSignIn(finalUser);
-
-        toast({
-            title: "¡Sesión Iniciada con Google!",
-            description: "Ahora puedes calificar y comentar."
-        });
-
     } catch (error: any) {
-        setIsSubmitting(false); // Make sure to stop loading on error
+        setIsSubmitting(false);
         if (error.code === 'auth/popup-closed-by-user') {
-            // User closed the popup, this is not a critical error.
             console.log("Google Sign-In popup closed by user.");
         } else if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/account-exists-with-different-credential') {
              toast({
@@ -233,11 +231,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                 variant: "destructive",
             });
         }
-    } finally {
-      // This will only be called if there's no error, move it inside the catch for error cases
-      // setIsSubmitting(false); // Removed from here
     }
-};
+  };
 
 
   const onSubmit = async (data: CommentFormValues) => {
@@ -480,6 +475,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     </Card>
   );
 }
+
+    
 
     
 
