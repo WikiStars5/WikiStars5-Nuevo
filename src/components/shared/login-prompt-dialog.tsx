@@ -3,14 +3,15 @@
 
 import * as React from 'react';
 import { useAuth, useUser } from '@/firebase';
-import { GoogleAuthProvider, signInWithPopup, setDoc, doc, getDoc, runTransaction, serverTimestamp } from '@/firebase';
+import { GoogleAuthProvider, signInWithPopup, User } from 'firebase/auth';
+import { doc, getDoc, runTransaction, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeText } from '@/lib/keywords';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { User } from 'firebase/auth';
+
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">

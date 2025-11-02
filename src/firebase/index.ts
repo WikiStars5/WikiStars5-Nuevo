@@ -11,13 +11,8 @@ import {
   linkWithCredential,
   GoogleAuthProvider,
   signInWithPopup,
-  setDoc,
-  doc,
-  getDoc,
-  runTransaction,
-  serverTimestamp
 } from 'firebase/auth';
-import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -59,4 +54,4 @@ export * from './errors';
 export * from './error-emitter';
 export * from './auth/use-admin';
 export * from './auth/use-user';
-export { EmailAuthProvider, linkWithCredential, GoogleAuthProvider, signInWithPopup, setDoc, doc, getDoc, runTransaction, serverTimestamp };
+export { EmailAuthProvider, linkWithCredential, GoogleAuthProvider, signInWithPopup };
