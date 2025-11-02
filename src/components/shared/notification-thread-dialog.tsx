@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -188,11 +187,12 @@ export default function NotificationThreadDialog({
                                 {replies.map(reply => (
                                     <CommentDisplay key={reply.id} comment={reply} isHighlighted={reply.id === replyId} />
                                 ))}
-                                 {activeReplyTarget && (
+                                 {rootComment && activeReplyTarget && (
                                      <ReplyForm
                                         figureId={figureId}
                                         figureName={figureName}
-                                        parentComment={activeReplyTarget}
+                                        parentComment={rootComment}
+                                        replyingTo={activeReplyTarget}
                                         onReplySuccess={handleReplySuccess}
                                     />
                                  )}

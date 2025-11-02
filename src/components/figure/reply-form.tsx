@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -6,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
-import { addDocumentNonBlocking, useFirestore, useUser } from '@/firebase';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useFirestore, useUser } from '@/firebase';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ interface ReplyFormProps {
   figureId: string;
   figureName: string;
   parentComment: CommentType; // The root comment of the thread
-  replyingTo: CommentType; // The specific comment being replied to (for the @mention)
+  replyingTo?: CommentType; // The specific comment being replied to (for the @mention). Optional.
   onReplySuccess: (newReplyId: string) => void;
 }
 
@@ -38,9 +38,12 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
+  // Make sure replyingTo exists before creating the default value
+  const defaultText = replyingTo ? `@${replyingTo.userDisplayName} ` : '';
+
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { text: `@${replyingTo.userDisplayName} ` },
+    defaultValues: { text: defaultText },
   });
   
   const getAvatarFallback = () => {
@@ -82,8 +85,9 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
       const newReplyId = newReplyRef.id;
       
       // --- Create Notification ---
-      const replyToAuthorId = replyingTo.userId;
-      if (replyToAuthorId !== user.uid) {
+      const replyToAuthorId = replyingTo?.userId;
+      // Only send notification if replying to someone else
+      if (replyToAuthorId && replyToAuthorId !== user.uid) {
         const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
         const notification = {
             userId: replyToAuthorId,
@@ -105,7 +109,6 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
         userPhotoURL: user.photoURL,
         userCountry: userProfileData.country || null,
         userGender: userProfileData.gender || null,
-        isAnonymous: user.isAnonymous
       });
 
       toast({
@@ -135,7 +138,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
                 <Textarea
                 {...form.register('text')}
-                placeholder={`Respondiendo a ${replyingTo.userDisplayName}...`}
+                placeholder={replyingTo ? `Respondiendo a ${replyingTo.userDisplayName}...` : 'Añade una respuesta...'}
                 className="text-sm"
                 rows={2}
                 />
