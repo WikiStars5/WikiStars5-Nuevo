@@ -231,10 +231,6 @@
           "type": "string",
           "description": "Reference to the parent comment, if this is a reply. Null if it's a top-level comment. (Relationship: Comment 1:N Comment)"
         },
-        "depth": {
-          "type": "number",
-          "description": "The nesting level of the comment. 0 for top-level."
-        },
         "text": {
           "type": "string",
           "description": "The text content of the comment."
@@ -262,8 +258,7 @@
         "id",
         "userId",
         "publicFigureId",
-        "text",
-        "depth"
+        "text"
       ]
     },
     "CommentVote": {

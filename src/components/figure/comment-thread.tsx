@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where } from 'firebase/firestore';
@@ -7,7 +6,7 @@ import type { Comment as CommentType, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
-import { MessageCircle, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -28,18 +27,16 @@ import { StarRating } from '../shared/star-rating';
 import { countries } from '@/lib/countries';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Card } from '../ui/card';
 
 interface CommentItemProps {
   comment: CommentType, 
   figureId: string,
   figureName: string,
-  hasChildren: boolean,
-  repliesVisible: boolean,
-  toggleReplies: () => void,
+  isReply?: boolean;
+  onReply: (parent: CommentType) => void;
 }
 
-function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisible, toggleReplies }: CommentItemProps) {
+function CommentItem({ comment, figureId, figureName, isReply = false, onReply }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -48,8 +45,6 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(comment.text);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
-    const [isReplying, setIsReplying] = useState(false);
-
 
     const isOwner = user && user.uid === comment.userId;
 
@@ -112,20 +107,6 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
             setIsVoting(null);
         }
     };
-    
-    // Finds all descendant comments of a given comment ID
-    const findDescendants = async (commentId: string, allComments: CommentType[]): Promise<string[]> => {
-      const children = allComments.filter(c => c.parentId === commentId);
-      let descendantIds: string[] = children.map(c => c.id);
-      
-      for (const child of children) {
-        const grandChildrenIds = await findDescendants(child.id, allComments);
-        descendantIds = descendantIds.concat(grandChildrenIds);
-      }
-      
-      return descendantIds;
-    };
-
 
     const handleDelete = async () => {
         if (!firestore || !isOwner) return;
@@ -135,19 +116,14 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
         const commentsColRef = collection(firestore, `figures/${figureId}/comments`);
 
         try {
-            const allCommentsSnapshot = await getDocs(commentsColRef);
-            const allComments = allCommentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as CommentType);
-
-            // Find all replies to be deleted
-            const descendantIds = await findDescendants(comment.id, allComments);
-            
             const batch = writeBatch(firestore);
 
-            // Delete all descendant comments
-            descendantIds.forEach(id => {
-                const commentRef = doc(commentsColRef, id);
-                batch.delete(commentRef);
-            });
+            // If it's a root comment, delete all its replies
+            if (!comment.parentId) {
+                const repliesQuery = query(commentsColRef, where('parentId', '==', comment.id));
+                const repliesSnapshot = await getDocs(repliesQuery);
+                repliesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+            }
             
             // Delete the main comment itself
             const mainCommentRef = doc(commentsColRef, comment.id);
@@ -166,10 +142,10 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
 
             toast({
                 title: "Comentario Eliminado",
-                description: "Tu comentario y todas sus respuestas han sido eliminados.",
+                description: "Tu comentario y sus respuestas han sido eliminados.",
             });
         } catch (error: any) {
-            console.error("Error al eliminar comentario y sus respuestas:", error);
+            console.error("Error al eliminar comentario:", error);
             toast({
                 title: "Error al Eliminar",
                 description: error.message || "No se pudo eliminar el comentario.",
@@ -211,29 +187,23 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
     }
 
     const renderCommentText = () => {
-        const parts = comment.text.split('\n\n');
-        const quoteMatch = parts[0].match(/^> @(.*?): (.*)/s);
-
-        if (quoteMatch) {
-            const [, user, quote] = quoteMatch;
-            const restOfText = parts.slice(1).join('\n\n');
+        const mentionMatch = comment.text.match(/^(@\S+)/);
+        if (mentionMatch) {
+            const mention = mentionMatch[1];
+            const restOfText = comment.text.substring(mention.length).trim();
             return (
-                <>
-                    <Card className="mt-2 bg-card/50 border-l-4 border-primary/50 p-3 text-sm italic">
-                        <blockquote className="space-y-2">
-                           <p className="text-muted-foreground">@{user}: "{quote}"</p>
-                        </blockquote>
-                    </Card>
-                    <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-2">{restOfText}</p>
-                </>
+                <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-1">
+                    <span className="text-primary font-semibold mr-1">{mention}</span>
+                    {restOfText}
+                </p>
             );
         }
         return <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-1">{comment.text}</p>;
     };
 
     return (
-        <div id={`comment-${comment.id}`} className="flex items-start gap-4 rounded-lg border bg-card text-card-foreground p-4 transition-colors duration-1000">
-            <Avatar className="h-10 w-10">
+        <div id={`comment-${comment.id}`} className="flex items-start gap-4">
+            <Avatar className={cn("h-10 w-10", isReply && "h-8 w-8")}>
                  <Link href={`/u/${comment.userDisplayName}`}><AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} /></Link>
                 <AvatarFallback><Link href={`/u/${comment.userDisplayName}`}>{getAvatarFallback()}</Link></AvatarFallback>
             </Avatar>
@@ -259,7 +229,7 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                     )}
                 </div>
 
-                {comment.rating !== -1 && typeof comment.rating === 'number' && (
+                {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && (
                   <StarRating rating={comment.rating} starClassName="h-4 w-4 mt-1" />
                 )}
 
@@ -309,7 +279,7 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                         </Button>
                         
                         {user && (
-                            <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => setIsReplying(!isReplying)}>
+                            <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
                                 <MessageCircle className="h-4 w-4" />
                                 <span>Responder</span>
                             </Button>
@@ -334,7 +304,7 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                                     <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                        tu comentario y todas sus respuestas.
+                                        tu comentario y todas sus respuestas asociadas.
                                     </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -347,40 +317,8 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
                             </>
                         )}
                     </div>
-                     {hasChildren && (
-                        <Button
-                            variant="link"
-                            className="p-0 h-auto text-xs font-semibold text-muted-foreground mt-2"
-                            onClick={toggleReplies}
-                        >
-                            {repliesVisible ? (
-                                <>
-                                 <ChevronUp className="mr-1 h-4 w-4" />
-                                 Ocultar respuestas
-                                </>
-                            ) : (
-                                <>
-                                <ChevronDown className="mr-1 h-4 w-4" />
-                                Ver {comment.children!.length} {comment.children!.length > 1 ? 'respuestas' : 'respuesta'}
-                                </>
-                            )}
-                        </Button>
-                    )}
                    </>
                 )}
-                 {isReplying && (
-                    <ReplyForm 
-                        figureId={figureId}
-                        figureName={figureName}
-                        parentComment={comment}
-                        onReplySuccess={() => {
-                            setIsReplying(false);
-                            if (!repliesVisible) {
-                                toggleReplies();
-                            }
-                        }}
-                    />
-                 )}
             </div>
         </div>
     )
@@ -388,39 +326,94 @@ function CommentItem({ comment, figureId, figureName, hasChildren, repliesVisibl
 
 interface CommentThreadProps {
   comment: CommentType;
+  allReplies: CommentType[];
   figureId: string;
   figureName: string;
 }
 
-export default function CommentThread({ comment, figureId, figureName }: CommentThreadProps) {
+export default function CommentThread({ comment, allReplies, figureId, figureName }: CommentThreadProps) {
   const [repliesVisible, setRepliesVisible] = useState(false);
-  const hasChildren = comment.children && comment.children.length > 0;
+  const [activeReply, setActiveReply] = useState<CommentType | null>(null);
 
+  const replies = useMemo(() => {
+    return allReplies.filter(reply => reply.parentId === comment.id).sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+  }, [allReplies, comment.id]);
+
+  const hasReplies = replies.length > 0;
+
+  const handleReplyClick = (targetComment: CommentType) => {
+    // Show replies if they are hidden
+    if (!repliesVisible) {
+        setRepliesVisible(true);
+    }
+    // Set the active comment to reply to
+    setActiveReply(targetComment);
+  }
+
+  const handleReplySuccess = () => {
+    setActiveReply(null);
+  };
+  
   const toggleReplies = () => {
     setRepliesVisible(prev => !prev);
+    if (repliesVisible) {
+        setActiveReply(null); // Hide reply form when collapsing
+    }
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="space-y-4 rounded-lg border bg-card text-card-foreground p-4">
       <CommentItem 
         comment={comment} 
         figureId={figureId}
         figureName={figureName}
-        hasChildren={!!hasChildren}
-        repliesVisible={repliesVisible}
-        toggleReplies={toggleReplies}
+        onReply={handleReplyClick}
       />
-      {hasChildren && repliesVisible && (
-        <div className="ml-8 mt-4 space-y-4 border-l-2 pl-4">
-          {comment.children!.map(child => (
-            <CommentThread 
-              key={child.id} 
-              comment={child} 
-              figureId={figureId} 
+      {hasReplies && (
+        <Button
+            variant="link"
+            className="p-0 h-auto text-sm font-semibold text-primary"
+            onClick={toggleReplies}
+        >
+            {repliesVisible ? (
+                <>
+                 <ChevronUp className="mr-1 h-4 w-4" />
+                 Ocultar respuestas
+                </>
+            ) : (
+                <>
+                <ChevronDown className="mr-1 h-4 w-4" />
+                Ver {replies.length} {replies.length > 1 ? 'respuestas' : 'respuesta'}
+                </>
+            )}
+        </Button>
+      )}
+
+      {repliesVisible && (
+        <div className="ml-8 space-y-4 border-l-2 pl-4">
+          {replies.map(reply => (
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              figureId={figureId}
               figureName={figureName}
+              isReply={true}
+              onReply={handleReplyClick}
             />
           ))}
         </div>
+      )}
+      
+      {activeReply && (
+         <div className="ml-8 pt-4 border-l-2 pl-4">
+            <ReplyForm
+                figureId={figureId}
+                figureName={figureName}
+                rootComment={comment}
+                replyToComment={activeReply}
+                onReplySuccess={handleReplySuccess}
+            />
+         </div>
       )}
     </div>
   );

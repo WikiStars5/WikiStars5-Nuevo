@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,6 +37,21 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
     const country = comment.userCountry ? countries.find(c => c.name === comment.userCountry) : null;
     const getAvatarFallback = () => comment.userDisplayName?.charAt(0).toUpperCase() || 'U';
 
+    const renderCommentText = () => {
+        const mentionMatch = comment.text.match(/^(@\S+)/);
+        if (mentionMatch) {
+            const mention = mentionMatch[1];
+            const restOfText = comment.text.substring(mention.length).trim();
+            return (
+                <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">
+                    <span className="text-primary font-semibold mr-1">{mention}</span>
+                    {restOfText}
+                </p>
+            );
+        }
+        return <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">{comment.text}</p>;
+    };
+
     return (
         <div id={`comment-${comment.id}`} className={`flex items-start gap-4 rounded-lg border p-4 transition-all duration-500 ${isHighlighted ? 'bg-primary/10 border-primary animate-highlight' : 'bg-card'}`}>
             <Avatar className="h-10 w-10">
@@ -68,7 +82,7 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
                 {comment.rating !== -1 && typeof comment.rating === 'number' && (
                   <StarRating rating={comment.rating} starClassName="h-4 w-4 mt-1" />
                 )}
-                <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">{comment.text}</p>
+                {renderCommentText()}
             </div>
         </div>
     )
@@ -82,9 +96,10 @@ export default function NotificationThreadDialog({
   onOpenChange,
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
-    const [parentComment, setParentComment] = useState<Comment | null>(null);
-    const [replyComment, setReplyComment] = useState<Comment | null>(null);
+    const [rootComment, setRootComment] = useState<Comment | null>(null);
+    const [replies, setReplies] = useState<Comment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [activeReply, setActiveReply] = useState<Comment | null>(null);
 
     useEffect(() => {
         const fetchComments = async () => {
@@ -93,24 +108,29 @@ export default function NotificationThreadDialog({
             
             try {
                 const commentsRef = collection(firestore, `figures/${figureId}/comments`);
-                const parentRef = doc(commentsRef, parentId);
-                const replyRef = doc(commentsRef, replyId);
+                const rootRef = doc(commentsRef, parentId);
 
-                const [parentSnap, replySnap] = await Promise.all([
-                    getDoc(parentRef),
-                    getDoc(replyRef)
+                const repliesQuery = query(
+                    commentsRef,
+                    where('parentId', '==', parentId),
+                    orderBy('createdAt', 'asc')
+                );
+
+                const [rootSnap, repliesSnap] = await Promise.all([
+                    getDoc(rootRef),
+                    getDocs(repliesQuery)
                 ]);
 
-                if (parentSnap.exists()) {
-                    setParentComment({ id: parentSnap.id, ...parentSnap.data() } as Comment);
+                if (rootSnap.exists()) {
+                    const rootData = { id: rootSnap.id, ...rootSnap.data() } as Comment;
+                    setRootComment(rootData);
+                    const replyData = repliesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Comment));
+                    setReplies(replyData);
+                    
+                    const targetReply = replyData.find(r => r.id === replyId) || rootData;
+                    setActiveReply(targetReply);
                 } else {
-                    console.error("Parent comment not found.");
-                }
-
-                if (replySnap.exists()) {
-                    setReplyComment({ id: replySnap.id, ...replySnap.data() } as Comment);
-                } else {
-                    console.error("Reply comment not found.");
+                    console.error("Root comment not found.");
                 }
 
             } catch (error) {
@@ -125,7 +145,7 @@ export default function NotificationThreadDialog({
 
      useEffect(() => {
         // Scroll to the highlighted comment after it's rendered
-        if (!isLoading && replyComment) {
+        if (!isLoading && replyId) {
             setTimeout(() => {
                 const element = document.getElementById(`comment-${replyId}`);
                 if (element) {
@@ -133,14 +153,19 @@ export default function NotificationThreadDialog({
                 }
             }, 100); 
         }
-    }, [isLoading, replyComment, replyId]);
+    }, [isLoading, replyId]);
+
+    const handleReplySuccess = () => {
+        setActiveReply(null);
+        onOpenChange(false); // Close dialog on successful reply
+    };
 
     return (
         <DialogContent className="sm:max-w-xl">
             <DialogHeader>
-                <DialogTitle>Nueva Respuesta</DialogTitle>
+                <DialogTitle>Conversación de Comentarios</DialogTitle>
                 <DialogDescription>
-                    Alguien ha respondido a tu comentario en el perfil de <span className="font-semibold text-primary">{figureName}</span>.
+                    Respondiendo en el perfil de <span className="font-semibold text-primary">{figureName}</span>.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
@@ -150,17 +175,20 @@ export default function NotificationThreadDialog({
                         <div className="pl-8"><CommentDisplaySkeleton /></div>
                     </div>
                 ) : (
-                    parentComment && replyComment ? (
+                    rootComment ? (
                         <div className="space-y-4">
-                            <CommentDisplay comment={parentComment} />
+                            <CommentDisplay comment={rootComment} isHighlighted={rootComment.id === replyId} />
                             <div className="pl-8 border-l-2 ml-4 space-y-4">
-                                <CommentDisplay comment={replyComment} isHighlighted={true} />
-                                 {replyComment.depth < 4 && (
+                                {replies.map(reply => (
+                                    <CommentDisplay key={reply.id} comment={reply} isHighlighted={reply.id === replyId} />
+                                ))}
+                                 {activeReply && (
                                      <ReplyForm
                                         figureId={figureId}
                                         figureName={figureName}
-                                        parentComment={replyComment}
-                                        onReplySuccess={() => onOpenChange(false)}
+                                        rootComment={rootComment}
+                                        replyToComment={activeReply}
+                                        onReplySuccess={handleReplySuccess}
                                     />
                                  )}
                             </div>

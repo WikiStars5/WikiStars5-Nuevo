@@ -8,40 +8,12 @@ import { Skeleton } from '../ui/skeleton';
 import { MessageCircle, Star } from 'lucide-react';
 import CommentThread from './comment-thread';
 import { Button } from '../ui/button';
-import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 const INITIAL_COMMENT_LIMIT = 5;
 const COMMENT_INCREMENT = 5;
 
-
-// Helper function to build the comment tree
-function buildCommentTree(comments: Comment[]): Comment[] {
-  const commentMap: { [key: string]: Comment } = {};
-  const rootComments: Comment[] = [];
-
-  // First pass: create a map of all comments by their ID and initialize children
-  comments.forEach(comment => {
-    commentMap[comment.id] = { ...comment, children: [] };
-  });
-
-  // Second pass: build the tree
-  comments.forEach(comment => {
-    const mappedComment = commentMap[comment.id];
-    if (comment.parentId && commentMap[comment.parentId]) {
-      // It's a reply, so add it to its parent's children array
-      commentMap[comment.parentId].children?.push(mappedComment);
-    } else {
-      // It's a root comment
-      rootComments.push(mappedComment);
-    }
-  });
-
-  return rootComments;
-}
-
 type FilterType = 'all' | 'mine' | number;
-type MineFilterType = 'unanswered' | 'answered';
 
 interface CommentListProps {
   figureId: string;
@@ -53,23 +25,11 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
   const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [mineFilter, setMineFilter] = useState<MineFilterType>('answered');
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('view') === 'mine') {
-      setActiveFilter('mine');
-      setMineFilter('answered');
-    }
-  }, []);
-
 
   const commentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     
-    const baseQuery = query(
+    let baseQuery = query(
       collection(firestore, 'figures', figureId, 'comments'),
       orderBy('createdAt', 'desc')
     );
@@ -80,33 +40,33 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
 
   const { data: comments, isLoading } = useCollection<Comment>(commentsQuery);
 
-  const filteredComments = useMemo(() => {
-    if (!comments) return [];
-    
-    const tree = buildCommentTree(comments);
+  const { rootComments, allReplies } = useMemo(() => {
+    if (!comments) return { rootComments: [], allReplies: [] };
+    const roots = comments.filter(c => !c.parentId);
+    const replies = comments.filter(c => c.parentId);
+    return { rootComments: roots, allReplies: replies };
+  }, [comments]);
 
+
+  const filteredRootComments = useMemo(() => {
+    if (!rootComments) return [];
+    
     if (activeFilter === 'mine') {
       if (!user) return [];
-      const myComments = tree.filter(comment => comment.userId === user.uid);
-      
-      if (mineFilter === 'answered') {
-        return myComments.filter(comment => comment.children && comment.children.length > 0);
-      }
-      return myComments.filter(comment => !comment.children || comment.children.length === 0);
-
+      return rootComments.filter(comment => comment.userId === user.uid);
     } else if (typeof activeFilter === 'number') {
-       return tree.filter(comment => comment.rating === activeFilter);
+       return rootComments.filter(comment => comment.rating === activeFilter);
     }
 
-    return tree;
-  }, [comments, activeFilter, user, mineFilter]);
+    return rootComments;
+  }, [rootComments, activeFilter, user]);
 
 
   if (isLoading) {
     return (
         <div className="space-y-6">
             {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex items-start gap-4">
+                <div key={i} className="flex items-start gap-4 p-4 rounded-lg border">
                     <Skeleton className="h-10 w-10 rounded-full" />
                     <div className="flex-1 space-y-2">
                         <Skeleton className="h-4 w-1/4" />
@@ -122,7 +82,7 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
     )
   }
 
-  const visibleComments = filteredComments.slice(0, visibleCount);
+  const visibleComments = filteredRootComments.slice(0, visibleCount);
   
   const FilterButton = ({ filter, children }: { filter: FilterType; children: React.ReactNode }) => (
     <Button
@@ -147,21 +107,13 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
         ))}
       </div>
 
-       {activeFilter === 'mine' && (
-        <Tabs value={mineFilter} onValueChange={(value) => setMineFilter(value as MineFilterType)} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="unanswered">No Respondidas</TabsTrigger>
-                <TabsTrigger value="answered">Respondidas</TabsTrigger>
-            </TabsList>
-        </Tabs>
-      )}
-
 
       {visibleComments.length > 0 ? (
-        visibleComments.map((comment) => (
+         visibleComments.map((comment) => (
             <CommentThread 
                 key={comment.id} 
-                comment={comment} 
+                comment={comment}
+                allReplies={allReplies}
                 figureId={figureId} 
                 figureName={figureName}
             />
@@ -178,7 +130,7 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
 
 
         <div className="flex items-center justify-center gap-4">
-            {filteredComments.length > visibleCount && (
+            {filteredRootComments.length > visibleCount && (
                 <Button variant="outline" onClick={() => setVisibleCount(prev => prev + COMMENT_INCREMENT)}>
                     Ver más comentarios
                 </Button>

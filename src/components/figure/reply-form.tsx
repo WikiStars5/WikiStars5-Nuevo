@@ -1,20 +1,19 @@
-
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
-import { addDocumentNonBlocking, useAuth, useFirestore, useUser } from '@/firebase';
+import { addDocumentNonBlocking, useFirestore, useUser } from '@/firebase';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { updateStreak } from '@/firebase/streaks';
-import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { Comment as CommentType } from '@/lib/types';
+import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 
 
 const replySchema = z.object({
@@ -26,20 +25,21 @@ type ReplyFormValues = z.infer<typeof replySchema>;
 interface ReplyFormProps {
   figureId: string;
   figureName: string;
-  parentComment: CommentType; // Pass the whole parent comment object
+  rootComment: CommentType;
+  replyToComment: CommentType;
   onReplySuccess: (newReplyId: string) => void;
 }
 
-export default function ReplyForm({ figureId, figureName, parentComment, onReplySuccess }: ReplyFormProps) {
+export default function ReplyForm({ figureId, figureName, rootComment, replyToComment, onReplySuccess }: ReplyFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { showStreakAnimation } = useContext(StreakAnimationContext);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { text: '' },
+    defaultValues: { text: `@${replyToComment.userDisplayName} ` },
   });
   
   const getAvatarFallback = () => {
@@ -49,10 +49,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
 
   const onSubmit = async (data: ReplyFormValues) => {
     if (!firestore || !user) {
-        toast({
-            title: 'Debes iniciar sesión para responder',
-            variant: 'destructive',
-        });
+        setShowLoginDialog(true);
         return;
     }
     setIsSubmitting(true);
@@ -64,30 +61,11 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
       const displayName = userProfileData.username || user.displayName || 'Usuario';
       
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-      let newCommentText = data.text;
-      let newParentId: string | null = parentComment.id;
-      let newThreadId = parentComment.threadId || parentComment.id;
-      let newDepth = parentComment.depth + 1;
-
-      // The core logic change is here!
-      if (parentComment.depth >= 3) {
-          // If we are replying to a deep comment, create a new root comment with a quote.
-          newCommentText = `> @${parentComment.userDisplayName}: ${parentComment.text}\n\n${data.text}`;
-          newParentId = null;
-          newDepth = 0;
-          // The new threadId will be the ID of this new comment itself. We handle this in the payload.
-      }
-
-      const newReplyRef = doc(commentsColRef); // Generate ID beforehand
-      
-      if (newDepth === 0) {
-        newThreadId = newReplyRef.id;
-      }
       
       const newReply: Omit<CommentType, 'id' | 'children' | 'createdAt'> & { createdAt: any } = {
         figureId: figureId,
         userId: user.uid,
-        text: newCommentText,
+        text: data.text,
         createdAt: serverTimestamp(),
         userDisplayName: displayName,
         userPhotoURL: user.photoURL,
@@ -95,35 +73,31 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
         userGender: userProfileData.gender || null,
         likes: 0,
         dislikes: 0,
-        parentId: newParentId,
-        threadId: newThreadId,
-        depth: newDepth,
+        parentId: rootComment.id, // Always reply to the root comment
         rating: -1, // Replies don't have ratings
       };
 
-      await addDocumentNonBlocking(newReplyRef, newReply);
+      const newReplyRef = await addDocumentNonBlocking(commentsColRef, newReply);
       const newReplyId = newReplyRef.id;
       
       // --- Create Notification ---
-      // Only notify if it's a direct reply, not a new root comment
-      if (newParentId) {
-        const parentAuthorId = parentComment.userId;
-        if (parentAuthorId !== user.uid) {
-            const notificationsColRef = collection(firestore, 'users', parentAuthorId, 'notifications');
-            const notification = {
-                userId: parentAuthorId,
-                type: 'comment_reply',
-                message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
-                isRead: false,
-                createdAt: serverTimestamp(),
-                link: `/figures/${figureId}?thread=${newThreadId}&reply=${newReplyId}`
-            };
-            await addDocumentNonBlocking(notificationsColRef, notification);
-        }
+      // Notify the person you are replying to (if they are not you)
+      const replyToAuthorId = replyToComment.userId;
+      if (replyToAuthorId !== user.uid) {
+        const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
+        const notification = {
+            userId: replyToAuthorId,
+            type: 'comment_reply',
+            message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
+            isRead: false,
+            createdAt: serverTimestamp(),
+            link: `/figures/${figureId}?thread=${rootComment.id}&reply=${newReplyId}`
+        };
+        await addDocumentNonBlocking(notificationsColRef, notification);
       }
 
       // --- Streak Update ---
-      const streakResult = await updateStreak({
+      await updateStreak({
         firestore,
         figureId,
         userId: user.uid,
@@ -131,17 +105,12 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
         userPhotoURL: user.photoURL,
         userCountry: userProfileData.country || null,
         userGender: userProfileData.gender || null,
-        isAnonymous: false,
       });
-
-      if (streakResult?.streakGained) {
-        showStreakAnimation(streakResult.newStreakCount);
-      }
 
       toast({
         title: '¡Respuesta Publicada!',
       });
-      form.reset();
+      form.reset({ text: '' });
       onReplySuccess(newReplyId);
     } catch (error) {
       console.error('Error al publicar respuesta:', error);
@@ -156,33 +125,35 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
   };
 
   return (
-    <div className="flex items-start gap-4 mt-4">
-        <Avatar className="h-9 w-9">
-            <AvatarImage src={user?.photoURL || undefined} />
-            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-        </Avatar>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
-            <Textarea
-            {...form.register('text')}
-            placeholder="Escribe tu respuesta..."
-            className="text-sm"
-            rows={2}
-            />
-            <div className="flex justify-end gap-2">
-                <Button variant="ghost" size="sm" onClick={() => onReplySuccess('')} disabled={isSubmitting}>
-                    Cancelar
-                </Button>
-                <Button type="submit" size="sm" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                    <Send className="mr-2 h-4 w-4" />
-                    )}
-                    Responder
-                </Button>
-            </div>
-             {form.formState.errors.text && <p className="text-xs text-destructive">{form.formState.errors.text.message}</p>}
-        </form>
-    </div>
+    <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <div className="flex items-start gap-4 mt-4">
+            <Avatar className="h-9 w-9">
+                <AvatarImage src={user?.photoURL || undefined} />
+                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+            </Avatar>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
+                <Textarea
+                {...form.register('text')}
+                placeholder={`Respondiendo a ${replyToComment.userDisplayName}...`}
+                className="text-sm"
+                rows={2}
+                />
+                <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => onReplySuccess('')} disabled={isSubmitting}>
+                        Cancelar
+                    </Button>
+                    <Button type="submit" size="sm" disabled={isSubmitting}>
+                        {isSubmitting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                        <Send className="mr-2 h-4 w-4" />
+                        )}
+                        Responder
+                    </Button>
+                </div>
+                {form.formState.errors.text && <p className="text-xs text-destructive">{form.formState.errors.text.message}</p>}
+            </form>
+        </div>
+    </LoginPromptDialog>
   );
 }
