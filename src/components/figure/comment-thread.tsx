@@ -113,26 +113,36 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
         if (!firestore || !isOwner) return;
         setIsDeleting(true);
 
-        const figureRef = doc(firestore, 'figures', figureId);
         const commentsColRef = collection(firestore, `figures/${figureId}/comments`);
-
+        
         try {
-            const batch = writeBatch(firestore);
+            // First, check if there are any replies to this comment.
+            const repliesQuery = query(commentsColRef, where('parentId', '==', comment.id), limit(1));
+            const repliesSnapshot = await getDocs(repliesQuery);
 
-            // If it's a root comment, delete all its replies
-            if (!comment.parentId) {
-                const repliesQuery = query(commentsColRef, where('parentId', '==', comment.id));
-                const repliesSnapshot = await getDocs(repliesQuery);
-                repliesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+            if (!repliesSnapshot.empty) {
+                // If there are replies, we cannot delete the comment.
+                toast({
+                    title: "No se puede eliminar",
+                    description: "No puedes eliminar un comentario que ya tiene respuestas.",
+                    variant: "destructive",
+                });
+                setIsDeleting(false);
+                return;
             }
-            
-            // Delete the main comment itself
-            const mainCommentRef = doc(commentsColRef, comment.id);
-            batch.delete(mainCommentRef);
 
-            // Adjust figure's rating if the main comment had one
+            // If there are no replies, proceed with deletion.
+            const figureRef = doc(firestore, 'figures', figureId);
+            const commentRef = doc(commentsColRef, comment.id);
+
+            const batch = writeBatch(firestore);
+            
+            // Delete the comment itself
+            batch.delete(commentRef);
+
+            // Adjust figure's rating if the comment had one
             if (typeof comment.rating === 'number' && comment.rating >= 0) {
-                 const updates: { [key: string]: any } = {};
+                const updates: { [key: string]: any } = {};
                 updates['ratingCount'] = increment(-1);
                 updates['totalRating'] = increment(-comment.rating);
                 updates[`ratingsBreakdown.${comment.rating}`] = increment(-1);
@@ -143,13 +153,15 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
 
             toast({
                 title: "Comentario Eliminado",
-                description: "Tu comentario y sus respuestas han sido eliminados.",
+                description: "Tu comentario ha sido eliminado.",
             });
+            // The component will disappear from the UI automatically due to real-time updates.
+
         } catch (error: any) {
             console.error("Error al eliminar comentario:", error);
             toast({
                 title: "Error al Eliminar",
-                description: "No se pudo eliminar el comentario. Esto puede deberse a un problema de permisos si el comentario tiene respuestas.",
+                description: "No se pudo eliminar el comentario. Por favor, inténtalo de nuevo.",
                 variant: "destructive",
             });
         } finally {
@@ -305,7 +317,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                                     <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                        tu comentario y todas sus respuestas asociadas.
+                                        tu comentario.
                                     </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
