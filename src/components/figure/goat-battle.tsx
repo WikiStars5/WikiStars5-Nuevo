@@ -6,16 +6,16 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Loader2, Timer, Share2 } from 'lucide-react';
+import { Loader2, Timer } from 'lucide-react';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import type { GoatBattle, GoatVote, Figure } from '@/lib/types';
-import { doc, runTransaction, serverTimestamp, increment, getDoc, query, where, collection, getDocs, limit, Timestamp, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, increment, getDoc, query, where, collection, getDocs, limit, Timestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
-import { onAuthStateChanged, type Auth, type User as FirebaseUser } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
 import { ShareButton } from '../shared/ShareButton';
 import { usePathname } from 'next/navigation';
+import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
+
 
 const BATTLE_ID = 'messi-vs-ronaldo';
 const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAT2.png?alt=media&token=50973a60-0bff-4fcb-9c17-986f067d834e";
@@ -25,20 +25,6 @@ interface PlayerData {
   id: string;
   name: string;
   imageUrl: string;
-}
-
-function getNextUser(auth: Auth): Promise<FirebaseUser> {
-  return new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        unsubscribe();
-        resolve(user);
-      }
-    }, (error) => {
-        unsubscribe();
-        reject(error);
-    });
-  });
 }
 
 // Fetches a single figure by name. Limited to find Messi or Ronaldo.
@@ -75,6 +61,7 @@ export default function GoatBattle() {
   const pathname = usePathname();
 
   const [isVoting, setIsVoting] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   const [messiData, setMessiData] = useState<PlayerData | null>(null);
   const [ronaldoData, setRonaldoData] = useState<PlayerData | null>(null);
@@ -164,19 +151,18 @@ export default function GoatBattle() {
 
 
   const handleVote = async (player: 'messi' | 'ronaldo') => {
+    if (!user) {
+      setShowLoginDialog(true);
+      return;
+    }
+
     if (isVoting || !firestore || !auth || !isBattleActive) return;
     setIsVoting(true);
 
     try {
-        let currentUser = user;
-        if (!currentUser) {
-            await initiateAnonymousSignIn(auth);
-            currentUser = await getNextUser(auth);
-        }
-        
         await runTransaction(firestore, async (transaction) => {
             const battleRef = doc(firestore, 'goat_battles', BATTLE_ID);
-            const userVoteRef = doc(firestore, `users/${currentUser!.uid}/goatVotes`, BATTLE_ID);
+            const userVoteRef = doc(firestore, `users/${user.uid}/goatVotes`, BATTLE_ID);
             
             const [battleDoc, userVoteDoc] = await Promise.all([
                 transaction.get(battleRef),
@@ -217,7 +203,7 @@ export default function GoatBattle() {
                 }
                 
                 transaction.set(userVoteRef, { 
-                    userId: currentUser!.uid, 
+                    userId: user.uid, 
                     vote: player, 
                     createdAt: serverTimestamp() 
                 });
@@ -308,98 +294,98 @@ export default function GoatBattle() {
   const figureIdForShare = pathname.split('/').pop() || (messiData ? messiData.id : 'lionel-messi');
 
   return (
-    <Card className="relative bg-black">
-       <div className="absolute top-4 right-4 z-10">
-          <ShareButton
-            figureId={figureIdForShare}
-            figureName="La Batalla del GOAT: Messi vs Ronaldo"
-          />
-        </div>
-      <CardHeader className="items-center text-center pt-12">
-        <CardTitle className="flex items-center gap-2 text-3xl">
-          <GoatIcon/> La Batalla del GOAT
-        </CardTitle>
-        <CardDescription className="max-w-md flex flex-col items-center text-center gap-2 text-muted-foreground">
-            <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
-            <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={80} height={80} className="h-60 w-60" />
-        </CardDescription>
-        {isBattleOver ? (
-            <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
-        ) : (
-            <div className="flex items-center gap-2 font-mono text-lg font-bold text-primary animate-pulse">
-                <Timer className="h-5 w-5" />
-                <span>{timeLeft}</span>
+    <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+      <Card className="relative bg-black">
+        <div className="absolute top-4 right-4 z-10">
+            <ShareButton
+                figureId={figureIdForShare}
+                figureName="La Batalla del GOAT: Messi vs Ronaldo"
+            />
             </div>
-        )}
-      </CardHeader>
-      <CardContent className="flex flex-col items-center">
-        <div className="relative w-full max-w-md h-48 mb-8">
-          <div
-            className="absolute top-1/2 left-0 w-full h-1.5 bg-muted rounded-full transition-transform duration-500"
-            style={{ transform: `translateY(-50%) rotate(${balanceRotation}deg)` }}
-          >
-            <div className="absolute -left-8 -top-12 flex flex-col items-center">
-              <div className="relative h-20 w-20 rounded-full border-4 border-blue-500 overflow-hidden shadow-lg">
-                <Image src={messiData.imageUrl} alt={messiData.name} layout="fill" objectFit="cover" />
-              </div>
-            </div>
-            <div className="absolute -right-8 -top-12 flex flex-col items-center">
-              <div className="relative h-20 w-20 rounded-full border-4 border-red-500 overflow-hidden shadow-lg">
-                <Image src={ronaldoData.imageUrl} alt={ronaldoData.name} layout="fill" objectFit="cover" />
-              </div>
-            </div>
-          </div>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[40px] border-l-transparent border-r-[40px] border-r-transparent border-b-[60px] border-b-muted"></div>
-        </div>
-
-        <div className="w-full max-w-md mb-6">
-            <div className="relative h-4 w-full bg-red-500/30 rounded-full overflow-hidden">
-                <div 
-                    className="absolute top-0 left-0 h-full bg-blue-500/50 rounded-full transition-all duration-500"
-                    style={{ width: `${messiPercentage}%`}}
-                />
-            </div>
-            <div className="flex justify-between text-sm font-bold mt-1">
-                <span className="text-blue-400">{messiVotes.toLocaleString()} votos</span>
-                <span className="text-red-400">{ronaldoVotes.toLocaleString()} votos</span>
-            </div>
-        </div>
-
-        {isBattleOver ? (
-            <div className="text-center font-bold text-xl py-6">
-                {winner === 'tie' && '¡Es un empate!'}
-                {winner && winner !== 'tie' && `El ganador es ${winner === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo'}!`}
-                {!winner && 'Calculando ganador...'}
-            </div>
-        ) : (
-            <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-            <Button
-                size="lg"
-                className={cn(
-                    "h-16 text-lg bg-blue-500/20 text-blue-300 border-2 border-blue-500/50 hover:bg-blue-500/30",
-                    userVote?.vote === 'messi' && "ring-2 ring-offset-2 ring-blue-400 ring-offset-background"
-                )}
-                onClick={() => handleVote('messi')}
-                disabled={isVoting}
+        <CardHeader className="items-center text-center pt-12">
+            <CardTitle className="flex items-center gap-2 text-3xl">
+            <GoatIcon/> La Batalla del GOAT
+            </CardTitle>
+            <CardDescription className="max-w-md flex flex-col items-center text-center gap-2 text-muted-foreground">
+                <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
+                <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={80} height={80} className="h-60 w-60" />
+            </CardDescription>
+            {isBattleOver ? (
+                <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
+            ) : (
+                <div className="flex items-center gap-2 font-mono text-lg font-bold text-primary animate-pulse">
+                    <Timer className="h-5 w-5" />
+                    <span>{timeLeft}</span>
+                </div>
+            )}
+        </CardHeader>
+        <CardContent className="flex flex-col items-center">
+            <div className="relative w-full max-w-md h-48 mb-8">
+            <div
+                className="absolute top-1/2 left-0 w-full h-1.5 bg-muted rounded-full transition-transform duration-500"
+                style={{ transform: `translateY(-50%) rotate(${balanceRotation}deg)` }}
             >
-                {isVoting && userVote?.vote !== 'messi' ? <Loader2 className="animate-spin" /> : 'Votar por Messi'}
-            </Button>
-            <Button
-                size="lg"
-                className={cn(
-                    "h-16 text-lg bg-red-500/20 text-red-300 border-2 border-red-500/50 hover:bg-red-500/30",
-                    userVote?.vote === 'ronaldo' && "ring-2 ring-offset-2 ring-red-400 ring-offset-background"
-                )}
-                onClick={() => handleVote('ronaldo')}
-                disabled={isVoting}
-            >
-                {isVoting && userVote?.vote !== 'ronaldo' ? <Loader2 className="animate-spin" /> : 'Votar por Ronaldo'}
-            </Button>
+                <div className="absolute -left-8 -top-12 flex flex-col items-center">
+                <div className="relative h-20 w-20 rounded-full border-4 border-blue-500 overflow-hidden shadow-lg">
+                    <Image src={messiData.imageUrl} alt={messiData.name} layout="fill" objectFit="cover" />
+                </div>
+                </div>
+                <div className="absolute -right-8 -top-12 flex flex-col items-center">
+                <div className="relative h-20 w-20 rounded-full border-4 border-red-500 overflow-hidden shadow-lg">
+                    <Image src={ronaldoData.imageUrl} alt={ronaldoData.name} layout="fill" objectFit="cover" />
+                </div>
+                </div>
             </div>
-        )}
-      </CardContent>
-    </Card>
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[40px] border-l-transparent border-r-[40px] border-r-transparent border-b-[60px] border-b-muted"></div>
+            </div>
+
+            <div className="w-full max-w-md mb-6">
+                <div className="relative h-4 w-full bg-red-500/30 rounded-full overflow-hidden">
+                    <div 
+                        className="absolute top-0 left-0 h-full bg-blue-500/50 rounded-full transition-all duration-500"
+                        style={{ width: `${messiPercentage}%`}}
+                    />
+                </div>
+                <div className="flex justify-between text-sm font-bold mt-1">
+                    <span className="text-blue-400">{messiVotes.toLocaleString()} votos</span>
+                    <span className="text-red-400">{ronaldoVotes.toLocaleString()} votos</span>
+                </div>
+            </div>
+
+            {isBattleOver ? (
+                <div className="text-center font-bold text-xl py-6">
+                    {winner === 'tie' && '¡Es un empate!'}
+                    {winner && winner !== 'tie' && `El ganador es ${winner === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo'}!`}
+                    {!winner && 'Calculando ganador...'}
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                <Button
+                    size="lg"
+                    className={cn(
+                        "h-16 text-lg bg-blue-500/20 text-blue-300 border-2 border-blue-500/50 hover:bg-blue-500/30",
+                        userVote?.vote === 'messi' && "ring-2 ring-offset-2 ring-blue-400 ring-offset-background"
+                    )}
+                    onClick={() => handleVote('messi')}
+                    disabled={isVoting}
+                >
+                    {isVoting && userVote?.vote !== 'messi' ? <Loader2 className="animate-spin" /> : 'Votar por Messi'}
+                </Button>
+                <Button
+                    size="lg"
+                    className={cn(
+                        "h-16 text-lg bg-red-500/20 text-red-300 border-2 border-red-500/50 hover:bg-red-500/30",
+                        userVote?.vote === 'ronaldo' && "ring-2 ring-offset-2 ring-red-400 ring-offset-background"
+                    )}
+                    onClick={() => handleVote('ronaldo')}
+                    disabled={isVoting}
+                >
+                    {isVoting && userVote?.vote !== 'ronaldo' ? <Loader2 className="animate-spin" /> : 'Votar por Ronaldo'}
+                </Button>
+                </div>
+            )}
+        </CardContent>
+      </Card>
+    </LoginPromptDialog>
   );
 }
-
-    

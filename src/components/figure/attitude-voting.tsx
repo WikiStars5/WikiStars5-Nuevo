@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -10,8 +11,8 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote } from '@/lib/types';
-import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import Image from 'next/image';
+import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -32,20 +33,6 @@ interface AttitudeVotingProps {
   figure: Figure;
 }
 
-function getNextUser(auth: Auth): Promise<FirebaseUser> {
-  return new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        unsubscribe();
-        resolve(user);
-      }
-    }, (error) => {
-        unsubscribe();
-        reject(error);
-    });
-  });
-}
-
 export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -53,6 +40,7 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const { toast } = useToast();
 
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   const attitudeOptions = figure.nationality === 'Web'
     ? allAttitudeOptions.filter(option => option.id !== 'simp')
@@ -66,18 +54,17 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
 
   const handleVote = async (vote: AttitudeOption) => {
+    if (!user) {
+      setShowLoginDialog(true);
+      return;
+    }
+
     if (isVoting || !firestore || !auth) return;
     setIsVoting(vote);
 
     try {
-      let currentUser = user;
-      if (!currentUser) {
-        await initiateAnonymousSignIn(auth);
-        currentUser = await getNextUser(auth);
-      }
-      
       const figureRef = doc(firestore, 'figures', figure.id);
-      const voteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figure.id);
+      const voteRef = doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
 
       await runTransaction(firestore, async (transaction) => {
         const existingVoteDoc = await transaction.get(voteRef);
@@ -88,7 +75,7 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
         }
 
         const newVoteData: Omit<AttitudeVote, 'id'> = {
-          userId: currentUser!.uid,
+          userId: user.uid,
           figureId: figure.id,
           vote: vote,
           createdAt: serverTimestamp(),
@@ -140,48 +127,50 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
   const gridColsClass = attitudeOptions.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4';
 
   return (
-    <div className="w-full">
-      <div className="mb-4 text-left">
-        <h3 className="text-xl font-bold font-headline">¿Qué te consideras?</h3>
-        <p className="text-muted-foreground">Define tu actitud hacia {figure.name}. Tu voto es anónimo.</p>
-      </div>
-      <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
-        {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
-          const isSelected = userVote?.vote === id;
-          return (
-          <Button
-            key={id}
-            variant="outline"
-            className={cn(
-              'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200',
-              'bg-black hover:bg-neutral-900',
-              isSelected ? `border-2 ${colorClass} ${selectedClass}` : `border ${colorClass}`,
-               isVoting === id ? 'cursor-not-allowed' : ''
-            )}
-            onClick={() => handleVote(id)}
-            disabled={!!isVoting}
-          >
-            {isVoting === id ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-                <div className="flex h-full flex-col items-center justify-center text-center">
-                    <div className="flex-1 flex items-center justify-center">
-                         <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
+    <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <div className="w-full">
+        <div className="mb-4 text-left">
+            <h3 className="text-xl font-bold font-headline">¿Qué te consideras?</h3>
+            <p className="text-muted-foreground">Define tu actitud hacia {figure.name}. Tu voto es anónimo.</p>
+        </div>
+        <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
+            {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
+            const isSelected = userVote?.vote === id;
+            return (
+            <Button
+                key={id}
+                variant="outline"
+                className={cn(
+                'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200',
+                'bg-black hover:bg-neutral-900',
+                isSelected ? `border-2 ${colorClass} ${selectedClass}` : `border ${colorClass}`,
+                isVoting === id ? 'cursor-not-allowed' : ''
+                )}
+                onClick={() => handleVote(id)}
+                disabled={!!isVoting}
+            >
+                {isVoting === id ? (
+                <Loader2 className="h-8 w-8 animate-spin" />
+                ) : (
+                    <div className="flex h-full flex-col items-center justify-center text-center">
+                        <div className="flex-1 flex items-center justify-center">
+                            <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
+                        </div>
+                        <div>
+                            <span className="font-semibold text-sm">{label}</span>
+                            <span className="block text-lg font-bold">
+                            {figure.attitude?.[id] ?? 0}
+                            </span>
+                        </div>
                     </div>
-                    <div>
-                        <span className="font-semibold text-sm">{label}</span>
-                        <span className="block text-lg font-bold">
-                        {figure.attitude?.[id] ?? 0}
-                        </span>
-                    </div>
-                </div>
-            )}
-          </Button>
-        )})}
-      </div>
-      <p className="mt-4 text-center text-sm text-muted-foreground">
-        Total de respuestas: {totalVotes}
-      </p>
-    </div>
+                )}
+            </Button>
+            )})}
+        </div>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+            Total de respuestas: {totalVotes}
+        </p>
+        </div>
+    </LoginPromptDialog>
   );
 }

@@ -11,6 +11,11 @@ import {
   linkWithCredential,
   GoogleAuthProvider,
   signInWithPopup,
+  setDoc,
+  doc,
+  getDoc,
+  runTransaction,
+  serverTimestamp
 } from 'firebase/auth';
 import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 
@@ -54,5 +59,4 @@ export * from './errors';
 export * from './error-emitter';
 export * from './auth/use-admin';
 export * from './auth/use-user';
-export { EmailAuthProvider, linkWithCredential, GoogleAuthProvider, signInWithPopup };
-
+export { EmailAuthProvider, linkWithCredential, GoogleAuthProvider, signInWithPopup, setDoc, doc, getDoc, runTransaction, serverTimestamp };

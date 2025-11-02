@@ -1,0 +1,883 @@
+
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the WikiStars5 platform, whether registered or anonymous.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "User's display name. Can be null for anonymous users."
+        },
+        "usernameLower": {
+          "type": "string",
+          "description": "Lowercase version of the username for case-insensitive queries."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address. Only applicable for registered users.",
+          "format": "email"
+        },
+        "country": {
+          "type": "string",
+          "description": "User's country of origin."
+        },
+        "gender": {
+          "type": "string",
+          "description": "User's gender identity."
+        },
+        "description": {
+          "type": "string",
+          "description": "A short bio or description about the user.",
+          "maxLength": 160
+        },
+        "role": {
+          "type": "string",
+          "description": "User's role within the platform (e.g., 'user', 'admin')."
+        },
+        "isOnline": {
+          "type": "boolean",
+          "description": "Indicates if the user is currently online."
+        },
+        "lastChanged": {
+          "type": "string",
+          "description": "Timestamp of the last presence change.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the user account was created."
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "UserStatus": {
+      "title": "UserStatus",
+      "type": "object",
+      "description": "Represents a user's real-time online status.",
+      "properties": {
+        "isOnline": {
+          "type": "boolean"
+        },
+        "lastChanged": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["isOnline", "lastChanged"]
+    },
+    "Username": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Username",
+      "type": "object",
+      "description": "Represents a unique username claimed by a user, used for preventing duplicates.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this username."
+        }
+      },
+      "required": [
+        "userId"
+      ]
+    },
+    "PublicFigure": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PublicFigure",
+      "type": "object",
+      "description": "Represents a public figure whose profile is displayed on the platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the public figure entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the public figure."
+        },
+        "nationality": {
+          "type": "string",
+          "description": "The nationality of the public figure."
+        },
+        "socialMediaLinks": {
+          "type": "array",
+          "description": "Links to the public figure's social media profiles.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags associated with the public figure.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "Indicates whether the public figure is featured on the homepage."
+        },
+        "nameKeywords": {
+          "type": "array",
+          "description": "An array of name prefixes for optimized search.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "gender": {
+          "type": "string",
+          "enum": [
+            "Femenino",
+            "Masculino"
+          ]
+        },
+        "birthDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "deathDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "occupation": {
+          "type": "string"
+        },
+        "maritalStatus": {
+          "type": "string",
+          "enum": [
+            "Soltero/a",
+            "Casado/a",
+            "Divorciado/a",
+            "Viudo/a"
+          ]
+        },
+        "attitude": {
+          "type": "object",
+          "description": "Aggregated attitude vote counts for the public figure.",
+          "properties": {
+            "neutral": {
+              "type": "number"
+            },
+            "fan": {
+              "type": "number"
+            },
+            "simp": {
+              "type": "number"
+            },
+            "hater": {
+              "type": "number"
+            }
+          }
+        },
+        "emotion": {
+          "type": "object",
+          "description": "Aggregated emotion vote counts for the public figure.",
+          "properties": {
+            "alegria": {
+              "type": "number"
+            },
+            "envidia": {
+              "type": "number"
+            },
+            "tristeza": {
+              "type": "number"
+            },
+            "miedo": {
+              "type": "number"
+            },
+            "desagrado": {
+              "type": "number"
+            },
+            "furia": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "nameKeywords"
+      ]
+    },
+    "Comment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Comment",
+      "type": "object",
+      "description": "Represents a user comment on a public figure's profile.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the comment entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who made the comment. (Relationship: User 1:N Comment)"
+        },
+        "publicFigureId": {
+          "type": "string",
+          "description": "Reference to the PublicFigure the comment is about. (Relationship: PublicFigure 1:N Comment)"
+        },
+        "parentId": {
+          "type": "string",
+          "description": "Reference to the parent comment, if this is a reply. Null if it's a top-level comment. (Relationship: Comment 1:N Comment)"
+        },
+        "depth": {
+          "type": "number",
+          "description": "The nesting level of the comment. 0 for top-level."
+        },
+        "text": {
+          "type": "string",
+          "description": "The text content of the comment."
+        },
+        "likes": {
+          "type": "number",
+          "description": "The number of likes the comment has received."
+        },
+        "dislikes": {
+          "type": "number",
+          "description": "The number of dislikes the comment has received."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the comment was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The timestamp when the comment was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "publicFigureId",
+        "text",
+        "depth"
+      ]
+    },
+    "CommentVote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CommentVote",
+      "type": "object",
+      "description": "Represents a user's vote on a comment.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the comment vote, typically {userId}."
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who voted."
+        },
+        "commentId": {
+          "type": "string",
+          "description": "ID of the comment being voted on."
+        },
+        "vote": {
+          "type": "string",
+          "enum": [
+            "like",
+            "dislike"
+          ],
+          "description": "The type of vote cast."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the vote was cast."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "commentId",
+        "vote",
+        "createdAt"
+      ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification for a registered user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the notification entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who the notification is for. (Relationship: User 1:N Notification)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of notification (e.g., 'comment_reply', 'comment_like')."
+        },
+        "message": {
+          "type": "string",
+          "description": "The message content of the notification."
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Indicates whether the notification has been read by the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The timestamp when the notification was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "message"
+      ]
+    },
+    "Streak": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Streak",
+      "type": "object",
+      "description": "Represents a user's commenting streak on a specific public figure.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the streak entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who has the streak. (Relationship: User 1:N Streak)"
+        },
+        "publicFigureId": {
+          "type": "string",
+          "description": "Reference to the PublicFigure the streak is for. (Relationship: PublicFigure 1:N Streak)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the streak.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the streak. If the streak is active, this will be the last day a comment was made.",
+          "format": "date-time"
+        },
+        "streakLength": {
+          "type": "number",
+          "description": "The length of the streak in days."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "publicFigureId",
+        "startDate",
+        "streakLength"
+      ]
+    },
+    "Achievement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Achievement",
+      "type": "object",
+      "description": "Represents an achievement that a registered user can unlock.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the achievement entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the achievement."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of how to unlock the achievement."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the image representing the achievement.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
+    },
+    "UserAchievement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserAchievement",
+      "type": "object",
+      "description": "Represents the association between a user and an achievement, indicating that the user has unlocked the achievement.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user achievement entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who unlocked the achievement. (Relationship: User 1:N UserAchievement)"
+        },
+        "achievementId": {
+          "type": "string",
+          "description": "Reference to the Achievement that was unlocked. (Relationship: Achievement 1:N UserAchievement)"
+        },
+        "unlockedAt": {
+          "type": "string",
+          "description": "The timestamp when the achievement was unlocked by the user.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "achievementId"
+      ]
+    },
+    "RelatedFigure": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RelatedFigure",
+      "type": "object",
+      "description": "Represents a related figure relationship between two public figures.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the related figure entity."
+        },
+        "sourceFigureId": {
+          "type": "string",
+          "description": "Reference to the source PublicFigure. (Relationship: PublicFigure 1:N RelatedFigure)"
+        },
+        "sourceFigureName": {
+          "type": "string",
+          "description": "Denormalized name of the source PublicFigure for display."
+        },
+        "targetFigureId": {
+          "type": "string",
+          "description": "Reference to the target PublicFigure that is related to the source figure. (Relationship: PublicFigure 1:N RelatedFigure)"
+        },
+        "targetFigureName": {
+          "type": "string",
+          "description": "Denormalized name of the target PublicFigure for display."
+        }
+      },
+      "required": [
+        "id",
+        "sourceFigureId",
+        "targetFigureId",
+        "sourceFigureName",
+        "targetFigureName"
+      ]
+    },
+    "AttitudeVote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AttitudeVote",
+      "type": "object",
+      "description": "Represents a user's attitude vote for a public figure.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Composite key, typically {userId}_{figureId}."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who voted."
+        },
+        "figureId": {
+          "type": "string",
+          "description": "The ID of the public figure being voted on."
+        },
+        "vote": {
+          "type": "string",
+          "enum": [
+            "neutral",
+            "fan",
+            "simp",
+            "hater"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the vote was cast."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "figureId",
+        "vote",
+        "createdAt"
+      ]
+    },
+    "EmotionVote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EmotionVote",
+      "type": "object",
+      "description": "Represents a user's emotion vote for a public figure.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Composite key, typically {userId}_{figureId}."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who voted."
+        },
+        "figureId": {
+          "type": "string",
+          "description": "The ID of the public figure being voted on."
+        },
+        "vote": {
+          "type": "string",
+          "description": "The type of vote cast.",
+          "enum": [
+            "alegria",
+            "envidia",
+            "tristeza",
+            "miedo",
+            "desagrado",
+            "furia"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the vote was cast."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "figureId",
+        "vote",
+        "createdAt"
+      ]
+    },
+    "GoatBattle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GoatBattle",
+      "type": "object",
+      "description": "Stores the total vote counts for a GOAT battle.",
+      "properties": {
+        "messiVotes": { "type": "number" },
+        "ronaldoVotes": { "type": "number" }
+      }
+    },
+    "GoatVote": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "GoatVote",
+        "type": "object",
+        "description": "Represents a single user's vote in a GOAT battle.",
+        "properties": {
+            "userId": { "type": "string" },
+            "vote": { "type": "string", "enum": ["messi", "ronaldo"] },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["userId", "vote"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "google.com"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information.  Path-based ownership ensures only the user or an admin can access it.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/status/{userId}",
+        "definition": {
+            "entityName": "UserStatus",
+            "schema": { "$ref": "#/backend/entities/UserStatus" },
+            "description": "Stores the real-time online status of a user.",
+            "params": [
+                {
+                    "name": "userId",
+                    "description": "The unique identifier of the user."
+                }
+            ]
+        }
+      },
+      {
+        "path": "/usernames/{username}",
+        "definition": {
+          "entityName": "Username",
+          "schema": {
+            "$ref": "#/backend/entities/Username"
+          },
+          "description": "Stores a mapping from a normalized username to a user ID to enforce uniqueness. The document ID is the lowercase username.",
+          "params": [
+            {
+              "name": "username",
+              "description": "The normalized, lowercase username."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/figures/{figureId}",
+        "definition": {
+          "entityName": "PublicFigure",
+          "schema": {
+            "$ref": "#/backend/entities/PublicFigure"
+          },
+          "description": "Stores public figure profiles.  Accessible for reading by all users, but write access is restricted to admins.",
+          "params": [
+            {
+              "name": "figureId",
+              "description": "The unique identifier of the public figure."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/figures/{figureId}/comments/{commentId}",
+        "definition": {
+          "entityName": "Comment",
+          "schema": {
+            "$ref": "#/backend/entities/Comment"
+          },
+          "description": "Stores comments associated with a specific public figure. Includes denormalized 'publicFigureId' for authorization independence.",
+          "params": [
+            {
+              "name": "figureId",
+              "description": "The unique identifier of the public figure."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique identifier of the comment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/figures/{figureId}/comments/{commentId}/votes/{userId}",
+        "definition": {
+          "entityName": "CommentVote",
+          "schema": {
+            "$ref": "#/backend/entities/CommentVote"
+          },
+          "description": "Stores a user's specific vote on a comment to prevent duplicate voting.",
+          "params": [
+            {
+              "name": "figureId",
+              "description": "The unique identifier of the public figure."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique identifier of the comment."
+            },
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who voted."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/figures/{figureId}/attitudeVotes/{userId}",
+        "definition": {
+          "entityName": "AttitudeVote",
+          "schema": {
+            "$ref": "#/backend/entities/AttitudeVote"
+          },
+          "description": "Stores a user's specific attitude vote for a figure to prevent duplicate voting.",
+          "params": [
+            {
+              "name": "figureId",
+              "description": "The unique identifier of the public figure."
+            },
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who voted."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/figures/{figureId}/emotionVotes/{userId}",
+        "definition": {
+          "entityName": "EmotionVote",
+          "schema": {
+            "$ref": "#/backend/entities/EmotionVote"
+          },
+          "description": "Stores a user's specific emotion vote for a figure to prevent duplicate voting.",
+          "params": [
+            {
+              "name": "figureId",
+              "description": "The unique identifier of the public figure."
+            },
+            {
+              "name": "userId",
+              "description": "The unique identifier of a user who voted."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notifications for a specific user. Path-based ownership ensures only the user or an admin can access it.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique identifier of the notification."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/streaks/{streakId}",
+        "definition": {
+          "entityName": "Streak",
+          "schema": {
+            "$ref": "#/backend/entities/Streak"
+          },
+          "description": "Stores streak data for a user. Includes denormalized 'publicFigureId' for efficient querying. Path-based ownership ensures only the user or an admin can access it.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "streakId",
+              "description": "The unique identifier of the streak."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/achievements/{achievementId}",
+        "definition": {
+          "entityName": "Achievement",
+          "schema": {
+            "$ref": "#/backend/entities/Achievement"
+          },
+          "description": "Stores the master list of achievements available in the platform.",
+          "params": [
+            {
+              "name": "achievementId",
+              "description": "The unique identifier of the achievement."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/user_achievements/{userAchievementId}",
+        "definition": {
+          "entityName": "UserAchievement",
+          "schema": {
+            "$ref": "#/backend/entities/UserAchievement"
+          },
+          "description": "Stores the association between a user and an achievement. Path-based ownership ensures only the user or an admin can access it.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "userAchievementId",
+              "description": "The unique identifier of the user achievement."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/related_figures/{relatedFigureId}",
+        "definition": {
+          "entityName": "RelatedFigure",
+          "schema": {
+            "$ref": "#/backend/entities/RelatedFigure"
+          },
+          "description": "Stores relationships between public figures.",
+          "params": [
+            {
+              "name": "relatedFigureId",
+              "description": "The unique identifier of the related figure relationship."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "role",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Used to grant admin privileges. Existence of a document in this collection grants admin rights to the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who is an admin."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/goat_battles/{battleId}",
+        "definition": {
+            "entityName": "GoatBattle",
+            "schema": { "$ref": "#/backend/entities/GoatBattle" },
+            "description": "Stores the aggregated vote counts for a GOAT battle.",
+            "params": [
+                {
+                    "name": "battleId",
+                    "description": "The unique identifier for the battle, e.g., 'messi-vs-ronaldo'."
+                }
+            ]
+        }
+      },
+      {
+          "path": "/goat_battles/{battleId}/votes/{userId}",
+          "definition": {
+              "entityName": "GoatVote",
+              "schema": { "$ref": "#/backend/entities/GoatVote" },
+              "description": "Stores an individual user's vote in a GOAT battle to prevent duplicate voting.",
+              "params": [
+                  { "name": "battleId", "description": "The battle identifier." },
+                  { "name": "userId", "description": "The user's unique ID." }
+              ]
+          }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the WikiStars5 application, focusing on user profiles, public figures, comments, notifications, streaks, and achievements. Key considerations include authorization independence, clarity of intent, and secure list operations. The structure utilizes path-based ownership for user-specific data and denormalization for collaborative data, ensuring that security rules can be written without complex `get()` calls.\n\n*   **Users:** User data is stored under `/users/{userId}`, providing secure and straightforward access to individual user profiles. This path-based ownership simplifies security rules. The `role` property within each user document determines administrative privileges.\n*   **Usernames:** A top-level `/usernames` collection is used to enforce unique usernames. Each document's ID is the normalized (lowercase) username, and it contains the `userId` of the owner. This allows for fast, efficient checks for username availability using a `get()` operation instead of a costly query. \n*   **Public Figures:** Public figure profiles are stored in the `/figures/{figureId}` collection.  Featuring status is stored directly in the `PublicFigure` document.\n*   **Comments:** Comments are stored in a subcollection under each `PublicFigure` at `/figures/{figureId}/comments/{commentId}`.  This structure facilitates efficient querying of comments for a specific public figure.  Denormalizing the `figureId` into the comment document itself (even though it is implicit in the path) ensures authorization independence.\n*   **Notifications:** Notifications are stored under `/users/{userId}/notifications/{notificationId}`.  This path-based approach ensures that only the user can access their notifications. No denormalization is required here.\n*   **Streaks:** Streaks, representing a user's commenting activity on a public figure, are stored under `/users/{userId}/streaks/{streakId}`. This adheres to path-based ownership. The `publicFigureId` is stored within each `Streak` document.\n*   **Achievements:** The master list of achievements is stored in the `/achievements/{achievementId}` collection. User-specific achievements are stored in the `/users/{userId}/achievements/{achievementId}` collection, which maintains a record of unlocked achievements for each user.\n*   **User Achievements:** User achievements are managed under `/users/{userId}/user_achievements/{userAchievementId}`, linking users to their earned achievements.  The `achievementId` is stored to reference the specific achievement.\n*   **Related Figures:** Relationships between public figures are stored in the `/related_figures/{relatedFigureId}` collection. Each document includes `sourceFigureId` and `targetFigureId` to define the relationship.\n*   **Admin Roles:**  Admin status is checked by verifying the existence of a document in the `/roles_admin/{userId}` collection. This existence-based check is efficient and secure.\n*   **GOAT Battle:** A global `/goat_battles/{battleId}` collection stores the main battle document (e.g., `messi-vs-ronaldo`) containing aggregated vote counts. A subcollection, `votes/{userId}`, is used to track individual user votes, ensuring data integrity and preventing duplicate votes efficiently.\n\nThis structure supports the required QAPs by:\n\n*   **Authorization Independence:** Denormalizing authorization-relevant data into subcollections eliminates the need for `get()` calls in security rules.\n*   **Secure List Operations:** Segregating data based on access requirements (e.g., user-specific data under `/users/{userId}`) ensures that list operations can be secured effectively. Public figures are in a separate collection, allowing open read access while restricting write access to admins only."
+  }
+}
