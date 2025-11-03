@@ -38,7 +38,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
      (figure.name === 'Cristiano Ronaldo' && battleWinner === 'ronaldo'));
 
   return (
-    <Card className="overflow-hidden bg-black border border-white/20 shadow-md">
+    <Card className="overflow-hidden shadow-md">
       <CardContent className="relative p-6 md:p-8">
         <div className="absolute top-4 right-4 z-10">
           <ShareButton figureId={figure.id} figureName={figure.name} />
@@ -79,4 +79,3 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
     </Card>
   );
 }
-
