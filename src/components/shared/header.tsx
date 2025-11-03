@@ -30,6 +30,7 @@ import NotificationBell from './notification-bell';
 import Image from 'next/image';
 import { collection, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { ThemeToggle } from './ThemeToggle';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
@@ -100,6 +101,7 @@ export default function Header() {
             <Skeleton className="h-10 w-20" />
           ) : user ? (
             <>
+              <ThemeToggle />
               <InstallPwaButton />
               <NotificationBell />
               <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
@@ -182,6 +184,7 @@ export default function Header() {
             </>
           ) : (
              <div className="flex items-center gap-2">
+                <ThemeToggle />
                 <InstallPwaButton />
                 {pathname !== '/login' && (
                   <Button asChild>
