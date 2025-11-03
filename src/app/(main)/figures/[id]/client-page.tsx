@@ -318,14 +318,14 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
               )}
           </TabsContent>
           <TabsContent value="actitud" className="mt-4">
-            <Card>
+            <Card className="dark:bg-black">
               <CardContent className="p-6">
                 <AttitudeVoting figure={figure} onVote={handleVote} />
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="emocion" className="mt-4">
-            <Card>
+            <Card className="dark:bg-black">
               <CardContent className="p-6">
                  <EmotionVoting figure={figure} />
               </CardContent>
