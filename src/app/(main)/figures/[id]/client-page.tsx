@@ -24,6 +24,7 @@ import TopStreaks from '@/components/streaks/top-streaks';
 import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
+import { countries } from '@/lib/countries';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -245,6 +246,30 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                                 {infoItems.map((item) => {
                                     if (!item.value) return null;
+                                    
+                                    if (item.label === 'País de origen') {
+                                        const country = countries.find(c => c.name === item.value);
+                                        return (
+                                            <div key={item.label} className="flex items-start gap-3">
+                                                <item.icon className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
+                                                <div>
+                                                    <p className="font-semibold text-sm">{item.label}</p>
+                                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                                        {country && (
+                                                            <Image
+                                                                src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                                                                alt={country.name}
+                                                                width={20}
+                                                                height={15}
+                                                                className="object-contain"
+                                                            />
+                                                        )}
+                                                        <span>{item.value}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
 
                                     return (
                                         <div key={item.label} className="flex items-start gap-3">
