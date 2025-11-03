@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin, useFirestore } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
@@ -31,6 +31,7 @@ import Image from 'next/image';
 import { collection, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from './ThemeToggle';
+import { useTheme } from 'next-themes';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
@@ -42,6 +43,7 @@ export default function Header() {
   const { toast } = useToast();
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
+  const { setTheme, theme } = useTheme();
 
   const handleLogout = () => {
     if (auth) {
@@ -101,7 +103,6 @@ export default function Header() {
             <Skeleton className="h-10 w-20" />
           ) : user ? (
             <>
-              <ThemeToggle />
               <InstallPwaButton />
               <NotificationBell />
               <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
@@ -172,6 +173,13 @@ export default function Header() {
                   )}
 
                   <InstallPwaButton asMenuItem={true} />
+
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+                    {theme === 'light' ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
+                    <span>Cambiar a modo {theme === 'light' ? 'oscuro' : 'claro'}</span>
+                  </DropdownMenuItem>
                   
                   <DropdownMenuSeparator />
 
