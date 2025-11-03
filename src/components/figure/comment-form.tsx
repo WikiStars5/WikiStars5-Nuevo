@@ -170,7 +170,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   return (
     <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-      <Card className="bg-black">
+      <Card className="dark:bg-black">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
               <MessageSquare /> Calificaciones y cometarios
