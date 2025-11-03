@@ -7,8 +7,6 @@ import {
   getAuth,
   sendEmailVerification as firebaseSendEmailVerification,
   User,
-  EmailAuthProvider,
-  linkWithCredential,
   GoogleAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
@@ -54,4 +52,4 @@ export * from './errors';
 export * from './error-emitter';
 export * from './auth/use-admin';
 export * from './auth/use-user';
-export { EmailAuthProvider, linkWithCredential, GoogleAuthProvider, signInWithPopup };
+export { GoogleAuthProvider, signInWithPopup };
