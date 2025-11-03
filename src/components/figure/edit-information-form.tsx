@@ -50,7 +50,7 @@ const editFormSchema = z.object({
   deathDate: z.string().optional(),
   nationality: z.string().optional(),
   occupation: z.string().optional(),
-  maritalStatus: z.enum(['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a']).optional(),
+  maritalStatus: z.enum(['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Separado/Ex-Conviviente']).optional(),
   height: z.number().min(100).max(250).optional(),
   socialLinks: z.object(
     Object.keys(SOCIAL_MEDIA_CONFIG).reduce((acc, key) => {
@@ -370,6 +370,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                         <SelectItem value="Casado/a">Casado/a</SelectItem>
                                         <SelectItem value="Divorciado/a">Divorciado/a</SelectItem>
                                         <SelectItem value="Viudo/a">Viudo/a</SelectItem>
+                                        <SelectItem value="Separado/Ex-Conviviente">Separado/Ex-Conviviente</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -451,3 +452,5 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
+
+    

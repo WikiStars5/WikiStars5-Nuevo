@@ -19,7 +19,7 @@ export interface Figure {
   birthDate?: string;
   deathDate?: string;
   occupation?: string;
-  maritalStatus?: 'Soltero/a' | 'Casado/a' | 'Divorciado/a' | 'Viudo/a';
+  maritalStatus?: 'Soltero/a' | 'Casado/a' | 'Divorciado/a' | 'Viudo/a' | 'Separado/Ex-Conviviente';
   height?: number;
   socialLinks?: {
     instagram?: string;
@@ -153,4 +153,6 @@ export interface GoatVote {
     vote: 'messi' | 'ronaldo';
     createdAt: Timestamp;
 }
+    
+
     
