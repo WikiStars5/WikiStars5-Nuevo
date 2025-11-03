@@ -10,7 +10,7 @@ export default function DisclaimerPage() {
         </CardHeader>
         <CardContent className="space-y-4 text-muted-foreground">
           <p>
-            <strong>Naturaleza del Sitio:</strong> WikiStars5 es una plataforma de opinión y entretenimiento cuyo propósito es permitir a los usuarios expresar y discutir sus percepciones sobre figuras públicas. El contenido de este sitio, incluyendo las calificaciones, votos, y comentarios, representa las opiniones subjetivas de nuestros usuarios y no debe ser interpretado como una declaración de hechos.
+            <strong>Naturaleza del Sitio:</strong> WikiStars5 es una plataforma de opinión y entretenimiento. Creemos firmemente en la libertad de expresión y nuestro propósito es permitir que los usuarios expresen y discutan libremente sus percepciones sobre figuras públicas. El contenido de este sitio, incluyendo las calificaciones, votos, y comentarios, representa las opiniones subjetivas de nuestros usuarios y no debe ser interpretado como una declaración de hechos.
           </p>
           <p>
             <strong>Sin Afiliación ni Respaldo:</strong> Este sitio web no está afiliado, asociado, autorizado, respaldado por, ni de ninguna manera conectado oficialmente con ninguna de las figuras públicas mencionadas en él, ni con ninguna de sus subsidiarias o afiliadas.
