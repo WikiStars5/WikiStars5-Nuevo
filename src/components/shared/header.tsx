@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
-import { useAuth, useUser, useAdmin } from '@/firebase';
+import { useAuth, useUser, useAdmin, useFirestore } from '@/firebase';
 import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger } from '../ui/dialog';
@@ -28,13 +28,17 @@ import SearchBar from './search-bar';
 import { InstallPwaButton } from './InstallPwaButton';
 import NotificationBell from './notification-bell';
 import Image from 'next/image';
+import { collection, getDocs } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
   const { isAdmin } = useAdmin();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
 
@@ -42,6 +46,35 @@ export default function Header() {
     if (auth) {
       auth.signOut();
       router.push('/');
+    }
+  };
+
+  const handleRandomProfile = async () => {
+    if (!firestore) return;
+    toast({ title: 'Buscando un perfil aleatorio...' });
+    try {
+        const figuresCollection = collection(firestore, 'figures');
+        const figuresSnapshot = await getDocs(figuresCollection);
+        const figureIds = figuresSnapshot.docs.map(doc => doc.id);
+
+        if (figureIds.length > 0) {
+            const randomIndex = Math.floor(Math.random() * figureIds.length);
+            const randomFigureId = figureIds[randomIndex];
+            router.push(`/figures/${randomFigureId}`);
+        } else {
+            toast({
+                title: 'No se encontraron perfiles',
+                description: 'Aún no hay perfiles para mostrar.',
+                variant: 'destructive',
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching random profile:", error);
+        toast({
+            title: 'Error',
+            description: 'No se pudo obtener un perfil aleatorio.',
+            variant: 'destructive',
+        });
     }
   };
 
@@ -119,6 +152,11 @@ export default function Header() {
                   
                   <DropdownMenuSeparator />
 
+                  <DropdownMenuItem onSelect={handleRandomProfile}>
+                    <Ghost className="mr-2 h-4 w-4" />
+                    <span>Perfil Aleatorio</span>
+                  </DropdownMenuItem>
+                  
                   <DropdownMenuItem onSelect={() => setIsCharacterDialogOpen(true)}>
                       <UserPlus className="mr-2 h-4 w-4" />
                       <span>Crear Perfil de Personaje</span>
