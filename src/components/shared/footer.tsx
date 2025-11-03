@@ -18,6 +18,9 @@ export default function Footer() {
           <Link href="/admin/login" className="text-muted-foreground transition-colors hover:text-foreground">
             Admin
           </Link>
+          <Link href="/privacy" className="text-muted-foreground transition-colors hover:text-foreground">
+            Privacidad
+          </Link>
           <Link href="/disclaimer" className="text-muted-foreground transition-colors hover:text-foreground">
             Descargo de Responsabilidad
           </Link>
