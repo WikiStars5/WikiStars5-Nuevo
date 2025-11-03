@@ -67,13 +67,13 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
       let tempComments = [...filteredRootComments];
 
       if (sortPreference === 'fan' || sortPreference === 'simp') {
-          // Sort positive comments first (highest rating)
-          tempComments.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+          // Maquiavélico: Si eres fan, te muestro primero lo peor (rating más bajo)
+          tempComments.sort((a, b) => (a.rating ?? 3) - (b.rating ?? 3));
       } else if (sortPreference === 'hater') {
-          // Sort negative comments first (lowest rating)
-          tempComments.sort((a, b) => (a.rating ?? -1) - (b.rating ?? -1));
+          // Maquiavélico: Si eres hater, te muestro primero lo mejor (rating más alto)
+          tempComments.sort((a, b) => (b.rating ?? 3) - (a.rating ?? 3));
       }
-      // If neutral or null, we rely on the initial 'createdAt' desc sort from Firestore query
+      // Si es neutral o null, se mantiene el orden por defecto (fecha)
 
       return tempComments;
 
