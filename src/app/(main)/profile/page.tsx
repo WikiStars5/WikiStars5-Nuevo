@@ -21,6 +21,8 @@ import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const profileSchema = z.object({
   username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
@@ -205,111 +207,118 @@ export default function ProfilePage() {
                 <p className="text-muted-foreground mt-2">Gestiona tu información personal y visualiza tu actividad.</p>
             </header>
 
-            <div className="space-y-6">
-                <Form {...profileForm}>
-                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
-                         <Card>
-                            <CardHeader>
-                                <CardTitle>Información del Perfil</CardTitle>
-                                <CardDescription>Aquí puedes editar tus datos personales.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="flex items-center gap-4">
-                                    <Avatar className="h-20 w-20">
-                                        <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User Avatar'} />
-                                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                    </Avatar>
-                                    <Button variant="outline" type="button">Cambiar Avatar</Button>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                   <FormField
-                                        control={profileForm.control}
-                                        name="username"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Nombre de Usuario</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <div className="space-y-2">
-                                        <FormLabel>Correo Electrónico</FormLabel>
-                                        <Input type="email" value={user?.email || ''} disabled />
+            <Tabs defaultValue="info" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="info">Información del Usuario</TabsTrigger>
+                    <TabsTrigger value="activity">Actividad del Usuario</TabsTrigger>
+                </TabsList>
+                <TabsContent value="info" className="mt-6">
+                    <Form {...profileForm}>
+                        <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Información del Perfil</CardTitle>
+                                    <CardDescription>Aquí puedes editar tus datos personales.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="flex items-center gap-4">
+                                        <Avatar className="h-20 w-20">
+                                            <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User Avatar'} />
+                                            <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                                        </Avatar>
+                                        <Button variant="outline" type="button">Cambiar Avatar</Button>
                                     </div>
-                                </div>
-                                <div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <FormField
-                                        control={profileForm.control}
-                                        name="description"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Descripción</FormLabel>
-                                                <FormControl>
-                                                    <Textarea
-                                                        placeholder="Una breve descripción sobre ti."
-                                                        className="resize-none"
-                                                        maxLength={160}
-                                                        {...field}
-                                                    />
-                                                </FormControl>
-                                                <div className="flex justify-between items-center pt-1">
+                                            control={profileForm.control}
+                                            name="username"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Nombre de Usuario</FormLabel>
+                                                    <FormControl><Input {...field} /></FormControl>
                                                     <FormMessage />
-                                                    <div className="text-xs text-muted-foreground ml-auto">
-                                                        {descriptionValue.length} / 160
-                                                    </div>
-                                                </div>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <FormField
-                                        control={profileForm.control}
-                                        name="country"
-                                        render={({ field }) => (
-                                            <FormItem className="flex flex-col">
-                                                <FormLabel>País</FormLabel>
-                                                <CountrySelector value={field.value} onChange={field.onChange} />
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={profileForm.control}
-                                        name="gender"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Sexo</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <div className="space-y-2">
+                                            <FormLabel>Correo Electrónico</FormLabel>
+                                            <Input type="email" value={user?.email || ''} disabled />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="description"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Descripción</FormLabel>
                                                     <FormControl>
-                                                        <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
+                                                        <Textarea
+                                                            placeholder="Una breve descripción sobre ti."
+                                                            className="resize-none"
+                                                            maxLength={160}
+                                                            {...field}
+                                                        />
                                                     </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="Masculino">Masculino</SelectItem>
-                                                        <SelectItem value="Femenino">Femenino</SelectItem>
-                                                        <SelectItem value="Otro">Otro</SelectItem>
-                                                        <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                 </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                    Guardar Cambios
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    </form>
-                </Form>
-                
-                <UserActivity />
-            </div>
+                                                    <div className="flex justify-between items-center pt-1">
+                                                        <FormMessage />
+                                                        <div className="text-xs text-muted-foreground ml-auto">
+                                                            {descriptionValue.length} / 160
+                                                        </div>
+                                                    </div>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="country"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-col">
+                                                    <FormLabel>País</FormLabel>
+                                                    <CountrySelector value={field.value} onChange={field.onChange} />
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="gender"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Sexo</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Masculino">Masculino</SelectItem>
+                                                            <SelectItem value="Femenino">Femenino</SelectItem>
+                                                            <SelectItem value="Otro">Otro</SelectItem>
+                                                            <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button type="submit" disabled={isSaving}>
+                                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                        Guardar Cambios
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        </form>
+                    </Form>
+                </TabsContent>
+                <TabsContent value="activity" className="mt-6">
+                    <UserActivity />
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }
