@@ -153,7 +153,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
                 variant="outline"
                 className={cn(
                 'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200',
-                'bg-black hover:bg-neutral-900',
+                'dark:bg-black dark:hover:bg-neutral-900',
                 isSelected ? `border-2 ${colorClass} ${selectedClass}` : `border ${colorClass}`,
                 isVoting === id ? 'cursor-not-allowed' : ''
                 )}

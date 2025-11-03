@@ -229,7 +229,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
               {isEditing ? (
                   <EditInformationForm figure={figure} onFormClose={() => setIsEditing(false)} />
               ) : (
-                <Card className="bg-black">
+                <Card className="dark:bg-black">
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <div>
@@ -318,14 +318,14 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
               )}
           </TabsContent>
           <TabsContent value="actitud" className="mt-4">
-            <Card className="bg-black">
+            <Card>
               <CardContent className="p-6">
                 <AttitudeVoting figure={figure} onVote={handleVote} />
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="emocion" className="mt-4">
-            <Card className="bg-black">
+            <Card>
               <CardContent className="p-6">
                  <EmotionVoting figure={figure} />
               </CardContent>
