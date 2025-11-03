@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -9,6 +10,7 @@ import { MessageCircle, Star } from 'lucide-react';
 import CommentThread from './comment-thread';
 import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
+import { cn } from '@/lib/utils';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 const INITIAL_COMMENT_LIMIT = 5;
@@ -103,8 +105,11 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   
   const FilterButton = ({ filter, children }: { filter: FilterType; children: React.ReactNode }) => (
     <Button
-        variant={activeFilter === filter ? 'secondary' : 'ghost'}
-        className="h-8 px-3"
+        variant={activeFilter === filter ? 'default' : 'ghost'}
+        className={cn(
+            "h-8 px-3",
+            activeFilter === filter && "bg-primary text-primary-foreground hover:bg-primary/90"
+        )}
         onClick={() => setActiveFilter(filter)}
     >
         {children}
