@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -37,45 +36,46 @@ export function LoginPromptDialog({ children, open, onOpenChange }: LoginPromptD
 
   const afterSignIn = async (signedInUser: User) => {
     if (!firestore) return;
-
     const userRef = doc(firestore, 'users', signedInUser.uid);
-    const dataToSave: any = {
-      email: signedInUser.email,
-    };
 
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const userDoc = await transaction.get(userRef);
+        await runTransaction(firestore, async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            const dataToSave: any = { email: signedInUser.email };
 
-        if (!userDoc.exists()) {
-          dataToSave.createdAt = serverTimestamp();
-        }
+            if (!userDoc.exists()) {
+                // This is a new user
+                dataToSave.createdAt = serverTimestamp();
+                
+                let finalUsername = signedInUser.displayName || `user${signedInUser.uid.substring(0, 5)}`;
+                const usernameLower = normalizeText(finalUsername);
+                const usernameRef = doc(firestore, 'usernames', usernameLower);
+                
+                const usernameDoc = await transaction.get(usernameRef);
+                
+                if (usernameDoc.exists()) {
+                    // Username from Google is already taken, generate a unique one.
+                    finalUsername = `user${signedInUser.uid.substring(0, 8)}`;
+                    const uniqueUsernameLower = normalizeText(finalUsername);
+                    const uniqueUsernameRef = doc(firestore, 'usernames', uniqueUsernameLower);
+                    transaction.set(uniqueUsernameRef, { userId: signedInUser.uid });
+                     toast({
+                        title: 'Nombre de usuario en uso',
+                        description: `El nombre "${signedInUser.displayName}" ya está en uso. Se te ha asignado uno temporal. Puedes cambiarlo en tu perfil.`,
+                        variant: 'destructive',
+                    });
+                } else {
+                    // Username from Google is available.
+                    transaction.set(usernameRef, { userId: signedInUser.uid });
+                }
 
-        let finalUsername = signedInUser.displayName || `user${signedInUser.uid.substring(0, 5)}`;
-        
-        if (signedInUser.displayName) {
-            const usernameRef = doc(firestore, 'usernames', normalizeText(signedInUser.displayName));
-            const usernameDoc = await transaction.get(usernameRef);
-            
-            if (usernameDoc.exists() && usernameDoc.data()?.userId !== signedInUser.uid) {
-                toast({
-                    title: 'Nombre de usuario en uso',
-                    description: `El nombre "${signedInUser.displayName}" ya está en uso. Puedes cambiarlo en tu perfil.`,
-                    variant: 'destructive',
-                });
-                finalUsername = `user${signedInUser.uid.substring(0, 5)}`;
-            } else if (!usernameDoc.exists()) {
-                transaction.set(usernameRef, { userId: signedInUser.uid });
+                dataToSave.username = finalUsername;
+                dataToSave.usernameLower = normalizeText(finalUsername);
             }
-        }
-        
-        if (!userDoc.exists() || !userDoc.data()?.username) {
-            dataToSave.username = finalUsername;
-            dataToSave.usernameLower = normalizeText(finalUsername);
-        }
-        
-        transaction.set(userRef, dataToSave, { merge: true });
-      });
+            
+            // Set user data (create or merge)
+            transaction.set(userRef, dataToSave, { merge: true });
+        });
 
       await reloadUser();
       toast({
