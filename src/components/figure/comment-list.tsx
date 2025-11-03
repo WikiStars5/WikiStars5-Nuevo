@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -30,7 +29,7 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
   // Get user's initial attitude vote to apply the "malignant" logic
   const userVoteRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, `users/${user.uid}/attitudeVotes`, figureId);
+    return doc(firestore, `figures/${figureId}/attitudeVotes`, user.uid);
   }, [firestore, user, figureId]);
   const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
   const initialAttitude = userVote?.initialVote;
@@ -54,11 +53,14 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
     const roots = comments.filter(c => !c.parentId);
     const replies = comments.filter(c => c.parentId);
     
+    // Default sorting (newest first)
+    roots.sort((a,b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
+    
     // Malignant Sorting Logic
     if (initialAttitude && initialAttitude !== 'neutral') {
       const positiveComments = roots.filter(c => c.rating >= 4);
-      const negativeComments = roots.filter(c => c.rating <= 3);
-      const neutralComments = roots.filter(c => c.rating === -1); // Replies etc.
+      const negativeComments = roots.filter(c => c.rating <= 3 && c.rating !== -1);
+      const neutralComments = roots.filter(c => c.rating === -1); // Comments without rating (replies)
 
       // Sort each group by creation date
       const sortByDate = (a: Comment, b: Comment) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0);
@@ -68,17 +70,16 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
 
       let sortedRoots: Comment[] = [];
       if (initialAttitude === 'fan' || initialAttitude === 'simp') {
-        // Show negative comments first
+        // Show negative comments first, then positive
         sortedRoots = [...negativeComments, ...positiveComments, ...neutralComments];
       } else if (initialAttitude === 'hater') {
-        // Show positive comments first
+        // Show positive comments first, then negative
         sortedRoots = [...positiveComments, ...negativeComments, ...neutralComments];
       }
       return { rootComments: sortedRoots, allReplies: replies };
     }
     
-    // Default sorting (newest first) if no initial attitude
-    roots.sort((a,b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
+    // If no malignant logic applies, return default sorted
     return { rootComments: roots, allReplies: replies };
   }, [comments, initialAttitude]);
 
