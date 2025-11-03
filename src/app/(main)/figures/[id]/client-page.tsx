@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { doc, getDoc, collection } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,6 +25,7 @@ import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
 
+type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
     website: { label: 'Página Web' },
@@ -117,6 +118,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
   const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
+  const [commentSortPreference, setCommentSortPreference] = useState<AttitudeOption | null>(null);
 
   const figureDocRef = useMemoFirebase(() => {
     if (!firestore || !figureId) return null;
@@ -124,6 +126,10 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   }, [firestore, figureId]);
 
   const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
+
+  const handleVote = useCallback((attitude: AttitudeOption | null) => {
+    setCommentSortPreference(attitude);
+  }, []);
 
   const tabParam = searchParams.get('tab');
   const isGoatCandidate = figure?.name === 'Lionel Messi' || figure?.name === 'Cristiano Ronaldo';
@@ -289,7 +295,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           <TabsContent value="actitud" className="mt-4">
             <Card className="bg-black">
               <CardContent className="p-6">
-                <AttitudeVoting figure={figure} />
+                <AttitudeVoting figure={figure} onVote={handleVote} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -313,7 +319,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
 
        <div className="mt-8 space-y-8">
         <CommunityRatings figure={figure} />
-        <CommentSection figureId={figure.id} figureName={figure.name} />
+        <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
         <RelatedFigures figure={figure} />
       </div>
     </div>

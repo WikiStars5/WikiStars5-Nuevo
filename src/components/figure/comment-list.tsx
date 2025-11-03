@@ -10,6 +10,7 @@ import CommentThread from './comment-thread';
 import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
+type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 const INITIAL_COMMENT_LIMIT = 5;
 const COMMENT_INCREMENT = 5;
 
@@ -18,28 +19,21 @@ type FilterType = 'all' | 'mine' | number;
 interface CommentListProps {
   figureId: string;
   figureName: string;
+  sortPreference: AttitudeOption | null;
 }
 
-export default function CommentList({ figureId, figureName }: CommentListProps) {
+export default function CommentList({ figureId, figureName, sortPreference }: CommentListProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
-  // Get user's initial attitude vote to apply the "malignant" logic
-  const userVoteRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, `figures/${figureId}/attitudeVotes`, user.uid);
-  }, [firestore, user, figureId]);
-  const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
-  const initialAttitude = userVote?.initialVote;
-
   const commentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     
     let baseQuery = query(
-      collection(firestore, 'figures', figureId, 'comments')
-      // The sorting will now be handled client-side
+      collection(firestore, 'figures', figureId, 'comments'),
+      orderBy('createdAt', 'desc')
     );
 
     return baseQuery;
@@ -52,36 +46,8 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
     if (!comments) return { rootComments: [], allReplies: [] };
     const roots = comments.filter(c => !c.parentId);
     const replies = comments.filter(c => c.parentId);
-    
-    // Default sorting (newest first)
-    roots.sort((a,b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
-    
-    // Malignant Sorting Logic
-    if (initialAttitude && initialAttitude !== 'neutral') {
-      const positiveComments = roots.filter(c => c.rating >= 4);
-      const negativeComments = roots.filter(c => c.rating <= 3 && c.rating !== -1);
-      const neutralComments = roots.filter(c => c.rating === -1); // Comments without rating (replies)
-
-      // Sort each group by creation date
-      const sortByDate = (a: Comment, b: Comment) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0);
-      positiveComments.sort(sortByDate);
-      negativeComments.sort(sortByDate);
-      neutralComments.sort(sortByDate);
-
-      let sortedRoots: Comment[] = [];
-      if (initialAttitude === 'fan' || initialAttitude === 'simp') {
-        // Show negative comments first, then positive
-        sortedRoots = [...negativeComments, ...positiveComments, ...neutralComments];
-      } else if (initialAttitude === 'hater') {
-        // Show positive comments first, then negative
-        sortedRoots = [...positiveComments, ...negativeComments, ...neutralComments];
-      }
-      return { rootComments: sortedRoots, allReplies: replies };
-    }
-    
-    // If no malignant logic applies, return default sorted
     return { rootComments: roots, allReplies: replies };
-  }, [comments, initialAttitude]);
+  }, [comments]);
 
 
   const filteredRootComments = useMemo(() => {
@@ -97,8 +63,23 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
     return rootComments;
   }, [rootComments, activeFilter, user]);
 
+  const sortedAndFilteredComments = useMemo(() => {
+      let tempComments = [...filteredRootComments];
 
-  if (isLoading || isVoteLoading) {
+      if (sortPreference === 'fan' || sortPreference === 'simp') {
+          // Sort positive comments first (highest rating)
+          tempComments.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+      } else if (sortPreference === 'hater') {
+          // Sort negative comments first (lowest rating)
+          tempComments.sort((a, b) => (a.rating ?? -1) - (b.rating ?? -1));
+      }
+      // If neutral or null, we rely on the initial 'createdAt' desc sort from Firestore query
+
+      return tempComments;
+
+  }, [filteredRootComments, sortPreference]);
+
+  if (isLoading) {
     return (
         <div className="space-y-6">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -118,7 +99,7 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
     )
   }
 
-  const visibleComments = filteredRootComments.slice(0, visibleCount);
+  const visibleComments = sortedAndFilteredComments.slice(0, visibleCount);
   
   const FilterButton = ({ filter, children }: { filter: FilterType; children: React.ReactNode }) => (
     <Button
@@ -166,7 +147,7 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
 
 
         <div className="flex items-center justify-center gap-4">
-            {filteredRootComments.length > visibleCount && (
+            {sortedAndFilteredComments.length > visibleCount && (
                 <Button variant="outline" onClick={() => setVisibleCount(prev => prev + COMMENT_INCREMENT)}>
                     Ver más comentarios
                 </Button>
