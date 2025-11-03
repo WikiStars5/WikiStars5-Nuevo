@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -363,7 +364,7 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
   }
 
   return (
-    <div className="space-y-4 rounded-lg border bg-card text-card-foreground p-4">
+    <div className="space-y-4 rounded-lg border bg-card text-card-foreground p-4 dark:bg-black">
       <CommentItem 
         comment={comment} 
         figureId={figureId}
