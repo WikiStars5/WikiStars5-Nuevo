@@ -57,7 +57,7 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
     const allRatings = [5, 4, 3, 2, 1, 0];
         
     return (
-        <Card className="bg-black">
+        <Card>
             <CardHeader>
                 <CardTitle>Calificaciones de la Comunidad</CardTitle>
             </CardHeader>
