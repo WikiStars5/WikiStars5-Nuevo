@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { StarRating } from '@/components/shared/star-rating';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
 import { Star } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 
 interface CommunityRatingsProps {
@@ -57,7 +58,7 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
     const allRatings = [5, 4, 3, 2, 1, 0];
         
     return (
-        <Card>
+        <Card className="dark:bg-black">
             <CardHeader>
                 <CardTitle>Calificaciones de la Comunidad</CardTitle>
             </CardHeader>
