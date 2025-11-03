@@ -74,30 +74,39 @@ export default function AttitudeVoting({ figure }: AttitudeVotingProps) {
           throw new Error('¡El perfil no existe!');
         }
 
-        const newVoteData: Omit<AttitudeVote, 'id'> = {
-          userId: user.uid,
-          figureId: figure.id,
+        const voteData: Partial<AttitudeVote> = {
           vote: vote,
-          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
         };
 
         if (existingVoteDoc.exists()) {
-          const previousVote = existingVoteDoc.data().vote as AttitudeOption;
+          const existingData = existingVoteDoc.data() as AttitudeVote;
+          const previousVote = existingData.vote;
+          
           if (previousVote === vote) {
+            // Retracting vote
             transaction.update(figureRef, { [`attitude.${vote}`]: increment(-1) });
             transaction.delete(voteRef);
             toast({ title: 'Voto eliminado' });
           } else {
+            // Changing vote
             transaction.update(figureRef, {
               [`attitude.${previousVote}`]: increment(-1),
               [`attitude.${vote}`]: increment(1),
             });
-            transaction.set(voteRef, newVoteData);
+            voteData.initialVote = existingData.initialVote || previousVote;
+            transaction.set(voteRef, voteData, { merge: true });
             toast({ title: '¡Voto actualizado!' });
           }
         } else {
+          // First vote
           transaction.update(figureRef, { [`attitude.${vote}`]: increment(1) });
-          transaction.set(voteRef, newVoteData);
+          voteData.initialVote = vote; // Set initial vote
+          voteData.createdAt = serverTimestamp();
+          voteData.userId = user.uid;
+        voteData.figureId = figure.id;
+
+          transaction.set(voteRef, voteData);
           toast({ title: '¡Voto registrado!' });
         }
       });

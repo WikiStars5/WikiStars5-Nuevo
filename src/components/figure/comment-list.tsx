@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { collection, query, orderBy, where, doc, getDoc } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import type { Comment } from '@/lib/types';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import type { Comment, AttitudeVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { MessageCircle, Star } from 'lucide-react';
 import CommentThread from './comment-thread';
@@ -26,12 +27,20 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
+  // Get user's initial attitude vote to apply the "malignant" logic
+  const userVoteRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}/attitudeVotes`, figureId);
+  }, [firestore, user, figureId]);
+  const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
+  const initialAttitude = userVote?.initialVote;
+
   const commentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     
     let baseQuery = query(
-      collection(firestore, 'figures', figureId, 'comments'),
-      orderBy('createdAt', 'desc')
+      collection(firestore, 'figures', figureId, 'comments')
+      // The sorting will now be handled client-side
     );
 
     return baseQuery;
@@ -44,8 +53,34 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
     if (!comments) return { rootComments: [], allReplies: [] };
     const roots = comments.filter(c => !c.parentId);
     const replies = comments.filter(c => c.parentId);
+    
+    // Malignant Sorting Logic
+    if (initialAttitude && initialAttitude !== 'neutral') {
+      const positiveComments = roots.filter(c => c.rating >= 4);
+      const negativeComments = roots.filter(c => c.rating <= 3);
+      const neutralComments = roots.filter(c => c.rating === -1); // Replies etc.
+
+      // Sort each group by creation date
+      const sortByDate = (a: Comment, b: Comment) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0);
+      positiveComments.sort(sortByDate);
+      negativeComments.sort(sortByDate);
+      neutralComments.sort(sortByDate);
+
+      let sortedRoots: Comment[] = [];
+      if (initialAttitude === 'fan' || initialAttitude === 'simp') {
+        // Show negative comments first
+        sortedRoots = [...negativeComments, ...positiveComments, ...neutralComments];
+      } else if (initialAttitude === 'hater') {
+        // Show positive comments first
+        sortedRoots = [...positiveComments, ...negativeComments, ...neutralComments];
+      }
+      return { rootComments: sortedRoots, allReplies: replies };
+    }
+    
+    // Default sorting (newest first) if no initial attitude
+    roots.sort((a,b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
     return { rootComments: roots, allReplies: replies };
-  }, [comments]);
+  }, [comments, initialAttitude]);
 
 
   const filteredRootComments = useMemo(() => {
@@ -62,7 +97,7 @@ export default function CommentList({ figureId, figureName }: CommentListProps) 
   }, [rootComments, activeFilter, user]);
 
 
-  if (isLoading) {
+  if (isLoading || isVoteLoading) {
     return (
         <div className="space-y-6">
             {Array.from({ length: 3 }).map((_, i) => (

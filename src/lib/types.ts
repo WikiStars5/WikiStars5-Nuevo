@@ -75,10 +75,11 @@ export interface RelatedFigure {
 
 
 export interface AttitudeVote {
-    id: string;
+    id: string; // figureId
     userId: string;
     figureId: string;
     vote: 'neutral' | 'fan' | 'simp' | 'hater';
+    initialVote?: 'neutral' | 'fan' | 'simp' | 'hater'; // The first vote ever cast
     createdAt: any; // Firestore Timestamp
 }
 
