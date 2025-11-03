@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 import { ShareButton } from '../shared/ShareButton';
 import { usePathname } from 'next/navigation';
-import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
+import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 
 
 const BATTLE_ID = 'messi-vs-ronaldo';
@@ -247,7 +247,7 @@ export default function GoatBattle() {
 
   if (isLoading) {
     return (
-        <Card className="bg-black">
+        <Card className="dark:bg-black">
             <CardHeader className="items-center text-center">
                 <Skeleton className="h-8 w-2/3" />
                 <Skeleton className="h-5 w-1/2" />
@@ -277,7 +277,7 @@ export default function GoatBattle() {
 
   if (!battleData || !battleData.endTime) {
     return (
-        <Card className="bg-black">
+        <Card className="dark:bg-black">
             <CardHeader className="items-center text-center">
                  <CardTitle className="flex items-center gap-2 text-3xl">
                     <GoatIcon/> La Batalla del GOAT
@@ -295,7 +295,7 @@ export default function GoatBattle() {
 
   return (
     <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-      <Card className="relative bg-black">
+      <Card className="relative dark:bg-black">
         <div className="absolute top-4 right-4 z-10">
             <ShareButton
                 figureId={figureIdForShare}
