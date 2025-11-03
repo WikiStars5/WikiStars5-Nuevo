@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -115,7 +116,7 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
     }, [firestore, figureId]);
 
     return (
-        <Card className="bg-black">
+        <Card className="dark:bg-black">
             <CardHeader>
                 <CardTitle>Top Rachas Activas</CardTitle>
                 <CardDescription className="text-muted-foreground">Los usuarios con las rachas de comentarios más largas para este perfil.</CardDescription>
