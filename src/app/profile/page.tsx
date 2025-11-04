@@ -140,8 +140,10 @@ export default function ProfilePage() {
 
             // Update auth profile outside the transaction
             if (user.displayName !== newUsername) {
-                await updateProfile(user, { displayName: newUsername });
-                await reloadUser(); // Reload user state to reflect display name change everywhere
+                if (auth.currentUser) {
+                    await updateProfile(auth.currentUser, { displayName: newUsername });
+                    await reloadUser(); // Reload user state to reflect display name change everywhere
+                }
             }
 
             // Manually update local state after successful transaction
