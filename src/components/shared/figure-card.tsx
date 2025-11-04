@@ -34,7 +34,6 @@ export default function FigureCard({ figure }: FigureCardProps) {
            {(figure.ratingCount ?? 0) > 0 && (
             <div className="mt-2 flex items-center gap-1">
                 <StarRating rating={averageRating} starClassName="h-4 w-4" />
-                <span className="text-xs text-muted-foreground">({averageRating.toFixed(1)})</span>
             </div>
           )}
         </CardContent>
