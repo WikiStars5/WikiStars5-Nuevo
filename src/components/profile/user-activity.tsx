@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, orderBy, collectionGroup } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -131,9 +131,9 @@ export default function UserActivity({ userId: propUserId }: UserActivityProps) 
         setIsLoading(true);
         
         try {
-            // Fetch all votes and streaks from subcollections of the target user
-            const attitudeQuery = query(collection(firestore, 'users', userId, 'attitudeVotes'));
-            const emotionQuery = query(collection(firestore, 'users', userId, 'emotionVotes'));
+            // Fetch all votes and streaks by querying collection groups
+            const attitudeQuery = query(collectionGroup(firestore, 'attitudeVotes'), where('userId', '==', userId));
+            const emotionQuery = query(collectionGroup(firestore, 'emotionVotes'), where('userId', '==', userId));
             const streaksQuery = query(collection(firestore, 'users', userId, 'streaks'), orderBy('currentStreak', 'desc'));
 
             const [attitudeSnapshot, emotionSnapshot, streaksSnapshot] = await Promise.all([
@@ -142,8 +142,8 @@ export default function UserActivity({ userId: propUserId }: UserActivityProps) 
                 getDocs(streaksQuery),
             ]);
 
-            const attitudes = attitudeSnapshot.docs.map(d => ({...d.data(), figureId: d.id } as AttitudeVote));
-            const emotions = emotionSnapshot.docs.map(d => ({...d.data(), figureId: d.id } as EmotionVote));
+            const attitudes = attitudeSnapshot.docs.map(d => d.data() as AttitudeVote);
+            const emotions = emotionSnapshot.docs.map(d => d.data() as EmotionVote);
             const allStreaks = streaksSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Streak));
 
             const activeStreaks = allStreaks.filter(s => isDateActive(s.lastCommentDate));
@@ -156,7 +156,7 @@ export default function UserActivity({ userId: propUserId }: UserActivityProps) 
             const figureIds = new Set<string>();
             attitudes.forEach(v => figureIds.add(v.figureId));
             emotions.forEach(v => figureIds.add(v.figureId));
-            activeStreaks.forEach(s => figureIds.add(s.id)); // Streak ID is the figure ID
+            activeStreaks.forEach(s => figureIds.add(s.figureId));
             
             // Fetch figure data
             const figureDataMap = await fetchFigureData(firestore, Array.from(figureIds));
@@ -164,7 +164,7 @@ export default function UserActivity({ userId: propUserId }: UserActivityProps) 
              // Add figure data to streaks
             const streaksWithData = activeStreaks.map(streak => ({
                 ...streak,
-                figureData: figureDataMap.get(streak.id), // The streak document ID is the figure ID
+                figureData: figureDataMap.get(streak.figureId),
             }));
 
             setStreaks(streaksWithData);

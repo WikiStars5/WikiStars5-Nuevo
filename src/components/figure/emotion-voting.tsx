@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -46,7 +45,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
   const userVoteRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, `users/${user.uid}/emotionVotes`, figure.id);
+    return doc(firestore, `figures/${figure.id}/emotionVotes`, user.uid);
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading } = useDoc<EmotionVote>(userVoteRef);
@@ -62,7 +61,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
     try {
       const figureRef = doc(firestore, 'figures', figure.id);
-      const voteRef = doc(firestore, `users/${user.uid}/emotionVotes`, figure.id);
+      const voteRef = doc(firestore, `figures/${figure.id}/emotionVotes`, user.uid);
 
       await runTransaction(firestore, async (transaction) => {
         const existingVoteDoc = await transaction.get(voteRef);
