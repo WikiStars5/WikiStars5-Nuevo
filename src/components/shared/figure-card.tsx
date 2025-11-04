@@ -31,6 +31,9 @@ export default function FigureCard({ figure }: FigureCardProps) {
         <CardContent className="p-4 flex-grow">
           <h3 className="font-bold text-lg font-headline truncate">{figure.name}</h3>
           <p className="text-sm text-muted-foreground">{figure.nationality}</p>
+          <div className="mt-2 flex items-center gap-1">
+            <StarRating rating={averageRating} starClassName="h-4 w-4" />
+          </div>
         </CardContent>
       </Card>
     </Link>
