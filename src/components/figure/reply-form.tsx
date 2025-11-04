@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { updateStreak } from '@/firebase/streaks';
 import { Comment as CommentType } from '@/lib/types';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
-
+import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 
 const replySchema = z.object({
   text: z.string().min(1, 'La respuesta no puede estar vacía.').max(1000, 'La respuesta no puede superar los 1000 caracteres.'),
@@ -37,6 +37,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const { showStreakAnimation } = useContext(StreakAnimationContext);
 
   // Make sure replyingTo exists before creating the default value
   const defaultText = replyingTo ? `@${replyingTo.userDisplayName} ` : '';
@@ -101,7 +102,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
       }
 
       // --- Streak Update ---
-      await updateStreak({
+      const streakResult = await updateStreak({
         firestore,
         figureId,
         userId: user.uid,
@@ -109,7 +110,12 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
         userPhotoURL: user.photoURL,
         userCountry: userProfileData.country || null,
         userGender: userProfileData.gender || null,
+        isAnonymous: user.isAnonymous,
       });
+
+      if (streakResult?.streakGained) {
+        showStreakAnimation(streakResult.newStreakCount);
+      }
 
       toast({
         title: '¡Respuesta Publicada!',
