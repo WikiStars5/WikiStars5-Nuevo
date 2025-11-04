@@ -12,7 +12,7 @@ type FigureCardProps = {
 
 export default function FigureCard({ figure }: FigureCardProps) {
   // Corrected calculation for average rating
-  const averageRating = (figure.ratingCount ?? 0) > 0 ? (figure.totalRating ?? 0) / (figure.ratingCount ?? 1) : 0;
+  const averageRating = (figure.ratingCount ?? 0) > 0 ? (figure.totalRating ?? 0) / (figure.ratingCount || 1) : 0;
 
   return (
     <Link href={`/figures/${figure.id}`} scroll={true}>
@@ -32,10 +32,6 @@ export default function FigureCard({ figure }: FigureCardProps) {
         <CardContent className="p-4 flex-grow">
           <h3 className="font-bold text-lg font-headline truncate">{figure.name}</h3>
           <p className="text-sm text-muted-foreground">{figure.nationality}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <StarRating rating={averageRating} starClassName="h-4 w-4" />
-            <span className="text-xs font-bold text-muted-foreground">({averageRating.toFixed(1)})</span>
-          </div>
         </CardContent>
       </Card>
     </Link>
