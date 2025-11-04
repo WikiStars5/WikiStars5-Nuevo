@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -10,7 +11,7 @@ type FigureCardProps = {
 };
 
 export default function FigureCard({ figure }: FigureCardProps) {
-  const averageRating = (figure.ratingCount ?? 0) > 0 ? (figure.totalRating ?? 0) / figure.ratingCount : 0;
+  const averageRating = (figure.ratingCount ?? 0) > 0 ? (figure.totalRating ?? 0) / (figure.ratingCount ?? 1) : 0;
 
   return (
     <Link href={`/figures/${figure.id}`} scroll={true}>
