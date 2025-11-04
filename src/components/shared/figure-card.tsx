@@ -11,6 +11,7 @@ type FigureCardProps = {
 };
 
 export default function FigureCard({ figure }: FigureCardProps) {
+  // Corrected calculation for average rating
   const averageRating = (figure.ratingCount ?? 0) > 0 ? (figure.totalRating ?? 0) / (figure.ratingCount ?? 1) : 0;
 
   return (
