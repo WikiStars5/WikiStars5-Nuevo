@@ -4,6 +4,7 @@ import { useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 import { enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -14,6 +15,17 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   const { firebaseApp, auth, firestore } = useMemo(() => {
     try {
       const { firebaseApp, auth, firestore } = initializeFirebase();
+
+      if (typeof window !== 'undefined') {
+        // Initialize App Check
+        initializeAppCheck(firebaseApp, {
+          provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY!),
+          // Set to true for development environments if you want to use a debug token.
+          // In production, this should be false.
+          isTokenAutoRefreshEnabled: true
+        });
+      }
+
 
       // Enable multi-tab persistence to allow offline capabilities across tabs.
       // This MUST be done after getting the firestore instance and before any other operations.
