@@ -30,12 +30,13 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
+  // The base query now sorts by likes by default.
   const commentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     
     let baseQuery = query(
       collection(firestore, 'figures', figureId, 'comments'),
-      orderBy('createdAt', 'desc')
+      orderBy('likes', 'desc')
     );
 
     return baseQuery;
@@ -68,14 +69,26 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
 
+      const sortByLikesDesc = (a: Comment, b: Comment) => (b.likes ?? 0) - (a.likes ?? 0);
+
       if (sortPreference === 'fan' || sortPreference === 'simp') {
-          // Maquiavélico: Si eres fan, te muestro primero lo peor (rating más bajo)
-          tempComments.sort((a, b) => (a.rating ?? 3) - (b.rating ?? 3));
+          // Maquiavélico: Si eres fan, te muestro primero lo peor (rating más bajo), y luego por likes.
+          tempComments.sort((a, b) => {
+              const ratingDiff = (a.rating ?? 3) - (b.rating ?? 3);
+              if (ratingDiff !== 0) return ratingDiff;
+              return sortByLikesDesc(a, b);
+          });
       } else if (sortPreference === 'hater') {
-          // Maquiavélico: Si eres hater, te muestro primero lo mejor (rating más alto)
-          tempComments.sort((a, b) => (b.rating ?? 3) - (a.rating ?? 3));
+          // Maquiavélico: Si eres hater, te muestro primero lo mejor (rating más alto), y luego por likes.
+          tempComments.sort((a, b) => {
+              const ratingDiff = (b.rating ?? 3) - (a.rating ?? 3);
+              if (ratingDiff !== 0) return ratingDiff;
+              return sortByLikesDesc(a, b);
+          });
+      } else {
+        // Default sort is already by likes, handled by the Firestore query.
+        // No extra client-side sort needed if no preference is active.
       }
-      // Si es neutral o null, se mantiene el orden por defecto (fecha)
 
       return tempComments;
 
