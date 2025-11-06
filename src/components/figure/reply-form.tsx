@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -80,6 +81,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
         dislikes: 0,
         parentId: parentComment.id, // Always associate with the root comment
         rating: -1, // Replies don't have ratings
+        threadId: parentComment.threadId || parentComment.id
       };
 
       const newReplyRef = await addDocumentNonBlocking(commentsColRef, newReply);

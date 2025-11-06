@@ -102,6 +102,7 @@ export interface Comment {
   likes?: number;
   dislikes?: number;
   parentId: string | null;
+  threadId?: string; // ID of the root comment in the thread
   // Denormalized user data for display
   userDisplayName: string;
   userPhotoURL: string | null;
@@ -153,6 +154,4 @@ export interface GoatVote {
     vote: 'messi' | 'ronaldo';
     createdAt: Timestamp;
 }
-    
-
     

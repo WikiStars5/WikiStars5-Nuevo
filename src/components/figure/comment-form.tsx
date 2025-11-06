@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -126,7 +127,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             likes: 0,
             dislikes: 0,
             parentId: null,
-            depth: 0,
         };
         transaction.set(newCommentRef, newCommentPayload);
       });
