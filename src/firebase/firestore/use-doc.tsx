@@ -25,6 +25,11 @@ export interface UseDocResult<T> {
   error: FirestoreError | Error | null; // Error object, or null.
 }
 
+/** Hook options. */
+interface UseDocOptions {
+  enabled?: boolean; // If false, the query will not be executed.
+}
+
 /**
  * React hook to subscribe to a single Firestore document in real-time.
  * Handles nullable references.
@@ -41,16 +46,24 @@ export interface UseDocResult<T> {
  */
 export function useDoc<T = any>(
   memoizedDocRef: (DocumentReference<DocumentData> & {__memo?: boolean}) | null | undefined,
+  options: UseDocOptions = { enabled: true },
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true
+  const [isLoading, setIsLoading] = useState<boolean>(options.enabled);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    // If the hook is disabled, set to a non-loading, empty state.
+    if (!options.enabled) {
+      setIsLoading(false);
+      setData(null);
+      setError(null);
+      return;
+    }
+
     // If the ref is null or undefined, we're not ready yet.
-    // Set loading to true (or keep it true) and wait.
     if (!memoizedDocRef) {
       setIsLoading(true);
       setData(null);
@@ -91,7 +104,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef]);
+  }, [memoizedDocRef, options.enabled]);
 
   return { data, isLoading, error };
 }
