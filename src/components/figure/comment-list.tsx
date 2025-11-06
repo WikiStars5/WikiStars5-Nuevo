@@ -16,7 +16,7 @@ type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 const INITIAL_COMMENT_LIMIT = 5;
 const COMMENT_INCREMENT = 5;
 
-type FilterType = 'all' | 'mine' | number;
+type FilterType = 'all' | 'mine' | 'popular' | number;
 
 interface CommentListProps {
   figureId: string;
@@ -30,13 +30,13 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
-  // The base query now sorts by likes by default.
+  // The base query now sorts by creation date by default.
   const commentsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     
     let baseQuery = query(
       collection(firestore, 'figures', figureId, 'comments'),
-      orderBy('likes', 'desc')
+      orderBy('createdAt', 'desc')
     );
 
     return baseQuery;
@@ -62,37 +62,41 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     } else if (typeof activeFilter === 'number') {
        return rootComments.filter(comment => comment.rating === activeFilter);
     }
-
+    // For 'all' and 'popular', we start with all root comments.
+    // The sorting logic below will handle 'popular'.
     return rootComments;
   }, [rootComments, activeFilter, user]);
 
   const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
-
+      
       const sortByLikesDesc = (a: Comment, b: Comment) => (b.likes ?? 0) - (a.likes ?? 0);
 
+      // Handle the new "Más Populares" filter first
+      if (activeFilter === 'popular') {
+        return tempComments.sort(sortByLikesDesc);
+      }
+
+      // Handle maquiavélico sort preference from attitude voting
       if (sortPreference === 'fan' || sortPreference === 'simp') {
-          // Maquiavélico: Si eres fan, te muestro primero lo peor (rating más bajo), y luego por likes.
           tempComments.sort((a, b) => {
               const ratingDiff = (a.rating ?? 3) - (b.rating ?? 3);
               if (ratingDiff !== 0) return ratingDiff;
-              return sortByLikesDesc(a, b);
+              return b.createdAt.toMillis() - a.createdAt.toMillis();
           });
       } else if (sortPreference === 'hater') {
-          // Maquiavélico: Si eres hater, te muestro primero lo mejor (rating más alto), y luego por likes.
           tempComments.sort((a, b) => {
               const ratingDiff = (b.rating ?? 3) - (a.rating ?? 3);
               if (ratingDiff !== 0) return ratingDiff;
-              return sortByLikesDesc(a, b);
+              return b.createdAt.toMillis() - a.createdAt.toMillis();
           });
       } else {
-        // Default sort is already by likes, handled by the Firestore query.
-        // No extra client-side sort needed if no preference is active.
+        // Default sort is by creation date, which is already handled by the Firestore query.
       }
 
       return tempComments;
 
-  }, [filteredRootComments, sortPreference]);
+  }, [filteredRootComments, sortPreference, activeFilter]);
 
   if (isLoading) {
     return (
@@ -133,6 +137,7 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
         <FilterButton filter="all">Todo</FilterButton>
+        <FilterButton filter="popular">Más Populares</FilterButton>
         {user && <FilterButton filter="mine">Mis Opiniones</FilterButton>}
         <div className="flex-grow" />
         {[5, 4, 3, 2, 1].map(rating => (
