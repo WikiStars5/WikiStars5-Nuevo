@@ -17,13 +17,13 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       const { firebaseApp, auth, firestore } = initializeFirebase();
 
       if (typeof window !== 'undefined') {
-        // Initialize App Check
-        initializeAppCheck(firebaseApp, {
-          provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY!),
-          // Set to true for development environments if you want to use a debug token.
-          // In production, this should be false.
-          isTokenAutoRefreshEnabled: true
-        });
+        // Only initialize App Check in production
+        if (process.env.NODE_ENV === 'production') {
+            initializeAppCheck(firebaseApp, {
+                provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY!),
+                isTokenAutoRefreshEnabled: true
+            });
+        }
       }
 
 
