@@ -16,7 +16,7 @@ type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 const INITIAL_COMMENT_LIMIT = 5;
 const COMMENT_INCREMENT = 5;
 
-type FilterType = 'all' | 'mine' | 'popular' | number;
+type FilterType = 'featured' | 'popular' | 'newest' | 'mine' | number;
 
 interface CommentListProps {
   figureId: string;
@@ -24,11 +24,27 @@ interface CommentListProps {
   sortPreference: AttitudeOption | null;
 }
 
+const GRAVITY = 1.8;
+const INITIAL_OFFSET_HOURS = 2;
+
+const calculateHotScore = (comment: Comment): number => {
+    const likes = comment.likes ?? 0;
+    const dislikes = comment.dislikes ?? 0;
+    const score = likes - dislikes;
+    
+    if (score === 0) return 0;
+    
+    const hoursAgo = (new Date().getTime() - comment.createdAt.toDate().getTime()) / (1000 * 3600);
+    
+    // The core of the hot sort algorithm
+    return score / Math.pow(hoursAgo + INITIAL_OFFSET_HOURS, GRAVITY);
+}
+
 export default function CommentList({ figureId, figureName, sortPreference }: CommentListProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
 
   // The base query now sorts by creation date by default.
   const commentsQuery = useMemoFirebase(() => {
@@ -62,37 +78,48 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     } else if (typeof activeFilter === 'number') {
        return rootComments.filter(comment => comment.rating === activeFilter);
     }
-    // For 'all' and 'popular', we start with all root comments.
-    // The sorting logic below will handle 'popular'.
+    // For 'featured', 'popular' and 'newest', we start with all root comments.
+    // The sorting logic below will handle these.
     return rootComments;
   }, [rootComments, activeFilter, user]);
 
   const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
       
-      const sortByLikesDesc = (a: Comment, b: Comment) => (b.likes ?? 0) - (a.likes ?? 0);
-
-      // Handle the new "Más Populares" filter first
-      if (activeFilter === 'popular') {
-        return tempComments.sort(sortByLikesDesc);
+      switch(activeFilter) {
+        case 'featured':
+            tempComments.sort((a, b) => calculateHotScore(b) - calculateHotScore(a));
+            break;
+        case 'popular':
+            tempComments.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+            break;
+        case 'newest':
+             // Already sorted by createdAt descending from the query
+            break;
+        default:
+             // For 'mine' and star ratings, default to newest first
+            tempComments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+            break;
       }
-
-      // Handle maquiavélico sort preference from attitude voting
-      if (sortPreference === 'fan' || sortPreference === 'simp') {
+      
+      // The maquiavélico sort is an override that only applies when triggered from attitude voting
+      if (sortPreference) {
           tempComments.sort((a, b) => {
-              const ratingDiff = (a.rating ?? 3) - (b.rating ?? 3);
+              const ratingA = a.rating ?? 3;
+              const ratingB = b.rating ?? 3;
+              let ratingDiff;
+
+              if (sortPreference === 'fan' || sortPreference === 'simp') {
+                  ratingDiff = ratingB - ratingA; // Higher ratings first
+              } else { // 'hater'
+                  ratingDiff = ratingA - ratingB; // Lower ratings first
+              }
+              
               if (ratingDiff !== 0) return ratingDiff;
               return b.createdAt.toMillis() - a.createdAt.toMillis();
           });
-      } else if (sortPreference === 'hater') {
-          tempComments.sort((a, b) => {
-              const ratingDiff = (b.rating ?? 3) - (a.rating ?? 3);
-              if (ratingDiff !== 0) return ratingDiff;
-              return b.createdAt.toMillis() - a.createdAt.toMillis();
-          });
-      } else {
-        // Default sort is by creation date, which is already handled by the Firestore query.
       }
+
 
       return tempComments;
 
@@ -136,8 +163,9 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
-        <FilterButton filter="all">Todo</FilterButton>
+        <FilterButton filter="featured">Destacados</FilterButton>
         <FilterButton filter="popular">Más Populares</FilterButton>
+        <FilterButton filter="newest">Más Recientes</FilterButton>
         {user && <FilterButton filter="mine">Mis Opiniones</FilterButton>}
         <div className="flex-grow" />
         {[5, 4, 3, 2, 1].map(rating => (
