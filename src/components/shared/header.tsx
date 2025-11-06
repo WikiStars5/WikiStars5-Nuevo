@@ -192,7 +192,6 @@ export default function Header() {
             </>
           ) : (
              <div className="flex items-center gap-2">
-                <ThemeToggle />
                 <InstallPwaButton />
                 {pathname !== '/login' && (
                   <Button asChild>
