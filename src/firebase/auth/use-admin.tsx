@@ -20,32 +20,28 @@ export const useAdmin = (): UseAdminResult => {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
-  // Step 1: Memoize the Firestore document reference. It's null if there's no user or firestore.
   const adminRoleDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'roles_admin', user.uid);
   }, [firestore, user]);
 
-  // Step 2: Subscribe to the document. `isLoading` from this hook is crucial.
-  const { data: adminDoc, isLoading: isAdminDocLoading } = useDoc(adminRoleDocRef);
+  const { data: adminDoc, isLoading: isAdminDocLoading } = useDoc(adminRoleDocRef, {
+    // This hook is only enabled when we have a user.
+    enabled: !!user,
+  });
   
-  // Step 3: Determine the final loading state. It's loading if auth is loading OR if we have a user but the doc check is still pending.
+  // The overall loading state is true if auth is loading, or if we have a user but are still fetching their admin status.
   const isAdminLoading = isAuthLoading || (!!user && isAdminDocLoading);
 
-  // Step 4: Determine the admin status.
   const isAdmin = useMemo(() => {
-    // Cannot be admin if loading or no user.
-    if (isAdminLoading || !user) {
+    // Not an admin if there's no user or if we're still loading.
+    if (!user || isAdminLoading) {
       return false;
     }
     
-    // Check #2: Does the corresponding document exist in the `roles_admin` collection? (Slower server-side check)
-    const hasAdminRoleDoc = !!adminDoc;
-
-    // The user is an admin if the role document exists.
-    return hasAdminRoleDoc;
+    // The user is an admin if their role document exists.
+    return !!adminDoc;
   }, [user, adminDoc, isAdminLoading]);
 
-  // Return the definitive admin status and loading state.
   return { isAdmin, isAdminLoading };
 };

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -222,7 +223,6 @@ export default function ProfilePage() {
                                         <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User Avatar'} />
                                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                                     </Avatar>
-                                    <Button variant="outline" type="button">Cambiar Avatar</Button>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <FormField
@@ -273,7 +273,7 @@ export default function ProfilePage() {
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col">
                                                 <FormLabel>País</FormLabel>
-                                                <CountrySelector value={field.value} onChange={field.onChange} />
+                                                <CountrySelector value={field.value || ''} onChange={field.onChange} />
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -284,7 +284,7 @@ export default function ProfilePage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Sexo</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                <Select onValueChange={field.onChange} value={field.value || undefined}>
                                                     <FormControl>
                                                         <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
                                                     </FormControl>

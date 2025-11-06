@@ -42,9 +42,9 @@ service cloud.firestore {
       }
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.app != null;
+      allow update: if isOwner(userId) && request.app != null;
+      allow delete: if isOwner(userId) && request.app != null;
     }
 
     /**
@@ -65,9 +65,9 @@ service cloud.firestore {
 
           allow get: if isOwner(userId);
           allow list: if false;
-          allow create: if isOwner(userId);
-          allow update: if isOwner(userId);
-          allow delete: if isOwner(userId);
+          allow create: if isOwner(userId) && request.app != null;
+          allow update: if isOwner(userId) && request.app != null;
+          allow delete: if isOwner(userId) && request.app != null;
       }
 
     /**
@@ -86,9 +86,9 @@ service cloud.firestore {
       }
       allow get: if true;
       allow list: if false;
-      allow create: if request.auth.uid != null;
+      allow create: if request.auth.uid != null && request.app != null;
       allow update: if false;
-      allow delete: if isUsernameOwner(username);
+      allow delete: if isUsernameOwner(username) && request.app != null;
     }
 
     /**
@@ -108,9 +108,9 @@ service cloud.firestore {
       }
       allow get: if true;
       allow list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if isAdmin() && request.app != null;
+      allow update: if isAdmin() && request.app != null;
+      allow delete: if isAdmin() && request.app != null;
     }
 
     /**
@@ -144,9 +144,9 @@ service cloud.firestore {
       }
       allow get: if true;
       allow list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (isCommentOwner() || isUpdatingVoteCounters());
-      allow delete: if isCommentOwner();
+      allow create: if isSignedIn() && request.app != null;
+      allow update: if isSignedIn() && request.app != null && (isCommentOwner() || isUpdatingVoteCounters());
+      allow delete: if isCommentOwner() && request.app != null;
     }
 
     /**
@@ -165,9 +165,9 @@ service cloud.firestore {
       }
       allow get: if isVoteOwner(userId);
       allow list: if false;
-      allow create: if isVoteOwner(userId);
-      allow update: if isVoteOwner(userId);
-      allow delete: if isVoteOwner(userId);
+      allow create: if isVoteOwner(userId) && request.app != null;
+      allow update: if isVoteOwner(userId) && request.app != null;
+      allow delete: if isVoteOwner(userId) && request.app != null;
     }
 
     /**
@@ -186,9 +186,9 @@ service cloud.firestore {
       }
       allow get: if isVoteOwner(userId);
       allow list: if false;
-      allow create: if isVoteOwner(userId);
+      allow create: if isVoteOwner(userId) && request.app != null;
       allow update: if false;
-      allow delete: if isVoteOwner(userId);
+      allow delete: if isVoteOwner(userId) && request.app != null;
     }
 
     /**
@@ -207,9 +207,9 @@ service cloud.firestore {
       }
       allow get: if isVoteOwner(userId);
       allow list: if false;
-      allow create: if isVoteOwner(userId);
+      allow create: if isVoteOwner(userId) && request.app != null;
       allow update: if false;
-      allow delete: if isVoteOwner(userId);
+      allow delete: if isVoteOwner(userId) && request.app != null;
     }
 
     /**
@@ -224,8 +224,8 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
       allow get, list: if isOwner(userId);
-      allow create: if request.auth != null && request.resource.data.userId == userId;
-      allow update, delete: if isOwner(userId);
+      allow create: if request.auth != null && request.resource.data.userId == userId && request.app != null;
+      allow update, delete: if isOwner(userId) && request.app != null;
     }
 
     /**
@@ -245,9 +245,9 @@ service cloud.firestore {
       }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.app != null;
+      allow update: if isOwner(userId) && request.app != null;
+      allow delete: if isOwner(userId) && request.app != null;
     }
 
     /**
@@ -285,9 +285,9 @@ service cloud.firestore {
       }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.app != null;
+      allow update: if isOwner(userId) && request.app != null;
+      allow delete: if isOwner(userId) && request.app != null;
     }
 
     /**
@@ -323,9 +323,9 @@ service cloud.firestore {
         }
         allow get: if true; // Anyone can check for admin status.
         allow list: if false;
-        allow create: if isAdmin();
-        allow update: if isAdmin();
-        allow delete: if isAdmin();
+        allow create: if isAdmin() && request.app != null;
+        allow update: if isAdmin() && request.app != null;
+        allow delete: if isAdmin() && request.app != null;
     }
 
     /**
@@ -350,9 +350,9 @@ service cloud.firestore {
         }
         allow get: if isVoteOwner(userId);
         allow list: if false;
-        allow create: if isVoteOwner(userId);
+        allow create: if isVoteOwner(userId) && request.app != null;
         allow update: if false;
-        allow delete: if isVoteOwner(userId);
+        allow delete: if isVoteOwner(userId) && request.app != null;
     }
   }
 }
