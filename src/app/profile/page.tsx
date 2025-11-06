@@ -228,7 +228,6 @@ export default function ProfilePage() {
                                             <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User Avatar'} />
                                             <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                                         </Avatar>
-                                        <Button variant="outline" type="button">Cambiar Avatar</Button>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <FormField
