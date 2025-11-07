@@ -30,23 +30,24 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       // A user can delete their own account. An admin can delete any account.
       allow delete: if isOwner(userId) || isAdmin();
+
+        // --- /users/{userId}/streaks/{streakId} ---
+        // Private streak data for each user.
+        match /streaks/{streakId} {
+            allow read, write: if isOwner(userId);
+            allow list: if isOwner(userId);
+        }
+    
+        // --- /users/{userId}/notifications/{notificationId} ---
+        // User-specific notifications.
+        match /notifications/{notificationId} {
+            // Owner can read, update, and delete their own notifications.
+            allow read, update, delete: if isOwner(userId);
+            // Any signed-in user can create a notification (e.g., for a reply).
+            allow create: if isSignedIn();
+        }
     }
 
-    // --- /users/{userId}/streaks/{streakId} ---
-    // Private streak data for each user.
-    match /users/{userId}/streaks/{streakId} {
-      allow read, write: if isOwner(userId);
-      allow list: if isOwner(userId);
-    }
-    
-    // --- /users/{userId}/notifications/{notificationId} ---
-    // User-specific notifications.
-    match /users/{userId}/notifications/{notificationId} {
-      // Owner can read, update, and delete their own notifications.
-      allow read, update, delete: if isOwner(userId);
-      // Any signed-in user can create a notification (e.g., for a reply).
-      allow create: if isSignedIn();
-    }
 
     // --- /status/{userId} ---
     // Real-time presence data for users.
@@ -87,7 +88,7 @@ service cloud.firestore {
         allow get, list: if true;
         // Any signed-in user can create a comment.
         allow create: if isSignedIn();
-        // An update is allowed if you are the owner (for editing text) OR if you are just changing vote counts.
+        // An update is allowed if you are the owner (for editing text) OR if you are just changing vote counters.
         allow update: if isSignedIn() && ((resource.data.userId == request.auth.uid) || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])));
         // Owner or admin can delete.
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
@@ -122,6 +123,15 @@ service cloud.firestore {
       }
     }
 
+    // --- /hashtags/{hashtagId} ---
+    // Stores all unique hashtags for search/autocomplete.
+    match /hashtags/{hashtagId} {
+        // Anyone can read hashtags for searching.
+        allow read, list: if true;
+        // Any signed-in user can create/update a hashtag when editing a profile.
+        allow write: if isSignedIn();
+    }
+
     // --- /related_figures/{relatedFigureId} ---
     // Stores relationships between public figures.
     match /related_figures/{relatedFigureId} {
@@ -135,11 +145,10 @@ service cloud.firestore {
         // Publicly readable.
         allow get, list: if true; 
         
-        // Admins can create/delete/fully update a battle.
+        // Admins can create/delete a battle.
         allow create, delete: if isAdmin();
-        // Admins can update any field. Users can ONLY update vote counters.
-        allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']));
-
+        // Users can update vote counters.
+        allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']);
         
         // --- /goat_battles/{battleId}/votes/{userId} ---
         // Prevents duplicate votes in GOAT battle.
