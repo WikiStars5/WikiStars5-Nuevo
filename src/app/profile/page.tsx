@@ -100,53 +100,40 @@ export default function ProfilePage() {
 
         try {
             await runTransaction(firestore, async (transaction) => {
-                const newUsernameRef = usernameHasChanged ? doc(firestore, 'usernames', newUsernameLower) : null;
-                const oldUsernameRef = (usernameHasChanged && oldUsernameLower) ? doc(firestore, 'usernames', oldUsernameLower) : null;
+                if (usernameHasChanged) {
+                    const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
+                    const usernameDoc = await transaction.get(newUsernameRef);
+                    if (usernameDoc.exists() && usernameDoc.data()?.userId !== user.uid) {
+                        // This error will be caught by the catch block below
+                        throw new Error('El nombre de usuario ya está en uso.');
+                    }
 
-                // --- 1. All READS must happen first ---
-                let usernameDoc;
-                if (newUsernameRef) {
-                    usernameDoc = await transaction.get(newUsernameRef);
-                }
-
-                // --- 2. Validation after reads ---
-                if (usernameDoc && usernameDoc.exists() && usernameDoc.data()?.userId !== user.uid) {
-                    throw new Error('El nombre de usuario ya está en uso.');
-                }
-                
-                // --- 3. All WRITES happen last ---
-                // Delete the old username document if it exists
-                if (oldUsernameRef) {
-                    transaction.delete(oldUsernameRef);
-                }
-                
-                // Create the new username document
-                if (newUsernameRef) {
+                    // Proceed with updates only if username is available
+                    if (oldUsernameLower) {
+                        const oldUsernameRef = doc(firestore, 'usernames', oldUsernameLower);
+                        transaction.delete(oldUsernameRef);
+                    }
                     transaction.set(newUsernameRef, { userId: user.uid });
                 }
                 
-                // Finally, update the user's profile
                 const dataToUpdate: any = {
                     username: newUsername,
                     usernameLower: newUsernameLower,
                     country: data.country || null,
                     gender: data.gender || null,
                     description: data.description || null,
-                    email: user.email
+                    email: user.email,
                 };
 
                 transaction.set(userRef, dataToUpdate, { merge: true });
             });
 
             // Update auth profile outside the transaction
-            if (user.displayName !== newUsername) {
-                if (auth.currentUser) {
-                    await updateProfile(auth.currentUser, { displayName: newUsername });
-                    await reloadUser(); // Reload user state to reflect display name change everywhere
-                }
+            if (auth.currentUser && auth.currentUser.displayName !== newUsername) {
+                await updateProfile(auth.currentUser, { displayName: newUsername });
+                await reloadUser();
             }
 
-            // Manually update local state after successful transaction
             setUserData((prev: any) => ({...prev, ...data}));
 
             toast({
