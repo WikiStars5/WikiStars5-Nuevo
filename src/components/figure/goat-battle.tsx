@@ -79,7 +79,7 @@ export default function GoatBattle() {
   // Get user's personal vote
   const userVoteDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, `users/${user.uid}/goatVotes`, BATTLE_ID);
+    return doc(firestore, `goat_battles/${BATTLE_ID}/votes`, user.uid);
   }, [firestore, user]);
   const { data: userVote, isLoading: isUserVoteLoading } = useDoc<GoatVote>(userVoteDocRef);
 
@@ -162,7 +162,7 @@ export default function GoatBattle() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const battleRef = doc(firestore, 'goat_battles', BATTLE_ID);
-            const userVoteRef = doc(firestore, `users/${user.uid}/goatVotes`, BATTLE_ID);
+            const userVoteRef = doc(firestore, `goat_battles/${BATTLE_ID}/votes`, user.uid);
             
             const [battleDoc, userVoteDoc] = await Promise.all([
                 transaction.get(battleRef),
@@ -174,32 +174,20 @@ export default function GoatBattle() {
             }
 
             const currentVote = userVoteDoc.exists() ? userVoteDoc.data().vote : null;
-            const updates: { [key: string]: number } = {};
-            const currentMessiVotes = battleDoc.data()?.messiVotes || 0;
-            const currentRonaldoVotes = battleDoc.data()?.ronaldoVotes || 0;
-
+            const updates: { [key: string]: any } = {};
+            
             if (currentVote === player) {
                 // User is retracting their vote
-                if (player === 'messi') {
-                    updates.messiVotes = Math.max(0, currentMessiVotes - 1);
-                } else {
-                    updates.ronaldoVotes = Math.max(0, currentRonaldoVotes - 1);
-                }
+                updates[`${player}Votes`] = increment(-1);
                 transaction.delete(userVoteRef);
                 toast({ title: "Voto cancelado" });
 
             } else {
                 // User is casting a new vote or changing their vote
-                if (player === 'messi') {
-                    updates.messiVotes = currentMessiVotes + 1;
-                    if (currentVote === 'ronaldo') {
-                        updates.ronaldoVotes = Math.max(0, currentRonaldoVotes - 1);
-                    }
-                } else { // player is 'ronaldo'
-                    updates.ronaldoVotes = currentRonaldoVotes + 1;
-                    if (currentVote === 'messi') {
-                        updates.messiVotes = Math.max(0, currentMessiVotes - 1);
-                    }
+                updates[`${player}Votes`] = increment(1);
+                if (currentVote) {
+                    const otherPlayer = player === 'messi' ? 'ronaldo' : 'messi';
+                    updates[`${otherPlayer}Votes`] = increment(-1);
                 }
                 
                 transaction.set(userVoteRef, { 
