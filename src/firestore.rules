@@ -17,163 +17,114 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
     
-    /**
-     * Checks if a specific numeric field has been incremented by exactly 1 or -1.
-     * This is crucial for securing counters like votes, likes, etc.
-     * @param field The name of the field to check (e.g., 'likes', 'messiVotes').
-     */
     function isIncrement(field) {
       let currentValue = resource.data[field];
       let nextValue = request.resource.data[field];
       return (nextValue == currentValue + 1) || (nextValue == currentValue - 1);
     }
     
-    /**
-     * Checks if a map of counters (like attitude or emotion votes) has only one
-     * key that was incremented or decremented by exactly 1.
-     * @param mapField The name of the map field (e.g., 'attitude').
-     */
     function isMapIncrement(mapField) {
         let changedKeys = request.resource.data[mapField].diff(resource.data[mapField]).affectedKeys();
-        // Ensure only one counter in the map is changed at a time
         return changedKeys.size() == 1 && isIncrement(mapField + '.' + changedKeys[0]);
     }
 
 
     // --- /users/{userId} ---
-    // Stores all user profile data, private or public.
     match /users/{userId} {
-      // A user can get their own document. An admin can get any document.
       allow get: if isOwner(userId) || isAdmin();
-      // An admin can list all users for the dashboard.
       allow list: if isAdmin();
-      // A user can create their own document upon sign-up.
       allow create: if isOwner(userId);
-       // A user can update their own document. An admin can update any document.
       allow update: if isOwner(userId) || isAdmin();
-      // A user can delete their own account. An admin can delete any account.
       allow delete: if isOwner(userId) || isAdmin();
 
-        // --- /users/{userId}/streaks/{streakId} ---
-        // Private streak data for each user.
-        match /streaks/{streakId} {
-            // The owner can read and write their own private streak documents.
-            // 'list' is required for the user profile page to show all their streaks.
-            allow get, list, write: if isOwner(userId);
-        }
+      // --- /users/{userId}/notifications/{notificationId} ---
+      match /notifications/{notificationId} {
+          allow read, update, delete: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isSignedIn();
+      }
+    }
     
-        // --- /users/{userId}/notifications/{notificationId} ---
-        // User-specific notifications.
-        match /notifications/{notificationId} {
-            // Owner can read, update, and delete their own notifications.
-            allow read, update, delete: if isOwner(userId);
-            // list is allowed for the user to see all their notifications.
-            allow list: if isOwner(userId);
-            // Any signed-in user can create a notification (e.g., for a reply).
-            allow create: if isSignedIn();
-        }
+    // --- /users/{userId}/streaks/{streakId} ---
+    // This explicit root-level rule allows users to list their own private streaks on their profile.
+    match /users/{userId}/streaks/{streakId} {
+        allow get, list, write: if isOwner(userId);
     }
 
 
     // --- /status/{userId} ---
-    // Real-time presence data for users.
     match /status/{userId} {
-      // Only the owner can update their own online status.
       allow read, write: if isOwner(userId);
       allow list: if false;
     }
 
     // --- /usernames/{username} ---
-    // Used to enforce unique usernames. Document ID is the lowercase username.
     match /usernames/{username} {
-      // Anyone can check if a username exists.
       allow get: if true; 
       allow list: if false;
-      // Any signed-in user can claim a username.
       allow create: if isSignedIn(); 
-      // The user who owns the username document can delete it (e.g., when changing their name).
       allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
-      // Username documents are write-once.
       allow update: if false;
     }
 
     // --- /figures/{figureId} ---
-    // Public figure profiles.
     match /figures/{figureId} {
-      // Anyone can read and list figures.
       allow get, list: if true;
-      // Only admins can create or delete figures.
       allow create, delete: if isAdmin();
       
-      // Update rule is now complex to handle different scenarios securely.
       allow update: if isSignedIn() && (
-        // Scenario 1: Wiki-style edit of informational fields by any user.
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
             'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
         ]) ||
-        // Scenario 2: Updating vote counters. We trust the client-side transaction logic
-        // and the individual vote documents as the main security layer.
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
       );
 
       // --- /figures/{figureId}/comments/{commentId} ---
-      // Comments for a specific figure.
       match /comments/{commentId} {
-        // Anyone can read comments.
         allow get, list: if true;
-        // Any signed-in user can create a comment.
         allow create: if isSignedIn();
-        // Update is allowed if you are the owner (for text) OR if you are just incrementing votes.
         allow update: if isSignedIn() && (
           (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
           isIncrement('likes') || isIncrement('dislikes')
         );
-        // Owner or admin can delete.
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
-        // --- /figures/{figureId}/comments/{commentId}/votes/{userId} ---
-        // Prevents duplicate likes/dislikes on a comment.
         match /votes/{userId} {
-          // You can only manage your own vote document.
           allow get, write: if isOwner(userId);
           allow list: if false;
         }
       }
 
-      // --- /figures/{figureId}/attitudeVotes/{userId} & emotionVotes/{userId} ---
-      // Rules to support collectionGroup queries for the user profile page.
-      // `list` is required. Security is enforced by the client query `where('userId', '==', request.auth.uid)`.
-      match /attitudeVotes/{userId} {
-        allow read: if isSignedIn();
-        allow write: if isOwner(userId);
-      }
-      match /emotionVotes/{userId} {
-        allow read: if isSignedIn();
-        allow write: if isOwner(userId);
-      }
-      
       // --- /figures/{figureId}/streaks/{userId} ---
-      // Public-facing streak data for leaderboards.
+      // This is for the public leaderboard on the figure's page.
       match /streaks/{userId} {
-        // Anyone can read for the leaderboard.
         allow read, list: if true; 
-        // Only the owner of the streak can write to their public streak document.
         allow write: if isOwner(userId);
       }
     }
+    
+    // --- Collection Group Query Rules ---
+
+    // These rules need to be at the root to allow collectionGroup queries
+    // for the user profile page. Security is enforced by the client-side query.
+    match /figures/{figureId}/attitudeVotes/{userId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId);
+    }
+    match /figures/{figureId}/emotionVotes/{userId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId);
+    }
+    
 
     // --- /hashtags/{hashtagId} ---
-    // Stores all unique hashtags for search/autocomplete.
     match /hashtags/{hashtagId} {
-        // Anyone can read hashtags for searching.
         allow get, list: if true;
-        // Any signed-in user can create/update a hashtag when editing a profile.
         allow write: if isSignedIn();
     }
 
     // --- /related_figures/{relatedFigureId} ---
-    // Stores relationships between public figures.
     match /related_figures/{relatedFigureId} {
       allow get, list: if true;
       allow create, delete: if isAdmin();
@@ -181,20 +132,12 @@ service cloud.firestore {
     }
 
     // --- /goat_battles/{battleId} ---
-    // GOAT battle data.
     match /goat_battles/{battleId} {
-        // Publicly readable.
         allow get, list: if true; 
-        
-        // Admins can create/delete the battle document.
         allow create, delete: if isAdmin();
-        
-        // Any signed in user can update the vote counters by +/- 1. Admin can change winner.
         allow update: if (isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes'))) ||
                          (isAdmin() && request.resource.data.winner != resource.data.winner);
         
-        // --- /goat_battles/{battleId}/votes/{userId} ---
-        // Prevents duplicate votes in GOAT battle.
         match /votes/{userId} {
             allow get, write: if isOwner(userId);
             allow list: if false;
@@ -202,7 +145,6 @@ service cloud.firestore {
     }
     
     // --- /roles_admin/{userId} ---
-    // Admin role management.
     match /roles_admin/{userId} {
       allow get: if isSignedIn();
       allow write: if isAdmin();
