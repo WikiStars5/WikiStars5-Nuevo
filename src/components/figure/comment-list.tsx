@@ -6,7 +6,7 @@ import { collection, query, orderBy, where, doc, getDoc } from 'firebase/firesto
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import type { Comment, AttitudeVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-import { MessageCircle, Star } from 'lucide-react';
+import { MessageCircle, Star, MoreHorizontal } from 'lucide-react';
 import CommentThread from './comment-thread';
 import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
@@ -173,6 +173,9 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
             {rating} <Star className="ml-1 h-3 w-3" />
           </FilterButton>
         ))}
+         <FilterButton key={0} filter={0}>
+            <MoreHorizontal className="h-4 w-4" />
+        </FilterButton>
       </div>
 
 
