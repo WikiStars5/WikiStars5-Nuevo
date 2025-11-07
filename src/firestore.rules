@@ -64,7 +64,9 @@ service cloud.firestore {
 
     match /figures/{figureId} {
       allow get, list: if true;
-      allow create, delete: if isAdmin();
+      // Allow create only if the document does not exist, for any signed-in user.
+      allow create: if isSignedIn();
+      allow delete: if isAdmin();
       
       // Allow users to edit figure info (wiki-style)
       // OR allow vote/rating counter updates.

@@ -7,8 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { generateKeywords } from '@/lib/keywords';
 
 import {
@@ -97,7 +96,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         setVerificationError(result.verificationError);
         toast({
             title: "No Encontrado en Wikipedia",
-            description: "Se activó el Plan B. Inténtalo con un enlace de FamousBirthdays.",
+            description: "Se activó el Plan B. Inténtalo con un enlace de Famous Birthdays.",
             variant: "destructive"
         })
       }
@@ -148,52 +147,51 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
     const figureRef = doc(firestore, 'figures', slug);
 
     try {
-      const docSnap = await getDoc(figureRef);
-      if (docSnap.exists()) {
+        await runTransaction(firestore, async (transaction) => {
+            const docSnap = await transaction.get(figureRef);
+            if (docSnap.exists()) {
+                throw new Error(`Ya existe un perfil para ${verificationResult.title}.`);
+            }
+
+            const keywords = generateKeywords(verificationResult.title!);
+
+            const figureData = {
+                id: slug,
+                name: verificationResult.title,
+                imageUrl: verificationResult.imageUrl,
+                imageHint: `portrait of ${verificationResult.title}`,
+                nationality: '',
+                tags: [],
+                isFeatured: false,
+                nameKeywords: keywords,
+                createdAt: serverTimestamp(),
+                approved: true, // Auto-approved
+                attitude: { neutral: 0, fan: 0, simp: 0, hater: 0 },
+                emotion: { alegria: 0, envidia: 0, tristeza: 0, miedo: 0, desagrado: 0, furia: 0 },
+                ratingCount: 0,
+                totalRating: 0,
+                ratingsBreakdown: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
+            };
+            
+            transaction.set(figureRef, figureData);
+        });
+        
         toast({
-          variant: 'destructive',
-          title: 'Perfil Duplicado',
-          description: `Ya existe un perfil para ${verificationResult.title}. Redirigiendo...`,
+            title: '¡Perfil Creado!',
+            description: `El perfil para ${verificationResult.title} ha sido añadido.`,
         });
         router.push(`/figures/${slug}`);
         onProfileCreated();
-        setIsCreating(false);
-        return;
-      }
 
-      const keywords = generateKeywords(verificationResult.title);
-
-      const figureData = {
-        id: slug,
-        name: verificationResult.title,
-        imageUrl: verificationResult.imageUrl,
-        imageHint: `portrait of ${verificationResult.title}`,
-        nationality: '', // Can be filled later
-        tags: [],
-        isFeatured: false,
-        nameKeywords: keywords,
-        createdAt: serverTimestamp(),
-        approved: true, // Auto-approved for now
-      };
-      
-      setDocumentNonBlocking(figureRef, figureData, { merge: false });
-
-      toast({
-        title: '¡Perfil Creado!',
-        description: `El perfil para ${verificationResult.title} ha sido añadido.`,
-      });
-      router.push(`/figures/${slug}`);
-      onProfileCreated();
-
-    } catch (error) {
-      console.error('Error during profile creation check:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error de Verificación',
-        description: 'No se pudo comprobar si el perfil ya existe. Por favor, inténtalo de nuevo.',
-      });
+    } catch (error: any) {
+        console.error('Error creating profile:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error al Crear',
+            description: error.message || 'No se pudo crear el perfil. Inténtalo de nuevo.',
+        });
     } finally {
-      setIsCreating(false);
+        setIsCreating(false);
     }
   };
 
