@@ -62,29 +62,41 @@ service cloud.firestore {
 
     match /figures/{figureId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow delete: if isAdmin();
+      allow create, delete: if isAdmin();
       
-      allow update: if isSignedIn(); // Simplified rule, relies on client transactions and vote doc security.
-    }
-    
-    match /figures/{figureId}/comments/{commentId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
       allow update: if isSignedIn() && (
-        (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
-        isIncrement('likes') || isIncrement('dislikes')
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
+            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
+        ]) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
       );
-      allow delete: if resource.data.userId == request.auth.uid || isAdmin();
-    }
-    
-    match /figures/{figureId}/comments/{commentId}/votes/{userId} {
-      allow get, write: if isOwner(userId);
-      allow list: if false;
+
+      // --- /figures/{figureId}/comments/{commentId} ---
+      match /comments/{commentId} {
+        allow get, list: if true;
+        allow create: if isSignedIn();
+        allow update: if isSignedIn() && (
+          (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
+          isIncrement('likes') || isIncrement('dislikes')
+        );
+        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+
+        match /votes/{userId} {
+          allow get, write: if isOwner(userId);
+          allow list: if false;
+        }
+      }
+
+      // --- /figures/{figureId}/streaks/{userId} ---
+      // This is for the public leaderboard on the figure's page.
+      match /streaks/{userId} {
+        allow read, list: if true; 
+        allow write: if isOwner(userId);
+      }
     }
     
     // --- Collection Group Query Rules ---
-
     // These rules MUST be at the root to allow collectionGroup queries
     // for the user profile page. Security is enforced by the client-side query.
     
@@ -96,12 +108,6 @@ service cloud.firestore {
     match /figures/{figureId}/emotionVotes/{userId} {
         allow read: if isSignedIn();
         allow write: if isOwner(userId);
-    }
-
-    // This rule is for the public leaderboard on the figure's page.
-    match /figures/{figureId}/streaks/{userId} {
-      allow read, list: if true; 
-      allow write: if isOwner(userId);
     }
 
 
@@ -121,8 +127,8 @@ service cloud.firestore {
     match /goat_battles/{battleId} {
         allow get, list: if true; 
         allow create, delete: if isAdmin();
-        allow update: if (isAdmin()) ||
-                         (isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes')));
+        allow update: if (isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes'))) ||
+                         (isAdmin() && request.resource.data.winner != resource.data.winner);
         
         match /votes/{userId} {
             allow get, write: if isOwner(userId);
