@@ -18,12 +18,13 @@ service cloud.firestore {
     }
     
     function isIncrement(field) {
-      // Allow increment or decrement by 1
-      return request.resource.data[field] == resource.data[field] + 1 ||
-             request.resource.data[field] == resource.data[field] - 1;
+      let currentValue = resource.data[field];
+      let nextValue = request.resource.data[field];
+      // Allow increment or decrement by 1. Also handle the case where the field doesn't exist yet (currentValue is null) and is being initialized to 1.
+      return (nextValue == currentValue + 1) || (currentValue == null && nextValue == 1) || (nextValue == currentValue - 1);
     }
 
-    // --- User-Specific Collections ---
+    // --- User Data Collections ---
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
@@ -31,25 +32,22 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
-
-      // Notifications are a subcollection of users
-      match /notifications/{notificationId} {
-        allow read, update, delete: if isOwner(userId);
-        allow list: if isOwner(userId);
-        // Any signed-in user can create a notification (for replies)
-        allow create: if isSignedIn();
-      }
     }
     
-    // Explicit root-level rule for the private streaks subcollection
-    // This is necessary for the collectionGroup query on the user's profile page.
+    match /users/{userId}/notifications/{notificationId} {
+        allow read, update, delete: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isSignedIn();
+    }
+
+    // This explicit root-level rule allows users to list their own private streaks on their profile.
     match /users/{userId}/streaks/{streakId} {
         allow get, list, write: if isOwner(userId);
     }
 
     match /status/{userId} {
       allow read, write: if isOwner(userId);
-      allow list: if false; // Status should not be listable
+      allow list: if false;
     }
 
     match /usernames/{username} {
@@ -60,55 +58,52 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // --- Figure-Specific Collections ---
+    // --- Figure Data Collections ---
 
     match /figures/{figureId} {
       allow get, list: if true;
-      // Allow create only if the document does not exist, for any signed-in user.
       allow create: if isSignedIn();
       allow delete: if isAdmin();
       
-      // Allow users to edit figure info (wiki-style)
-      // OR allow vote/rating counter updates.
-      allow update: if isSignedIn();
-
-      // Comments subcollection
-      match /comments/{commentId} {
-        allow get, list: if true;
-        allow create: if isSignedIn();
-        allow update: if isSignedIn() && (
-          // Owner can edit their own text
-          (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
-          // Anyone can increment/decrement likes/dislikes
-          (isIncrement('likes') || isIncrement('dislikes'))
-        );
-        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
-
-        // Votes on comments
-        match /votes/{userId} {
-          allow get, write: if isOwner(userId);
-          allow list: if false;
-        }
-      }
-
-      // Public streak data for leaderboards
-      match /streaks/{userId} {
-        allow read, list: if true; 
-        allow write: if isOwner(userId);
-      }
+      allow update: if isSignedIn(); // Simplified rule, relies on client transactions and vote doc security.
     }
+    
+    match /figures/{figureId}/comments/{commentId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
+        isIncrement('likes') || isIncrement('dislikes')
+      );
+      allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+    }
+    
+    match /figures/{figureId}/comments/{commentId}/votes/{userId} {
+      allow get, write: if isOwner(userId);
+      allow list: if false;
+    }
+    
+    // --- Collection Group Query Rules ---
 
-    // --- Root-Level Rules for Collection Group Queries ---
-
-    // These must be at the root to allow collectionGroup queries on the profile page.
+    // These rules MUST be at the root to allow collectionGroup queries
+    // for the user profile page. Security is enforced by the client-side query.
+    
     match /figures/{figureId}/attitudeVotes/{userId} {
         allow read: if isSignedIn();
         allow write: if isOwner(userId);
     }
+    
     match /figures/{figureId}/emotionVotes/{userId} {
         allow read: if isSignedIn();
         allow write: if isOwner(userId);
     }
+
+    // This rule is for the public leaderboard on the figure's page.
+    match /figures/{figureId}/streaks/{userId} {
+      allow read, list: if true; 
+      allow write: if isOwner(userId);
+    }
+
 
     // --- Other Root-Level Collections ---
 
