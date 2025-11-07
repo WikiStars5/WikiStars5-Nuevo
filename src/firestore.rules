@@ -24,23 +24,23 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
       // Nobody can list all users.
       allow list: if false;
+    }
 
-      // --- /users/{userId}/streaks/{streakId} ---
-      // Private streak data for each user.
-      match /streaks/{streakId} {
-        // Owner can read and write their own streaks.
-        allow read, write: if isOwner(userId);
-        allow list: if isOwner(userId);
-      }
-      
-      // --- /users/{userId}/notifications/{notificationId} ---
-      // User-specific notifications.
-      match /notifications/{notificationId} {
-        // Owner can read, update, and delete their own notifications.
-        allow read, update, delete: if isOwner(userId);
-        // Any signed-in user can create a notification (e.g., for a reply).
-        allow create: if isSignedIn();
-      }
+    // --- /users/{userId}/streaks/{streakId} ---
+    // Private streak data for each user.
+    match /users/{userId}/streaks/{streakId} {
+      // Owner can read and write their own streaks.
+      allow read, write: if isOwner(userId);
+      allow list: if isOwner(userId);
+    }
+    
+    // --- /users/{userId}/notifications/{notificationId} ---
+    // User-specific notifications.
+    match /users/{userId}/notifications/{notificationId} {
+      // Owner can read, update, and delete their own notifications.
+      allow read, update, delete: if isOwner(userId);
+      // Any signed-in user can create a notification (e.g., for a reply).
+      allow create: if isSignedIn();
     }
 
     // --- /status/{userId} ---
@@ -103,8 +103,16 @@ service cloud.firestore {
       // Public-facing streak data for leaderboards.
       match /streaks/{userId} {
         allow read, list: if true; // Anyone can read for the leaderboard.
-        allow write: if request.auth.uid == userId; // Only owner can write to their public streak doc.
+        allow write: if isOwner(userId); // Only owner can write to their public streak doc.
       }
+    }
+
+    // --- /related_figures/{relatedFigureId} ---
+    // Stores relationships between public figures.
+    match /related_figures/{relatedFigureId} {
+      allow get: if true; // Anyone can read a specific relationship document.
+      allow list: if true; // Anyone can list relationships to find related figures.
+      allow write: if isAdmin(); // Only admins can create/update/delete.
     }
 
     // --- /goat_battles/{battleId} ---
