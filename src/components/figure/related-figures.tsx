@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -142,7 +143,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
         }));
     }, [relations]);
     
-    const isLimitReached = relatedItems.length >= 5;
+    const isLimitReached = relatedItems.length >= 6;
 
     return (
         <Card className="bg-black">
@@ -152,7 +153,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                         <CardTitle className="flex items-center gap-2">
                            <Users /> Perfiles Relacionados
                         </CardTitle>
-                        <CardDescription className="text-muted-foreground">Otros perfiles que podrían interesarte (Máx. 5).</CardDescription>
+                        <CardDescription className="text-muted-foreground">Otros perfiles que podrían interesarte (Máx. 6).</CardDescription>
                     </div>
                      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <TooltipProvider>
@@ -167,7 +168,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                                 </TooltipTrigger>
                                 {isLimitReached && (
                                     <TooltipContent>
-                                        <p>Has alcanzado el límite de 5 perfiles relacionados.</p>
+                                        <p>Has alcanzado el límite de 6 perfiles relacionados.</p>
                                     </TooltipContent>
                                 )}
                             </Tooltip>
@@ -184,7 +185,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
             </CardHeader>
             <CardContent>
                 {isLoading && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                          {Array.from({ length: 4 }).map((_, i) => (
                             <div key={i} className="space-y-4">
                                 <Skeleton className="aspect-[4/5] w-full" />
@@ -194,8 +195,8 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                     </div>
                 )}
                 {!isLoading && relatedItems.length > 0 && (
-                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {relatedItems.slice(0, 5).map(item => (
+                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {relatedItems.slice(0, 6).map(item => (
                             <RelatedFigureCard key={item.relationId} figureId={item.figureId} relationId={item.relationId} />
                         ))}
                     </div>
