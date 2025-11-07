@@ -1,0 +1,174 @@
+
+/**
+ * @file Firestore Security Rules for WikiStars5
+ * @version Prototyping
+ *
+ * @Core Philosophy:
+ * This ruleset prioritizes secure access control based on user ownership and role-based permissions.
+ * It enforces strict separation of user data and public data, while allowing flexible data shapes for rapid iteration.
+ *
+ * @Data Structure:
+ * - User-specific data is nested under `/users/{userId}`.
+ * - Public figure data is stored in the top-level `/figures/{figureId}` collection.
+ * - Additional top-level collections like `/achievements` and `/related_figures` store global data.
+ *
+ * @Key Security Decisions:
+ * - Users can only access their own data under `/users/{userId}`.
+ * - Public figure profiles are publicly readable but only writable by admins.
+ * - User listing is generally disallowed for privacy.
+ * - Data shape validation is minimized to allow for flexible prototyping.
+ *
+ * @Denormalization for Authorization:
+ * - Comments store the `publicFigureId` to avoid needing to fetch the parent figure for authorization.
+ * - Streaks store the `publicFigureId` to simplify querying and authorization.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+        return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+        return request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.app != null;
+      allow update: if isOwner(userId) && request.app != null;
+      allow delete: if isOwner(userId) && request.app != null;
+
+      match /streaks/{streakId} {
+        allow read, list: if true;
+        allow write: if isOwner(userId);
+      }
+    }
+
+     match /status/{userId} {
+          allow get: if isOwner(userId);
+          allow list: if false;
+          allow create: if isOwner(userId) && request.app != null;
+          allow update: if isOwner(userId) && request.app != null;
+          allow delete: if isOwner(userId) && request.app != null;
+      }
+
+    match /usernames/{username} {
+      function isUsernameOwner(username) {
+        return get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
+      }
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth.uid != null && request.app != null;
+      allow update: if false;
+      allow delete: if isUsernameOwner(username) && request.app != null;
+    }
+
+    match /figures/{figureId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isAdmin() && request.app != null;
+      allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown']));
+      allow delete: if isAdmin() && request.app != null;
+
+      match /streaks/{userId} {
+        allow read, list: if true;
+        allow write: if isOwner(userId);
+      }
+    }
+
+    match /figures/{figureId}/comments/{commentId} {
+      function isCommentOwner() {
+        return resource.data.userId == request.auth.uid;
+      }
+      function isUpdatingVoteCounters() {
+        let incomingKeys = request.resource.data.keys();
+        let existingKeys = resource.data.keys();
+        return incomingKeys.hasAll(existingKeys) 
+            && existingKeys.hasAll(incomingKeys) 
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']);
+      }
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && request.app != null;
+      allow update: if isSignedIn() && request.app != null && (isCommentOwner() || isUpdatingVoteCounters());
+      allow delete: if isCommentOwner() && request.app != null;
+    }
+
+    match /figures/{figureId}/comments/{commentId}/votes/{userId} {
+      allow get, write: if isOwner(userId);
+      allow list: if false;
+    }
+
+    match /figures/{figureId}/attitudeVotes/{userId} {
+      allow get, write: if isOwner(userId);
+      allow list: if false;
+    }
+
+    match /figures/{figureId}/emotionVotes/{userId} {
+        allow get, write: if isOwner(userId);
+        allow list: if false;
+    }
+
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, update, delete: if isOwner(userId);
+      allow create: if isSignedIn();
+    }
+
+    match /achievements/{achievementId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /users/{userId}/user_achievements/{userAchievementId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.app != null;
+      allow update: if isOwner(userId) && request.app != null;
+      allow delete: if isOwner(userId) && request.app != null;
+    }
+
+    match /related_figures/{relatedFigureId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+     match /roles_admin/{userId} {
+        allow get: if isSignedIn();
+        allow list: if false;
+        allow create: if isAdmin() && request.app != null;
+        allow update: if isAdmin() && request.app != null;
+        allow delete: if isAdmin() && request.app != null;
+    }
+
+    match /goat_battles/{battleId} {
+        allow get: if true;
+        allow list: if true;
+        allow create: if false;
+        allow update: if false;
+        allow delete: if false;
+    }
+
+    match /goat_battles/{battleId}/votes/{userId} {
+        allow get: if isOwner(userId);
+        allow list: if false;
+        allow create: if isOwner(userId) && request.app != null;
+        allow update: if false;
+        allow delete: if isOwner(userId) && request.app != null;
+    }
+  }
+}
+
+  

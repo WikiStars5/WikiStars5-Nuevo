@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, query, orderBy, getDocs, where, limit, Timestamp, collectionGroup } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, where, limit, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,49 +13,11 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { countries } from '@/lib/countries';
 import Link from 'next/link';
+import { isDateActive } from '@/lib/streaks';
 
 
 interface TopStreaksProps {
     figureId: string;
-}
-
-/**
- * Checks if a Firestore Timestamp is from today or yesterday.
- */
-function isDateActive(timestamp: Timestamp): boolean {
-    if (!timestamp) return false;
-    
-    const date = timestamp.toDate();
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    // Reset time part for accurate date comparison
-    today.setHours(0, 0, 0, 0);
-    yesterday.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
-
-    return date.getTime() === today.getTime() || date.getTime() === yesterday.getTime();
-}
-
-// This function now needs to query a collection group to find streaks for a specific figure
-async function getTopStreaksForFigure(firestore: any, figureId: string): Promise<Streak[]> {
-    const streaksRef = collection(firestore, 'streaks');
-    const q = query(
-        streaksRef,
-        where('figureId', '==', figureId),
-        orderBy('currentStreak', 'desc'),
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    const allStreaks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Streak));
-
-    // Filter for active streaks in-memory
-    const activeStreaks = allStreaks.filter(streak => isDateActive(streak.lastCommentDate));
-    
-    // Return top 10
-    return activeStreaks.slice(0, 10);
 }
 
 const getTrophyColor = (rank: number) => {
@@ -89,21 +51,21 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
             if (!firestore) return;
             setIsLoading(true);
             try {
-                // This function is no longer needed with the new structure,
-                // but we can simulate a similar logic if needed.
-                // For now, we assume we need to find streaks related to this figure,
-                // which requires a collection group query on `streaks` where `figureId` matches.
+                // Query the new public subcollection within the figure document.
                 const streaksQuery = query(
-                    collectionGroup(firestore, 'streaks'),
-                    where('figureId', '==', figureId),
+                    collection(firestore, `figures/${figureId}/streaks`),
                     orderBy('currentStreak', 'desc')
                 );
                 
                 const snapshot = await getDocs(streaksQuery);
                 const allStreaks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Streak));
-                const activeStreaks = allStreaks.filter(streak => isDateActive(streak.lastCommentDate));
 
-                setTopStreaks(activeStreaks.slice(0, 10));
+                // Filter for active streaks and limit to 10
+                const activeStreaks = allStreaks
+                    .filter(streak => isDateActive(streak.lastCommentDate))
+                    .slice(0, 10);
+                
+                setTopStreaks(activeStreaks);
 
             } catch (error) {
                 console.error("Failed to fetch top streaks:", error);
@@ -182,3 +144,5 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
         </Card>
     );
 }
+
+  

@@ -7,7 +7,8 @@ import {
     serverTimestamp, 
     increment,
     Firestore,
-    Timestamp
+    Timestamp,
+    writeBatch
 } from 'firebase/firestore';
 import type { Streak } from '@/lib/types';
 
@@ -59,61 +60,70 @@ export async function updateStreak({
         return null;
     }
     
-    const streakRef = doc(firestore, `users/${userId}/streaks`, figureId);
+    // Path for the user's private copy of the streak
+    const privateStreakRef = doc(firestore, `users/${userId}/streaks`, figureId);
+    
+    // Path for the public-readable streak data for the figure's leaderboard
+    const publicStreakRef = doc(firestore, `figures/${figureId}/streaks`, userId);
     
     try {
-        return await runTransaction(firestore, async (transaction) => {
-            const streakDoc = await transaction.get(streakRef);
-            const now = new Date();
+        const batch = writeBatch(firestore);
+        let newStreakCount = 1;
+        let streakGained = false;
 
-            if (!streakDoc.exists()) {
-                // Rule 1: No existing streak, create a new one.
-                const newStreak: Omit<Streak, 'id'> = {
-                    userId,
-                    figureId, // Add figureId to the streak document itself
-                    currentStreak: 1,
-                    lastCommentDate: Timestamp.now(),
-                    ...denormalizedUserData,
-                };
-                transaction.set(streakRef, newStreak);
-                
-                const userRef = doc(firestore, 'users', userId);
-                transaction.set(userRef, { createdAt: serverTimestamp() }, { merge: true });
-
-                return { streakGained: true, newStreakCount: 1 };
-            } else {
-                const streakData = streakDoc.data() as Streak;
-                const lastCommentDate = streakData.lastCommentDate.toDate();
-
-                if (isSameDay(lastCommentDate, now)) {
-                     // Rule 3: Last comment was today. Just update timestamp and user data, no animation.
-                    transaction.update(streakRef, {
-                        lastCommentDate: serverTimestamp(),
-                        ...denormalizedUserData
-                    });
-                    return { streakGained: false, newStreakCount: streakData.currentStreak };
-                } else if (isYesterday(lastCommentDate, now)) {
-                    // Rule 2: Last comment was yesterday, continue the streak.
-                    const newStreakCount = (streakData.currentStreak || 0) + 1;
-                    transaction.update(streakRef, {
-                        currentStreak: increment(1),
-                        lastCommentDate: serverTimestamp(),
-                        ...denormalizedUserData
-                    });
-                     return { streakGained: true, newStreakCount };
-                } else {
-                    // Rule 4: Last comment was before yesterday, reset the streak.
-                    transaction.update(streakRef, {
-                        currentStreak: 1,
-                        lastCommentDate: serverTimestamp(),
-                        ...denormalizedUserData
-                    });
-                    return { streakGained: true, newStreakCount: 1 };
-                }
-            }
+        const privateStreakDoc = await runTransaction(firestore, async (transaction) => {
+            const doc = await transaction.get(privateStreakRef);
+            return doc;
         });
+
+        const now = new Date();
+
+        if (!privateStreakDoc.exists()) {
+            // Rule 1: No existing streak, create a new one.
+            newStreakCount = 1;
+            streakGained = true;
+        } else {
+            const streakData = privateStreakDoc.data() as Streak;
+            const lastCommentDate = streakData.lastCommentDate.toDate();
+
+            if (isSameDay(lastCommentDate, now)) {
+                // Rule 3: Last comment was today. Just update timestamp.
+                newStreakCount = streakData.currentStreak;
+                streakGained = false;
+            } else if (isYesterday(lastCommentDate, now)) {
+                // Rule 2: Last comment was yesterday, continue the streak.
+                newStreakCount = (streakData.currentStreak || 0) + 1;
+                streakGained = true;
+            } else {
+                // Rule 4: Last comment was before yesterday, reset the streak.
+                newStreakCount = 1;
+                streakGained = true;
+            }
+        }
+        
+        // Prepare the data payload for both documents.
+        const streakPayload: Omit<Streak, 'id'> = {
+            userId,
+            figureId,
+            currentStreak: newStreakCount,
+            lastCommentDate: Timestamp.now(),
+            ...denormalizedUserData,
+        };
+
+        // Add both set/update operations to the batch.
+        batch.set(privateStreakRef, streakPayload, { merge: true });
+        batch.set(publicStreakRef, streakPayload, { merge: true });
+
+        // Commit the batch to write both documents atomically.
+        await batch.commit();
+
+        return { streakGained, newStreakCount };
+        
     } catch (error) {
-        console.error("Error updating streak:", error);
+        console.error("Error updating streak with dual-write:", error);
+        // We can choose to not throw an error to the user for a background task like this.
         return null;
     }
 }
+
+  
