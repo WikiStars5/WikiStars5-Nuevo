@@ -18,18 +18,13 @@ service cloud.firestore {
     }
     
     function isIncrement(field) {
-      let currentValue = resource.data[field];
-      let nextValue = request.resource.data[field];
-      return (nextValue == currentValue + 1);
-    }
-    
-    function isMapIncrement(mapField) {
-        let changedKeys = request.resource.data[mapField].diff(resource.data[mapField]).affectedKeys();
-        return changedKeys.size() == 1 && isIncrement(mapField + '.' + changedKeys[0]);
+      // Allow increment or decrement by 1
+      return request.resource.data[field] == resource.data[field] + 1 ||
+             request.resource.data[field] == resource.data[field] - 1;
     }
 
+    // --- User-Specific Collections ---
 
-    // --- /users/{userId} ---
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
@@ -37,28 +32,26 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
 
-      // --- /users/{userId}/notifications/{notificationId} ---
+      // Notifications are a subcollection of users
       match /notifications/{notificationId} {
-          allow read, update, delete: if isOwner(userId);
-          allow list: if isOwner(userId);
-          allow create: if isSignedIn();
+        allow read, update, delete: if isOwner(userId);
+        allow list: if isOwner(userId);
+        // Any signed-in user can create a notification (for replies)
+        allow create: if isSignedIn();
       }
     }
     
-    // --- /users/{userId}/streaks/{streakId} ---
-    // This explicit root-level rule allows users to list their own private streaks on their profile.
+    // Explicit root-level rule for the private streaks subcollection
+    // This is necessary for the collectionGroup query on the user's profile page.
     match /users/{userId}/streaks/{streakId} {
         allow get, list, write: if isOwner(userId);
     }
 
-
-    // --- /status/{userId} ---
     match /status/{userId} {
       allow read, write: if isOwner(userId);
-      allow list: if false;
+      allow list: if false; // Status should not be listable
     }
 
-    // --- /usernames/{username} ---
     match /usernames/{username} {
       allow get: if true; 
       allow list: if false;
@@ -67,47 +60,45 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // --- /figures/{figureId} ---
+    // --- Figure-Specific Collections ---
+
     match /figures/{figureId} {
       allow get, list: if true;
       allow create, delete: if isAdmin();
       
-      allow update: if isSignedIn() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
-            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
-        ]) ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
-      );
+      // Allow users to edit figure info (wiki-style)
+      // OR allow vote/rating counter updates.
+      allow update: if isSignedIn();
 
-      // --- /figures/{figureId}/comments/{commentId} ---
+      // Comments subcollection
       match /comments/{commentId} {
         allow get, list: if true;
         allow create: if isSignedIn();
         allow update: if isSignedIn() && (
+          // Owner can edit their own text
           (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
+          // Anyone can increment/decrement likes/dislikes
           (isIncrement('likes') || isIncrement('dislikes'))
         );
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
+        // Votes on comments
         match /votes/{userId} {
           allow get, write: if isOwner(userId);
           allow list: if false;
         }
       }
 
-      // --- /figures/{figureId}/streaks/{userId} ---
-      // This is for the public leaderboard on the figure's page.
+      // Public streak data for leaderboards
       match /streaks/{userId} {
         allow read, list: if true; 
         allow write: if isOwner(userId);
       }
     }
-    
-    // --- Collection Group Query Rules ---
 
-    // These rules need to be at the root to allow collectionGroup queries
-    // for the user profile page. Security is enforced by the client-side query.
+    // --- Root-Level Rules for Collection Group Queries ---
+
+    // These must be at the root to allow collectionGroup queries on the profile page.
     match /figures/{figureId}/attitudeVotes/{userId} {
         allow read: if isSignedIn();
         allow write: if isOwner(userId);
@@ -116,27 +107,25 @@ service cloud.firestore {
         allow read: if isSignedIn();
         allow write: if isOwner(userId);
     }
-    
 
-    // --- /hashtags/{hashtagId} ---
+    // --- Other Root-Level Collections ---
+
     match /hashtags/{hashtagId} {
         allow get, list: if true;
         allow write: if isSignedIn();
     }
 
-    // --- /related_figures/{relatedFigureId} ---
     match /related_figures/{relatedFigureId} {
       allow get, list: if true;
       allow create, delete: if isAdmin();
       allow update: if false;
     }
 
-    // --- /goat_battles/{battleId} ---
     match /goat_battles/{battleId} {
         allow get, list: if true; 
         allow create, delete: if isAdmin();
-        allow update: if (isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes'))) ||
-                         (isAdmin() && request.resource.data.winner != resource.data.winner);
+        allow update: if (isAdmin()) ||
+                         (isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes')));
         
         match /votes/{userId} {
             allow get, write: if isOwner(userId);
@@ -144,7 +133,6 @@ service cloud.firestore {
         }
     }
     
-    // --- /roles_admin/{userId} ---
     match /roles_admin/{userId} {
       allow get: if isSignedIn();
       allow write: if isAdmin();
