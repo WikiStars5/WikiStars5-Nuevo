@@ -6,11 +6,20 @@ import { collection, query, orderBy, where, doc, getDoc } from 'firebase/firesto
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import type { Comment, AttitudeVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-import { MessageCircle, Star, MoreHorizontal } from 'lucide-react';
+import { MessageCircle, Star, MoreHorizontal, ChevronDown } from 'lucide-react';
 import CommentThread from './comment-thread';
 import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 const INITIAL_COMMENT_LIMIT = 5;
@@ -147,12 +156,12 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
 
   const visibleComments = sortedAndFilteredComments.slice(0, visibleCount);
   
-  const FilterButton = ({ filter, children }: { filter: FilterType; children: React.ReactNode }) => (
+  const FilterButton = ({ filter, children, isActive }: { filter: FilterType; children: React.ReactNode; isActive: boolean; }) => (
     <Button
-        variant={activeFilter === filter ? 'default' : 'ghost'}
+        variant={isActive ? 'default' : 'ghost'}
         className={cn(
             "h-8 px-3",
-            activeFilter === filter && "bg-primary text-primary-foreground hover:bg-primary/90"
+            isActive && "bg-primary text-primary-foreground hover:bg-primary/90"
         )}
         onClick={() => setActiveFilter(filter)}
     >
@@ -160,22 +169,41 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     </Button>
   );
 
+  const isStarFilterActive = typeof activeFilter === 'number';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
-        <FilterButton filter="featured">Destacados</FilterButton>
-        <FilterButton filter="popular">Más Populares</FilterButton>
-        <FilterButton filter="newest">Más Recientes</FilterButton>
-        {user && <FilterButton filter="mine">Mis Opiniones</FilterButton>}
+        <FilterButton filter="featured" isActive={activeFilter === 'featured'}>Destacados</FilterButton>
+        <FilterButton filter="popular" isActive={activeFilter === 'popular'}>Más Populares</FilterButton>
+        <FilterButton filter="newest" isActive={activeFilter === 'newest'}>Más Recientes</FilterButton>
+        {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>Mis Opiniones</FilterButton>}
+        
         <div className="flex-grow" />
-        {[5, 4, 3, 2, 1].map(rating => (
-          <FilterButton key={rating} filter={rating}>
-            {rating} <Star className="ml-1 h-3 w-3" />
-          </FilterButton>
-        ))}
-         <FilterButton key={0} filter={0}>
-            <MoreHorizontal className="h-4 w-4" />
-        </FilterButton>
+        
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant={isStarFilterActive ? 'default' : 'ghost'} className="h-8 px-3">
+                   {isStarFilterActive ? (
+                        <>
+                           {activeFilter} <Star className="ml-1 h-3 w-3" />
+                        </>
+                    ) : (
+                       <MoreHorizontal className="h-4 w-4" />
+                    )}
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Filtrar por estrellas</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {[5, 4, 3, 2, 1, 0].map(rating => (
+                    <DropdownMenuItem key={rating} onSelect={() => setActiveFilter(rating)}>
+                        {rating} {rating > 0 && <Star className="ml-2 h-3 w-3" />}
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+
       </div>
 
 
