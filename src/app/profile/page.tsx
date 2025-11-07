@@ -22,6 +22,7 @@ import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
+import MainLayout from '@/app/(main)/layout';
 
 
 const profileSchema = z.object({
@@ -33,7 +34,7 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-export default function ProfilePage() {
+function ProfilePageContent() {
     const { user, isUserLoading, reloadUser } = useUser();
     const firestore = useFirestore();
     const auth = useAuth();
@@ -107,8 +108,8 @@ export default function ProfilePage() {
                         throw new Error('El nombre de usuario ya está en uso.');
                     }
 
-                    // Delete the old username document if it exists
-                    if (oldUsernameLower) {
+                    // Delete the old username document if it exists and is different
+                    if (oldUsernameLower && oldUsernameLower !== newUsernameLower) {
                         const oldUsernameRef = doc(firestore, 'usernames', oldUsernameLower);
                         transaction.delete(oldUsernameRef);
                     }
@@ -301,5 +302,13 @@ export default function ProfilePage() {
                 <UserActivity />
             </div>
         </div>
+    )
+}
+
+export default function ProfilePage() {
+    return (
+        <MainLayout>
+            <ProfilePageContent />
+        </MainLayout>
     )
 }
