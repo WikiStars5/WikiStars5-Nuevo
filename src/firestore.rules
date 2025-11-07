@@ -77,8 +77,8 @@ service cloud.firestore {
       allow get, list: if true;
       // Only admins can create or delete figures.
       allow create, delete: if isAdmin();
-      // An admin can update any field. A signed-in user can ONLY update the vote/rating counters.
-      allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown']));
+      // Any signed-in user can update the figure's data (wiki-style).
+      allow update: if isSignedIn();
 
       // --- /figures/{figureId}/comments/{commentId} ---
       // Comments for a specific figure.
@@ -135,11 +135,11 @@ service cloud.firestore {
         // Publicly readable.
         allow get, list: if true; 
         
-        // Only admins can create/delete a battle.
+        // Admins can create/delete/fully update a battle.
         allow create, delete: if isAdmin();
-        
-        // Admins can update everything. Users can only update vote counters.
+        // Admins can update any field. Users can ONLY update vote counters.
         allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']));
+
         
         // --- /goat_battles/{battleId}/votes/{userId} ---
         // Prevents duplicate votes in GOAT battle.
