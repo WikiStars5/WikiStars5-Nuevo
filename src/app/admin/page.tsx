@@ -60,20 +60,20 @@ export default function AdminDashboard() {
     const battleRef = doc(firestore, 'goat_battles', battleId);
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const newEndTime = new Date();
-            switch(data.unit) {
-                case 'minutes':
-                    newEndTime.setMinutes(newEndTime.getMinutes() + data.duration);
-                    break;
-                case 'hours':
-                    newEndTime.setHours(newEndTime.getHours() + data.duration);
-                    break;
-                case 'days':
-                    newEndTime.setDate(newEndTime.getDate() + data.duration);
-                    break;
-            }
+        const newEndTime = new Date();
+        switch(data.unit) {
+            case 'minutes':
+                newEndTime.setMinutes(newEndTime.getMinutes() + data.duration);
+                break;
+            case 'hours':
+                newEndTime.setHours(newEndTime.getHours() + data.duration);
+                break;
+            case 'days':
+                newEndTime.setDate(newEndTime.getDate() + data.duration);
+                break;
+        }
 
+        await runTransaction(firestore, async (transaction) => {
             transaction.set(battleRef, {
                 messiVotes: 0,
                 ronaldoVotes: 0,
