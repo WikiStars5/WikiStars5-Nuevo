@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -131,9 +132,11 @@ export default function UserActivity({ userId: propUserId }: UserActivityProps) 
         setIsLoading(true);
         
         try {
-            // Fetch all votes and streaks by querying collection groups
+            // Fetch votes using collectionGroup queries
             const attitudeQuery = query(collectionGroup(firestore, 'attitudeVotes'), where('userId', '==', userId));
             const emotionQuery = query(collectionGroup(firestore, 'emotionVotes'), where('userId', '==', userId));
+            
+            // Fetch streaks from the user's private subcollection (CORRECTED)
             const streaksQuery = query(collection(firestore, 'users', userId, 'streaks'), orderBy('currentStreak', 'desc'));
 
             const [attitudeSnapshot, emotionSnapshot, streaksSnapshot] = await Promise.all([
@@ -150,18 +153,17 @@ export default function UserActivity({ userId: propUserId }: UserActivityProps) 
 
             setAttitudeVotes(attitudes);
             setEmotionVotes(emotions);
-            setStreaks(activeStreaks);
-
+            
             // Collect all unique figure IDs to fetch
             const figureIds = new Set<string>();
             attitudes.forEach(v => figureIds.add(v.figureId));
             emotions.forEach(v => figureIds.add(v.figureId));
             activeStreaks.forEach(s => figureIds.add(s.figureId));
             
-            // Fetch figure data
+            // Fetch figure data for all votes and streaks
             const figureDataMap = await fetchFigureData(firestore, Array.from(figureIds));
 
-             // Add figure data to streaks
+            // Add figure data to streaks
             const streaksWithData = activeStreaks.map(streak => ({
                 ...streak,
                 figureData: figureDataMap.get(streak.figureId),
