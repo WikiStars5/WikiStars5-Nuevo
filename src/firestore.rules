@@ -58,7 +58,7 @@ service cloud.firestore {
         // Private streak data for each user.
         match /streaks/{streakId} {
             // The owner can read and write their own private streak documents.
-            // list is required for the user profile page to show all their streaks.
+            // 'list' is required for the user profile page to show all their streaks.
             allow get, list, write: if isOwner(userId);
         }
     
@@ -142,16 +142,15 @@ service cloud.firestore {
       }
 
       // --- /figures/{figureId}/attitudeVotes/{userId} & emotionVotes/{userId} ---
-      // These rules allow a user to read/write their OWN vote document.
-      // Crucially, they also allow a 'list' operation for collectionGroup queries,
-      // but the query itself in the app code MUST contain `where('userId', '==', request.auth.uid)`.
+      // Rules to support collectionGroup queries for the user profile page.
+      // `list` is required. Security is enforced by the client query `where('userId', '==', request.auth.uid)`.
       match /attitudeVotes/{userId} {
-        allow get, write: if isOwner(userId);
-        allow list: if isSignedIn();
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId);
       }
       match /emotionVotes/{userId} {
-        allow get, write: if isOwner(userId);
-        allow list: if isSignedIn();
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId);
       }
       
       // --- /figures/{figureId}/streaks/{userId} ---

@@ -146,7 +146,7 @@ export default function UserActivity({ userId: propUserId }: UserActivityProps) 
             const emotions = emotionSnapshot.docs.map(d => d.data() as EmotionVote);
             const allStreaks = streaksSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Streak));
 
-            const activeStreaks = allStreaks.filter(s => isDateActive(s.lastCommentDate));
+            const activeStreaks = allStreaks.filter(s => s.lastCommentDate && isDateActive(s.lastCommentDate));
 
             setAttitudeVotes(attitudes);
             setEmotionVotes(emotions);
