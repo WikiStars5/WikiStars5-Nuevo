@@ -18,18 +18,23 @@ service cloud.firestore {
     }
 
     // --- /users/{userId} ---
-    // User profile data.
+    // Stores all user profile data, private or public.
     match /users/{userId} {
-      // Only the owner can read, create, update, or delete their own profile.
-      allow read, write: if isOwner(userId);
-      // Nobody can list all users.
-      allow list: if false;
+      // A user can get their own document. An admin can get any document.
+      allow get: if isOwner(userId) || isAdmin();
+      // An admin can list all users for the dashboard.
+      allow list: if isAdmin();
+      // A user can create their own document upon sign-up.
+      allow create: if isOwner(userId);
+       // A user can update their own document. An admin can update any document.
+      allow update: if isOwner(userId) || isAdmin();
+      // A user can delete their own account. An admin can delete any account.
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     // --- /users/{userId}/streaks/{streakId} ---
     // Private streak data for each user.
     match /users/{userId}/streaks/{streakId} {
-      // Owner can read and write their own streaks.
       allow read, write: if isOwner(userId);
       allow list: if isOwner(userId);
     }
@@ -52,12 +57,16 @@ service cloud.firestore {
     }
 
     // --- /usernames/{username} ---
-    // Used to enforce unique usernames.
+    // Used to enforce unique usernames. Document ID is the lowercase username.
     match /usernames/{username} {
-      allow get: if true; // Anyone can check if a username exists.
+      // Anyone can check if a username exists.
+      allow get: if true; 
       allow list: if false;
-      allow create: if isSignedIn(); // Any signed-in user can claim a username.
-      allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid; // Owner can delete.
+      // Any signed-in user can claim a username.
+      allow create: if isSignedIn(); 
+      // The user who owns the username document can delete it (e.g., when changing their name).
+      allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
+      // Username documents are write-once.
       allow update: if false;
     }
 
@@ -68,22 +77,26 @@ service cloud.firestore {
       allow get, list: if true;
       // Only admins can create or delete figures.
       allow create, delete: if isAdmin();
-      // Admins can update anything. Signed-in users can ONLY update vote/rating counters.
+      // An admin can update any field. A signed-in user can ONLY update the vote/rating counters.
       allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown']));
 
       // --- /figures/{figureId}/comments/{commentId} ---
       // Comments for a specific figure.
       match /comments/{commentId} {
-        allow get, list: if true; // Anyone can read comments.
-        allow create: if isSignedIn(); // Any signed-in user can create a comment.
-        // An update is allowed if you are the owner (editing text) OR if you are just changing likes/dislikes.
+        // Anyone can read comments.
+        allow get, list: if true;
+        // Any signed-in user can create a comment.
+        allow create: if isSignedIn();
+        // An update is allowed if you are the owner (for editing text) OR if you are just changing vote counts.
         allow update: if isSignedIn() && ((resource.data.userId == request.auth.uid) || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])));
-        allow delete: if resource.data.userId == request.auth.uid || isAdmin(); // Owner or admin can delete.
+        // Owner or admin can delete.
+        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
         // --- /figures/{figureId}/comments/{commentId}/votes/{userId} ---
         // Prevents duplicate likes/dislikes on a comment.
         match /votes/{userId} {
-          allow get, write: if isOwner(userId); // You can only manage your own vote.
+          // You can only manage your own vote document.
+          allow get, write: if isOwner(userId);
           allow list: if false;
         }
       }
@@ -102,8 +115,10 @@ service cloud.firestore {
       // --- /figures/{figureId}/streaks/{userId} ---
       // Public-facing streak data for leaderboards.
       match /streaks/{userId} {
-        allow read, list: if true; // Anyone can read for the leaderboard.
-        allow write: if isOwner(userId); // Only owner can write to their public streak doc.
+        // Anyone can read for the leaderboard.
+        allow read, list: if true; 
+        // Only the owner of the streak can write to their public streak document.
+        allow write: if request.auth.uid == userId;
       }
     }
 
@@ -119,7 +134,7 @@ service cloud.firestore {
     // GOAT battle data.
     match /goat_battles/{battleId} {
         allow get, list: if true; // Publicly readable.
-        allow write: if false; // Managed by admin panel.
+        allow write: if isAdmin(); // Managed by admin panel.
         
         // --- /goat_battles/{battleId}/votes/{userId} ---
         // Prevents duplicate votes in GOAT battle.
