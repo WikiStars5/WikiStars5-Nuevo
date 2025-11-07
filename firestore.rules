@@ -25,21 +25,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Secure access to user profile information.
-     * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their own profile.
-     * @allow (get) User with ID 'user123' can read their own profile.
-     * @allow (update) User with ID 'user123' can update their own profile.
-     * @allow (delete) User with ID 'user123' can delete their own profile.
-     * @deny (create) User with ID 'user456' cannot create a profile for 'user123'.
-     * @deny (get) User with ID 'user456' cannot read the profile of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId} {
-      function isOwner(userId) {
+    function isSignedIn() {
+        return request.auth != null;
+    }
+    
+    function isOwner(userId) {
         return request.auth.uid == userId;
-      }
+    }
+
+    function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
       allow create: if isOwner(userId) && request.app != null;
@@ -47,22 +45,7 @@ service cloud.firestore {
       allow delete: if isOwner(userId) && request.app != null;
     }
 
-    /**
-     * @description Secure access to user status information.
-     * @path /status/{userId}
-     * @allow (create) User with ID 'user123' can create their own status.
-     * @allow (get) User with ID 'user123' can read their own status.
-     * @allow (update) User with ID 'user123' can update their own status.
-     * @allow (delete) User with ID 'user123' can delete their own status.
-     * @deny (create) User with ID 'user456' cannot create a status for 'user123'.
-     * @deny (get) User with ID 'user456' cannot read the status of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
      match /status/{userId} {
-          function isOwner(userId) {
-              return request.auth.uid == userId;
-          }
-
           allow get: if isOwner(userId);
           allow list: if false;
           allow create: if isOwner(userId) && request.app != null;
@@ -70,16 +53,6 @@ service cloud.firestore {
           allow delete: if isOwner(userId) && request.app != null;
       }
 
-    /**
-     * @description Secure access to username mappings.
-     * @path /usernames/{username}
-     * @allow (get) Any user can check if a username exists.
-     * @allow (create) User with ID 'user123' can create a username mapping if they own the ID.
-     * @allow (update) No updates allowed.
-     * @allow (delete) User with ID 'user123' can delete a username mapping if they own the ID.
-     * @deny (create) User with ID 'user456' cannot create a username mapping for 'user123'.
-     * @principle Enforces document ownership for writes, allows public reads.
-     */
     match /usernames/{username} {
       function isUsernameOwner(username) {
         return get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
@@ -91,53 +64,21 @@ service cloud.firestore {
       allow delete: if isUsernameOwner(username) && request.app != null;
     }
 
-    /**
-     * @description Publicly readable public figure profiles, writable only by admins.
-     * @path /figures/{figureId}
-     * @allow (get) Any user can read a public figure profile.
-     * @allow (list) Any user can list public figure profiles.
-     * @allow (create) Only admins can create public figure profiles.
-     * @allow (update) Only admins can update public figure profiles.
-     * @allow (delete) Only admins can delete public figure profiles.
-     * @deny (create) Non-admins cannot create public figure profiles.
-     * @principle Public read access, restricted write access.
-     */
     match /figures/{figureId} {
-      function isAdmin() {
-        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-      }
       allow get: if true;
       allow list: if true;
       allow create: if isAdmin() && request.app != null;
-      allow update: if isAdmin() && request.app != null;
+      allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown']));
       allow delete: if isAdmin() && request.app != null;
     }
 
-    /**
-     * @description Secure access to comments on a public figure.
-     * @path /figures/{figureId}/comments/{commentId}
-     * @allow (get) Any user can read a comment.
-     * @allow (list) Any user can list comments for a figure.
-     * @allow (create) Any signed-in user can create a comment.
-     * @allow (update) Only the comment owner can update their comment.
-     * @allow (delete) Only the comment owner can delete their comment.
-     * @deny (create) Anonymous users cannot create comments.
-     * @principle Enforces comment ownership for writes, allows public reads.
-     */
     match /figures/{figureId}/comments/{commentId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       function isCommentOwner() {
         return resource.data.userId == request.auth.uid;
       }
       function isUpdatingVoteCounters() {
-        // Allows updates only to 'likes' and 'dislikes' fields.
         let incomingKeys = request.resource.data.keys();
         let existingKeys = resource.data.keys();
-        // This rule is a bit simplified: it ensures no fields are added or removed,
-        // and that the only fields that CAN change are 'likes' and 'dislikes'.
-        // It's secure because other fields (like 'text') must remain identical.
         return incomingKeys.hasAll(existingKeys) 
             && existingKeys.hasAll(incomingKeys) 
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']);
@@ -149,117 +90,31 @@ service cloud.firestore {
       allow delete: if isCommentOwner() && request.app != null;
     }
 
-    /**
-     * @description Secure access to comment votes.
-     * @path /figures/{figureId}/comments/{commentId}/votes/{userId}
-     * @allow (get) Any user can get a comment vote
-     * @allow (create) A user can vote only once on a comment.
-     * @allow (update) Not allowed
-     * @allow (delete) A user can delete their vote.
-     * @deny (create) User with ID 'user456' cannot create a vote for 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
     match /figures/{figureId}/comments/{commentId}/votes/{userId} {
-      function isVoteOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      allow get: if isVoteOwner(userId);
+      allow get, write: if isOwner(userId);
       allow list: if false;
-      allow create: if isVoteOwner(userId) && request.app != null;
-      allow update: if isVoteOwner(userId) && request.app != null;
-      allow delete: if isVoteOwner(userId) && request.app != null;
     }
 
-    /**
-     * @description Secure access to attitude votes for a figure.
-     * @path /figures/{figureId}/attitudeVotes/{userId}
-     * @allow (create) A user can vote for a figure only once.
-     * @allow (get) Any user can get an attitude vote
-     * @allow (update) Not allowed.
-     * @allow (delete) A user can delete their vote.
-     * @deny (create) User with ID 'user456' cannot create a vote for 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
     match /figures/{figureId}/attitudeVotes/{userId} {
-      function isVoteOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      allow get: if isVoteOwner(userId);
+      allow get, write: if isOwner(userId);
       allow list: if false;
-      allow create: if isVoteOwner(userId) && request.app != null;
-      allow update: if false;
-      allow delete: if isVoteOwner(userId) && request.app != null;
     }
 
-    /**
-     * @description Secure access to emotion votes for a figure.
-     * @path /figures/{figureId}/emotionVotes/{userId}
-     * @allow (create) A user can vote for a figure only once.
-     * @allow (get) Any user can get an emotion vote.
-     * @allow (update) Not allowed
-     * @allow (delete) A user can delete their vote.
-     * @deny (create) User with ID 'user456' cannot create a vote for 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
     match /figures/{figureId}/emotionVotes/{userId} {
-      function isVoteOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      allow get: if isVoteOwner(userId);
-      allow list: if false;
-      allow create: if isVoteOwner(userId) && request.app != null;
-      allow update: if false;
-      allow delete: if isVoteOwner(userId) && request.app != null;
+        allow get, write: if isOwner(userId);
+        allow list: if false;
     }
 
-    /**
-     * @description Secure access to user notifications.
-     * @path /users/{userId}/notifications/{notificationId}
-     * @allow (get, list) Only the owner can view their notifications.
-     * @allow (create) An authenticated user can create a notification, but only if the payload's userId matches the path.
-     * @allow (update, delete) Only the owner can modify or delete their notifications.
-     */
     match /users/{userId}/notifications/{notificationId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      allow get, list: if isOwner(userId);
-      allow create: if request.auth != null && request.resource.data.userId == userId && request.app != null;
-      allow update, delete: if isOwner(userId) && request.app != null;
+      allow read, update, delete: if isOwner(userId);
+      allow create: if isSignedIn();
     }
-
-    /**
-     * @description Secure access to user streaks.
-     * @path /users/{userId}/streaks/{streakId}
-     * @allow (create) User with ID 'user123' can create their own streak.
-     * @allow (get) User with ID 'user123' can read their own streak.
-     * @allow (update) User with ID 'user123' can update their own streak.
-     * @allow (delete) User with ID 'user123' can delete their own streak.
-     * @deny (create) User with ID 'user456' cannot create a streak for 'user123'.
-     * @deny (get) User with ID 'user456' cannot read the streak of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
+    
     match /users/{userId}/streaks/{streakId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.app != null;
-      allow update: if isOwner(userId) && request.app != null;
-      allow delete: if isOwner(userId) && request.app != null;
+        allow read, list: if true;
+        allow write: if isOwner(userId);
     }
 
-    /**
-     * @description Publicly readable list of achievements.
-     * @path /achievements/{achievementId}
-     * @allow (get) Any user can read an achievement.
-     * @allow (list) Any user can list achievements.
-     * @allow (create) Not allowed
-     * @allow (update) Not allowed
-     * @allow (delete) Not allowed
-     * @principle Public read access, no write access.
-     */
     match /achievements/{achievementId} {
       allow get: if true;
       allow list: if true;
@@ -268,21 +123,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    /**
-     * @description Secure access to user achievements.
-     * @path /users/{userId}/user_achievements/{userAchievementId}
-     * @allow (create) User with ID 'user123' can create their own user achievement.
-     * @allow (get) User with ID 'user123' can read their own user achievement.
-     * @allow (update) User with ID 'user123' can update their own user achievement.
-     * @allow (delete) User with ID 'user123' can delete their own user achievement.
-     * @deny (create) User with ID 'user456' cannot create a user achievement for 'user123'.
-     * @deny (get) User with ID 'user456' cannot read the user achievement of 'user123'.
-     * @principle Enforces document ownership for all operations.
-     */
     match /users/{userId}/user_achievements/{userAchievementId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.app != null;
@@ -290,16 +131,6 @@ service cloud.firestore {
       allow delete: if isOwner(userId) && request.app != null;
     }
 
-    /**
-     * @description Publicly readable list of related figures.
-     * @path /related_figures/{relatedFigureId}
-     * @allow (get) Any user can read a related figure.
-     * @allow (list) Any user can list related figures.
-     * @allow (create) Not allowed
-     * @allow (update) Not allowed
-     * @allow (delete) Not allowed
-     * @principle Public read access, no write access.
-     */
     match /related_figures/{relatedFigureId} {
       allow get: if true;
       allow list: if true;
@@ -307,31 +138,15 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if false;
     }
-    /**
-     * @description Grants admin privileges based on document existence.
-     * @path /roles_admin/{userId}
-     * @allow (get) Anyone can check if a user is an admin.
-     * @allow (list) Not allowed
-     * @allow (create) Only admins can grant admin privileges.
-     * @allow (update) Only admins can update admin privileges.
-     * @allow (delete) Only admins can revoke admin privileges.
-     * @principle Existence-based role check.
-     */
+
      match /roles_admin/{userId} {
-        function isAdmin() {
-            return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-        }
-        allow get: if true; // Anyone can check for admin status.
+        allow get: if isSignedIn();
         allow list: if false;
         allow create: if isAdmin() && request.app != null;
         allow update: if isAdmin() && request.app != null;
         allow delete: if isAdmin() && request.app != null;
     }
 
-    /**
-     * @description Stores the aggregated vote counts for a GOAT battle.
-     * @path /goat_battles/{battleId}
-     */
     match /goat_battles/{battleId} {
         allow get: if true;
         allow list: if true;
@@ -340,19 +155,12 @@ service cloud.firestore {
         allow delete: if false;
     }
 
-    /**
-     * @description Stores an individual user's vote in a GOAT battle to prevent duplicate voting.
-     * @path /goat_battles/{battleId}/votes/{userId}
-     */
     match /goat_battles/{battleId}/votes/{userId} {
-        function isVoteOwner(userId) {
-            return request.auth.uid == userId;
-        }
-        allow get: if isVoteOwner(userId);
+        allow get: if isOwner(userId);
         allow list: if false;
-        allow create: if isVoteOwner(userId) && request.app != null;
+        allow create: if isOwner(userId) && request.app != null;
         allow update: if false;
-        allow delete: if isVoteOwner(userId) && request.app != null;
+        allow delete: if isOwner(userId) && request.app != null;
     }
   }
 }
