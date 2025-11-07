@@ -104,15 +104,15 @@ export default function ProfilePage() {
                     const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
                     const usernameDoc = await transaction.get(newUsernameRef);
                     if (usernameDoc.exists() && usernameDoc.data()?.userId !== user.uid) {
-                        // This error will be caught by the catch block below
                         throw new Error('El nombre de usuario ya está en uso.');
                     }
 
-                    // Proceed with updates only if username is available
+                    // Delete the old username document if it exists
                     if (oldUsernameLower) {
                         const oldUsernameRef = doc(firestore, 'usernames', oldUsernameLower);
                         transaction.delete(oldUsernameRef);
                     }
+                    // Set the new username document
                     transaction.set(newUsernameRef, { userId: user.uid });
                 }
                 
