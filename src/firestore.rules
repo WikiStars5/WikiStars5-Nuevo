@@ -16,6 +16,29 @@ service cloud.firestore {
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
+    
+    /**
+     * Checks if a specific numeric field has been incremented by exactly 1 or -1.
+     * This is crucial for securing counters like votes, likes, etc.
+     * @param field The name of the field to check (e.g., 'likes', 'messiVotes').
+     */
+    function isIncrement(field) {
+      let currentValue = resource.data[field];
+      let nextValue = request.resource.data[field];
+      return (nextValue == currentValue + 1) || (nextValue == currentValue - 1);
+    }
+    
+    /**
+     * Checks if a map of counters (like attitude or emotion votes) has only one
+     * key that was incremented or decremented by exactly 1.
+     * @param mapField The name of the map field (e.g., 'attitude').
+     */
+    function isMapIncrement(mapField) {
+        let changedKeys = request.resource.data[mapField].diff(resource.data[mapField]).affectedKeys();
+        // Ensure only one counter in the map is changed at a time
+        return changedKeys.size() == 1 && isIncrement(mapField + '.' + changedKeys[0]);
+    }
+
 
     // --- /users/{userId} ---
     // Stores all user profile data, private or public.
@@ -78,8 +101,26 @@ service cloud.firestore {
       allow get, list: if true;
       // Only admins can create or delete figures.
       allow create, delete: if isAdmin();
-      // Any signed-in user can update the figure's data (wiki-style).
-      allow update: if isSignedIn();
+      
+      // Update rule is now complex to handle different scenarios securely.
+      allow update: if isSignedIn() && (
+        // Scenario 1: Wiki-style edit of informational fields by any user.
+        // We explicitly list the fields that are NOT vote counters.
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'description', 
+            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
+        ]) ||
+        // Scenario 2: Updating vote counters, which must be transactional increments.
+        isMapIncrement('attitude') ||
+        isMapIncrement('emotion') ||
+        (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
+            (
+                (isIncrement('ratingCount') && request.resource.data.totalRating != resource.data.totalRating) || // New rating
+                (request.resource.data.ratingCount == resource.data.ratingCount) // Changed rating
+            )
+        )
+      );
 
       // --- /figures/{figureId}/comments/{commentId} ---
       // Comments for a specific figure.
@@ -88,8 +129,11 @@ service cloud.firestore {
         allow get, list: if true;
         // Any signed-in user can create a comment.
         allow create: if isSignedIn();
-        // An update is allowed if you are the owner (for editing text) OR if you are just changing vote counters.
-        allow update: if isSignedIn() && ((resource.data.userId == request.auth.uid) || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])));
+        // Update is allowed if you are the owner (for text) OR if you are just incrementing votes.
+        allow update: if isSignedIn() && (
+          (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
+          isIncrement('likes') || isIncrement('dislikes')
+        );
         // Owner or admin can delete.
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
@@ -145,10 +189,11 @@ service cloud.firestore {
         // Publicly readable.
         allow get, list: if true; 
         
-        // Admins can create/delete a battle.
-        allow create, delete: if isAdmin();
-        // Users can update vote counters.
-        allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']);
+        // Admins can create/delete/fully write a battle document.
+        allow create, delete, write: if isAdmin();
+        
+        // Any signed in user can update the vote counters, but ONLY by +/- 1
+        allow update: if isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes'));
         
         // --- /goat_battles/{battleId}/votes/{userId} ---
         // Prevents duplicate votes in GOAT battle.
@@ -167,3 +212,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
