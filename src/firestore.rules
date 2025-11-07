@@ -46,7 +46,7 @@ service cloud.firestore {
       allow delete: if isOwner(userId) && request.app != null;
 
       match /streaks/{streakId} {
-        allow read, list: if true;
+        allow read, list: if isOwner(userId);
         allow write: if isOwner(userId);
       }
     }
@@ -79,7 +79,7 @@ service cloud.firestore {
 
       match /streaks/{userId} {
         allow read, list: if true;
-        allow write: if isOwner(userId);
+        allow write: if request.auth.uid == userId;
       }
     }
 
@@ -170,5 +170,3 @@ service cloud.firestore {
     }
   }
 }
-
-  
