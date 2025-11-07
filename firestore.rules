@@ -1,166 +1,210 @@
-/**
- * @file Firestore Security Rules for WikiStars5
- * @version Prototyping
- *
- * @Core Philosophy:
- * This ruleset prioritizes secure access control based on user ownership and role-based permissions.
- * It enforces strict separation of user data and public data, while allowing flexible data shapes for rapid iteration.
- *
- * @Data Structure:
- * - User-specific data is nested under `/users/{userId}`.
- * - Public figure data is stored in the top-level `/figures/{figureId}` collection.
- * - Additional top-level collections like `/achievements` and `/related_figures` store global data.
- *
- * @Key Security Decisions:
- * - Users can only access their own data under `/users/{userId}`.
- * - Public figure profiles are publicly readable but only writable by admins.
- * - User listing is generally disallowed for privacy.
- * - Data shape validation is minimized to allow for flexible prototyping.
- *
- * @Denormalization for Authorization:
- * - Comments store the `publicFigureId` to avoid needing to fetch the parent figure for authorization.
- * - Streaks store the `publicFigureId` to simplify querying and authorization.
- */
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- Global Helper Functions ---
+    
     function isSignedIn() {
-        return request.auth != null;
+      return request.auth != null;
     }
     
     function isOwner(userId) {
-        return request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
     function isAdmin() {
-        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && request.app != null;
-      allow update: if isOwner(userId) && request.app != null;
-      allow delete: if isOwner(userId) && request.app != null;
-    }
-
-     match /status/{userId} {
-          allow get: if isOwner(userId);
-          allow list: if false;
-          allow create: if isOwner(userId) && request.app != null;
-          allow update: if isOwner(userId) && request.app != null;
-          allow delete: if isOwner(userId) && request.app != null;
-      }
-
-    match /usernames/{username} {
-      function isUsernameOwner(username) {
-        return get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
-      }
-      allow get: if true;
-      allow list: if false;
-      allow create: if request.auth.uid != null && request.app != null;
-      allow update: if false;
-      allow delete: if isUsernameOwner(username) && request.app != null;
-    }
-
-    match /figures/{figureId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isAdmin() && request.app != null;
-      allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown']));
-      allow delete: if isAdmin() && request.app != null;
-    }
-
-    match /figures/{figureId}/comments/{commentId} {
-      function isCommentOwner() {
-        return resource.data.userId == request.auth.uid;
-      }
-      function isUpdatingVoteCounters() {
-        let incomingKeys = request.resource.data.keys();
-        let existingKeys = resource.data.keys();
-        return incomingKeys.hasAll(existingKeys) 
-            && existingKeys.hasAll(incomingKeys) 
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']);
-      }
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && request.app != null;
-      allow update: if isSignedIn() && request.app != null && (isCommentOwner() || isUpdatingVoteCounters());
-      allow delete: if isCommentOwner() && request.app != null;
-    }
-
-    match /figures/{figureId}/comments/{commentId}/votes/{userId} {
-      allow get, write: if isOwner(userId);
-      allow list: if false;
-    }
-
-    match /figures/{figureId}/attitudeVotes/{userId} {
-      allow get, write: if isOwner(userId);
-      allow list: if false;
-    }
-
-    match /figures/{figureId}/emotionVotes/{userId} {
-        allow get, write: if isOwner(userId);
-        allow list: if false;
-    }
-
-    match /users/{userId}/notifications/{notificationId} {
-      allow read, update, delete: if isOwner(userId);
-      allow create: if isSignedIn();
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
     
-    match /users/{userId}/streaks/{streakId} {
-        allow read, list: if true;
-        allow write: if isOwner(userId);
+    /**
+     * Checks if a specific numeric field has been incremented by exactly 1 or -1.
+     * This is crucial for securing counters like votes, likes, etc.
+     * @param field The name of the field to check (e.g., 'likes', 'messiVotes').
+     */
+    function isIncrement(field) {
+      let currentValue = resource.data[field];
+      let nextValue = request.resource.data[field];
+      return (nextValue == currentValue + 1) || (nextValue == currentValue - 1);
+    }
+    
+    /**
+     * Checks if a map of counters (like attitude or emotion votes) has only one
+     * key that was incremented or decremented by exactly 1.
+     * @param mapField The name of the map field (e.g., 'attitude').
+     */
+    function isMapIncrement(mapField) {
+        let changedKeys = request.resource.data[mapField].diff(resource.data[mapField]).affectedKeys();
+        // Ensure only one counter in the map is changed at a time
+        return changedKeys.size() == 1 && isIncrement(mapField + '.' + changedKeys[0]);
     }
 
-    match /achievements/{achievementId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false;
+
+    // --- /users/{userId} ---
+    // Stores all user profile data, private or public.
+    match /users/{userId} {
+      // A user can get their own document. An admin can get any document.
+      allow get: if isOwner(userId) || isAdmin();
+      // An admin can list all users for the dashboard.
+      allow list: if isAdmin();
+      // A user can create their own document upon sign-up.
+      allow create: if isOwner(userId);
+       // A user can update their own document. An admin can update any document.
+      allow update: if isOwner(userId) || isAdmin();
+      // A user can delete their own account. An admin can delete any account.
+      allow delete: if isOwner(userId) || isAdmin();
+
+        // --- /users/{userId}/streaks/{streakId} ---
+        // Private streak data for each user.
+        match /streaks/{streakId} {
+            allow read, write: if isOwner(userId);
+            allow list: if isOwner(userId);
+        }
+    
+        // --- /users/{userId}/notifications/{notificationId} ---
+        // User-specific notifications.
+        match /notifications/{notificationId} {
+            // Owner can read, update, and delete their own notifications.
+            allow read, update, delete: if isOwner(userId);
+            // Any signed-in user can create a notification (e.g., for a reply).
+            allow create: if isSignedIn();
+        }
+    }
+
+
+    // --- /status/{userId} ---
+    // Real-time presence data for users.
+    match /status/{userId} {
+      // Only the owner can update their own online status.
+      allow read, write: if isOwner(userId);
+      allow list: if false;
+    }
+
+    // --- /usernames/{username} ---
+    // Used to enforce unique usernames. Document ID is the lowercase username.
+    match /usernames/{username} {
+      // Anyone can check if a username exists.
+      allow get: if true; 
+      allow list: if false;
+      // Any signed-in user can claim a username.
+      allow create: if isSignedIn(); 
+      // The user who owns the username document can delete it (e.g., when changing their name).
+      allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
+      // Username documents are write-once.
       allow update: if false;
-      allow delete: if false;
     }
 
-    match /users/{userId}/user_achievements/{userAchievementId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.app != null;
-      allow update: if isOwner(userId) && request.app != null;
-      allow delete: if isOwner(userId) && request.app != null;
+    // --- /figures/{figureId} ---
+    // Public figure profiles.
+    match /figures/{figureId} {
+      // Anyone can read and list figures.
+      allow get, list: if true;
+      // Only admins can create or delete figures.
+      allow create, delete: if isAdmin();
+      
+      // Any signed-in user can update.
+      allow update: if isSignedIn() && (
+        // Any user can edit the wiki-style information fields.
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
+            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
+        ]) ||
+        // Or any signed-in user can update the vote counters.
+        // The transaction on the client + the individual vote documents are the security layer here.
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
+      );
+
+      // --- /figures/{figureId}/comments/{commentId} ---
+      // Comments for a specific figure.
+      match /comments/{commentId} {
+        // Anyone can read comments.
+        allow get, list: if true;
+        // Any signed-in user can create a comment.
+        allow create: if isSignedIn();
+        // Update is allowed if you are the owner (for text) OR if you are just incrementing votes.
+        allow update: if isSignedIn() && (
+          (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
+          isIncrement('likes') || isIncrement('dislikes')
+        );
+        // Owner or admin can delete.
+        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+
+        // --- /figures/{figureId}/comments/{commentId}/votes/{userId} ---
+        // Prevents duplicate likes/dislikes on a comment.
+        match /votes/{userId} {
+          // You can only manage your own vote document.
+          allow get, write: if isOwner(userId);
+          allow list: if false;
+        }
+      }
+
+      // --- /figures/{figureId}/attitudeVotes/{userId} & emotionVotes/{userId} ---
+      // Prevents duplicate attitude/emotion votes on a figure.
+      match /attitudeVotes/{userId} {
+        allow get, write: if isOwner(userId);
+        allow list: if false;
+      }
+      match /emotionVotes/{userId} {
+        allow get, write: if isOwner(userId);
+        allow list: if false;
+      }
+      
+      // --- /figures/{figureId}/streaks/{userId} ---
+      // Public-facing streak data for leaderboards.
+      match /streaks/{userId} {
+        // Anyone can read for the leaderboard.
+        allow read, list: if true; 
+        // Only the owner of the streak can write to their public streak document.
+        allow write: if request.auth.uid == userId;
+      }
     }
 
+    // --- /hashtags/{hashtagId} ---
+    // Stores all unique hashtags for search/autocomplete.
+    match /hashtags/{hashtagId} {
+        // Anyone can read hashtags for searching.
+        allow get: if true;
+        allow list: if true;
+        // Any signed-in user can create/update a hashtag when editing a profile.
+        allow write: if isSignedIn();
+    }
+
+    // --- /related_figures/{relatedFigureId} ---
+    // Stores relationships between public figures.
     match /related_figures/{relatedFigureId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow write: if isAdmin();
+      allow delete: if isAdmin();
     }
 
-     match /roles_admin/{userId} {
-        allow get: if isSignedIn();
-        allow list: if false;
-        allow create: if isAdmin() && request.app != null;
-        allow update: if isAdmin() && request.app != null;
-        allow delete: if isAdmin() && request.app != null;
-    }
-
+    // --- /goat_battles/{battleId} ---
+    // GOAT battle data.
     match /goat_battles/{battleId} {
-        allow get: if true;
-        allow list: if true;
-        allow create: if false;
-        allow update: if false;
-        allow delete: if false;
+        // Publicly readable.
+        allow get, list: if true; 
+        
+        // Admins can create/delete the battle document.
+        allow create, delete: if isAdmin();
+        
+        // Any signed in user can update the vote counters by +/- 1. Admin can change winner.
+        allow update: if (isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes'))) ||
+                         (isAdmin() && request.resource.data.winner != resource.data.winner);
+        
+        // --- /goat_battles/{battleId}/votes/{userId} ---
+        // Prevents duplicate votes in GOAT battle.
+        match /votes/{userId} {
+            allow get, write: if isOwner(userId);
+            allow list: if false;
+        }
     }
-
-    match /goat_battles/{battleId}/votes/{userId} {
-        allow get: if isOwner(userId);
-        allow list: if false;
-        allow create: if isOwner(userId) && request.app != null;
-        allow update: if false;
-        allow delete: if isOwner(userId) && request.app != null;
+    
+    // --- /roles_admin/{userId} ---
+    // Admin role management.
+    match /roles_admin/{userId} {
+      allow get: if isSignedIn();
+      allow write: if isAdmin();
+      allow list: if false;
     }
   }
 }
