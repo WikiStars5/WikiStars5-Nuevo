@@ -102,15 +102,15 @@ service cloud.firestore {
       // Only admins can create or delete figures.
       allow create, delete: if isAdmin();
       
-      // Any signed-in user can update.
+      // Update rule is now complex to handle different scenarios securely.
       allow update: if isSignedIn() && (
-        // Any user can edit the wiki-style information fields.
+        // Scenario 1: Wiki-style edit of informational fields by any user.
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
             'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
         ]) ||
-        // Or any signed-in user can update the vote counters.
-        // The transaction on the client + the individual vote documents are the security layer here.
+        // Scenario 2: Updating vote counters, which must be part of a transaction.
+        // We trust the client-side transaction logic and the individual vote documents as the main security layer.
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
       );
 
@@ -142,11 +142,13 @@ service cloud.firestore {
       // Prevents duplicate attitude/emotion votes on a figure.
       match /attitudeVotes/{userId} {
         allow get, write: if isOwner(userId);
-        allow list: if false;
+        // Allow a user to LIST their OWN votes across all figures via collectionGroup query
+        allow list: if request.auth.uid == resource.data.userId;
       }
       match /emotionVotes/{userId} {
         allow get, write: if isOwner(userId);
-        allow list: if false;
+         // Allow a user to LIST their OWN votes across all figures via collectionGroup query
+        allow list: if request.auth.uid == resource.data.userId;
       }
       
       // --- /figures/{figureId}/streaks/{userId} ---
@@ -163,8 +165,7 @@ service cloud.firestore {
     // Stores all unique hashtags for search/autocomplete.
     match /hashtags/{hashtagId} {
         // Anyone can read hashtags for searching.
-        allow get: if true;
-        allow list: if true;
+        allow get, list: if true;
         // Any signed-in user can create/update a hashtag when editing a profile.
         allow write: if isSignedIn();
     }
@@ -172,8 +173,7 @@ service cloud.firestore {
     // --- /related_figures/{relatedFigureId} ---
     // Stores relationships between public figures.
     match /related_figures/{relatedFigureId} {
-      allow get: if true;
-      allow list: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
       allow delete: if isAdmin();
     }
