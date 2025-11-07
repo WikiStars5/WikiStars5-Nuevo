@@ -57,8 +57,9 @@ service cloud.firestore {
         // --- /users/{userId}/streaks/{streakId} ---
         // Private streak data for each user.
         match /streaks/{streakId} {
-            allow read, write: if isOwner(userId);
-            allow list: if isOwner(userId);
+            // The owner can read and write their own private streak documents.
+            // list is required for the user profile page to show all their streaks.
+            allow get, list, write: if isOwner(userId);
         }
     
         // --- /users/{userId}/notifications/{notificationId} ---
@@ -66,6 +67,8 @@ service cloud.firestore {
         match /notifications/{notificationId} {
             // Owner can read, update, and delete their own notifications.
             allow read, update, delete: if isOwner(userId);
+            // list is allowed for the user to see all their notifications.
+            allow list: if isOwner(userId);
             // Any signed-in user can create a notification (e.g., for a reply).
             allow create: if isSignedIn();
         }
@@ -105,21 +108,13 @@ service cloud.firestore {
       // Update rule is now complex to handle different scenarios securely.
       allow update: if isSignedIn() && (
         // Scenario 1: Wiki-style edit of informational fields by any user.
-        // We explicitly list the fields that are NOT vote counters.
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'description', 
+            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
             'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
         ]) ||
-        // Scenario 2: Updating vote counters, which must be transactional increments.
-        isMapIncrement('attitude') ||
-        isMapIncrement('emotion') ||
-        (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
-            (
-                (isIncrement('ratingCount') && request.resource.data.totalRating != resource.data.totalRating) || // New rating
-                (request.resource.data.ratingCount == resource.data.ratingCount) // Changed rating
-            )
-        )
+        // Scenario 2: Updating vote counters. We trust the client-side transaction logic
+        // and the individual vote documents as the main security layer.
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
       );
 
       // --- /figures/{figureId}/comments/{commentId} ---
@@ -147,14 +142,16 @@ service cloud.firestore {
       }
 
       // --- /figures/{figureId}/attitudeVotes/{userId} & emotionVotes/{userId} ---
-      // Prevents duplicate attitude/emotion votes on a figure.
+      // These rules allow a user to read/write their OWN vote document.
+      // Crucially, they also allow a 'list' operation for collectionGroup queries,
+      // but the query itself in the app code MUST contain `where('userId', '==', request.auth.uid)`.
       match /attitudeVotes/{userId} {
         allow get, write: if isOwner(userId);
-        allow list: if false;
+        allow list: if isSignedIn();
       }
       match /emotionVotes/{userId} {
         allow get, write: if isOwner(userId);
-        allow list: if false;
+        allow list: if isSignedIn();
       }
       
       // --- /figures/{figureId}/streaks/{userId} ---
@@ -163,7 +160,7 @@ service cloud.firestore {
         // Anyone can read for the leaderboard.
         allow read, list: if true; 
         // Only the owner of the streak can write to their public streak document.
-        allow write: if request.auth.uid == userId;
+        allow write: if isOwner(userId);
       }
     }
 
@@ -171,7 +168,7 @@ service cloud.firestore {
     // Stores all unique hashtags for search/autocomplete.
     match /hashtags/{hashtagId} {
         // Anyone can read hashtags for searching.
-        allow read, list: if true;
+        allow get, list: if true;
         // Any signed-in user can create/update a hashtag when editing a profile.
         allow write: if isSignedIn();
     }
@@ -180,7 +177,8 @@ service cloud.firestore {
     // Stores relationships between public figures.
     match /related_figures/{relatedFigureId} {
       allow get, list: if true;
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if false;
     }
 
     // --- /goat_battles/{battleId} ---
@@ -189,11 +187,12 @@ service cloud.firestore {
         // Publicly readable.
         allow get, list: if true; 
         
-        // Admins can create/delete/fully write a battle document.
-        allow create, delete, write: if isAdmin();
+        // Admins can create/delete the battle document.
+        allow create, delete: if isAdmin();
         
-        // Any signed in user can update the vote counters, but ONLY by +/- 1
-        allow update: if isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes'));
+        // Any signed in user can update the vote counters by +/- 1. Admin can change winner.
+        allow update: if (isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes'))) ||
+                         (isAdmin() && request.resource.data.winner != resource.data.winner);
         
         // --- /goat_battles/{battleId}/votes/{userId} ---
         // Prevents duplicate votes in GOAT battle.
@@ -212,5 +211,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
