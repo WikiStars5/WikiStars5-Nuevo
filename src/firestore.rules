@@ -125,16 +125,21 @@ service cloud.firestore {
     // --- /related_figures/{relatedFigureId} ---
     // Stores relationships between public figures.
     match /related_figures/{relatedFigureId} {
-      allow get: if true; // Anyone can read a specific relationship document.
-      allow list: if true; // Anyone can list relationships to find related figures.
-      allow write: if isAdmin(); // Only admins can create/update/delete.
+      allow get, list: if true;
+      allow write: if isAdmin();
     }
 
     // --- /goat_battles/{battleId} ---
     // GOAT battle data.
     match /goat_battles/{battleId} {
-        allow get, list: if true; // Publicly readable.
-        allow write: if isAdmin(); // Managed by admin panel.
+        // Publicly readable.
+        allow get, list: if true; 
+        
+        // Only admins can create/delete a battle.
+        allow create, delete: if isAdmin();
+        
+        // Admins can update everything. Users can only update vote counters.
+        allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']));
         
         // --- /goat_battles/{battleId}/votes/{userId} ---
         // Prevents duplicate votes in GOAT battle.
