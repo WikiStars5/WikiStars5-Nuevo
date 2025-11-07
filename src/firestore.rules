@@ -20,7 +20,7 @@ service cloud.firestore {
     function isIncrement(field) {
       let currentValue = resource.data[field];
       let nextValue = request.resource.data[field];
-      return (nextValue == currentValue + 1) || (nextValue == currentValue - 1);
+      return (nextValue == currentValue + 1);
     }
     
     function isMapIncrement(mapField) {
@@ -86,7 +86,7 @@ service cloud.firestore {
         allow create: if isSignedIn();
         allow update: if isSignedIn() && (
           (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
-          isIncrement('likes') || isIncrement('dislikes')
+          (isIncrement('likes') || isIncrement('dislikes'))
         );
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
