@@ -62,7 +62,8 @@ service cloud.firestore {
 
     match /figures/{figureId} {
       allow get, list: if true;
-      allow create, delete: if isAdmin();
+      allow create: if isSignedIn();
+      allow delete: if isAdmin();
       
       allow update: if isSignedIn() && (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
