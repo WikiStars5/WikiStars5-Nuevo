@@ -5,6 +5,12 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+  workboxOptions: {
+    // This is a custom service worker that we want to use.
+    // The default is to generate one.
+    swSrc: 'firebase-messaging-sw.js',
+    swDest: 'public/firebase-messaging-sw.js',
+  },
 });
 
 
@@ -48,40 +54,9 @@ const nextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
-        hostname: 'www.google.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'flagcdn.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i.pinimg.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-  },
-  async redirects() {
-    return [
-      {
-        source: '/favicon.ico',
-        destination: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6',
-        permanent: true,
-      },
+        protocol: 'https'
+      }
     ]
-  },
-};
+  }
+}
 
-export default withPWA(nextConfig);

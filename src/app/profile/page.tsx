@@ -16,13 +16,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, BellRing, BellOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
 import MainLayout from '@/app/(main)/layout';
+import { usePushNotifications } from '@/firebase/auth/use-push-notifications';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 
 const profileSchema = z.object({
@@ -40,6 +43,8 @@ function ProfilePageContent() {
     const auth = useAuth();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
+
+    const { requestPermissionAndSubscribe, isSubscribed, permissionStatus } = usePushNotifications();
 
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
@@ -298,6 +303,31 @@ function ProfilePageContent() {
                         </Card>
                     </form>
                 </Form>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Configuración de Notificaciones</CardTitle>
+                        <CardDescription>Gestiona cómo quieres recibir las notificaciones.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <div className="flex items-center space-x-4 rounded-md border p-4">
+                            <BellRing />
+                            <div className="flex-1 space-y-1">
+                                <p className="text-sm font-medium leading-none">
+                                Notificaciones Push
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                Recibe notificaciones directamente en tu dispositivo, incluso cuando no estés en la app.
+                                </p>
+                            </div>
+                            <Switch
+                                checked={isSubscribed}
+                                onCheckedChange={(checked) => requestPermissionAndSubscribe(checked)}
+                                disabled={permissionStatus === 'denied' || permissionStatus === 'loading'}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
 
                 <UserActivity />
             </div>
