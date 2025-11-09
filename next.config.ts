@@ -1,20 +1,6 @@
 
 /** @type {import('next').NextConfig} */
 
-const withPWA = require('@ducanh2912/next-pwa').default({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-  workboxOptions: {
-    // This is a custom service worker that we want to use.
-    // The default is to generate one.
-    swSrc: 'firebase-messaging-sw.js',
-    swDest: 'public/firebase-messaging-sw.js',
-  },
-});
-
-
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -82,4 +68,4 @@ const nextConfig = {
   }
 }
 
-module.exports = withPWA(nextConfig);
+module.exports = nextConfig;
