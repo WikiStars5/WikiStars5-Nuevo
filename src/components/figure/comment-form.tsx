@@ -134,6 +134,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       const streakResult = await updateStreak({
         firestore,
         figureId,
+        figureName,
         userId: user.uid,
         userDisplayName: displayName!,
         userPhotoURL: user.photoURL,

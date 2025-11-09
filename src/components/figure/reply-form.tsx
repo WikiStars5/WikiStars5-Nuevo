@@ -107,6 +107,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
       const streakResult = await updateStreak({
         firestore,
         figureId,
+        figureName,
         userId: user.uid,
         userDisplayName: displayName,
         userPhotoURL: user.photoURL,

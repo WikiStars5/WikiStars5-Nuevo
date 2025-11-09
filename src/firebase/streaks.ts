@@ -8,13 +8,17 @@ import {
     increment,
     Firestore,
     Timestamp,
-    writeBatch
+    writeBatch,
+    collection,
+    addDoc
 } from 'firebase/firestore';
 import type { Streak } from '@/lib/types';
+import { addDocumentNonBlocking } from './non-blocking-updates';
 
 interface UpdateStreakParams {
     firestore: Firestore;
     figureId: string;
+    figureName: string;
     userId: string;
     userDisplayName: string;
     userPhotoURL: string | null;
@@ -27,6 +31,10 @@ interface StreakUpdateResult {
     streakGained: boolean;
     newStreakCount: number;
 }
+
+// Defines the streak counts that trigger a notification.
+const STREAK_MILESTONES = [3, 7, 15, 30, 50, 100, 365];
+
 
 /**
  * Checks if two dates are on the same day, ignoring time.
@@ -50,6 +58,7 @@ function isYesterday(date: Date, today: Date): boolean {
 export async function updateStreak({
     firestore,
     figureId,
+    figureName,
     userId,
     isAnonymous,
     ...denormalizedUserData
@@ -117,6 +126,20 @@ export async function updateStreak({
         // Commit the batch to write both documents atomically.
         await batch.commit();
 
+        // Check if the new streak count is a milestone and create a notification
+        if (streakGained && STREAK_MILESTONES.includes(newStreakCount)) {
+            const notificationsColRef = collection(firestore, 'users', userId, 'notifications');
+            const notification = {
+                userId,
+                type: 'streak_milestone',
+                message: `¡Felicidades! Has alcanzado una racha de ${newStreakCount} días en el perfil de ${figureName}.`,
+                isRead: false,
+                createdAt: serverTimestamp(),
+                link: `/figures/${figureId}`, // Link to the figure's page
+            };
+            addDocumentNonBlocking(notificationsColRef, notification);
+        }
+
         return { streakGained, newStreakCount };
         
     } catch (error) {
@@ -125,5 +148,3 @@ export async function updateStreak({
         return null;
     }
 }
-
-  

@@ -121,7 +121,7 @@ export interface CommentVote {
 export interface Notification {
   id: string;
   userId: string;
-  type: 'comment_reply';
+  type: 'comment_reply' | 'streak_milestone';
   message: string;
   isRead: boolean;
   createdAt: Timestamp;
