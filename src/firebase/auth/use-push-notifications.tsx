@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -148,3 +149,5 @@ export function usePushNotifications() {
     permissionStatus: notificationPermission,
   };
 }
+
+    

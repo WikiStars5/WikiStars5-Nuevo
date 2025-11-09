@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, FirebaseApp, cert, type AppOptions } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -27,3 +28,5 @@ export function getSdks() {
     firestore: getFirestore(app),
   };
 }
+
+    

@@ -161,4 +161,5 @@ export interface GoatVote {
     vote: 'messi' | 'ronaldo';
     createdAt: Timestamp;
 }
+
     

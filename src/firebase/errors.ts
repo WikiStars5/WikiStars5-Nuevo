@@ -1,3 +1,4 @@
+
 'use client';
 import { getAuth, type User } from 'firebase/auth';
 
@@ -121,3 +122,5 @@ export class FirestorePermissionError extends Error {
     this.request = requestObject;
   }
 }
+
+    

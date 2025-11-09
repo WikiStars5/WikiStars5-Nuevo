@@ -1,22 +1,34 @@
-'use client';
+
+// This file must be in the public folder.
+
 import { initializeApp } from 'firebase/app';
 import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
-import { firebaseConfig } from '../src/firebase/config';
 
-// Initialize the Firebase app in the service worker
-const firebaseApp = initializeApp(firebaseConfig);
-const messaging = getMessaging(firebaseApp);
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  "projectId": "wikistars5-nuevo",
+  "appId": "1:480215928523:web:a5de1569959fadc56fd54e",
+  "apiKey": "AIzaSyBy0a6uH3AyezH47bXHJd33fFopBmAiV1E",
+  "authDomain": "wikistars5-nuevo.firebaseapp.com",
+  "storageBucket": "wikistars5-nuevo.appspot.com",
+  "messagingSenderId": "480215928523",
+  "measurementId": "G-NWYPQGSDMP"
+};
+
+
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
 
 onBackgroundMessage(messaging, (payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
   
-  if (payload.notification) {
-    const notificationTitle = payload.notification.title || 'Nueva Notificación';
-    const notificationOptions = {
-      body: payload.notification.body,
-      icon: payload.notification.icon || '/icon-192x192.png'
-    };
+  const notificationTitle = payload.notification?.title || 'New Message';
+  const notificationOptions = {
+    body: payload.notification?.body || '',
+    icon: payload.notification?.icon || '/logo-192.png'
+  };
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
-  }
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
+    

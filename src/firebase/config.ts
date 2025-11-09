@@ -1,3 +1,4 @@
+
 export const firebaseConfig = {
   "projectId": "wikistars5-nuevo",
   "appId": "1:480215928523:web:a5de1569959fadc56fd54e",
@@ -7,3 +8,5 @@ export const firebaseConfig = {
   "messagingSenderId": "480215928523",
   "measurementId": "G-NWYPQGSDMP"
 };
+
+    
