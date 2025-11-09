@@ -14,7 +14,7 @@ import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -222,6 +222,10 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 <Flame className="mr-2 h-4 w-4" />
                 Rachas
               </TabsTrigger>
+              <TabsTrigger value="logros">
+                <Trophy className="mr-2 h-4 w-4" />
+                Logros
+              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -333,6 +337,17 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           </TabsContent>
           <TabsContent value="rachas" className="mt-4">
             <TopStreaks figureId={figureId} />
+          </TabsContent>
+          <TabsContent value="logros" className="mt-4">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Logros</CardTitle>
+                    <CardDescription>Insignias y reconocimientos de la comunidad.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground text-center">Próximamente: ¡Aquí se mostrarán los logros de los usuarios!</p>
+                </CardContent>
+            </Card>
           </TabsContent>
            {isGoatCandidate && (
              <TabsContent value="goat" className="mt-4">
