@@ -81,7 +81,13 @@ service cloud.firestore {
           (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
           isIncrement('likes') || isIncrement('dislikes')
         );
-        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+        allow delete: if 
+          // Allow if user is the owner of the comment
+          resource.data.userId == request.auth.uid ||
+          // OR if user is the owner of the parent comment (to delete replies)
+          (resource.data.parentId != null && get(/databases/$(database)/documents/figures/$(figureId)/comments/$(resource.data.parentId)).data.userId == request.auth.uid) ||
+          // OR if user is an admin
+          isAdmin();
 
         match /votes/{userId} {
           allow get, write: if isOwner(userId);
