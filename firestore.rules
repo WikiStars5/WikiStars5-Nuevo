@@ -121,7 +121,7 @@ service cloud.firestore {
     // --- /related_figures/{relatedFigureId} ---
     match /related_figures/{relatedFigureId} {
       allow get, list: if true;
-      allow create, delete: if isAdmin();
+      allow create, delete: if isSignedIn();
       allow update: if false;
     }
 
