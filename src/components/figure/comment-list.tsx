@@ -190,7 +190,7 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
 
   const SubFilterButton = ({ filter, children, isActive }: { filter: MyCommentsFilterType, children: React.ReactNode, isActive: boolean }) => (
      <Button
-        variant={isActive ? 'default' : 'ghost'}
+        variant={isActive ? 'secondary' : 'ghost'}
         className={cn(
             "h-7 px-2.5 text-xs",
             isActive && "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -209,7 +209,6 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
         <div className="flex items-center gap-2 flex-wrap">
             <FilterButton filter="featured" isActive={activeFilter === 'featured'}>Destacados</FilterButton>
             <FilterButton filter="popular" isActive={activeFilter === 'popular'}>Más Populares</FilterButton>
-            <FilterButton filter="newest" isActive={activeFilter === 'newest'}>Más Recientes</FilterButton>
             {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>Mis Opiniones</FilterButton>}
             
             <div className="flex-grow" />
