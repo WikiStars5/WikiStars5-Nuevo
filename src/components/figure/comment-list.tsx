@@ -26,6 +26,8 @@ const INITIAL_COMMENT_LIMIT = 5;
 const COMMENT_INCREMENT = 5;
 
 type FilterType = 'featured' | 'popular' | 'newest' | 'mine' | number;
+type MyCommentsFilterType = 'all' | 'answered' | 'unanswered';
+
 
 interface CommentListProps {
   figureId: string;
@@ -54,6 +56,8 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
+  const [myCommentsFilter, setMyCommentsFilter] = useState<MyCommentsFilterType>('all');
+
 
   // The base query now sorts by creation date by default.
   const commentsQuery = useMemoFirebase(() => {
@@ -83,14 +87,26 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     
     if (activeFilter === 'mine') {
       if (!user) return [];
-      return rootComments.filter(comment => comment.userId === user.uid);
+      
+      const userComments = rootComments.filter(comment => comment.userId === user.uid);
+      const replyIds = new Set(allReplies.map(reply => reply.parentId));
+
+      if (myCommentsFilter === 'answered') {
+          return userComments.filter(comment => replyIds.has(comment.id));
+      }
+      if (myCommentsFilter === 'unanswered') {
+          return userComments.filter(comment => !replyIds.has(comment.id));
+      }
+      // 'all' case
+      return userComments;
+
     } else if (typeof activeFilter === 'number') {
        return rootComments.filter(comment => comment.rating === activeFilter);
     }
     // For 'featured', 'popular' and 'newest', we start with all root comments.
     // The sorting logic below will handle these.
     return rootComments;
-  }, [rootComments, activeFilter, user]);
+  }, [rootComments, allReplies, activeFilter, user, myCommentsFilter]);
 
   const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
@@ -163,47 +179,72 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
             "h-8 px-3",
             isActive && "bg-primary text-primary-foreground hover:bg-primary/90"
         )}
-        onClick={() => setActiveFilter(filter)}
+        onClick={() => {
+            setActiveFilter(filter);
+            setMyCommentsFilter('all'); // Reset sub-filter when main filter changes
+        }}
     >
         {children}
     </Button>
   );
 
+  const SubFilterButton = ({ filter, children, isActive }: { filter: MyCommentsFilterType, children: React.ReactNode, isActive: boolean }) => (
+     <Button
+        variant={isActive ? 'secondary' : 'ghost'}
+        className={cn(
+            "h-7 px-2.5 text-xs",
+            isActive && "bg-secondary text-secondary-foreground"
+        )}
+        onClick={() => setMyCommentsFilter(filter)}
+     >
+        {children}
+     </Button>
+  )
+
   const isStarFilterActive = typeof activeFilter === 'number';
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 flex-wrap">
-        <FilterButton filter="featured" isActive={activeFilter === 'featured'}>Destacados</FilterButton>
-        <FilterButton filter="popular" isActive={activeFilter === 'popular'}>Más Populares</FilterButton>
-        <FilterButton filter="newest" isActive={activeFilter === 'newest'}>Más Recientes</FilterButton>
-        {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>Mis Opiniones</FilterButton>}
-        
-        <div className="flex-grow" />
-        
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant={isStarFilterActive ? 'default' : 'ghost'} className="h-8 px-3">
-                   {isStarFilterActive ? (
-                        <>
-                           {activeFilter} <Star className="ml-1 h-3 w-3" />
-                        </>
-                    ) : (
-                       <MoreHorizontal className="h-4 w-4" />
-                    )}
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Filtrar por estrellas</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {[5, 4, 3, 2, 1, 0].map(rating => (
-                    <DropdownMenuItem key={rating} onSelect={() => setActiveFilter(rating)}>
-                        {rating} {rating > 0 && <Star className="ml-2 h-3 w-3" />}
-                    </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+            <FilterButton filter="featured" isActive={activeFilter === 'featured'}>Destacados</FilterButton>
+            <FilterButton filter="popular" isActive={activeFilter === 'popular'}>Más Populares</FilterButton>
+            <FilterButton filter="newest" isActive={activeFilter === 'newest'}>Más Recientes</FilterButton>
+            {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>Mis Opiniones</FilterButton>}
+            
+            <div className="flex-grow" />
+            
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant={isStarFilterActive ? 'default' : 'ghost'} className="h-8 px-3">
+                    {isStarFilterActive ? (
+                            <>
+                            {activeFilter} <Star className="ml-1 h-3 w-3" />
+                            </>
+                        ) : (
+                        <MoreHorizontal className="h-4 w-4" />
+                        )}
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Filtrar por estrellas</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {[5, 4, 3, 2, 1, 0].map(rating => (
+                        <DropdownMenuItem key={rating} onSelect={() => setActiveFilter(rating)}>
+                            {rating} {rating > 0 && <Star className="ml-2 h-3 w-3" />}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
 
+        </div>
+        {activeFilter === 'mine' && (
+            <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
+                <SubFilterButton filter='all' isActive={myCommentsFilter === 'all'}>Todos</SubFilterButton>
+                <SubFilterButton filter='answered' isActive={myCommentsFilter === 'answered'}>Respondidas</SubFilterButton>
+                <SubFilterButton filter='unanswered' isActive={myCommentsFilter === 'unanswered'}>No Respondidas</SubFilterButton>
+            </div>
+        )}
       </div>
 
 
