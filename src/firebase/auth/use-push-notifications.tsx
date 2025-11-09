@@ -50,7 +50,7 @@ export function usePushNotifications() {
 
     try {
       const messaging = getMessaging(firebaseApp);
-      // IMPORTANT: Replace with your actual VAPID key from Firebase Console
+      // IMPORTANT: This is your VAPID key from the Firebase Console.
       const currentToken = await getToken(messaging, {
         vapidKey: 'BJEZNPKbi-4-a3sZWQz0D98H5-Xy6pEkaIqF4M10C-1i3sZpYl3iI9o2xY_ZgCgJ_CgJ_XwX1Z1zQ4E6G3Y4Q8E',
       });

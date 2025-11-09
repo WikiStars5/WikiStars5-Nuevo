@@ -23,6 +23,8 @@ import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
 import MainLayout from '@/app/(main)/layout';
+import { usePushNotifications } from '@/firebase/auth/use-push-notifications';
+import { Switch } from '@/components/ui/switch';
 
 
 const profileSchema = z.object({
@@ -40,6 +42,7 @@ function ProfilePageContent() {
     const auth = useAuth();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
+    const { requestPermissionAndSubscribe, isSubscribed, permissionStatus } = usePushNotifications();
 
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
@@ -298,6 +301,36 @@ function ProfilePageContent() {
                         </Card>
                     </form>
                 </Form>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Configuración de Notificaciones</CardTitle>
+                        <CardDescription>Gestiona cómo quieres recibir las notificaciones.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <div className="font-medium flex items-center gap-2">
+                                    {isSubscribed ? <BellRing className="text-primary"/> : <BellOff />}
+                                    Notificaciones Push
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    Recibe notificaciones directamente en tu dispositivo.
+                                </p>
+                            </div>
+                            <Switch
+                                checked={isSubscribed}
+                                onCheckedChange={(checked) => requestPermissionAndSubscribe(checked)}
+                                disabled={permissionStatus === 'loading' || permissionStatus === 'denied'}
+                            />
+                        </div>
+                         {permissionStatus === 'denied' && (
+                            <p className="text-xs text-destructive mt-2">
+                                Has bloqueado las notificaciones. Debes habilitarlas en la configuración de tu navegador.
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
 
                 <UserActivity userId={user.uid} />
             </div>
