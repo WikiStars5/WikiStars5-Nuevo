@@ -104,45 +104,61 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
 
     const handleDelete = async () => {
         if (!firestore || !isOwner) return;
-        
-        // Prevent deletion if the comment has replies.
-        const repliesQuery = query(collection(firestore, `figures/${figureId}/comments`), where('parentId', '==', comment.id), limit(1));
-        const repliesSnapshot = await getDocs(repliesQuery);
-        if (!repliesSnapshot.empty) {
-            toast({
-                title: "No se puede eliminar",
-                description: "No puedes eliminar un comentario que ya tiene respuestas.",
-                variant: "destructive",
-            });
-            return;
-        }
-
         setIsDeleting(true);
-        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
-        
-        try {
-            await deleteDoc(commentRef);
 
+        const batch = writeBatch(firestore);
+        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+
+        try {
+            // Find all replies to this comment
+            const repliesQuery = query(collection(firestore, `figures/${figureId}/comments`), where('parentId', '==', comment.id));
+            const repliesSnapshot = await getDocs(repliesQuery);
+
+            // Add the main comment to the batch for deletion
+            batch.delete(commentRef);
+            
+            // Add all replies to the batch for deletion
+            repliesSnapshot.forEach(replyDoc => {
+                batch.delete(replyDoc.ref);
+            });
+            
             // If the comment being deleted has a rating, adjust the figure's totals.
+            // This is a separate transaction as it operates on a different document.
             if (typeof comment.rating === 'number' && comment.rating >= 0) {
                  const figureRef = doc(firestore, 'figures', figureId);
                  await runTransaction(firestore, async (transaction) => {
                     const figureDoc = await transaction.get(figureRef);
                     if (!figureDoc.exists()) return;
-                    const updates: { [key: string]: any } = {};
-                    updates['ratingCount'] = increment(-1);
-                    updates['totalRating'] = increment(-comment.rating);
-                    updates[`ratingsBreakdown.${comment.rating}`] = increment(-1);
-                    transaction.update(figureRef, updates);
+                    
+                    const ratingUpdates: { [key: string]: any } = {};
+                    ratingUpdates['ratingCount'] = increment(-1);
+                    ratingUpdates['totalRating'] = increment(-comment.rating);
+                    ratingUpdates[`ratingsBreakdown.${comment.rating}`] = increment(-1);
+
+                    // Adjust for any ratings on the replies being deleted
+                    for (const replyDoc of repliesSnapshot.docs) {
+                        const reply = replyDoc.data() as CommentType;
+                        if (typeof reply.rating === 'number' && reply.rating >= 0) {
+                            ratingUpdates['ratingCount'] = increment(-1);
+                            ratingUpdates['totalRating'] = increment(-reply.rating);
+                            ratingUpdates[`ratingsBreakdown.${reply.rating}`] = increment(-1);
+                        }
+                    }
+
+                    transaction.update(figureRef, ratingUpdates);
                  });
             }
 
+            // Commit the batch deletion of comments and replies
+            await batch.commit();
+
             toast({
                 title: "Comentario Eliminado",
+                description: "El comentario y sus respuestas han sido eliminados."
             });
 
         } catch (error: any) {
-            console.error("Error al eliminar comentario:", error);
+            console.error("Error al eliminar comentario y respuestas:", error);
             toast({
                 title: "Error al Eliminar",
                 description: error.message || "No se pudo eliminar el comentario.",
@@ -301,7 +317,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                                     <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                        tu comentario.
+                                        tu comentario y todas sus respuestas.
                                     </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
