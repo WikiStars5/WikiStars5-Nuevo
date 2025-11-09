@@ -25,7 +25,7 @@ interface FetchedStreak extends Streak {
 }
 
 interface UserActivityProps {
-    userId?: string;
+    userId: string;
 }
 
 const attitudeOptions = [
@@ -115,7 +115,7 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
   );
 }
 
-export default function UserActivity({ userId: propUserId }: UserActivityProps) {
+export default function UserActivity({ userId }: UserActivityProps) {
   const { user: loggedInUser } = useUser();
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(true);
@@ -123,8 +123,6 @@ export default function UserActivity({ userId: propUserId }: UserActivityProps) 
   const [emotionVotes, setEmotionVotes] = useState<FetchedVote[]>([]);
   const [streaks, setStreaks] = useState<FetchedStreak[]>([]);
   const [figures, setFigures] = useState<Map<string, Figure>>(new Map());
-
-  const userId = propUserId || loggedInUser?.uid;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -136,7 +134,7 @@ export default function UserActivity({ userId: propUserId }: UserActivityProps) 
             const attitudeQuery = query(collectionGroup(firestore, 'attitudeVotes'), where('userId', '==', userId));
             const emotionQuery = query(collectionGroup(firestore, 'emotionVotes'), where('userId', '==', userId));
             
-            // Fetch streaks from the user's private subcollection (CORRECTED)
+            // Fetch streaks from the user's private subcollection
             const streaksQuery = query(collection(firestore, 'users', userId, 'streaks'), orderBy('currentStreak', 'desc'));
 
             const [attitudeSnapshot, emotionSnapshot, streaksSnapshot] = await Promise.all([

@@ -329,7 +329,7 @@ function ProfilePageContent() {
                     </CardContent>
                 </Card>
 
-                <UserActivity />
+                <UserActivity userId={user.uid} />
             </div>
         </div>
     )
