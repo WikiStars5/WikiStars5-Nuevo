@@ -18,6 +18,7 @@ import { Comment, Streak } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
+import Image from 'next/image';
 
 const commentSchema = z.object({
   text: z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.'),
@@ -174,7 +175,14 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       <Card className="dark:bg-black">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-              <Flame /> ¡Califica y Gana Rachas!
+              <Image
+                src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
+                alt="Racha"
+                width={28}
+                height={28}
+                unoptimized
+              />
+              ¡Califica y Gana Rachas!
           </CardTitle>
         </CardHeader>
         <CardContent>
