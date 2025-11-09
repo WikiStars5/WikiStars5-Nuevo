@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
@@ -25,7 +25,6 @@ import { Dialog, DialogTrigger } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
 import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog';
 import SearchBar from './search-bar';
-import { InstallPwaButton } from './InstallPwaButton';
 import NotificationBell from './notification-bell';
 import Image from 'next/image';
 import { collection, getDocs } from 'firebase/firestore';
@@ -103,7 +102,6 @@ export default function Header() {
             <Skeleton className="h-10 w-20" />
           ) : user ? (
             <>
-              <InstallPwaButton />
               <NotificationBell />
               <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
                 <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
@@ -172,8 +170,6 @@ export default function Header() {
                     </DropdownMenuItem>
                   )}
 
-                  <InstallPwaButton asMenuItem={true} />
-
                   <DropdownMenuSeparator />
                   
                   <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
@@ -192,7 +188,6 @@ export default function Header() {
             </>
           ) : (
              <div className="flex items-center gap-2">
-                <InstallPwaButton />
                 {pathname !== '/login' && (
                   <Button asChild>
                       <Link href="/login">

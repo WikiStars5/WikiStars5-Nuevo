@@ -16,16 +16,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, BellRing, BellOff } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
 import MainLayout from '@/app/(main)/layout';
-import { usePushNotifications } from '@/firebase/auth/use-push-notifications';
-import { Switch } from '@/components/ui/switch';
-
 
 const profileSchema = z.object({
   username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
@@ -42,7 +39,6 @@ function ProfilePageContent() {
     const auth = useAuth();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
-    const { requestPermissionAndSubscribe, isSubscribed, permissionStatus } = usePushNotifications();
 
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
@@ -302,36 +298,6 @@ function ProfilePageContent() {
                     </form>
                 </Form>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Configuración de Notificaciones</CardTitle>
-                        <CardDescription>Gestiona cómo quieres recibir las notificaciones.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                                <div className="font-medium flex items-center gap-2">
-                                    {isSubscribed ? <BellRing className="text-primary"/> : <BellOff />}
-                                    Notificaciones Push
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    Recibe notificaciones directamente en tu dispositivo.
-                                </p>
-                            </div>
-                            <Switch
-                                checked={isSubscribed}
-                                onCheckedChange={(checked) => requestPermissionAndSubscribe(checked)}
-                                disabled={permissionStatus === 'loading' || permissionStatus === 'denied'}
-                            />
-                        </div>
-                         {permissionStatus === 'denied' && (
-                            <p className="text-xs text-destructive mt-2">
-                                Has bloqueado las notificaciones. Debes habilitarlas en la configuración de tu navegador.
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
-
                 <UserActivity userId={user.uid} />
             </div>
         </div>
@@ -345,5 +311,3 @@ export default function ProfilePage() {
         </MainLayout>
     )
 }
-
-    
