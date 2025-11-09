@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, Send } from 'lucide-react';
+import { Loader2, MessageSquare, Send, Flame } from 'lucide-react';
 import StarInput from './star-input';
 import { Comment, Streak } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
@@ -174,7 +174,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       <Card className="dark:bg-black">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-              <MessageSquare /> Calificaciones y cometarios
+              <Flame /> ¡Califica y Gana Rachas!
           </CardTitle>
         </CardHeader>
         <CardContent>
