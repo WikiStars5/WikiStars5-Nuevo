@@ -190,10 +190,10 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
 
   const SubFilterButton = ({ filter, children, isActive }: { filter: MyCommentsFilterType, children: React.ReactNode, isActive: boolean }) => (
      <Button
-        variant={isActive ? 'secondary' : 'ghost'}
+        variant={isActive ? 'default' : 'ghost'}
         className={cn(
             "h-7 px-2.5 text-xs",
-            isActive && "bg-secondary text-secondary-foreground"
+            isActive && "bg-primary text-primary-foreground hover:bg-primary/90"
         )}
         onClick={() => setMyCommentsFilter(filter)}
      >
