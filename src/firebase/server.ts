@@ -1,6 +1,8 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, FirebaseApp, cert, type AppOptions } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { credential } from 'firebase-admin';
+
 
 function getAdminApp(): FirebaseApp {
   if (getApps().length > 0) {
@@ -9,7 +11,13 @@ function getAdminApp(): FirebaseApp {
   
   // This will use the GOOGLE_APPLICATION_CREDENTIALS environment variable
   // for authentication when running in a Google Cloud environment.
-  return initializeApp();
+  // By explicitly passing `credential: credential.applicationDefault()`,
+  // we ensure it uses the runtime credentials and does not look for a local file.
+  const options: AppOptions = {
+    credential: credential.applicationDefault(),
+  };
+
+  return initializeApp(options);
 }
 
 export function getSdks() {
