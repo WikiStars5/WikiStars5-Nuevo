@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, writeBatch, doc } from 'firebase/firestore';
@@ -11,7 +10,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { Bell, MessageSquare, Circle, Flame } from 'lucide-react';
+import { Bell, MessageSquare, Circle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,7 +19,6 @@ import { formatDateDistance } from '@/lib/utils';
 import type { Notification } from '@/lib/types';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import NotificationThreadDialog from './notification-thread-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const NOTIFICATION_SOUND_URL = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/AUDIO--NOTIFICACION%2Flivechat.mp3?alt=media&token=6f7084e4-9bad-4599-9f72-5534ad2464b7';
@@ -44,19 +42,15 @@ function NotificationItem({ notification }: { notification: Notification }) {
   const { figureId, parentId, replyId } = getParamsFromLink(notification.link);
   const figureName = getFigureNameFromMessage(notification.message);
 
-  const icon = notification.type === 'streak_milestone' ? <Flame className="h-4 w-4 text-orange-500" /> : <MessageSquare className="h-4 w-4 text-primary" />;
-
-  const TriggerWrapper = notification.type === 'comment_reply' ? DialogTrigger : 'div';
-
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-      <TriggerWrapper asChild={notification.type === 'comment_reply'}>
+      <DialogTrigger asChild>
         <button className={cn(
             "w-full text-left flex items-start gap-3 p-3 hover:bg-muted/50 rounded-md",
             !notification.isRead && "bg-primary/5"
         )}>
           {!notification.isRead && <Circle className="h-2 w-2 mt-1.5 fill-primary text-primary flex-shrink-0" />}
-          <div className={cn("flex-shrink-0 mt-1", notification.isRead && "ml-5")}>{icon}</div>
+          <div className={cn("flex-shrink-0 mt-1", notification.isRead && "ml-5")}><MessageSquare className="h-4 w-4 text-primary" /></div>
           <div className="flex-1 space-y-1">
               <p className="text-sm">{notification.message}</p>
               <p className="text-xs text-muted-foreground">
@@ -64,8 +58,8 @@ function NotificationItem({ notification }: { notification: Notification }) {
               </p>
           </div>
         </button>
-      </TriggerWrapper>
-      {isDialogOpen && notification.type === 'comment_reply' && (
+      </DialogTrigger>
+      {isDialogOpen && (
         <NotificationThreadDialog
           figureId={figureId}
           parentId={parentId}
@@ -76,45 +70,6 @@ function NotificationItem({ notification }: { notification: Notification }) {
       )}
     </Dialog>
   );
-}
-
-
-function NotificationSkeleton() {
-    return (
-        <div className="flex items-start gap-3 p-3">
-            <Skeleton className="h-3 w-3 rounded-full mt-1.5" />
-            <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-3 w-1/3" />
-            </div>
-        </div>
-    )
-}
-
-function NotificationList({ notifications, isLoading }: { notifications: Notification[], isLoading: boolean }) {
-    if (isLoading) {
-        return (
-            <div className="p-2 space-y-2">
-                <NotificationSkeleton />
-                <NotificationSkeleton />
-                <NotificationSkeleton />
-            </div>
-        );
-    }
-    if (!notifications || notifications.length === 0) {
-        return (
-            <div className="text-center p-8">
-                <p className="text-sm text-muted-foreground">No tienes notificaciones de este tipo.</p>
-            </div>
-        );
-    }
-    return (
-        <div className="divide-y">
-            {notifications.map(n => (
-                <NotificationItem key={n.id} notification={n} />
-            ))}
-        </div>
-    );
 }
 
 
@@ -129,21 +84,13 @@ export default function NotificationBell() {
     return query(
       collection(firestore, 'users', user.uid, 'notifications'),
       orderBy('createdAt', 'desc'),
-      limit(50) // Fetch more to populate both tabs
+      limit(20)
     );
   }, [user, firestore]);
 
   const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
-
-  const { commentNotifications, streakNotifications, unreadCount } = useMemo(() => {
-    if (!notifications) return { commentNotifications: [], streakNotifications: [], unreadCount: 0 };
-    return {
-        commentNotifications: notifications.filter(n => n.type === 'comment_reply'),
-        streakNotifications: notifications.filter(n => n.type === 'streak_milestone'),
-        unreadCount: notifications.filter(n => !n.isRead).length
-    }
-  }, [notifications]);
   
+  const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
   const hasUnread = unreadCount > 0;
 
   useEffect(() => {
@@ -188,20 +135,30 @@ export default function NotificationBell() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
-        <Tabs defaultValue="comments" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 rounded-b-none">
-                <TabsTrigger value="comments">Comentarios</TabsTrigger>
-                <TabsTrigger value="streaks">Rachas</TabsTrigger>
-            </TabsList>
-            <ScrollArea className="h-96">
-                <TabsContent value="comments" className="m-0">
-                    <NotificationList notifications={commentNotifications} isLoading={isLoading} />
-                </TabsContent>
-                <TabsContent value="streaks" className="m-0">
-                     <NotificationList notifications={streakNotifications} isLoading={isLoading} />
-                </TabsContent>
-            </ScrollArea>
-        </Tabs>
+        <div className="p-3 font-semibold text-sm border-b">
+            Notificaciones
+        </div>
+        <ScrollArea className="h-96">
+            {isLoading && (
+                <div className="p-4 space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            )}
+            {!isLoading && notifications && notifications.length > 0 && (
+                <div className="divide-y">
+                    {notifications.map(n => (
+                        <NotificationItem key={n.id} notification={n} />
+                    ))}
+                </div>
+            )}
+             {!isLoading && (!notifications || notifications.length === 0) && (
+                <div className="text-center p-8">
+                    <p className="text-sm text-muted-foreground">No tienes notificaciones.</p>
+                </div>
+            )}
+        </ScrollArea>
         <Separator />
         <div className="p-2 text-center">
             <Button variant="link" size="sm" asChild>
