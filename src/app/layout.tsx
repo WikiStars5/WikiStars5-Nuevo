@@ -53,19 +53,6 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
-        {/* Force unregister any stuck service workers */}
-        <Script id="service-worker-unregister" strategy="beforeInteractive">
-          {`
-            if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                  registration.unregister();
-                  console.log('Service Worker unregistered: ', registration);
-                }
-              });
-            }
-          `}
-        </Script>
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
         <ThemeProvider
