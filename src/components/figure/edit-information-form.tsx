@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -15,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, X, Link as LinkIcon, Tag, Plus } from 'lucide-react';
+import { Loader2, Save, X, Link as LinkIcon, Tag, Plus, Trash2 } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from './country-selector';
 import DateInput from './date-input';
@@ -231,9 +232,23 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                         <FormControl>
                                             <Input placeholder="https://upload.wikimedia.org/..." {...field} value={field.value || ''}/>
                                         </FormControl>
-                                         <p className="text-xs text-muted-foreground pt-1">
-                                            Solo se permiten URLs de `upload.wikimedia.org` y `i.pinimg.com`.
-                                        </p>
+                                        <div className="flex items-center justify-between pt-1">
+                                            <p className="text-xs text-muted-foreground">
+                                                Solo se permiten URLs de `upload.wikimedia.org` y `i.pinimg.com`.
+                                            </p>
+                                            {field.value && (
+                                                <Button
+                                                    type="button"
+                                                    variant="link"
+                                                    size="sm"
+                                                    className="h-auto p-0 text-xs text-destructive"
+                                                    onClick={() => form.setValue('imageUrl', '')}
+                                                >
+                                                    <Trash2 className="mr-1 h-3 w-3" />
+                                                    Eliminar enlace
+                                                </Button>
+                                            )}
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}
