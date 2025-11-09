@@ -208,6 +208,12 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 </svg>
                 Actitud
               </TabsTrigger>
+               {isGoatCandidate && (
+                <TabsTrigger value="goat">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 16h3a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-3v10z" /><path d="M11 16v-10" /><path d="M7 10h1.5a1.5 1.5 0 0 1 0 3h-1.5a1.5 1.5 0 0 1 0 3h2" /><path d="M4 16v-5" /></svg>
+                  GOAT
+                </TabsTrigger>
+              )}
               <TabsTrigger value="emocion">
               <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
                 Emoción
@@ -216,12 +222,6 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 <Flame className="mr-2 h-4 w-4" />
                 Rachas
               </TabsTrigger>
-              {isGoatCandidate && (
-                <TabsTrigger value="goat">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 16h3a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-3v10z" /><path d="M11 16v-10" /><path d="M7 10h1.5a1.5 1.5 0 0 1 0 3h-1.5a1.5 1.5 0 0 1 0 3h2" /><path d="M4 16v-5" /></svg>
-                  GOAT
-                </TabsTrigger>
-              )}
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
