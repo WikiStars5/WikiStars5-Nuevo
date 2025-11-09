@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 
 const withPWA = require('@ducanh2912/next-pwa').default({
@@ -59,8 +60,11 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https'
+       {
+        protocol: 'https',
+        hostname: 'i.pinimg.com',
+        port: '',
+        pathname: '/**',
       }
     ]
   }
