@@ -299,7 +299,7 @@ export default function GoatBattle() {
             </CardTitle>
             <CardDescription className="max-w-md flex flex-col items-center text-center gap-2 text-muted-foreground">
                 <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
-                <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={80} height={80} className="h-60 w-60" />
+                <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={80} height={80} className="h-40 w-40" />
             </CardDescription>
             {isBattleOver ? (
                 <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
@@ -380,3 +380,5 @@ export default function GoatBattle() {
     </LoginPromptDialog>
   );
 }
+
+    
