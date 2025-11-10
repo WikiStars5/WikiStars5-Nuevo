@@ -19,23 +19,22 @@ const db = admin.firestore();
 
 /**
  * Cloud Function that triggers when a new user is referred.
- * It updates the referrer's referral count and grants achievements based on thresholds.
+ * It updates the referrer's referral count, updates the public recruiter leaderboard,
+ * and grants recruiter achievements.
  */
 export const onNewReferral = onDocumentCreated("users/{userId}/referrals/{referredUserId}", async (event) => {
-  const {userId, referredUserId} = event.params;
+  const {userId} = event.params;
   const referrerRef = db.collection("users").doc(userId);
   const recruiterRef = db.collection("recruiters").doc(userId);
 
-
-  logger.info(`New referral detected: User ${userId} referred ${referredUserId}`);
+  logger.info(`Processing referral for referrer ID: ${userId}`);
 
   try {
-    // Use a transaction to safely increment the referral count and update achievements
     await db.runTransaction(async (transaction) => {
       const userDoc = await transaction.get(referrerRef);
       if (!userDoc.exists) {
-        logger.warn(`Referrer user document not found for ID: ${userId}`);
-        return; // Exit if user doc wasn't found
+        logger.warn(`Referrer user document not found for ID: ${userId}.`);
+        return;
       }
 
       const userData = userDoc.data()!;
@@ -46,7 +45,7 @@ export const onNewReferral = onDocumentCreated("users/{userId}/referrals/{referr
       transaction.update(referrerRef, {referralCount: newCount});
       logger.info(`User ${userId} referral count updated to ${newCount}.`);
 
-      // 2. Create or update the public recruiter document for the leaderboard
+      // 2. Create/update the public recruiter document for the leaderboard
       const recruiterData = {
           userId: userId,
           username: userData.username,
@@ -56,10 +55,12 @@ export const onNewReferral = onDocumentCreated("users/{userId}/referrals/{referr
           referralCount: newCount,
       };
       transaction.set(recruiterRef, recruiterData, { merge: true });
+      logger.info(`Recruiter document for ${userId} updated.`);
 
 
-      // 3. Check for and grant achievements
+      // 3. Check for and grant achievements based on the new count
       const achievementsToGrant = [];
+      // Grant bronze if they reach 2 and don't have it yet.
       if (newCount >= 2 && (!userData.achievements || !userData.achievements.recruiter_bronze)) {
         achievementsToGrant.push({id: "recruiter_bronze", level: "bronze"});
       }
@@ -69,26 +70,25 @@ export const onNewReferral = onDocumentCreated("users/{userId}/referrals/{referr
       if (newCount >= 10 && (!userData.achievements || !userData.achievements.recruiter_gold)) {
         achievementsToGrant.push({id: "recruiter_gold", level: "gold"});
       }
-      
+
+      // 4. Write achievement documents within the same transaction
       if (achievementsToGrant.length > 0) {
         const userAchievementsRef = db.collection("users").doc(userId).collection("user_achievements");
         for (const ach of achievementsToGrant) {
             const achDocRef = userAchievementsRef.doc(ach.id);
-            // The transaction ensures we don't grant the same achievement twice in a race condition
             transaction.set(achDocRef, {
                 userId: userId,
                 achievementId: ach.id,
                 level: ach.level,
                 unlockedAt: admin.firestore.FieldValue.serverTimestamp(),
-                figureId: "global",
+                figureId: "global", // This is a global, not figure-specific achievement
             });
-            logger.info(`Granting '${ach.level}' recruiter achievement to user ${userId}`);
+            logger.info(`Granting '${ach.level}' recruiter achievement to user ${userId}.`);
         }
       }
     });
-
   } catch (error) {
-    logger.error(`Error processing referral for user ${userId}:`, error);
+    logger.error(`Error in onNewReferral transaction for user ${userId}:`, error);
   }
 });
 
@@ -141,7 +141,3 @@ export const onAchievementUnlocked = onDocumentCreated("users/{userId}/user_achi
 
     logger.info(`Notification sent to user ${userId} for achievement ${achievementName}`);
 });
-
-
-
-
