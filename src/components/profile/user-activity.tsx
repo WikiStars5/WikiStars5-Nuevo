@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -54,19 +55,6 @@ const emotionOptions = [
   { id: 'desagrado', label: 'Desagrado', icon: ThumbsDown },
   { id: 'furia', label: 'Furia', icon: Angry },
 ];
-
-const PIONEER_ACHIEVEMENT = {
-    id: 'pioneer_voter',
-    name: 'Pionero',
-    imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf'
-};
-
-const RECRUITER_ACHIEVEMENTS = {
-    recruiter_bronze: { name: 'Reclutador de Bronce', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F2.png?alt=media&token=6bfc89ae-e6a8-4401-82eb-5928bfdaf783' },
-    recruiter_silver: { name: 'Reclutador de Plata', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F5.png?alt=media&token=aab6061e-ec0b-48b6-8262-3489f104b067' },
-    recruiter_gold: { name: 'Reclutador de Oro', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F10.png?alt=media&token=d6aa20e2-2b79-4dbf-bf3a-2d646bc59565' },
-};
-
 
 const fetchFigureData = async (firestore: any, figureIds: string[]): Promise<Map<string, Figure>> => {
     const figureMap = new Map<string, Figure>();
@@ -139,83 +127,6 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
   );
 }
 
-function AchievementsDisplay({ achievements }: { achievements: GroupedAchievements }) {
-    const figureIds = Object.keys(achievements);
-
-    if (figureIds.length === 0) {
-        return (
-            <div className="text-center py-8">
-                <Trophy className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                <h3 className="mt-2 text-md font-semibold">Aún no tienes logros</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    ¡Sé el primero en votar o refiere amigos para ganar logros!
-                </p>
-            </div>
-        );
-    }
-    
-    return (
-         <Accordion type="single" collapsible className="w-full space-y-2">
-            {figureIds.map(figureId => {
-                const item = achievements[figureId];
-                const isGlobal = figureId === 'global';
-
-                if (!item.figureData && !isGlobal) return null;
-                
-                const TriggerContent = () => (
-                    <div className="flex items-center gap-3">
-                        {isGlobal ? (
-                            <Award className="h-10 w-10 p-2 rounded-full bg-muted text-primary" />
-                        ) : (
-                            <Image
-                                src={item.figureData!.imageUrl}
-                                alt={item.figureData!.name}
-                                width={40}
-                                height={40}
-                                className="rounded-full object-cover aspect-square"
-                            />
-                        )}
-                        <span className="font-semibold">{isGlobal ? 'Logros Globales' : item.figureData!.name}</span>
-                    </div>
-                )
-
-                return (
-                    <AccordionItem key={figureId} value={figureId} className="border-b-0">
-                       <AccordionTrigger className="p-3 rounded-lg border bg-card hover:bg-muted/50 data-[state=open]:bg-muted/50 data-[state=open]:rounded-b-none">
-                            <TriggerContent />
-                       </AccordionTrigger>
-                       <AccordionContent className="p-4 border border-t-0 rounded-b-lg">
-                           <div className="flex flex-col gap-2">
-                            {item.achievements.map(ach => {
-                                let achievementMeta = null;
-                                if (ach.achievementId === PIONEER_ACHIEVEMENT.id) {
-                                    achievementMeta = PIONEER_ACHIEVEMENT;
-                                } else if (Object.keys(RECRUITER_ACHIEVEMENTS).includes(ach.achievementId)) {
-                                     achievementMeta = RECRUITER_ACHIEVEMENTS[ach.achievementId as keyof typeof RECRUITER_ACHIEVEMENTS];
-                                }
-
-                                if (achievementMeta) {
-                                    return (
-                                        <div key={ach.id} className="flex items-center gap-3">
-                                            <Image src={achievementMeta.imageUrl} alt={achievementMeta.name} width={40} height={40} />
-                                            <div>
-                                                <p className="font-semibold">{achievementMeta.name}</p>
-                                                <p className="text-xs text-muted-foreground">Desbloqueado el {ach.unlockedAt.toDate().toLocaleDateString()}</p>
-                                            </div>
-                                        </div>
-                                    )
-                                }
-                                return null;
-                            })}
-                           </div>
-                       </AccordionContent>
-                    </AccordionItem>
-                )
-            })}
-        </Accordion>
-    )
-
-}
 
 export default function UserActivity({ userId }: UserActivityProps) {
   const firestore = useFirestore();
@@ -223,7 +134,6 @@ export default function UserActivity({ userId }: UserActivityProps) {
   const [attitudeVotes, setAttitudeVotes] = useState<FetchedVote[]>([]);
   const [emotionVotes, setEmotionVotes] = useState<FetchedVote[]>([]);
   const [streaks, setStreaks] = useState<FetchedStreak[]>([]);
-  const [achievements, setAchievements] = useState<GroupedAchievements>({});
   const [figures, setFigures] = useState<Map<string, Figure>>(new Map());
 
   useEffect(() => {
@@ -236,24 +146,20 @@ export default function UserActivity({ userId }: UserActivityProps) {
             const attitudeQuery = query(collectionGroup(firestore, 'attitudeVotes'), where('userId', '==', userId));
             const emotionQuery = query(collectionGroup(firestore, 'emotionVotes'), where('userId', '==', userId));
             const streaksQuery = query(collection(firestore, 'users', userId, 'streaks'), orderBy('currentStreak', 'desc'));
-            const achievementsQuery = query(collection(firestore, 'users', userId, 'user_achievements'), orderBy('unlockedAt', 'desc'));
 
             const [
                 attitudeSnapshot, 
                 emotionSnapshot, 
                 streaksSnapshot,
-                achievementsSnapshot
             ] = await Promise.all([
                 getDocs(attitudeQuery),
                 getDocs(emotionQuery),
                 getDocs(streaksQuery),
-                getDocs(achievementsQuery)
             ]);
 
             const attitudes = attitudeSnapshot.docs.map(d => d.data() as AttitudeVote);
             const emotions = emotionSnapshot.docs.map(d => d.data() as EmotionVote);
             const allStreaks = streaksSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Streak));
-            const allAchievements = achievementsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as UserAchievement));
 
             const activeStreaks = allStreaks.filter(s => s.lastCommentDate && isDateActive(s.lastCommentDate));
             
@@ -264,11 +170,6 @@ export default function UserActivity({ userId }: UserActivityProps) {
             attitudes.forEach(v => figureIds.add(v.figureId));
             emotions.forEach(v => figureIds.add(v.figureId));
             activeStreaks.forEach(s => figureIds.add(s.figureId));
-            allAchievements.forEach(a => {
-                if (a.figureId !== 'global') {
-                    figureIds.add(a.figureId)
-                }
-            });
             
             const figureDataMap = await fetchFigureData(firestore, Array.from(figureIds));
             setFigures(figureDataMap);
@@ -278,20 +179,6 @@ export default function UserActivity({ userId }: UserActivityProps) {
                 figureData: figureDataMap.get(streak.figureId),
             }));
             setStreaks(streaksWithData);
-            
-            const groupedAchievements = allAchievements.reduce((acc, ach) => {
-                const key = ach.figureId || 'global';
-                 if (!acc[key]) {
-                    const figureData = key !== 'global' ? figureDataMap.get(key) : undefined;
-                     acc[key] = { figureData, achievements: [] };
-                }
-                 if (acc[key]) {
-                    acc[key].achievements.push(ach);
-                }
-                return acc;
-            }, {} as GroupedAchievements);
-
-            setAchievements(groupedAchievements);
 
 
         } catch (error) {
@@ -326,11 +213,10 @@ export default function UserActivity({ userId }: UserActivityProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="attitudes" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="attitudes">Actitud</TabsTrigger>
             <TabsTrigger value="emotions">Emociones</TabsTrigger>
             <TabsTrigger value="streaks">Rachas</TabsTrigger>
-            <TabsTrigger value="achievements">Logros</TabsTrigger>
           </TabsList>
           
           <TabsContent value="attitudes" className="mt-4">
@@ -373,9 +259,6 @@ export default function UserActivity({ userId }: UserActivityProps) {
 
            <TabsContent value="streaks" className="mt-4">
              <StreaksDisplay streaks={streaks} />
-          </TabsContent>
-           <TabsContent value="achievements" className="mt-4">
-             <AchievementsDisplay achievements={achievements} />
           </TabsContent>
 
         </Tabs>

@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface User {
@@ -162,35 +163,9 @@ export interface GoatVote {
     createdAt: Timestamp;
 }
 
-export interface Achievement {
-    id: string;
-    name: string;
-    description: string;
-    imageUrl: string;
-}
-
-export interface UserAchievement {
-    id: string;
-    userId: string;
-    achievementId: string;
-    figureId: string;
-    unlockedAt: Timestamp;
-    // Denormalized user data for display on leaderboards
-    userDisplayName?: string;
-    userPhotoURL?: string | null;
-}
-
 export interface Referral {
     referredUserId: string;
     createdAt: Timestamp;
     sourceFigureId?: string | null;
     hasVoted?: boolean;
 }
-
-export interface RecruiterAchievement {
-    id: string; // e.g., 'recruiter_bronze'
-    userId: string;
-    level: 'bronze' | 'silver' | 'gold';
-    unlockedAt: Timestamp;
-}
-    

@@ -25,7 +25,6 @@ import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
 import { countries } from '@/lib/countries';
-import Achievements from '@/components/figure/achievements';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -230,10 +229,6 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 />
                 Rachas
               </TabsTrigger>
-              <TabsTrigger value="logros">
-                <Trophy className="mr-2 h-4 w-4" />
-                Logros
-              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -345,9 +340,6 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           </TabsContent>
           <TabsContent value="rachas" className="mt-4">
             <TopStreaks figureId={figureId} />
-          </TabsContent>
-          <TabsContent value="logros" className="mt-4">
-            <Achievements figure={figure} />
           </TabsContent>
            {isGoatCandidate && (
              <TabsContent value="goat" className="mt-4">

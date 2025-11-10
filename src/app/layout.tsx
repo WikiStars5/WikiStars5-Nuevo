@@ -9,8 +9,6 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { StreakAnimationProvider } from '@/context/StreakAnimationContext';
 import StreakAnimationOverlay from '@/components/streaks/StreakAnimationOverlay';
 import Script from 'next/script';
-import { AchievementAnimationProvider } from '@/context/AchievementAnimationContext';
-import AchievementAnimationOverlay from '@/components/achievements/AchievementAnimationOverlay';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -64,12 +62,9 @@ export default function RootLayout({
         >
           <FirebaseClientProvider>
             <StreakAnimationProvider>
-              <AchievementAnimationProvider>
-                {children}
-                <Toaster />
-                <StreakAnimationOverlay />
-                <AchievementAnimationOverlay />
-              </AchievementAnimationProvider>
+              {children}
+              <Toaster />
+              <StreakAnimationOverlay />
             </StreakAnimationProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
