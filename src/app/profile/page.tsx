@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -22,7 +21,9 @@ import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
-import MainLayout from '@/app/(main)/layout';
+
+export const dynamic = 'force-dynamic';
+
 
 const profileSchema = z.object({
   username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
@@ -306,8 +307,6 @@ function ProfilePageContent() {
 
 export default function ProfilePage() {
     return (
-        <MainLayout>
-            <ProfilePageContent />
-        </MainLayout>
+        <ProfilePageContent />
     )
 }
