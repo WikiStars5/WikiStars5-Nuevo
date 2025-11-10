@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getCountFromServer } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +26,9 @@ interface AchievementsProps {
 }
 
 const PIONEER_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf";
+const PIONEER_TOTAL_LIMIT = 1000;
+const PIONEER_DISPLAY_LIMIT = 10;
+
 
 const getTrophyColor = (rank: number) => {
     if (rank === 0) return 'text-yellow-400';
@@ -41,7 +44,7 @@ function PioneerList({ figureId }: { figureId: string }) {
         return query(
             collection(firestore, `figures/${figureId}/achievements`),
             orderBy('unlockedAt', 'asc'),
-            limit(10)
+            limit(PIONEER_DISPLAY_LIMIT) // Only fetch the top 10 to display
         );
     }, [firestore, figureId]);
 
@@ -96,17 +99,25 @@ function PioneerList({ figureId }: { figureId: string }) {
 
 export default function Achievements({ figure }: AchievementsProps) {
     const firestore = useFirestore();
+    const [pioneerCount, setPioneerCount] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const pioneersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(
-            collection(firestore, `figures/${figure.id}/achievements`)
-        );
+    useEffect(() => {
+        const fetchPioneerCount = async () => {
+            if (!firestore) return;
+            setIsLoading(true);
+            try {
+                const achievementsColRef = collection(firestore, `figures/${figure.id}/achievements`);
+                const snapshot = await getCountFromServer(achievementsColRef);
+                setPioneerCount(snapshot.data().count);
+            } catch (error) {
+                console.error("Error fetching pioneer count:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchPioneerCount();
     }, [firestore, figure.id]);
-
-    const { data: pioneers, isLoading } = useCollection<UserAchievement>(pioneersQuery);
-
-    const pioneerCount = pioneers?.length || 0;
 
     return (
         <Card className="dark:bg-black">
@@ -128,7 +139,7 @@ export default function Achievements({ figure }: AchievementsProps) {
                             {isLoading ? (
                                 <Skeleton className="h-4 w-20" />
                             ) : (
-                                <p className="text-xs text-muted-foreground">{pioneerCount} / 10 Ganadores</p>
+                                <p className="text-xs text-muted-foreground">{pioneerCount} / {PIONEER_TOTAL_LIMIT} Ganadores</p>
                             )}
                          </button>
                     </DialogTrigger>
@@ -136,7 +147,7 @@ export default function Achievements({ figure }: AchievementsProps) {
                         <DialogHeader>
                             <DialogTitle>Ganadores del Logro "Pionero"</DialogTitle>
                             <DialogDescription>
-                                Los primeros 10 usuarios que votaron en el perfil de {figure.name}.
+                                Los primeros {PIONEER_DISPLAY_LIMIT} usuarios que votaron en el perfil de {figure.name}.
                             </DialogDescription>
                         </DialogHeader>
                         <PioneerList figureId={figure.id} />

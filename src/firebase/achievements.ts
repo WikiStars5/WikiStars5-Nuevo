@@ -26,7 +26,7 @@ interface GrantPioneerAchievementParams {
     userPhotoURL: string | null;
 }
 
-const PIONEER_LIMIT = 10;
+const PIONEER_LIMIT = 1000;
 const PIONEER_ACHIEVEMENT_ID = 'pioneer_voter';
 
 export async function grantPioneerAchievement({
