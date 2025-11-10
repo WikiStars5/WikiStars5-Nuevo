@@ -209,7 +209,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 </svg>
                 Actitud
               </TabsTrigger>
-               {isGoatCandidate && (
+              {isGoatCandidate && (
                 <TabsTrigger value="goat">
                   <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 16h3a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-3v10z" /><path d="M11 16v-10" /><path d="M7 10h1.5a1.5 1.5 0 0 1 0 3h-1.5a1.5 1.5 0 0 1 0 3h2" /><path d="M4 16v-5" /></svg>
                   GOAT
@@ -220,7 +220,14 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 Emoción
               </TabsTrigger>
               <TabsTrigger value="rachas">
-                <Flame className="mr-2 h-4 w-4" />
+                <Image
+                  src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
+                  alt="Rachas"
+                  width={16}
+                  height={16}
+                  unoptimized
+                  className="mr-2"
+                />
                 Rachas
               </TabsTrigger>
               <TabsTrigger value="logros">
@@ -340,7 +347,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
             <TopStreaks figureId={figureId} />
           </TabsContent>
           <TabsContent value="logros" className="mt-4">
-            <Achievements figureId={figureId} />
+            <Achievements figure={figure} />
           </TabsContent>
            {isGoatCandidate && (
              <TabsContent value="goat" className="mt-4">
@@ -366,5 +373,3 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </Suspense>
   );
 }
-
-    
