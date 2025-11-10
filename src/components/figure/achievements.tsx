@@ -37,9 +37,9 @@ export default function Achievements({ figureId }: AchievementsProps) {
 
     const achievementsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
+        // Simplified query to avoid composite index requirement for now
         return query(
             collection(firestore, `figures/${figureId}/achievements`),
-            where('achievementId', '==', 'pioneer_voter'),
             orderBy('unlockedAt', 'asc'),
             limit(10) // Limit to the first 10 pioneers
         );
