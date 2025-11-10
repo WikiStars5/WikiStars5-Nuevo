@@ -119,13 +119,20 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
        // If it was the user's first-ever vote for this figure, try to grant the achievement
       if (isFirstVote) {
-        await grantPioneerAchievement({
+        const achievementGranted = await grantPioneerAchievement({
           firestore,
           figureId: figure.id,
           userId: user.uid,
           userDisplayName: user.displayName,
           userPhotoURL: user.photoURL,
         });
+
+        if (achievementGranted) {
+           toast({
+            title: "¡Logro Desbloqueado!",
+            description: "Has ganado el logro 'Pionero' por ser uno de los primeros en votar.",
+          });
+        }
       }
 
     } catch (error: any) {
@@ -201,5 +208,3 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     </LoginPromptDialog>
   );
 }
-
-    

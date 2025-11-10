@@ -13,7 +13,6 @@ import {
     increment,
     Firestore
 } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
 import type { UserAchievement } from '@/lib/types';
 
 
@@ -34,7 +33,7 @@ export async function grantPioneerAchievement({
     userId,
     userDisplayName,
     userPhotoURL
-}: GrantPioneerAchievementParams): Promise<void> {
+}: GrantPioneerAchievementParams): Promise<boolean> {
     
     // Path to the user's private record of this achievement
     const privateAchievementRef = doc(firestore, `users/${userId}/user_achievements`, `${figureId}_${PIONEER_ACHIEVEMENT_ID}`);
@@ -43,6 +42,7 @@ export async function grantPioneerAchievement({
     const publicAchievementRef = doc(firestore, `figures/${figureId}/achievements`, userId);
 
     const figureRef = doc(firestore, 'figures', figureId);
+    let achievementWasGranted = false;
     
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -53,7 +53,6 @@ export async function grantPioneerAchievement({
 
             // 1. Check if user already has this achievement for this figure
             if (privateDoc.exists()) {
-                // User already has the achievement, do nothing.
                 return;
             }
 
@@ -64,7 +63,6 @@ export async function grantPioneerAchievement({
             // 2. Check if the pioneer limit for this figure has been reached
             const currentPioneerCount = figureDoc.data()?.pioneerCount || 0;
             if (currentPioneerCount >= PIONEER_LIMIT) {
-                // Limit reached, do nothing.
                 return;
             }
 
@@ -84,19 +82,15 @@ export async function grantPioneerAchievement({
             
             // Increment the counter on the figure document
             transaction.update(figureRef, { pioneerCount: increment(1) });
+            
+            // Set flag to indicate success
+            achievementWasGranted = true;
         });
 
-        // The toast is only shown if the transaction succeeds and didn't return early
-        const { toast } = useToast();
-        toast({
-            title: "¡Logro Desbloqueado!",
-            description: "Has ganado el logro 'Pionero' por ser uno de los primeros en votar.",
-        });
+        return achievementWasGranted;
 
     } catch (error) {
         console.error("Error granting Pioneer achievement:", error);
-        // We typically don't show an error toast to the user for a background/bonus task.
+        return false;
     }
 }
-
-    

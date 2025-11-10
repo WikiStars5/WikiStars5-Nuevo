@@ -207,13 +207,20 @@ export default function GoatBattle() {
 
         if (isFirstVote) {
             const figureId = player === 'messi' ? (messiData?.id || 'lionel-messi') : (ronaldoData?.id || 'cristiano-ronaldo');
-            await grantPioneerAchievement({
+            const achievementGranted = await grantPioneerAchievement({
               firestore,
               figureId: figureId,
               userId: user.uid,
               userDisplayName: user.displayName,
               userPhotoURL: user.photoURL,
             });
+
+             if (achievementGranted) {
+                toast({
+                    title: "¡Logro Desbloqueado!",
+                    description: "Has ganado el logro 'Pionero' por ser uno de los primeros en votar.",
+                });
+            }
         }
 
     } catch (error: any) {
@@ -392,5 +399,3 @@ export default function GoatBattle() {
     </LoginPromptDialog>
   );
 }
-
-    
