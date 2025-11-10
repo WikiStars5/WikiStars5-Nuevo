@@ -117,10 +117,12 @@ service cloud.firestore {
       }
       
       match /achievements/{userAchievementId} {
-          allow read, list: if true;
+          allow get: if true;
           allow create: if isSignedIn(); 
           allow delete, update: if false;
       }
+      // Allow anyone to LIST the achievements for the leaderboard
+      allow list: if true;
     }
     
     // --- Collection Group Query Rules ---
@@ -137,6 +139,11 @@ service cloud.firestore {
 
 
     // --- Other Root-Level Collections ---
+
+    match /recruiters/{userId} {
+        allow get, list: if true; // Publicly readable for the leaderboard
+        allow write: if false; // Only backend functions can write
+    }
 
     match /hashtags/{hashtagId} {
         allow get, list: if true;
