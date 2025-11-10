@@ -32,11 +32,6 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
-      
-      match /referrals/{referredUserId} {
-        allow read, write: if isOwner(userId) || isOwner(referredUserId);
-        allow list: if isOwner(userId);
-      }
     }
     
     match /users/{userId}/notifications/{notificationId} {
@@ -48,6 +43,11 @@ service cloud.firestore {
     // This explicit root-level rule allows users to list their own private streaks on their profile.
     match /users/{userId}/streaks/{streakId} {
         allow get, list, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/user_achievements/{achievementId} {
+      allow get, list: if isOwner(userId);
+      allow write: if isOwner(userId);
     }
 
     match /status/{userId} {
@@ -106,6 +106,14 @@ service cloud.firestore {
         allow read, list: if true; 
         allow write: if isOwner(userId);
       }
+
+       // --- /figures/{figureId}/achievements/{userAchievementId} ---
+       // This is for the public achievement board on the figure's page.
+      match /achievements/{userAchievementId} {
+          allow read, list: if true;
+          allow create: if isSignedIn(); // System/user can grant achievement
+          allow delete, update: if false; // Achievements are permanent per figure
+      }
     }
     
     // --- Collection Group Query Rules ---
@@ -113,21 +121,17 @@ service cloud.firestore {
     // for the user profile page. Security is enforced by the client-side query.
     
     match /{path=**}/attitudeVotes/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if isSignedIn() && request.query.where.size() > 0 && request.query.where[0][0] == 'userId' && request.query.where[0][2] == request.auth.uid;
+      allow read: if request.query.where.size() > 0 && 
+                     request.query.where[0][0] == "userId" &&
+                     request.query.where[0][1] == "==" &&
+                     request.query.where[0][2] == request.auth.uid;
     }
     
     match /{path=**}/emotionVotes/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if isSignedIn() && request.query.where.size() > 0 && request.query.where[0][0] == 'userId' && request.query.where[0][2] == request.auth.uid;
-    }
-
-    match /figures/{figureId}/attitudeVotes/{userId} {
-      allow write: if isOwner(userId);
-    }
-    
-    match /figures/{figureId}/emotionVotes/{userId} {
-      allow write: if isOwner(userId);
+      allow read: if request.query.where.size() > 0 && 
+                     request.query.where[0][0] == "userId" &&
+                     request.query.where[0][1] == "==" &&
+                     request.query.where[0][2] == request.auth.uid;
     }
 
 
@@ -137,6 +141,12 @@ service cloud.firestore {
         allow get, list: if true;
         allow write: if isSignedIn();
     }
+    
+     match /achievements/{achievementId} {
+        allow get, list: if true;
+        allow write: if isAdmin(); // Only admins can define master achievements
+    }
+
 
     match /related_figures/{relatedFigureId} {
       allow get, list: if true;
