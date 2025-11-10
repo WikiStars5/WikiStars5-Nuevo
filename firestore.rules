@@ -49,6 +49,11 @@ service cloud.firestore {
       allow write: if isOwner(userId);
     }
 
+    match /users/{userId}/referrals/{referredUserId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+
     match /status/{userId} {
       allow read, write: if isOwner(userId);
       allow list: if false;
@@ -77,6 +82,7 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
       );
 
+      // --- /figures/{figureId}/comments/{commentId} ---
       match /comments/{commentId} {
         allow get, list: if true;
         allow create: if isSignedIn();
@@ -85,8 +91,11 @@ service cloud.firestore {
           isIncrement('likes') || isIncrement('dislikes')
         );
         allow delete: if 
+          // Allow if user is the owner of the comment
           resource.data.userId == request.auth.uid ||
+          // OR if user is the owner of the parent comment (to delete replies)
           (resource.data.parentId != null && get(/databases/$(database)/documents/figures/$(figureId)/comments/$(resource.data.parentId)).data.userId == request.auth.uid) ||
+          // OR if user is an admin
           isAdmin();
 
         match /votes/{userId} {
@@ -95,6 +104,8 @@ service cloud.firestore {
         }
       }
 
+      // --- /figures/{figureId}/streaks/{userId} ---
+      // This is for the public leaderboard on the figure's page.
       match /streaks/{userId} {
         allow read, list: if true; 
         allow write: if isOwner(userId);
@@ -102,25 +113,19 @@ service cloud.firestore {
     }
     
     // --- Collection Group Query Rules ---
-
+    // These rules MUST be at the root to allow collectionGroup queries
+    // for the user profile page. Security is enforced by the client-side query.
+    
     match /{path=**}/attitudeVotes/{userId} {
-      // Rule for listing votes (e.g., on user profile)
-      allow list: if request.query.where.size() > 0 && 
-                     request.query.where[0][0] == "userId" &&
-                     request.query.where[0][1] == "==" &&
-                     request.query.where[0][2] == request.auth.uid;
-      // Rule for getting a single vote (e.g., on figure page)
       allow get: if isOwner(userId);
+      allow list: if request.query.where.get('userId') == request.auth.uid;
+      allow write: if isOwner(userId);
     }
     
     match /{path=**}/emotionVotes/{userId} {
-      // Rule for listing votes
-      allow list: if request.query.where.size() > 0 && 
-                     request.query.where[0][0] == "userId" &&
-                     request.query.where[0][1] == "==" &&
-                     request.query.where[0][2] == request.auth.uid;
-      // Rule for getting a single vote
       allow get: if isOwner(userId);
+      allow list: if request.query.where.get('userId') == request.auth.uid;
+      allow write: if isOwner(userId);
     }
 
 
