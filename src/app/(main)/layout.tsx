@@ -8,6 +8,8 @@ import Footer from '@/components/shared/footer';
 import Header from '@/components/shared/header';
 import { useSearchParams } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default function MainLayout({
   children,
 }: Readonly<{
@@ -15,17 +17,23 @@ export default function MainLayout({
 }>) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
   const isUnloading = useRef(false);
+
+  useEffect(() => {
+    const referrerId = searchParams.get('ref');
+    if (referrerId) {
+      localStorage.setItem('referrerId', referrerId);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user || !firestore) return;
 
-    // Capture the uid in a variable within the effect's scope
     const uid = user.uid;
     const statusRef = doc(firestore, 'status', uid);
 
     const updateStatus = (isOnline: boolean) => {
-      // Use the captured uid, which will persist in the cleanup function's closure
       setDoc(doc(firestore, 'status', uid), { isOnline, lastChanged: serverTimestamp() }, { merge: true });
     };
 
@@ -34,8 +42,6 @@ export default function MainLayout({
         isUnloading.current = false;
         updateStatus(true);
       } else {
-        // This is a "best effort" to set offline status quickly.
-        // The `pagehide` and `beforeunload` are more reliable for final-state changes.
         if (!isUnloading.current) {
             updateStatus(false);
         }
@@ -47,18 +53,14 @@ export default function MainLayout({
       updateStatus(false);
     }
     
-    // Set online status initially
     updateStatus(true);
 
-    // Listen for visibility changes
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    // Use `pagehide` for mobile and modern desktop browsers for better reliability
     window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
-      // On component unmount (e.g., logout), set status to offline using the captured uid
       if (uid && firestore) {
         updateStatus(false);
       }
