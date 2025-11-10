@@ -5,6 +5,7 @@ export interface User {
   username: string;
   email: string | null;
   fcmTokens?: string[]; // For Push Notifications
+  referralCount?: number;
 }
 
 export interface Figure {
@@ -177,5 +178,17 @@ export interface UserAchievement {
     // Denormalized user data for display on leaderboards
     userDisplayName?: string;
     userPhotoURL?: string | null;
+}
+
+export interface Referral {
+    referredUserId: string;
+    createdAt: Timestamp;
+}
+
+export interface RecruiterAchievement {
+    id: string; // e.g., 'recruiter_bronze'
+    userId: string;
+    level: 'bronze' | 'silver' | 'gold';
+    unlockedAt: Timestamp;
 }
     

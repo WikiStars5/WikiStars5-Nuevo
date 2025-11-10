@@ -54,6 +54,10 @@
           "type": "string",
           "format": "date-time",
           "description": "The timestamp when the user account was created."
+        },
+        "referralCount": {
+          "type": "number",
+          "description": "The total number of users this user has successfully referred."
         }
       },
       "required": [
@@ -88,6 +92,27 @@
       },
       "required": [
         "userId"
+      ]
+    },
+    "Referral": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Referral",
+      "type": "object",
+      "description": "Represents a successful referral of a new user by an existing user.",
+      "properties": {
+        "referredUserId": {
+          "type": "string",
+          "description": "The ID of the new user who was referred."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the referral was confirmed."
+        }
+      },
+      "required": [
+        "referredUserId",
+        "createdAt"
       ]
     },
     "PublicFigure": {
@@ -429,11 +454,15 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User who unlocked the achievement. (Relationship: User 1:N UserAchievement)"
+          "description": "Reference to the User who unlocked the achievement."
         },
         "achievementId": {
           "type": "string",
-          "description": "Reference to the Achievement that was unlocked. (Relationship: Achievement 1:N UserAchievement)"
+          "description": "Reference to the Achievement that was unlocked."
+        },
+        "figureId": {
+          "type": "string",
+          "description": "Reference to the figure where the achievement was unlocked."
         },
         "unlockedAt": {
           "type": "string",
@@ -444,8 +473,36 @@
       "required": [
         "id",
         "userId",
-        "achievementId"
+        "achievementId",
+        "figureId"
       ]
+    },
+    "RecruiterAchievement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RecruiterAchievement",
+      "type": "object",
+      "description": "Represents a referral-based achievement unlocked by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier, e.g., 'recruiter_bronze'."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who unlocked the achievement."
+        },
+        "level": {
+          "type": "string",
+          "enum": ["bronze", "silver", "gold"],
+          "description": "The tier of the achievement."
+        },
+        "unlockedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the achievement was unlocked."
+        }
+      },
+      "required": ["id", "userId", "level", "unlockedAt"]
     },
     "RelatedFigure": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -661,6 +718,26 @@
           ]
         }
       },
+       {
+        "path": "/figures/{figureId}/streaks/{userId}",
+        "definition": {
+          "entityName": "Streak",
+          "schema": {
+            "$ref": "#/backend/entities/Streak"
+          },
+          "description": "Publicly readable streak information for a figure's leaderboard.",
+          "params": [
+            {
+              "name": "figureId",
+              "description": "The unique identifier of the public figure."
+            },
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user holding the streak."
+            }
+          ]
+        }
+      },
       {
         "path": "/figures/{figureId}/comments/{commentId}",
         "definition": {
@@ -745,6 +822,26 @@
           ]
         }
       },
+       {
+        "path": "/figures/{figureId}/achievements/{userAchievementId}",
+        "definition": {
+          "entityName": "UserAchievement",
+          "schema": {
+            "$ref": "#/backend/entities/UserAchievement"
+          },
+          "description": "Stores achievements earned by users on a specific figure's profile. Publicly readable.",
+          "params": [
+            {
+              "name": "figureId",
+              "description": "The unique identifier of the public figure."
+            },
+            {
+              "name": "userAchievementId",
+              "description": "The unique identifier of the user achievement record."
+            }
+          ]
+        }
+      },
       {
         "path": "/users/{userId}/notifications/{notificationId}",
         "definition": {
@@ -763,6 +860,20 @@
               "description": "The unique identifier of the notification."
             }
           ]
+        }
+      },
+      {
+        "path": "/users/{userId}/referrals/{referredUserId}",
+        "definition": {
+            "entityName": "Referral",
+            "schema": {
+                "$ref": "#/backend/entities/Referral"
+            },
+            "description": "Stores a record of a user referred by the parent user. The document ID is the UID of the new user.",
+            "params": [
+                { "name": "userId", "description": "The ID of the referring user." },
+                { "name": "referredUserId", "description": "The ID of the new user who was referred." }
+            ]
         }
       },
       {
@@ -884,5 +995,4 @@
   }
 }
     
-
     
