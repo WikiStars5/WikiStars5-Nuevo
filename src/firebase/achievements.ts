@@ -35,20 +35,17 @@ export async function grantPioneerAchievement({
     userPhotoURL
 }: GrantPioneerAchievementParams): Promise<boolean> {
     
-    // Path to the user's private record of this achievement
     const privateAchievementRef = doc(firestore, `users/${userId}/user_achievements`, `${figureId}_${PIONEER_ACHIEVEMENT_ID}`);
-    
-    // Path to the public record of this achievement for the figure's leaderboard
-    const publicAchievementRef = doc(firestore, `figures/${figureId}/achievements`, userId);
+    const publicAchievementsCollectionRef = collection(firestore, `figures/${figureId}/achievements`);
+    const publicAchievementDocRef = doc(publicAchievementsCollectionRef, userId);
 
-    const figureRef = doc(firestore, 'figures', figureId);
     let achievementWasGranted = false;
     
     try {
         await runTransaction(firestore, async (transaction) => {
-            const [privateDoc, figureDoc] = await Promise.all([
+            const [privateDoc, publicAchievementsSnapshot] = await Promise.all([
                 transaction.get(privateAchievementRef),
-                transaction.get(figureRef)
+                transaction.get(query(publicAchievementsCollectionRef, limit(PIONEER_LIMIT))) // Read collection within transaction
             ]);
 
             // 1. Check if user already has this achievement for this figure
@@ -56,13 +53,8 @@ export async function grantPioneerAchievement({
                 return;
             }
 
-            if (!figureDoc.exists()) {
-                throw new Error("Figure does not exist.");
-            }
-            
             // 2. Check if the pioneer limit for this figure has been reached
-            const currentPioneerCount = figureDoc.data()?.pioneerCount || 0;
-            if (currentPioneerCount >= PIONEER_LIMIT) {
+            if (publicAchievementsSnapshot.size >= PIONEER_LIMIT) {
                 return;
             }
 
@@ -78,10 +70,7 @@ export async function grantPioneerAchievement({
 
             // Write to both private and public collections
             transaction.set(privateAchievementRef, achievementPayload);
-            transaction.set(publicAchievementRef, achievementPayload);
-            
-            // Increment the counter on the figure document
-            transaction.update(figureRef, { pioneerCount: increment(1) });
+            transaction.set(publicAchievementDocRef, achievementPayload);
             
             // Set flag to indicate success
             achievementWasGranted = true;

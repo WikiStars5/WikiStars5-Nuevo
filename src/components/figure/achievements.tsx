@@ -67,7 +67,7 @@ function PioneerList({ figureId }: { figureId: string }) {
     }
     
     if (!pioneers || pioneers.length === 0) {
-        return <p className="text-sm text-muted-foreground text-center py-4">Aún no hay pioneros.</p>;
+        return <p className="text-sm text-muted-foreground text-center py-4">Aún no hay pioneros. ¡Sé el primero en votar!</p>;
     }
 
     return (
@@ -95,7 +95,18 @@ function PioneerList({ figureId }: { figureId: string }) {
 
 
 export default function Achievements({ figure }: AchievementsProps) {
-    const pioneerCount = figure.pioneerCount || 0;
+    const firestore = useFirestore();
+
+    const pioneersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(
+            collection(firestore, `figures/${figure.id}/achievements`)
+        );
+    }, [firestore, figure.id]);
+
+    const { data: pioneers, isLoading } = useCollection<UserAchievement>(pioneersQuery);
+
+    const pioneerCount = pioneers?.length || 0;
 
     return (
         <Card className="dark:bg-black">
@@ -114,7 +125,11 @@ export default function Achievements({ figure }: AchievementsProps) {
                                 height={80}
                             />
                             <p className="font-bold">Pionero</p>
-                            <p className="text-xs text-muted-foreground">{pioneerCount} / 10 Ganadores</p>
+                            {isLoading ? (
+                                <Skeleton className="h-4 w-20" />
+                            ) : (
+                                <p className="text-xs text-muted-foreground">{pioneerCount} / 10 Ganadores</p>
+                            )}
                          </button>
                     </DialogTrigger>
                     <DialogContent>
@@ -131,4 +146,3 @@ export default function Achievements({ figure }: AchievementsProps) {
         </Card>
     );
 }
-

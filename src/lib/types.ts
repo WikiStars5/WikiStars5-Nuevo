@@ -63,7 +63,6 @@ export interface Figure {
     '5': number;
   };
   createdAt?: Timestamp;
-  pioneerCount?: number;
 }
 
 export interface Hashtag {
@@ -180,6 +179,4 @@ export interface UserAchievement {
     userDisplayName: string;
     userPhotoURL?: string | null;
 }
-    
-
     
