@@ -20,7 +20,8 @@ service cloud.firestore {
     function isIncrement(field) {
       let currentValue = resource.data[field];
       let nextValue = request.resource.data[field];
-      return (nextValue == currentValue + 1) || (nextValue == currentValue - 1);
+      // Allow increment or decrement by 1. Also handle the case where the field doesn't exist yet (currentValue is null) and is being initialized to 1 or -1.
+      return (nextValue == currentValue + 1) || (nextValue == currentValue - 1) || (currentValue == null && (nextValue == 1 || nextValue == -1));
     }
     
     function isMapIncrement(mapField) {
@@ -29,36 +30,46 @@ service cloud.firestore {
     }
 
 
-    // --- /users/{userId} ---
+    // --- User Data Collections ---
+
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      // Allow signed-in users to list users (needed for recruiter leaderboards).
+      // Individual document reads are still protected by the 'get' rule.
+      allow list: if isSignedIn() || isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin() || 
+                    // Allow cloud function to update referral count
+                    (get(/databases/$(database)/documents/users/$(userId)).data.referralCount + 1 == request.resource.data.referralCount);
       allow delete: if isOwner(userId) || isAdmin();
 
-      // --- /users/{userId}/notifications/{notificationId} ---
+      // Subcollection for referrals
+      match /referrals/{referredUserId} {
+        allow read, list, create: if isSignedIn();
+        allow update, delete: if false;
+      }
+      
       match /notifications/{notificationId} {
           allow read, update, delete: if isOwner(userId);
           allow list: if isOwner(userId);
           allow create: if isSignedIn();
       }
+
+      match /streaks/{streakId} {
+          allow get, list, write: if isOwner(userId);
+      }
+
+      match /user_achievements/{achievementId} {
+        allow get, list: if isOwner(userId);
+        allow write: if isOwner(userId); // User can write their own achievements
+      }
     }
     
-    // --- /users/{userId}/streaks/{streakId} ---
-    // This explicit root-level rule allows users to list their own private streaks on their profile.
-    match /users/{userId}/streaks/{streakId} {
-        allow get, list, write: if isOwner(userId);
-    }
-
-
-    // --- /status/{userId} ---
     match /status/{userId} {
       allow read, write: if isOwner(userId);
       allow list: if false;
     }
 
-    // --- /usernames/{username} ---
     match /usernames/{username} {
       allow get: if true; 
       allow list: if false;
@@ -67,10 +78,12 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // --- /figures/{figureId} ---
+    // --- Figure Data Collections ---
+
     match /figures/{figureId} {
       allow get, list: if true;
-      allow create, delete: if isAdmin();
+      allow create: if isSignedIn();
+      allow delete: if isAdmin();
       
       allow update: if isSignedIn() && (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -80,7 +93,6 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
       );
 
-      // --- /figures/{figureId}/comments/{commentId} ---
       match /comments/{commentId} {
         allow get, list: if true;
         allow create: if isSignedIn();
@@ -88,44 +100,60 @@ service cloud.firestore {
           (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
           isIncrement('likes') || isIncrement('dislikes')
         );
-        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+        allow delete: if 
+          resource.data.userId == request.auth.uid ||
+          (resource.data.parentId != null && get(/databases/$(database)/documents/figures/$(figureId)/comments/$(resource.data.parentId)).data.userId == request.auth.uid) ||
+          isAdmin();
 
         match /votes/{userId} {
           allow get, write: if isOwner(userId);
           allow list: if false;
         }
       }
-
-      // --- /figures/{figureId} subcollections for collectionGroup queries ---
-      match /attitudeVotes/{userId} {
-        allow read: if isSignedIn();
-        allow write: if isOwner(userId);
-      }
-      match /emotionVotes/{userId} {
-        allow read: if isSignedIn();
-        allow write: if isOwner(userId);
-      }
       
       match /streaks/{userId} {
         allow read, list: if true; 
         allow write: if isOwner(userId);
       }
+      
+      match /achievements/{userAchievementId} {
+          allow read, list: if true;
+          allow create: if isSignedIn(); 
+          allow delete, update: if false;
+      }
+    }
+    
+    // --- Collection Group Query Rules ---
+    
+    match /figures/{figureId}/attitudeVotes/{userId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId);
+    }
+    
+    match /figures/{figureId}/emotionVotes/{userId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(userId);
     }
 
-    // --- /hashtags/{hashtagId} ---
+
+    // --- Other Root-Level Collections ---
+
     match /hashtags/{hashtagId} {
         allow get, list: if true;
         allow write: if isSignedIn();
     }
+    
+     match /achievements/{achievementId} {
+        allow get, list: if true;
+        allow write: if isAdmin();
+    }
 
-    // --- /related_figures/{relatedFigureId} ---
     match /related_figures/{relatedFigureId} {
       allow get, list: if true;
       allow create, delete: if isSignedIn();
       allow update: if false;
     }
 
-    // --- /goat_battles/{battleId} ---
     match /goat_battles/{battleId} {
         allow get, list: if true; 
         allow create, delete: if isAdmin();
@@ -138,7 +166,6 @@ service cloud.firestore {
         }
     }
     
-    // --- /roles_admin/{userId} ---
     match /roles_admin/{userId} {
       allow get: if isSignedIn();
       allow write: if isAdmin();
