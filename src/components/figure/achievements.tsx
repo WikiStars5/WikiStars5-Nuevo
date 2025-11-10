@@ -26,6 +26,10 @@ interface AchievementsProps {
 
 const PIONEER_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf";
 const RECRUITER_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5";
+const RECRUITER_BRONZE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F2.png?alt=media&token=6bfc89ae-e6a8-4401-82eb-5928bfdaf783";
+const RECRUITER_SILVER_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F5.png?alt=media&token=aab6061e-ec0b-48b6-8262-3489f104b067";
+const RECRUITER_GOLD_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F10.png?alt=media&token=d6aa20e2-2b79-4dbf-bf3a-2d646bc59565";
+
 const PIONEER_TOTAL_LIMIT = 1000;
 const PIONEER_DISPLAY_LIMIT = 10;
 const RECRUITER_DISPLAY_LIMIT = 10;
@@ -112,9 +116,9 @@ function RecruiterList() {
     const { data: recruiters, isLoading } = useCollection<User>(recruitersQuery);
     
     const getRecruiterBadge = (count: number) => {
-        if (count >= 10) return <Award className="h-5 w-5 text-yellow-400" title="Oro"/>;
-        if (count >= 5) return <Award className="h-5 w-5 text-gray-400" title="Plata"/>;
-        if (count >= 2) return <Award className="h-5 w-5 text-yellow-600" title="Bronce"/>;
+        if (count >= 10) return { url: RECRUITER_GOLD_URL, alt: 'Medalla de Oro' };
+        if (count >= 5) return { url: RECRUITER_SILVER_URL, alt: 'Medalla de Plata' };
+        if (count >= 2) return { url: RECRUITER_BRONZE_URL, alt: 'Medalla de Bronce' };
         return null;
     }
 
@@ -132,24 +136,29 @@ function RecruiterList() {
 
     return (
          <div className="space-y-1">
-            {recruiters.map((user, index) => (
-                <div key={user.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
-                    <div className="flex items-center gap-3">
-                        <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
-                         <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
-                            <Avatar className="h-10 w-10">
-                                <AvatarImage src={(user as any).photoURL ?? undefined} alt={user.username} />
-                                <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <p className="font-semibold text-sm group-hover:underline">{user.username}</p>
-                        </Link>
+            {recruiters.map((user, index) => {
+                const badge = getRecruiterBadge(user.referralCount || 0);
+                return (
+                    <div key={user.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
+                        <div className="flex items-center gap-3">
+                            <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
+                            <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
+                                <Avatar className="h-10 w-10">
+                                    <AvatarImage src={(user as any).photoURL ?? undefined} alt={user.username} />
+                                    <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <p className="font-semibold text-sm group-hover:underline">{user.username}</p>
+                            </Link>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-bold">
+                            {badge && (
+                                <Image src={badge.url} alt={badge.alt} width={24} height={24} className="h-6 w-6" />
+                            )}
+                            <span>{user.referralCount || 0} referidos</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm font-bold">
-                        {getRecruiterBadge(user.referralCount || 0)}
-                        <span>{user.referralCount || 0} referidos</span>
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     )
 }
@@ -211,7 +220,7 @@ export default function Achievements({ figure }: AchievementsProps) {
                             {isLoading ? (
                                 <Skeleton className="h-4 w-20" />
                             ) : (
-                                <p className="text-xs text-muted-foreground">{Math.min(pioneerCount, PIONEER_DISPLAY_LIMIT)} / {PIONEER_DISPLAY_LIMIT} Ganadores</p>
+                                <p className="text-xs text-muted-foreground">{pioneerCount} / {PIONEER_TOTAL_LIMIT} Ganadores</p>
                             )}
                          </button>
                     </DialogTrigger>

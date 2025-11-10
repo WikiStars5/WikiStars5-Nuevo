@@ -62,10 +62,10 @@ const PIONEER_ACHIEVEMENT = {
 };
 
 const RECRUITER_ACHIEVEMENTS = {
-    recruiter_bronze: { name: 'Reclutador de Bronce', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5' },
-    recruiter_silver: { name: 'Reclutador de Plata', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5' },
-    recruiter_gold: { name: 'Reclutador de Oro', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5' },
-}
+    recruiter_bronze: { name: 'Reclutador de Bronce', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F2.png?alt=media&token=6bfc89ae-e6a8-4401-82eb-5928bfdaf783' },
+    recruiter_silver: { name: 'Reclutador de Plata', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F5.png?alt=media&token=aab6061e-ec0b-48b6-8262-3489f104b067' },
+    recruiter_gold: { name: 'Reclutador de Oro', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F10.png?alt=media&token=d6aa20e2-2b79-4dbf-bf3a-2d646bc59565' },
+};
 
 
 const fetchFigureData = async (firestore: any, figureIds: string[]): Promise<Map<string, Figure>> => {
