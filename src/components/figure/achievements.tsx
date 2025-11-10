@@ -123,17 +123,17 @@ const RecruiterListSkeleton = () => (
 function TopRecruitersList() {
     const firestore = useFirestore();
 
+    // Query the new 'recruiters' collection directly
     const recruitersQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(
-            collection(firestore, 'users'),
-            where('referralCount', '>=', 1),
+            collection(firestore, 'recruiters'),
             orderBy('referralCount', 'desc'),
             limit(RECRUITER_DISPLAY_LIMIT)
         );
     }, [firestore]);
 
-    const { data: recruiters, isLoading } = useCollection<User>(recruitersQuery);
+    const { data: recruiters, isLoading } = useCollection<any>(recruitersQuery);
 
     if (isLoading) {
         return <RecruiterListSkeleton />;
@@ -148,21 +148,21 @@ function TopRecruitersList() {
     return (
         <div className="space-y-1">
             {recruiters.map((user, index) => {
-                 const country = countries.find(c => c.name === (user as any).country);
+                 const country = countries.find(c => c.name === user.country);
                 return (
-                    <div key={user.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
+                    <div key={user.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                         <div className="flex items-center gap-3">
                             <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
                             <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
                                 <Avatar className="h-10 w-10">
-                                    <AvatarImage src={(user as any).photoURL ?? undefined} alt={user.username} />
+                                    <AvatarImage src={user.photoURL ?? undefined} alt={user.username} />
                                     <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <p className="font-semibold text-sm group-hover:underline">{user.username}</p>
-                                        {(user as any).gender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                                        {(user as any).gender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                                        {user.gender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
+                                        {user.gender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
                                         {country && (
                                             <Image
                                                 src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
@@ -273,4 +273,3 @@ export default function Achievements({ figure }: AchievementsProps) {
         </Card>
     );
 }
-
