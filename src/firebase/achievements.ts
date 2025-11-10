@@ -12,7 +12,8 @@ import {
     increment,
     Firestore,
     getCountFromServer,
-    getDoc
+    getDoc,
+    where
 } from 'firebase/firestore';
 import type { UserAchievement, Referral } from '@/lib/types';
 
