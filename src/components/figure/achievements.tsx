@@ -139,7 +139,7 @@ export default function Achievements({ figure }: AchievementsProps) {
                             {isLoading ? (
                                 <Skeleton className="h-4 w-20" />
                             ) : (
-                                <p className="text-xs text-muted-foreground">{pioneerCount} / {PIONEER_TOTAL_LIMIT} Ganadores</p>
+                                <p className="text-xs text-muted-foreground">{Math.min(pioneerCount, PIONEER_DISPLAY_LIMIT)} / {PIONEER_DISPLAY_LIMIT} Ganadores</p>
                             )}
                          </button>
                     </DialogTrigger>
