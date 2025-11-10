@@ -47,7 +47,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
   const userVoteRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, `figures/${figure.id}/emotionVotes`, user.uid);
+    return doc(firestore, `users/${user.uid}/emotionVotes`, figure.id);
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading } = useDoc<EmotionVote>(userVoteRef);
@@ -60,14 +60,14 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
     if (isVoting || !firestore || !auth) return;
     setIsVoting(vote);
-    let isFirstVote = false;
-
+    
     try {
       const figureRef = doc(firestore, 'figures', figure.id);
-      const voteRef = doc(firestore, `figures/${figure.id}/emotionVotes`, user.uid);
+      const publicVoteRef = doc(firestore, `figures/${figure.id}/emotionVotes`, user.uid);
+      const privateVoteRef = doc(firestore, `users/${user.uid}/emotionVotes`, figure.id);
 
       await runTransaction(firestore, async (transaction) => {
-        const existingVoteDoc = await transaction.get(voteRef);
+        const existingVoteDoc = await transaction.get(privateVoteRef);
         const figureDoc = await transaction.get(figureRef);
 
         if (!figureDoc.exists()) {
@@ -85,20 +85,22 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
           const previousVote = existingVoteDoc.data().vote as EmotionOption;
           if (previousVote === vote) {
             transaction.update(figureRef, { [`emotion.${vote}`]: increment(-1) });
-            transaction.delete(voteRef);
+            transaction.delete(publicVoteRef);
+            transaction.delete(privateVoteRef);
             toast({ title: 'Voto eliminado' });
           } else {
             transaction.update(figureRef, {
               [`emotion.${previousVote}`]: increment(-1),
               [`emotion.${vote}`]: increment(1),
             });
-            transaction.set(voteRef, newVoteData);
+            transaction.set(publicVoteRef, newVoteData);
+            transaction.set(privateVoteRef, newVoteData);
             toast({ title: '¡Voto actualizado!' });
           }
         } else {
-          isFirstVote = true;
           transaction.update(figureRef, { [`emotion.${vote}`]: increment(1) });
-          transaction.set(voteRef, newVoteData);
+          transaction.set(publicVoteRef, newVoteData);
+          transaction.set(privateVoteRef, newVoteData);
           toast({ title: '¡Voto registrado!' });
         }
       });

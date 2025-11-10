@@ -32,22 +32,25 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
-    }
-    
-    match /users/{userId}/notifications/{notificationId} {
-        allow read, update, delete: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isSignedIn();
-    }
-
-    match /users/{userId}/streaks/{streakId} {
+      
+      // Allow user to read/write their own private votes and streaks
+      match /attitudeVotes/{figureId} {
+        allow get, write: if isOwner(userId);
+      }
+      match /emotionVotes/{figureId} {
+        allow get, write: if isOwner(userId);
+      }
+      match /streaks/{figureId} {
         allow get, list, write: if isOwner(userId);
+      }
+      match /referrals/{referredUserId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+      match /notifications/{notificationId} {
+        allow read, update, delete, list: if isOwner(userId);
+        allow create: if isSignedIn(); // Allow any signed-in user to create (e.g., for replies)
+      }
     }
-
-    match /users/{userId}/referrals/{referredUserId} {
-      allow read, write: if isOwner(userId) || isAdmin();
-    }
-
 
     match /status/{userId} {
       allow read, write: if isOwner(userId);
@@ -76,12 +79,19 @@ service cloud.firestore {
         ]) ||
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
       );
-
+      
+      // Public-facing votes subcollections for aggregation and checks
       match /attitudeVotes/{userId} {
-        allow get, write: if isOwner(userId);
+        allow get: if isSignedIn();
+        allow write: if isOwner(userId);
       }
       match /emotionVotes/{userId} {
-        allow get, write: if isOwner(userId);
+        allow get: if isSignedIn();
+        allow write: if isOwner(userId);
+      }
+      match /streaks/{userId} {
+        allow read, list: if true; 
+        allow write: if isOwner(userId);
       }
 
       // --- /figures/{figureId}/comments/{commentId} ---
@@ -105,32 +115,8 @@ service cloud.firestore {
           allow list: if false;
         }
       }
-
-      // --- /figures/{figureId}/streaks/{userId} ---
-      // This is for the public leaderboard on the figure's page.
-      match /streaks/{userId} {
-        allow read, list: if true; 
-        allow write: if isOwner(userId);
-      }
     }
     
-    // --- Collection Group Query Rules ---
-    // These rules MUST be at the root to allow collectionGroup queries
-    // for the user profile page. Security is enforced by the client-side query.
-    
-    match /{path=**}/attitudeVotes/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if request.query.where.get('userId') == request.auth.uid;
-      allow write: if isOwner(userId);
-    }
-    
-    match /{path=**}/emotionVotes/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if request.query.where.get('userId') == request.auth.uid;
-      allow write: if isOwner(userId);
-    }
-
-
     // --- Other Root-Level Collections ---
 
     match /hashtags/{hashtagId} {

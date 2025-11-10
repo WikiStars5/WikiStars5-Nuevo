@@ -142,9 +142,9 @@ export default function UserActivity({ userId }: UserActivityProps) {
         setIsLoading(true);
         
         try {
-            // Fetch all data types in parallel
-            const attitudeQuery = query(collectionGroup(firestore, 'attitudeVotes'), where('userId', '==', userId));
-            const emotionQuery = query(collectionGroup(firestore, 'emotionVotes'), where('userId', '==', userId));
+            // Fetch all data types from user's private subcollections in parallel
+            const attitudeQuery = query(collection(firestore, 'users', userId, 'attitudeVotes'));
+            const emotionQuery = query(collection(firestore, 'users', userId, 'emotionVotes'));
             const streaksQuery = query(collection(firestore, 'users', userId, 'streaks'), orderBy('currentStreak', 'desc'));
 
             const [

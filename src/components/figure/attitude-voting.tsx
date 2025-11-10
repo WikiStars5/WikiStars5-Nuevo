@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
+import { grantPioneerAchievement } from '@/firebase/achievements';
+
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -26,7 +28,7 @@ const allAttitudeOptions: {
   { id: 'neutral', label: 'Neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=aac1fe00-4e42-49d1-98a2-3dab605987d3', colorClass: 'border-gray-500', selectedClass: 'bg-gray-500/20 border-4 border-gray-400' },
   { id: 'fan', label: 'Fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=a937aee9-04b6-48e8-bf37-25eef5f28e90', colorClass: 'border-yellow-400', selectedClass: 'bg-yellow-400/20 border-4 border-yellow-300' },
   { id: 'simp', label: 'Simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-pink-400', selectedClass: 'bg-pink-400/20 border-4 border-pink-300' },
-  { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', colorClass: 'border-red-500', selectedClass: 'bg-red-500/20 border-4 border-red-400' },
+  { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-bf2-4a35-b1ae-570dbed48d81', colorClass: 'border-red-500', selectedClass: 'bg-red-500/20 border-4 border-red-400' },
 ];
 
 interface AttitudeVotingProps {
@@ -49,7 +51,8 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
   const userVoteRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
+    // Check the user's private collection first for the vote
+    return doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
@@ -68,15 +71,23 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
     try {
       const figureRef = doc(firestore, 'figures', figure.id);
-      const voteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
+      const publicVoteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
+      const privateVoteRef = doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
 
       await runTransaction(firestore, async (transaction) => {
-        const existingVoteDoc = await transaction.get(voteRef);
+        const existingVoteDoc = await transaction.get(privateVoteRef);
         const figureDoc = await transaction.get(figureRef);
 
         if (!figureDoc.exists()) {
           throw new Error('¡El perfil no existe!');
         }
+
+        const voteData: Omit<AttitudeVote, 'id'> = {
+            userId: user.uid,
+            figureId: figure.id,
+            vote: vote,
+            createdAt: serverTimestamp(),
+        };
 
         if (existingVoteDoc.exists()) {
           const existingData = existingVoteDoc.data() as AttitudeVote;
@@ -85,7 +96,8 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
           if (previousVote === vote) {
             // Retracting vote
             transaction.update(figureRef, { [`attitude.${vote}`]: increment(-1) });
-            transaction.delete(voteRef);
+            transaction.delete(publicVoteRef);
+            transaction.delete(privateVoteRef);
             toast({ title: 'Voto eliminado' });
             finalAttitude = null;
           } else {
@@ -94,28 +106,24 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
               [`attitude.${previousVote}`]: increment(-1),
               [`attitude.${vote}`]: increment(1),
             });
-            transaction.set(voteRef, { vote }, { merge: true });
+            transaction.set(publicVoteRef, voteData);
+            transaction.set(privateVoteRef, voteData);
             toast({ title: '¡Voto actualizado!' });
             finalAttitude = vote;
           }
         } else {
-          // First vote
-          isFirstVote = true; // Mark that this is the user's first vote on this figure
+          // First vote for this user on this figure
+          isFirstVote = true; 
           transaction.update(figureRef, { [`attitude.${vote}`]: increment(1) });
-          const voteData: Partial<AttitudeVote> = {
-            userId: user.uid,
-            figureId: figure.id,
-            vote: vote,
-            createdAt: serverTimestamp(),
-            initialVote: vote,
-          };
-          transaction.set(voteRef, voteData);
+          transaction.set(publicVoteRef, voteData);
+          transaction.set(privateVoteRef, voteData);
           toast({ title: '¡Voto registrado!' });
           finalAttitude = vote;
         }
       });
+      
       onVote(finalAttitude);
-
+      
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
       toast({

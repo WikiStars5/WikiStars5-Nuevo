@@ -412,98 +412,6 @@
         "streakLength"
       ]
     },
-    "Achievement": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Achievement",
-      "type": "object",
-      "description": "Represents an achievement that a registered user can unlock.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the achievement entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the achievement."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of how to unlock the achievement."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL of the image representing the achievement.",
-          "format": "uri"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description"
-      ]
-    },
-    "UserAchievement": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserAchievement",
-      "type": "object",
-      "description": "Represents the association between a user and an achievement, indicating that the user has unlocked the achievement.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the user achievement entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who unlocked the achievement."
-        },
-        "achievementId": {
-          "type": "string",
-          "description": "Reference to the Achievement that was unlocked."
-        },
-        "figureId": {
-          "type": "string",
-          "description": "Reference to the figure where the achievement was unlocked."
-        },
-        "unlockedAt": {
-          "type": "string",
-          "description": "The timestamp when the achievement was unlocked by the user.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "achievementId",
-        "figureId"
-      ]
-    },
-    "RecruiterAchievement": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RecruiterAchievement",
-      "type": "object",
-      "description": "Represents a referral-based achievement unlocked by a user.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier, e.g., 'recruiter_bronze'."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The ID of the user who unlocked the achievement."
-        },
-        "level": {
-          "type": "string",
-          "enum": ["bronze", "silver", "gold"],
-          "description": "The tier of the achievement."
-        },
-        "unlockedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the achievement was unlocked."
-        }
-      },
-      "required": ["id", "userId", "level", "unlockedAt"]
-    },
     "RelatedFigure": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "RelatedFigure",
@@ -663,12 +571,36 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information.  Path-based ownership ensures only the user or an admin can access it.",
+          "description": "Stores user profile information. Path-based ownership ensures only the user or an admin can access it.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier of the user."
             }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/attitudeVotes/{figureId}",
+        "definition": {
+          "entityName": "AttitudeVote",
+          "schema": { "$ref": "#/backend/entities/AttitudeVote" },
+          "description": "Stores a user's private attitude vote for a specific figure. The document ID is the figureId.",
+          "params": [
+            { "name": "userId", "description": "The user's unique ID." },
+            { "name": "figureId", "description": "The public figure's unique ID." }
+          ]
+        }
+      },
+       {
+        "path": "/users/{userId}/emotionVotes/{figureId}",
+        "definition": {
+          "entityName": "EmotionVote",
+          "schema": { "$ref": "#/backend/entities/EmotionVote" },
+          "description": "Stores a user's private emotion vote for a specific figure. The document ID is the figureId.",
+          "params": [
+            { "name": "userId", "description": "The user's unique ID." },
+            { "name": "figureId", "description": "The public figure's unique ID." }
           ]
         }
       },
@@ -709,7 +641,7 @@
           "schema": {
             "$ref": "#/backend/entities/PublicFigure"
           },
-          "description": "Stores public figure profiles.  Accessible for reading by all users, but write access is restricted to admins.",
+          "description": "Stores public figure profiles. Accessible for reading by all users, but write access is restricted to admins.",
           "params": [
             {
               "name": "figureId",
@@ -822,26 +754,6 @@
           ]
         }
       },
-       {
-        "path": "/figures/{figureId}/achievements/{userAchievementId}",
-        "definition": {
-          "entityName": "UserAchievement",
-          "schema": {
-            "$ref": "#/backend/entities/UserAchievement"
-          },
-          "description": "Stores achievements earned by users on a specific figure's profile. Publicly readable.",
-          "params": [
-            {
-              "name": "figureId",
-              "description": "The unique identifier of the public figure."
-            },
-            {
-              "name": "userAchievementId",
-              "description": "The unique identifier of the user achievement record."
-            }
-          ]
-        }
-      },
       {
         "path": "/users/{userId}/notifications/{notificationId}",
         "definition": {
@@ -892,42 +804,6 @@
             {
               "name": "streakId",
               "description": "The unique identifier of the streak."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/achievements/{achievementId}",
-        "definition": {
-          "entityName": "Achievement",
-          "schema": {
-            "$ref": "#/backend/entities/Achievement"
-          },
-          "description": "Stores the master list of achievements available in the platform.",
-          "params": [
-            {
-              "name": "achievementId",
-              "description": "The unique identifier of the achievement."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/user_achievements/{userAchievementId}",
-        "definition": {
-          "entityName": "UserAchievement",
-          "schema": {
-            "$ref": "#/backend/entities/UserAchievement"
-          },
-          "description": "Stores the association between a user and an achievement. Path-based ownership ensures only the user or an admin can access it.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "userAchievementId",
-              "description": "The unique identifier of the user achievement."
             }
           ]
         }
@@ -991,7 +867,7 @@
           }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the WikiStars5 application, focusing on user profiles, public figures, comments, notifications, streaks, and achievements. Key considerations include authorization independence, clarity of intent, and secure list operations. The structure utilizes path-based ownership for user-specific data and denormalization for collaborative data, ensuring that security rules can be written without complex `get()` calls.\n\n*   **Users:** User data is stored under `/users/{userId}`, providing secure and straightforward access to individual user profiles. This path-based ownership simplifies security rules. The `role` property within each user document determines administrative privileges.\n*   **Usernames:** A top-level `/usernames` collection is used to enforce unique usernames. Each document's ID is the normalized (lowercase) username, and it contains the `userId` of the owner. This allows for fast, efficient checks for username availability using a `get()` operation instead of a costly query. \n*   **Public Figures:** Public figure profiles are stored in the `/figures/{figureId}` collection.  Featuring status is stored directly in the `PublicFigure` document.\n*   **Comments:** Comments are stored in a subcollection under each `PublicFigure` at `/figures/{figureId}/comments/{commentId}`.  This structure facilitates efficient querying of comments for a specific public figure.  Denormalizing the `figureId` into the comment document itself (even though it is implicit in the path) ensures authorization independence.\n*   **Notifications:** Notifications are stored under `/users/{userId}/notifications/{notificationId}`.  This path-based approach ensures that only the user can access their notifications. No denormalization is required here.\n*   **Streaks:** Streaks, representing a user's commenting activity on a public figure, are stored under `/users/{userId}/streaks/{streakId}`. This adheres to path-based ownership. The `publicFigureId` is stored within each `Streak` document.\n*   **Achievements:** The master list of achievements is stored in the `/achievements/{achievementId}` collection. User-specific achievements are stored in the `/users/{userId}/achievements/{achievementId}` collection, which maintains a record of unlocked achievements for each user.\n*   **User Achievements:** User achievements are managed under `/users/{userId}/user_achievements/{userAchievementId}`, linking users to their earned achievements.  The `achievementId` is stored to reference the specific achievement.\n*   **Related Figures:** Relationships between public figures are stored in the `/related_figures/{relatedFigureId}` collection. Each document includes `sourceFigureId` and `targetFigureId` to define the relationship.\n*   **Admin Roles:**  Admin status is checked by verifying the existence of a document in the `/roles_admin/{userId}` collection. This existence-based check is efficient and secure.\n*   **GOAT Battle:** A global `/goat_battles/{battleId}` collection stores the main battle document (e.g., `messi-vs-ronaldo`) containing aggregated vote counts. A subcollection, `votes/{userId}`, is used to track individual user votes, ensuring data integrity and preventing duplicate votes efficiently.\n\nThis structure supports the required QAPs by:\n\n*   **Authorization Independence:** Denormalizing authorization-relevant data into subcollections eliminates the need for `get()` calls in security rules.\n*   **Secure List Operations:** Segregating data based on access requirements (e.g., user-specific data under `/users/{userId}`) ensures that list operations can be secured effectively. Public figures are in a separate collection, allowing open read access while restricting write access to admins only."
+    "reasoning": "The Firestore structure is designed to support the WikiStars5 application, focusing on user profiles, public figures, comments, notifications, streaks, and achievements. Key considerations include authorization independence, clarity of intent, and secure list operations. The structure utilizes path-based ownership for user-specific data and denormalization for collaborative data, ensuring that security rules can be written without complex `get()` calls.\n\n*   **Users:** User data is stored under `/users/{userId}`, providing secure and straightforward access to individual user profiles. This path-based ownership simplifies security rules. The `role` property within each user document determines administrative privileges.\n*   **Usernames:** A top-level `/usernames` collection is used to enforce unique usernames. Each document's ID is the normalized (lowercase) username, and it contains the `userId` of the owner. This allows for fast, efficient checks for username availability using a `get()` operation instead of a costly query. \n*   **Public Figures:** Public figure profiles are stored in the `/figures/{figureId}` collection.  Featuring status is stored directly in the `PublicFigure` document.\n*   **Comments:** Comments are stored in a subcollection under each `PublicFigure` at `/figures/{figureId}/comments/{commentId}`.  This structure facilitates efficient querying of comments for a specific public figure.  Denormalizing the `figureId` into the comment document itself (even though it is implicit in the path) ensures authorization independence.\n*   **Notifications:** Notifications are stored under `/users/{userId}/notifications/{notificationId}`.  This path-based approach ensures that only the user can access their notifications. No denormalization is required here.\n*   **Streaks:** Streaks, representing a user's commenting activity on a public figure, are stored under `/users/{userId}/streaks/{streakId}`. This adheres to path-based ownership. The `publicFigureId` is stored within each `Streak` document.\n*   **Related Figures:** Relationships between public figures are stored in the `/related_figures/{relatedFigureId}` collection. Each document includes `sourceFigureId` and `targetFigureId` to define the relationship.\n*   **Admin Roles:**  Admin status is checked by verifying the existence of a document in the `/roles_admin/{userId}` collection. This existence-based check is efficient and secure.\n*   **GOAT Battle:** A global `/goat_battles/{battleId}` collection stores the main battle document (e.g., `messi-vs-ronaldo`) containing aggregated vote counts. A subcollection, `votes/{userId}`, is used to track individual user votes, ensuring data integrity and preventing duplicate votes efficiently.\n\nThis structure supports the required QAPs by:\n\n*   **Authorization Independence:** Denormalizing authorization-relevant data into subcollections eliminates the need for `get()` calls in security rules.\n*   **Secure List Operations:** Segregating data based on access requirements (e.g., user-specific data under `/users/{userId}`) ensures that list operations can be secured effectively. Public figures are in a separate collection, allowing open read access while restricting write access to admins only."
   }
 }
     
