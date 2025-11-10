@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Figure, AttitudeVote, EmotionVote, Streak, UserAchievement } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isDateActive } from '@/lib/streaks';
-import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart, Trophy } from 'lucide-react';
+import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart, Trophy, Award } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
@@ -30,7 +30,7 @@ interface FetchedAchievement extends UserAchievement {
 
 interface GroupedAchievements {
     [figureId: string]: {
-        figureData: Figure;
+        figureData?: Figure; // Optional if global
         achievements: UserAchievement[];
     }
 }
@@ -60,6 +60,12 @@ const PIONEER_ACHIEVEMENT = {
     name: 'Pionero',
     imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf'
 };
+
+const RECRUITER_ACHIEVEMENTS = {
+    recruiter_bronze: { name: 'Reclutador de Bronce', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5' },
+    recruiter_silver: { name: 'Reclutador de Plata', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5' },
+    recruiter_gold: { name: 'Reclutador de Oro', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5' },
+}
 
 
 const fetchFigureData = async (firestore: any, figureIds: string[]): Promise<Map<string, Figure>> => {
@@ -142,7 +148,7 @@ function AchievementsDisplay({ achievements }: { achievements: GroupedAchievemen
                 <Trophy className="mx-auto h-12 w-12 text-muted-foreground/30" />
                 <h3 className="mt-2 text-md font-semibold">Aún no tienes logros</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    ¡Sé el primero en votar en un perfil para ganar el logro de "Pionero"!
+                    ¡Sé el primero en votar o refiere amigos para ganar logros!
                 </p>
             </div>
         );
@@ -152,30 +158,48 @@ function AchievementsDisplay({ achievements }: { achievements: GroupedAchievemen
          <Accordion type="single" collapsible className="w-full space-y-2">
             {figureIds.map(figureId => {
                 const item = achievements[figureId];
-                if (!item.figureData) return null;
+                const isGlobal = figureId === 'global';
+
+                if (!item.figureData && !isGlobal) return null;
+                
+                const TriggerContent = () => (
+                    <div className="flex items-center gap-3">
+                        {isGlobal ? (
+                            <Award className="h-10 w-10 p-2 rounded-full bg-muted text-primary" />
+                        ) : (
+                            <Image
+                                src={item.figureData!.imageUrl}
+                                alt={item.figureData!.name}
+                                width={40}
+                                height={40}
+                                className="rounded-full object-cover aspect-square"
+                            />
+                        )}
+                        <span className="font-semibold">{isGlobal ? 'Logros Globales' : item.figureData!.name}</span>
+                    </div>
+                )
+
                 return (
                     <AccordionItem key={figureId} value={figureId} className="border-b-0">
                        <AccordionTrigger className="p-3 rounded-lg border bg-card hover:bg-muted/50 data-[state=open]:bg-muted/50 data-[state=open]:rounded-b-none">
-                            <div className="flex items-center gap-3">
-                                 <Image
-                                    src={item.figureData.imageUrl}
-                                    alt={item.figureData.name}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full object-cover aspect-square"
-                                />
-                                <span className="font-semibold">{item.figureData.name}</span>
-                            </div>
+                            <TriggerContent />
                        </AccordionTrigger>
                        <AccordionContent className="p-4 border border-t-0 rounded-b-lg">
                            <div className="flex flex-col gap-2">
                             {item.achievements.map(ach => {
+                                let achievementMeta = null;
                                 if (ach.achievementId === PIONEER_ACHIEVEMENT.id) {
+                                    achievementMeta = PIONEER_ACHIEVEMENT;
+                                } else if (Object.keys(RECRUITER_ACHIEVEMENTS).includes(ach.achievementId)) {
+                                     achievementMeta = RECRUITER_ACHIEVEMENTS[ach.achievementId as keyof typeof RECRUITER_ACHIEVEMENTS];
+                                }
+
+                                if (achievementMeta) {
                                     return (
                                         <div key={ach.id} className="flex items-center gap-3">
-                                            <Image src={PIONEER_ACHIEVEMENT.imageUrl} alt={PIONEER_ACHIEVEMENT.name} width={40} height={40} />
+                                            <Image src={achievementMeta.imageUrl} alt={achievementMeta.name} width={40} height={40} />
                                             <div>
-                                                <p className="font-semibold">{PIONEER_ACHIEVEMENT.name}</p>
+                                                <p className="font-semibold">{achievementMeta.name}</p>
                                                 <p className="text-xs text-muted-foreground">Desbloqueado el {ach.unlockedAt.toDate().toLocaleDateString()}</p>
                                             </div>
                                         </div>
@@ -240,7 +264,11 @@ export default function UserActivity({ userId }: UserActivityProps) {
             attitudes.forEach(v => figureIds.add(v.figureId));
             emotions.forEach(v => figureIds.add(v.figureId));
             activeStreaks.forEach(s => figureIds.add(s.figureId));
-            allAchievements.forEach(a => figureIds.add(a.figureId));
+            allAchievements.forEach(a => {
+                if (a.figureId !== 'global') {
+                    figureIds.add(a.figureId)
+                }
+            });
             
             const figureDataMap = await fetchFigureData(firestore, Array.from(figureIds));
             setFigures(figureDataMap);
@@ -252,14 +280,13 @@ export default function UserActivity({ userId }: UserActivityProps) {
             setStreaks(streaksWithData);
             
             const groupedAchievements = allAchievements.reduce((acc, ach) => {
-                if (!acc[ach.figureId]) {
-                    const figureData = figureDataMap.get(ach.figureId);
-                    if (figureData) {
-                        acc[ach.figureId] = { figureData: figureData, achievements: [] };
-                    }
+                const key = ach.figureId || 'global';
+                 if (!acc[key]) {
+                    const figureData = key !== 'global' ? figureDataMap.get(key) : undefined;
+                     acc[key] = { figureData, achievements: [] };
                 }
-                 if (acc[ach.figureId]) {
-                    acc[ach.figureId].achievements.push(ach);
+                 if (acc[key]) {
+                    acc[key].achievements.push(ach);
                 }
                 return acc;
             }, {} as GroupedAchievements);

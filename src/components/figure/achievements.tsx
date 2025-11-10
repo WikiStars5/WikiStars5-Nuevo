@@ -1,14 +1,13 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, getCountFromServer } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getCountFromServer, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy } from 'lucide-react';
-import type { UserAchievement, Figure } from '@/lib/types';
+import { Trophy, Award } from 'lucide-react';
+import type { UserAchievement, Figure, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -26,8 +25,10 @@ interface AchievementsProps {
 }
 
 const PIONEER_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf";
+const RECRUITER_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5";
 const PIONEER_TOTAL_LIMIT = 1000;
 const PIONEER_DISPLAY_LIMIT = 10;
+const RECRUITER_DISPLAY_LIMIT = 10;
 
 
 const getTrophyColor = (rank: number) => {
@@ -96,6 +97,77 @@ function PioneerList({ figureId }: { figureId: string }) {
     );
 }
 
+function RecruiterList() {
+    const firestore = useFirestore();
+    const recruitersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(
+            collection(firestore, 'users'),
+            where('referralCount', '>=', 2),
+            orderBy('referralCount', 'desc'),
+            limit(RECRUITER_DISPLAY_LIMIT)
+        );
+    }, [firestore]);
+
+    const { data: recruiters, isLoading } = useCollection<User>(recruitersQuery);
+    
+    const getRecruiterBadge = (count: number) => {
+        if (count >= 10) return <Award className="h-5 w-5 text-yellow-400" title="Oro"/>;
+        if (count >= 5) return <Award className="h-5 w-5 text-gray-400" title="Plata"/>;
+        if (count >= 2) return <Award className="h-5 w-5 text-yellow-600" title="Bronce"/>;
+        return null;
+    }
+
+    if (isLoading) {
+        return (
+            <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => <StreakItemSkeleton key={i} />)}
+            </div>
+        );
+    }
+    
+    if (!recruiters || recruiters.length === 0) {
+        return <p className="text-sm text-muted-foreground text-center py-4">Aún no hay reclutadores destacados.</p>;
+    }
+
+    return (
+         <div className="space-y-1">
+            {recruiters.map((user, index) => (
+                <div key={user.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
+                    <div className="flex items-center gap-3">
+                        <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
+                         <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
+                            <Avatar className="h-10 w-10">
+                                <AvatarImage src={(user as any).photoURL ?? undefined} alt={user.username} />
+                                <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <p className="font-semibold text-sm group-hover:underline">{user.username}</p>
+                        </Link>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm font-bold">
+                        {getRecruiterBadge(user.referralCount || 0)}
+                        <span>{user.referralCount || 0} referidos</span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    )
+}
+
+const StreakItemSkeleton = () => (
+    <div className="flex items-center justify-between p-2">
+        <div className="flex items-center gap-3">
+            <Skeleton className="h-5 w-5" />
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="space-y-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16" />
+            </div>
+        </div>
+        <Skeleton className="h-6 w-20 rounded-md" />
+    </div>
+);
+
 
 export default function Achievements({ figure }: AchievementsProps) {
     const firestore = useFirestore();
@@ -123,9 +195,9 @@ export default function Achievements({ figure }: AchievementsProps) {
         <Card className="dark:bg-black">
             <CardHeader>
                 <CardTitle>Logros de la Comunidad</CardTitle>
-                <CardDescription className="text-muted-foreground">Reconocimientos especiales obtenidos por los usuarios en este perfil.</CardDescription>
+                <CardDescription className="text-muted-foreground">Reconocimientos especiales obtenidos por los usuarios.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-wrap gap-4">
                  <Dialog>
                     <DialogTrigger asChild>
                          <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed w-48 h-48 text-center hover:border-primary hover:bg-primary/5 transition-colors">
@@ -151,6 +223,30 @@ export default function Achievements({ figure }: AchievementsProps) {
                             </DialogDescription>
                         </DialogHeader>
                         <PioneerList figureId={figure.id} />
+                    </DialogContent>
+                </Dialog>
+
+                 <Dialog>
+                    <DialogTrigger asChild>
+                         <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed w-48 h-48 text-center hover:border-primary hover:bg-primary/5 transition-colors">
+                             <Image
+                                src={RECRUITER_IMAGE_URL}
+                                alt="Logro de Reclutador"
+                                width={80}
+                                height={80}
+                            />
+                            <p className="font-bold">Reclutador de Base</p>
+                            <p className="text-xs text-muted-foreground">Top {RECRUITER_DISPLAY_LIMIT} Reclutadores</p>
+                         </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Top Reclutadores de la Plataforma</DialogTitle>
+                            <DialogDescription>
+                                Los usuarios que más nuevos miembros han traído a WikiStars5.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <RecruiterList />
                     </DialogContent>
                 </Dialog>
             </CardContent>
