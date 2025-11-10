@@ -131,3 +131,4 @@ export const onAchievementUnlocked = onDocumentCreated("users/{userId}/user_achi
     logger.info(`Notification sent to user ${userId} for achievement ${achievementName}`);
 });
 
+
