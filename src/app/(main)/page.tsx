@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import SearchBar from '@/components/shared/search-bar';
 
+export const dynamic = 'force-dynamic';
+
 const features = [
   {
     icon: Lightbulb,
