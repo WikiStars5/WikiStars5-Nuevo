@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Share2, Link as LinkIcon, Facebook, Twitter, Linkedin, MessageCircle, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from '@/firebase';
 
 // Simple inline SVG component for Reddit Icon
 const RedditIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -49,21 +50,36 @@ export function ShareButton({ figureName, figureId, showText = false }: ShareBut
   const { toast } = useToast();
   const [currentUrl, setCurrentUrl] = useState('');
   const [isWebShareSupported, setIsWebShareSupported] = useState(false);
+  const { user } = useUser();
 
   useEffect(() => {
     // Ensure this runs only on the client
     if (typeof window !== 'undefined') {
         const isGoatBattleShare = figureName.includes('La Batalla del GOAT');
-        const urlSuffix = isGoatBattleShare ? '?tab=goat' : '';
-        const baseUrl = `${window.location.origin}/figures/${figureId}`;
-        setCurrentUrl(`${baseUrl}${urlSuffix}`);
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (isGoatBattleShare) {
+            urlParams.set('tab', 'goat');
+        } else {
+            urlParams.delete('tab');
+        }
 
+        if (user) {
+            urlParams.set('ref', user.uid);
+        } else {
+            urlParams.delete('ref');
+        }
+
+        const baseUrl = `${window.location.origin}/figures/${figureId}`;
+        const finalUrl = `${baseUrl}?${urlParams.toString()}`.replace(/\?$/, ''); // Remove trailing '?' if no params
+        
+        setCurrentUrl(finalUrl);
 
       if (navigator.share) {
         setIsWebShareSupported(true);
       }
     }
-  }, [figureId, figureName]);
+  }, [figureId, figureName, user]);
 
   const buttonSize = showText ? "default" : "icon";
 
