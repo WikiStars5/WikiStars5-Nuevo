@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, getCountFromServer, where, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,17 +43,24 @@ const getTrophyColor = (rank: number) => {
 
 function AchievementList({ figureId, achievementId, limit: displayLimit }: { figureId: string; achievementId: string; limit: number; }) {
     const firestore = useFirestore();
+    
+    // Simplified query: Only order by unlockedAt. Filtering will happen on the client.
+    // This avoids the need for a composite index.
     const achievementsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(
             collection(firestore, `figures/${figureId}/achievements`),
-            where('achievementId', '==', achievementId),
-            orderBy('unlockedAt', 'asc'),
-            limit(displayLimit)
+            orderBy('unlockedAt', 'asc')
         );
-    }, [firestore, figureId, achievementId, displayLimit]);
+    }, [firestore, figureId]);
 
-    const { data: achievements, isLoading } = useCollection<UserAchievement>(achievementsQuery);
+    const { data, isLoading } = useCollection<UserAchievement>(achievementsQuery);
+
+    // Perform filtering on the client side after fetching the data.
+    const achievements = useMemo(() => {
+        if (!data) return [];
+        return data.filter(ach => ach.achievementId === achievementId).slice(0, displayLimit);
+    }, [data, achievementId, displayLimit]);
 
     if (isLoading) {
         return (
