@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, getCountFromServer, where, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,8 +19,6 @@ import {
   DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
-import { countries } from '@/lib/countries';
 
 interface AchievementsProps {
     figure: Figure;
@@ -41,60 +39,30 @@ const getTrophyColor = (rank: number) => {
     return 'text-muted-foreground';
 };
 
-function AchievementList({ figureId, achievementId, limit: displayLimit }: { figureId: string; achievementId: string; limit: number; }) {
-    const firestore = useFirestore();
+function AchievementList({ achievements, limit: displayLimit, type }: { achievements: UserAchievement[], limit: number, type: string }) {
     
-    // Simplified query: Only order by unlockedAt. Filtering will happen on the client.
-    // This avoids the need for a composite index.
-    const achievementsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(
-            collection(firestore, `figures/${figureId}/achievements`),
-            orderBy('unlockedAt', 'asc')
-        );
-    }, [firestore, figureId]);
+    const filteredAchievements = useMemo(() => {
+        return achievements
+            .filter(ach => ach.achievementId === type)
+            .sort((a, b) => a.unlockedAt.toMillis() - b.unlockedAt.toMillis())
+            .slice(0, displayLimit);
+    }, [achievements, displayLimit, type]);
 
-    const { data, isLoading } = useCollection<UserAchievement>(achievementsQuery);
 
-    // Perform filtering on the client side after fetching the data.
-    const achievements = useMemo(() => {
-        if (!data) return [];
-        return data.filter(ach => ach.achievementId === achievementId).slice(0, displayLimit);
-    }, [data, achievementId, displayLimit]);
-
-    if (isLoading) {
-        return (
-            <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                     <div key={i} className="flex items-center justify-between p-2">
-                        <div className="flex items-center gap-3">
-                            <Skeleton className="h-5 w-5" />
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                            <div className="space-y-1">
-                                <Skeleton className="h-4 w-24" />
-                                <Skeleton className="h-3 w-32" />
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    
-    if (!achievements || achievements.length === 0) {
+    if (filteredAchievements.length === 0) {
         return <p className="text-sm text-muted-foreground text-center py-4">Aún no hay ganadores. ¡Participa para ser el primero!</p>;
     }
 
     return (
         <div className="space-y-1">
-            {achievements.map((achievement, index) => (
+            {filteredAchievements.map((achievement, index) => (
                 <div key={achievement.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                     <div className="flex items-center gap-3">
                         <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
                         <Link href={`/u/${achievement.userDisplayName}`} className="flex items-center gap-3 group">
                             <Avatar className="h-10 w-10">
                                 <AvatarImage src={achievement.userPhotoURL ?? undefined} alt={achievement.userDisplayName} />
-                                <AvatarFallback>{achievement.userDisplayName.charAt(0)}</AvatarFallback>
+                                <AvatarFallback>{achievement.userDisplayName?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
                                 <p className="font-semibold text-sm group-hover:underline">{achievement.userDisplayName}</p>
@@ -111,36 +79,23 @@ function AchievementList({ figureId, achievementId, limit: displayLimit }: { fig
 
 export default function Achievements({ figure }: AchievementsProps) {
     const firestore = useFirestore();
-    const [pioneerCount, setPioneerCount] = useState(0);
-    const [recruiterCount, setRecruiterCount] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchCounts = async () => {
-            if (!firestore) return;
-            setIsLoading(true);
-            try {
-                const achievementsColRef = collection(firestore, `figures/${figure.id}/achievements`);
-                
-                const pioneerQuery = query(achievementsColRef, where('achievementId', '==', 'pioneer_voter'));
-                const recruiterQuery = query(achievementsColRef, where('achievementId', '==', 'recruiter'));
-
-                const [pioneerSnapshot, recruiterSnapshot] = await Promise.all([
-                    getCountFromServer(pioneerQuery),
-                    getCountFromServer(recruiterQuery),
-                ]);
-
-                setPioneerCount(pioneerSnapshot.data().count);
-                setRecruiterCount(recruiterSnapshot.data().count);
-
-            } catch (error) {
-                console.error("Error fetching achievement counts:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchCounts();
+    const allAchievementsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, `figures/${figure.id}/achievements`));
     }, [firestore, figure.id]);
+
+    const { data: allAchievements, isLoading } = useCollection<UserAchievement>(allAchievementsQuery);
+
+    const { pioneerCount, recruiterCount } = useMemo(() => {
+        if (!allAchievements) {
+            return { pioneerCount: 0, recruiterCount: 0 };
+        }
+        const pioneerCount = allAchievements.filter(a => a.achievementId === 'pioneer_voter').length;
+        const recruiterCount = allAchievements.filter(a => a.achievementId === 'recruiter').length;
+        return { pioneerCount, recruiterCount };
+    }, [allAchievements]);
+
 
     return (
         <Card className="dark:bg-black">
@@ -173,7 +128,24 @@ export default function Achievements({ figure }: AchievementsProps) {
                                 El logro se otorga a los primeros {PIONEER_TOTAL_LIMIT} usuarios en votar. Aquí se muestra el Top {PIONEER_DISPLAY_LIMIT}.
                             </DialogDescription>
                         </DialogHeader>
-                        <AchievementList figureId={figure.id} achievementId="pioneer_voter" limit={PIONEER_DISPLAY_LIMIT} />
+                        {isLoading ? (
+                           <div className="space-y-2">
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                    <div key={i} className="flex items-center justify-between p-2">
+                                        <div className="flex items-center gap-3">
+                                            <Skeleton className="h-5 w-5" />
+                                            <Skeleton className="h-10 w-10 rounded-full" />
+                                            <div className="space-y-1">
+                                                <Skeleton className="h-4 w-24" />
+                                                <Skeleton className="h-3 w-32" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                           <AchievementList achievements={allAchievements || []} limit={PIONEER_DISPLAY_LIMIT} type="pioneer_voter" />
+                        )}
                     </DialogContent>
                 </Dialog>
 
@@ -201,7 +173,24 @@ export default function Achievements({ figure }: AchievementsProps) {
                                 Se otorga a quienes traen nuevos usuarios a votar a este perfil. Aquí se muestra el Top {RECRUITER_DISPLAY_LIMIT}.
                             </DialogDescription>
                         </DialogHeader>
-                        <AchievementList figureId={figure.id} achievementId="recruiter" limit={RECRUITER_DISPLAY_LIMIT} />
+                          {isLoading ? (
+                           <div className="space-y-2">
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                    <div key={i} className="flex items-center justify-between p-2">
+                                        <div className="flex items-center gap-3">
+                                            <Skeleton className="h-5 w-5" />
+                                            <Skeleton className="h-10 w-10 rounded-full" />
+                                            <div className="space-y-1">
+                                                <Skeleton className="h-4 w-24" />
+                                                <Skeleton className="h-3 w-32" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                           <AchievementList achievements={allAchievements || []} limit={RECRUITER_DISPLAY_LIMIT} type="recruiter" />
+                        )}
                     </DialogContent>
                 </Dialog>
             </CardContent>
