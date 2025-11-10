@@ -1,9 +1,10 @@
+
 'use client';
 
 import * as React from 'react';
 import { useAuth, useUser } from '@/firebase';
 import { GoogleAuthProvider, signInWithPopup, User } from 'firebase/auth';
-import { doc, getDoc, runTransaction, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, runTransaction, serverTimestamp, setDoc, collection } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeText } from '@/lib/keywords';
@@ -71,6 +72,18 @@ export function LoginPromptDialog({ children, open, onOpenChange }: LoginPromptD
 
                 dataToSave.username = finalUsername;
                 dataToSave.usernameLower = normalizeText(finalUsername);
+
+                // --- Step 3: Handle Referral ---
+                const referrerId = localStorage.getItem('referrerId');
+                if (referrerId && referrerId !== signedInUser.uid) {
+                    const referralRef = doc(collection(firestore, 'users', referrerId, 'referrals'), signedInUser.uid);
+                    transaction.set(referralRef, {
+                        referredUserId: signedInUser.uid,
+                        createdAt: serverTimestamp(),
+                    });
+                    // Remove from localStorage after processing
+                    localStorage.removeItem('referrerId');
+                }
             }
             
             // Set user data (create or merge)
@@ -143,3 +156,5 @@ export function LoginPromptDialog({ children, open, onOpenChange }: LoginPromptD
     </Dialog>
   );
 }
+
+    

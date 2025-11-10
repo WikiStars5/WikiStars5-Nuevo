@@ -90,6 +90,27 @@
         "userId"
       ]
     },
+    "Referral": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Referral",
+      "type": "object",
+      "description": "Represents a successful referral of a new user by an existing user.",
+      "properties": {
+        "referredUserId": {
+          "type": "string",
+          "description": "The ID of the new user who was referred."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the referral was confirmed."
+        }
+      },
+      "required": [
+        "referredUserId",
+        "createdAt"
+      ]
+    },
     "PublicFigure": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PublicFigure",
@@ -811,6 +832,20 @@
         }
       },
       {
+        "path": "/users/{userId}/referrals/{referredUserId}",
+        "definition": {
+            "entityName": "Referral",
+            "schema": {
+                "$ref": "#/backend/entities/Referral"
+            },
+            "description": "Stores a record of a user referred by the parent user. The document ID is the UID of the new user.",
+            "params": [
+                { "name": "userId", "description": "The ID of the referring user." },
+                { "name": "referredUserId", "description": "The ID of the new user who was referred." }
+            ]
+        }
+      },
+      {
         "path": "/users/{userId}/streaks/{streakId}",
         "definition": {
           "entityName": "Streak",
@@ -929,5 +964,4 @@
   }
 }
     
-
     

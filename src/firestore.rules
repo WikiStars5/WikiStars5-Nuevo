@@ -32,6 +32,16 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
+
+      // Subcollection for referrals
+      match /referrals/{referredUserId} {
+        // Only allow creation by a signed-in user (the system via the client)
+        allow create: if isSignedIn();
+        // Allow the referring user to see their own referrals
+        allow read, list: if isOwner(userId);
+        // Disallow updates and deletes
+        allow update, delete: if false;
+      }
     }
     
     match /users/{userId}/notifications/{notificationId} {
@@ -170,3 +180,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
