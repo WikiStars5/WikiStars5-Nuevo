@@ -147,7 +147,7 @@ export default function Achievements({ figure }: AchievementsProps) {
                         <DialogHeader>
                             <DialogTitle>Ganadores del Logro "Pionero"</DialogTitle>
                             <DialogDescription>
-                                El logro se otorga a los primeros {PIONEER_TOTAL_LIMIT} usuarios. Aquí se muestra el top {PIONEER_DISPLAY_LIMIT} de pioneros para el perfil de {figure.name}.
+                                El logro se otorga a los primeros {PIONEER_TOTAL_LIMIT} usuarios, pero aquí solo se muestra el Top {PIONEER_DISPLAY_LIMIT} de pioneros para el perfil de {figure.name}.
                             </DialogDescription>
                         </DialogHeader>
                         <PioneerList figureId={figure.id} />
