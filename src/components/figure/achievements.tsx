@@ -139,7 +139,7 @@ export default function Achievements({ figure }: AchievementsProps) {
                             {isLoading ? (
                                 <Skeleton className="h-4 w-20" />
                             ) : (
-                                <p className="text-xs text-muted-foreground">{Math.min(pioneerCount, PIONEER_DISPLAY_LIMIT)} / {PIONEER_DISPLAY_LIMIT} Ganadores</p>
+                                <p className="text-xs text-muted-foreground">{pioneerCount} / {PIONEER_TOTAL_LIMIT} Ganadores</p>
                             )}
                          </button>
                     </DialogTrigger>
@@ -147,7 +147,7 @@ export default function Achievements({ figure }: AchievementsProps) {
                         <DialogHeader>
                             <DialogTitle>Ganadores del Logro "Pionero"</DialogTitle>
                             <DialogDescription>
-                                Los primeros {PIONEER_DISPLAY_LIMIT} usuarios que votaron en el perfil de {figure.name}.
+                                El logro se otorga a los primeros {PIONEER_TOTAL_LIMIT} usuarios. Aquí se muestra el top {PIONEER_DISPLAY_LIMIT} de pioneros para el perfil de {figure.name}.
                             </DialogDescription>
                         </DialogHeader>
                         <PioneerList figureId={figure.id} />
