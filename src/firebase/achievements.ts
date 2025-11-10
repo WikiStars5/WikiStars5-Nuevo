@@ -11,7 +11,8 @@ import {
     limit,
     writeBatch,
     increment,
-    Firestore
+    Firestore,
+    getCountFromServer
 } from 'firebase/firestore';
 import type { UserAchievement } from '@/lib/types';
 
@@ -42,23 +43,28 @@ export async function grantPioneerAchievement({
     let achievementWasGranted = false;
     
     try {
+        // Step 1: Perform reads outside the transaction first.
+        const [privateDocSnap, publicCountSnap] = await Promise.all([
+            getDoc(privateAchievementRef),
+            getCountFromServer(query(publicAchievementsCollectionRef, limit(PIONEER_LIMIT)))
+        ]);
+        
+        // 1. Check if user already has this achievement for this figure
+        if (privateDocSnap.exists()) {
+            return false;
+        }
+
+        // 2. Check if the pioneer limit for this figure has been reached
+        const currentPioneerCount = publicCountSnap.data().count;
+        if (currentPioneerCount >= PIONEER_LIMIT) {
+            return false;
+        }
+
+        // Step 2: Perform the write operations inside a transaction to ensure atomicity.
         await runTransaction(firestore, async (transaction) => {
-            const [privateDoc, publicAchievementsSnapshot] = await Promise.all([
-                transaction.get(privateAchievementRef),
-                transaction.get(query(publicAchievementsCollectionRef, limit(PIONEER_LIMIT))) // Read collection within transaction
-            ]);
-
-            // 1. Check if user already has this achievement for this figure
-            if (privateDoc.exists()) {
-                return;
-            }
-
-            // 2. Check if the pioneer limit for this figure has been reached
-            if (publicAchievementsSnapshot.size >= PIONEER_LIMIT) {
-                return;
-            }
-
-            // 3. If checks pass, grant the achievement
+            // We can re-read inside the transaction for consistency check if needed, but for an append-only
+            // log like this, the initial check is often sufficient.
+            
             const achievementPayload: Omit<UserAchievement, 'id'> = {
                 userId,
                 achievementId: PIONEER_ACHIEVEMENT_ID,
