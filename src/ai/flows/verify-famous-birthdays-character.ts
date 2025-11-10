@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A flow to verify if a character exists on es.famousbirthdays.com.
+ * @fileOverview A flow to verify if a character exists on famousbirthdays.com.
  * This flow now also attempts to fetch a better image from Wikipedia.
  */
 
@@ -11,7 +11,7 @@ import {
 } from './verify-wikipedia-character';
 
 const VerifyFamousBirthdaysInputSchema = z.object({
-  url: z.string().url().describe('The URL of the character on es.famousbirthdays.com.'),
+  url: z.string().url().describe('The URL of the character on famousbirthdays.com.'),
   name: z.string().describe('The name of the public figure to verify.'),
 });
 export type VerifyFamousBirthdaysInput = z.infer<typeof VerifyFamousBirthdaysInputSchema>;
@@ -39,12 +39,12 @@ const verifyFamousBirthdaysCharacterFlow = ai.defineFlow(
   },
   async ({ url, name }) => {
     try {
-        if (!url.startsWith('https://es.famousbirthdays.com/people/')) {
+        if (!/^(https?:\/\/)?(www\.|es\.)?famousbirthdays\.com\/people\//.test(url)) {
             return {
                 found: false,
                 title: null,
                 imageUrl: null,
-                verificationError: "La URL debe ser de 'es.famousbirthdays.com/people/'.",
+                verificationError: "La URL debe ser de 'famousbirthdays.com/people/'.",
                 source: 'Famous Birthdays',
             };
         }
@@ -74,8 +74,8 @@ const verifyFamousBirthdaysCharacterFlow = ai.defineFlow(
       }
 
       // Extract name from <title> tag
-      const titleMatch = html.match(/<title>(.*?) - Edad, Familia, Biografía<\/title>/);
-      let characterName = titleMatch ? titleMatch[1].trim() : null;
+      const titleMatch = html.match(/<title>(.*?) - Age, Family, Bio<\/title>|<title>(.*?) - Edad, Familia, Biografía<\/title>/);
+      let characterName = titleMatch ? (titleMatch[1] || titleMatch[2]).trim() : null;
 
       if (!characterName) {
          const h1Match = html.match(/<h1 class="bio-title">(.*?)<\/h1>/);
