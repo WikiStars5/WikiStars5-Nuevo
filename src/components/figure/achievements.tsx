@@ -44,7 +44,7 @@ function PioneerList({ figureId }: { figureId: string }) {
         return query(
             collection(firestore, `figures/${figureId}/achievements`),
             orderBy('unlockedAt', 'asc'),
-            limit(PIONEER_DISPLAY_LIMIT) // Only fetch the top 10 to display
+            limit(PIONEER_DISPLAY_LIMIT)
         );
     }, [firestore, figureId]);
 
@@ -139,7 +139,7 @@ export default function Achievements({ figure }: AchievementsProps) {
                             {isLoading ? (
                                 <Skeleton className="h-4 w-20" />
                             ) : (
-                                <p className="text-xs text-muted-foreground">{pioneerCount} / {PIONEER_TOTAL_LIMIT} Ganadores</p>
+                                <p className="text-xs text-muted-foreground">{Math.min(pioneerCount, PIONEER_DISPLAY_LIMIT)} / {PIONEER_DISPLAY_LIMIT} Ganadores</p>
                             )}
                          </button>
                     </DialogTrigger>
