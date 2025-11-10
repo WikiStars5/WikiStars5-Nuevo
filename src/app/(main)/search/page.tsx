@@ -1,5 +1,7 @@
 import SearchResultsClient from './client-page';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SearchResultsPage({
   searchParams,
 }: {
