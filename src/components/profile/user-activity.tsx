@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,10 +8,11 @@ import { collection, query, where, getDocs, doc, getDoc, orderBy, collectionGrou
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Figure, AttitudeVote, EmotionVote, Streak } from '@/lib/types';
+import { Figure, AttitudeVote, EmotionVote, Streak, UserAchievement } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isDateActive } from '@/lib/streaks';
-import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart } from 'lucide-react';
+import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart, Trophy } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 interface FetchedVote {
@@ -22,6 +22,17 @@ interface FetchedVote {
 
 interface FetchedStreak extends Streak {
   figureData?: Figure;
+}
+
+interface FetchedAchievement extends UserAchievement {
+    figureData?: Figure;
+}
+
+interface GroupedAchievements {
+    [figureId: string]: {
+        figureData: Figure;
+        achievements: UserAchievement[];
+    }
 }
 
 interface UserActivityProps {
@@ -43,6 +54,13 @@ const emotionOptions = [
   { id: 'desagrado', label: 'Desagrado', icon: ThumbsDown },
   { id: 'furia', label: 'Furia', icon: Angry },
 ];
+
+const PIONEER_ACHIEVEMENT = {
+    id: 'pioneer_voter',
+    name: 'Pionero',
+    imageUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf'
+};
+
 
 const fetchFigureData = async (firestore: any, figureIds: string[]): Promise<Map<string, Figure>> => {
     const figureMap = new Map<string, Figure>();
@@ -115,13 +133,73 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
   );
 }
 
+function AchievementsDisplay({ achievements }: { achievements: GroupedAchievements }) {
+    const figureIds = Object.keys(achievements);
+
+    if (figureIds.length === 0) {
+        return (
+            <div className="text-center py-8">
+                <Trophy className="mx-auto h-12 w-12 text-muted-foreground/30" />
+                <h3 className="mt-2 text-md font-semibold">Aún no tienes logros</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    ¡Sé el primero en votar en un perfil para ganar el logro de "Pionero"!
+                </p>
+            </div>
+        );
+    }
+    
+    return (
+         <Accordion type="single" collapsible className="w-full space-y-2">
+            {figureIds.map(figureId => {
+                const item = achievements[figureId];
+                if (!item.figureData) return null;
+                return (
+                    <AccordionItem key={figureId} value={figureId} className="border-b-0">
+                       <AccordionTrigger className="p-3 rounded-lg border bg-card hover:bg-muted/50 data-[state=open]:bg-muted/50 data-[state=open]:rounded-b-none">
+                            <div className="flex items-center gap-3">
+                                 <Image
+                                    src={item.figureData.imageUrl}
+                                    alt={item.figureData.name}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full object-cover aspect-square"
+                                />
+                                <span className="font-semibold">{item.figureData.name}</span>
+                            </div>
+                       </AccordionTrigger>
+                       <AccordionContent className="p-4 border border-t-0 rounded-b-lg">
+                           <div className="flex flex-col gap-2">
+                            {item.achievements.map(ach => {
+                                if (ach.achievementId === PIONEER_ACHIEVEMENT.id) {
+                                    return (
+                                        <div key={ach.id} className="flex items-center gap-3">
+                                            <Image src={PIONEER_ACHIEVEMENT.imageUrl} alt={PIONEER_ACHIEVEMENT.name} width={40} height={40} />
+                                            <div>
+                                                <p className="font-semibold">{PIONEER_ACHIEVEMENT.name}</p>
+                                                <p className="text-xs text-muted-foreground">Desbloqueado el {ach.unlockedAt.toDate().toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                    )
+                                }
+                                return null;
+                            })}
+                           </div>
+                       </AccordionContent>
+                    </AccordionItem>
+                )
+            })}
+        </Accordion>
+    )
+
+}
+
 export default function UserActivity({ userId }: UserActivityProps) {
-  const { user: loggedInUser } = useUser();
   const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(true);
   const [attitudeVotes, setAttitudeVotes] = useState<FetchedVote[]>([]);
   const [emotionVotes, setEmotionVotes] = useState<FetchedVote[]>([]);
   const [streaks, setStreaks] = useState<FetchedStreak[]>([]);
+  const [achievements, setAchievements] = useState<GroupedAchievements>({});
   const [figures, setFigures] = useState<Map<string, Figure>>(new Map());
 
   useEffect(() => {
@@ -130,45 +208,64 @@ export default function UserActivity({ userId }: UserActivityProps) {
         setIsLoading(true);
         
         try {
-            // Fetch votes using collectionGroup queries
+            // Fetch all data types in parallel
             const attitudeQuery = query(collectionGroup(firestore, 'attitudeVotes'), where('userId', '==', userId));
             const emotionQuery = query(collectionGroup(firestore, 'emotionVotes'), where('userId', '==', userId));
-            
-            // Fetch streaks from the user's private subcollection
             const streaksQuery = query(collection(firestore, 'users', userId, 'streaks'), orderBy('currentStreak', 'desc'));
+            const achievementsQuery = query(collection(firestore, 'users', userId, 'user_achievements'), orderBy('unlockedAt', 'desc'));
 
-            const [attitudeSnapshot, emotionSnapshot, streaksSnapshot] = await Promise.all([
+            const [
+                attitudeSnapshot, 
+                emotionSnapshot, 
+                streaksSnapshot,
+                achievementsSnapshot
+            ] = await Promise.all([
                 getDocs(attitudeQuery),
                 getDocs(emotionQuery),
                 getDocs(streaksQuery),
+                getDocs(achievementsQuery)
             ]);
 
             const attitudes = attitudeSnapshot.docs.map(d => d.data() as AttitudeVote);
             const emotions = emotionSnapshot.docs.map(d => d.data() as EmotionVote);
             const allStreaks = streaksSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Streak));
+            const allAchievements = achievementsSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as UserAchievement));
 
             const activeStreaks = allStreaks.filter(s => s.lastCommentDate && isDateActive(s.lastCommentDate));
-
+            
             setAttitudeVotes(attitudes);
             setEmotionVotes(emotions);
             
-            // Collect all unique figure IDs to fetch
             const figureIds = new Set<string>();
             attitudes.forEach(v => figureIds.add(v.figureId));
             emotions.forEach(v => figureIds.add(v.figureId));
             activeStreaks.forEach(s => figureIds.add(s.figureId));
+            allAchievements.forEach(a => figureIds.add(a.figureId));
             
-            // Fetch figure data for all votes and streaks
             const figureDataMap = await fetchFigureData(firestore, Array.from(figureIds));
+            setFigures(figureDataMap);
 
-            // Add figure data to streaks
             const streaksWithData = activeStreaks.map(streak => ({
                 ...streak,
                 figureData: figureDataMap.get(streak.figureId),
             }));
-
             setStreaks(streaksWithData);
-            setFigures(figureDataMap);
+            
+            const groupedAchievements = allAchievements.reduce((acc, ach) => {
+                if (!acc[ach.figureId]) {
+                    const figureData = figureDataMap.get(ach.figureId);
+                    if (figureData) {
+                        acc[ach.figureId] = { figureData: figureData, achievements: [] };
+                    }
+                }
+                 if (acc[ach.figureId]) {
+                    acc[ach.figureId].achievements.push(ach);
+                }
+                return acc;
+            }, {} as GroupedAchievements);
+
+            setAchievements(groupedAchievements);
+
 
         } catch (error) {
             console.error("Failed to fetch user activity:", error);
@@ -202,10 +299,11 @@ export default function UserActivity({ userId }: UserActivityProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="attitudes" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="attitudes">Actitud</TabsTrigger>
             <TabsTrigger value="emotions">Emociones</TabsTrigger>
             <TabsTrigger value="streaks">Rachas</TabsTrigger>
+            <TabsTrigger value="achievements">Logros</TabsTrigger>
           </TabsList>
           
           <TabsContent value="attitudes" className="mt-4">
@@ -248,6 +346,9 @@ export default function UserActivity({ userId }: UserActivityProps) {
 
            <TabsContent value="streaks" className="mt-4">
              <StreaksDisplay streaks={streaks} />
+          </TabsContent>
+           <TabsContent value="achievements" className="mt-4">
+             <AchievementsDisplay achievements={achievements} />
           </TabsContent>
 
         </Tabs>

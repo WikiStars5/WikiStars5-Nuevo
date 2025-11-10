@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export interface User {
@@ -176,7 +175,7 @@ export interface UserAchievement {
     figureId: string;
     unlockedAt: Timestamp;
     // Denormalized user data for display on leaderboards
-    userDisplayName: string;
+    userDisplayName?: string;
     userPhotoURL?: string | null;
 }
     
