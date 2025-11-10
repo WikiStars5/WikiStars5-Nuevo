@@ -117,12 +117,10 @@ service cloud.firestore {
       }
       
       match /achievements/{userAchievementId} {
-          allow get: if true;
+          allow get, list: if true;
           allow create: if isSignedIn(); 
           allow delete, update: if false;
       }
-      // Allow anyone to LIST the achievements for the leaderboard
-      allow list: if true;
     }
     
     // --- Collection Group Query Rules ---
