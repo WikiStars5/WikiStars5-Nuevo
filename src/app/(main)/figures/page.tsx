@@ -10,6 +10,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Figure } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 export default function ExplorePage() {
   const firestore = useFirestore();
   const figuresCollection = useMemoFirebase(() => {
