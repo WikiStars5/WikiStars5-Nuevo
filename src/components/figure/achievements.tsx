@@ -7,7 +7,7 @@ import { collection, query, orderBy, limit, getCountFromServer, where, getDocs }
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Award } from 'lucide-react';
+import { Trophy, Award, Users } from 'lucide-react';
 import type { UserAchievement, Figure, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { countries } from '@/lib/countries';
 
 interface AchievementsProps {
     figure: Figure;
@@ -28,9 +29,6 @@ interface AchievementsProps {
 
 const PIONEER_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf";
 const RECRUITER_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5";
-const RECRUITER_BRONZE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F2.png?alt=media&token=6bfc89ae-e6a8-4401-82eb-5928bfdaf783";
-const RECRUITER_SILVER_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F5.png?alt=media&token=aab6061e-ec0b-48b6-8262-3489f104b067";
-const RECRUITER_GOLD_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2F10.png?alt=media&token=d6aa20e2-2b79-4dbf-bf3a-2d646bc59565";
 
 const PIONEER_TOTAL_LIMIT = 1000;
 const PIONEER_DISPLAY_LIMIT = 10;
@@ -103,78 +101,93 @@ function PioneerList({ figureId }: { figureId: string }) {
     );
 }
 
-const RecruiterTier = ({ title, imageUrl, min, max, firestore }: { title: string; imageUrl: string; min: number; max?: number, firestore: any }) => {
-    const recruitersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        let q = query(
-            collection(firestore, 'users'),
-            where('referralCount', '>=', min),
-            orderBy('referralCount', 'desc'),
-            limit(RECRUITER_DISPLAY_LIMIT)
-        );
-        if (max) {
-             q = query(q, where('referralCount', '<=', max));
-        }
-        return q;
-    }, [firestore, min, max]);
-
-    const { data: recruiters, isLoading } = useCollection<User>(recruitersQuery);
-
-    return (
-        <div className="flex flex-col gap-2 rounded-lg border p-4">
-            <div className="flex flex-col items-center text-center gap-2">
-                <Image src={imageUrl} alt={title} width={64} height={64} />
-                <h3 className="font-bold text-lg">{title}</h3>
+const RecruiterListSkeleton = () => (
+    <div className="space-y-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between p-2">
+                <div className="flex items-center gap-3">
+                    <Skeleton className="h-5 w-5" />
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="space-y-1">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
+                    </div>
+                </div>
+                <Skeleton className="h-6 w-12 rounded-md" />
             </div>
-            <Separator />
-            <div className="space-y-2">
-                {isLoading && Array.from({ length: 2 }).map((_, i) => <StreakItemSkeleton key={i} />)}
-                {!isLoading && recruiters && recruiters.length > 0 ? (
-                    recruiters.map(user => (
-                         <Link key={user.id} href={`/u/${user.username}`} className="flex items-center justify-between p-2 rounded-md hover:bg-muted group">
-                            <div className="flex items-center gap-2">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={(user as any).photoURL ?? undefined} alt={user.username} />
-                                    <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm font-medium group-hover:underline">{user.username}</span>
-                            </div>
-                            <span className="text-sm font-bold text-muted-foreground">{user.referralCount || 0}</span>
-                         </Link>
-                    ))
-                ) : (
-                    !isLoading && <p className="text-xs text-muted-foreground text-center py-4">Aún no hay reclutadores.</p>
-                )}
-            </div>
-        </div>
-    );
-};
-
-
-function RecruiterList() {
-    const firestore = useFirestore();
-
-    return (
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <RecruiterTier title="Oro" imageUrl={RECRUITER_GOLD_URL} min={10} firestore={firestore} />
-             <RecruiterTier title="Plata" imageUrl={RECRUITER_SILVER_URL} min={5} max={9} firestore={firestore} />
-             <RecruiterTier title="Bronce" imageUrl={RECRUITER_BRONZE_URL} min={2} max={4} firestore={firestore} />
-         </div>
-    );
-}
-
-const StreakItemSkeleton = () => (
-    <div className="flex items-center justify-between p-2">
-        <div className="flex items-center gap-3">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <div className="space-y-1">
-                <Skeleton className="h-4 w-20" />
-            </div>
-        </div>
-        <Skeleton className="h-6 w-8 rounded-md" />
+        ))}
     </div>
 );
 
+
+function TopRecruitersList() {
+    const firestore = useFirestore();
+
+    const recruitersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(
+            collection(firestore, 'users'),
+            where('referralCount', '>=', 1),
+            orderBy('referralCount', 'desc'),
+            limit(RECRUITER_DISPLAY_LIMIT)
+        );
+    }, [firestore]);
+
+    const { data: recruiters, isLoading } = useCollection<User>(recruitersQuery);
+
+    if (isLoading) {
+        return <RecruiterListSkeleton />;
+    }
+
+    if (!recruiters || recruiters.length === 0) {
+        return (
+            <p className="text-sm text-muted-foreground text-center py-4">Aún no hay reclutadores. ¡Comparte la app para ser el primero!</p>
+        );
+    }
+    
+    return (
+        <div className="space-y-1">
+            {recruiters.map((user, index) => {
+                 const country = countries.find(c => c.name === (user as any).country);
+                return (
+                    <div key={user.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
+                        <div className="flex items-center gap-3">
+                            <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
+                            <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
+                                <Avatar className="h-10 w-10">
+                                    <AvatarImage src={(user as any).photoURL ?? undefined} alt={user.username} />
+                                    <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-semibold text-sm group-hover:underline">{user.username}</p>
+                                        {(user as any).gender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
+                                        {(user as any).gender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                                        {country && (
+                                            <Image
+                                                src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                                                alt={country.name}
+                                                width={20}
+                                                height={15}
+                                                className="object-contain"
+                                                title={country.name}
+                                            />
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Usuario Registrado</p>
+                                </div>
+                            </Link>
+                        </div>
+                        <div className="flex items-center gap-2 font-bold text-lg text-primary">
+                            <span>{user.referralCount || 0}</span>
+                            <Users className="h-4 w-4" />
+                        </div>
+                    </div>
+                )
+            })}
+        </div>
+    );
+}
 
 export default function Achievements({ figure }: AchievementsProps) {
     const firestore = useFirestore();
@@ -242,21 +255,22 @@ export default function Achievements({ figure }: AchievementsProps) {
                                 width={80}
                                 height={80}
                             />
-                            <p className="font-bold">Reclutador de Base</p>
+                            <p className="font-bold">Reclutador</p>
                             <p className="text-xs text-muted-foreground">Top Reclutadores</p>
                          </button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl">
+                    <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Top Reclutadores de la Plataforma</DialogTitle>
                             <DialogDescription>
-                                Los usuarios que más nuevos miembros han traído a WikiStars5, clasificados por nivel.
+                                Los usuarios que más nuevos miembros han traído a WikiStars5, clasificados por su número de referidos.
                             </DialogDescription>
                         </DialogHeader>
-                        <RecruiterList />
+                        <TopRecruitersList />
                     </DialogContent>
                 </Dialog>
             </CardContent>
         </Card>
     );
 }
+
