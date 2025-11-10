@@ -6,6 +6,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Footer from '@/components/shared/footer';
 import Header from '@/components/shared/header';
+import { useSearchParams } from 'next/navigation';
 
 export default function MainLayout({
   children,
@@ -14,7 +15,24 @@ export default function MainLayout({
 }>) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
   const isUnloading = useRef(false);
+
+  // Step 2: Referral code handling
+  useEffect(() => {
+    const referrerId = searchParams.get('ref');
+    if (referrerId) {
+      // If a referrer ID is present in the URL, save it to localStorage.
+      // It will be read during the sign-up process.
+      // We don't want a user to refer themselves, so check against current user ID.
+      if (user && user.uid === referrerId) {
+        // If the user is viewing their own referral link, do nothing.
+        return;
+      }
+      localStorage.setItem('referrerId', referrerId);
+    }
+  }, [searchParams, user]);
+
 
   useEffect(() => {
     if (!user || !firestore) return;
