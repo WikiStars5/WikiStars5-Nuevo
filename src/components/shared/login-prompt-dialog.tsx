@@ -11,7 +11,6 @@ import { normalizeText } from '@/lib/keywords';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 
 
 const GoogleIcon = () => (
@@ -33,7 +32,6 @@ export function LoginPromptDialog({ children, open, onOpenChange }: LoginPromptD
   const { reloadUser } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -111,12 +109,6 @@ export function LoginPromptDialog({ children, open, onOpenChange }: LoginPromptD
   const handleGoogleSignIn = async () => {
     if (!auth || !firestore) return;
     
-    // Before signing in, check for a referrer ID in the URL and save it.
-    const referrerId = searchParams.get('ref');
-    if (referrerId) {
-      localStorage.setItem('referrerId', referrerId);
-    }
-
     setIsSubmitting(true);
     const provider = new GoogleAuthProvider();
 

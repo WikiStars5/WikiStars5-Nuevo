@@ -46,6 +46,15 @@ export default function Header() {
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
   const { setTheme, theme } = useTheme();
+  
+  React.useEffect(() => {
+    // This effect runs only on the client after hydration
+    const searchParams = new URLSearchParams(window.location.search);
+    const referrerId = searchParams.get('ref');
+    if (referrerId) {
+      localStorage.setItem('referrerId', referrerId);
+    }
+  }, [pathname]); // Rerun if the path changes, capturing the ref ID on any page load
 
   const handleLogout = () => {
     if (auth) {

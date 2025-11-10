@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useRef } from 'react';
@@ -6,7 +5,6 @@ import { useFirestore, useUser } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Footer from '@/components/shared/footer';
 import Header from '@/components/shared/header';
-import { useSearchParams } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,15 +15,7 @@ export default function MainLayout({
 }>) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const searchParams = useSearchParams();
   const isUnloading = useRef(false);
-
-  useEffect(() => {
-    const referrerId = searchParams.get('ref');
-    if (referrerId) {
-      localStorage.setItem('referrerId', referrerId);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     if (!user || !firestore) return;
