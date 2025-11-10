@@ -12,7 +12,8 @@ import {
     writeBatch,
     increment,
     Firestore,
-    getCountFromServer
+    getCountFromServer,
+    getDoc
 } from 'firebase/firestore';
 import type { UserAchievement } from '@/lib/types';
 
