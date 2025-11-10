@@ -45,6 +45,12 @@ service cloud.firestore {
         allow get, list, write: if isOwner(userId);
     }
 
+    // This rule allows users to read their own achievements. Write is handled by server logic.
+    match /users/{userId}/user_achievements/{achievementId} {
+      allow get, list: if isOwner(userId);
+      allow write: if false; // Only server can write
+    }
+
     match /status/{userId} {
       allow read, write: if isOwner(userId);
       allow list: if false;
@@ -101,6 +107,14 @@ service cloud.firestore {
         allow read, list: if true; 
         allow write: if isOwner(userId);
       }
+
+       // --- /figures/{figureId}/achievements/{userAchievementId} ---
+       // This is for the public achievement board on the figure's page.
+      match /achievements/{userAchievementId} {
+          allow read, list: if true;
+          allow create: if isSignedIn(); // System/user can grant achievement
+          allow delete, update: if false; // Achievements are permanent per figure
+      }
     }
     
     // --- Collection Group Query Rules ---
@@ -124,10 +138,16 @@ service cloud.firestore {
         allow get, list: if true;
         allow write: if isSignedIn();
     }
+    
+     match /achievements/{achievementId} {
+        allow get, list: if true;
+        allow write: if isAdmin(); // Only admins can define master achievements
+    }
+
 
     match /related_figures/{relatedFigureId} {
       allow get, list: if true;
-      allow create, delete: if isAdmin();
+      allow create, delete: if isSignedIn();
       allow update: if false;
     }
 
@@ -151,3 +171,4 @@ service cloud.firestore {
   }
 }
 
+    

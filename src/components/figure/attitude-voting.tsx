@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
+import { grantPioneerAchievement } from '@/firebase/achievements';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -64,6 +65,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     setIsVoting(vote);
 
     let finalAttitude: AttitudeOption | null = null;
+    let isFirstVote = false;
 
     try {
       const figureRef = doc(firestore, 'figures', figure.id);
@@ -99,6 +101,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
           }
         } else {
           // First vote
+          isFirstVote = true; // Mark that this is the user's first vote on this figure
           transaction.update(figureRef, { [`attitude.${vote}`]: increment(1) });
           const voteData: Partial<AttitudeVote> = {
             userId: user.uid,
@@ -113,6 +116,18 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         }
       });
       onVote(finalAttitude);
+
+       // If it was the user's first-ever vote for this figure, try to grant the achievement
+      if (isFirstVote) {
+        await grantPioneerAchievement({
+          firestore,
+          figureId: figure.id,
+          userId: user.uid,
+          userDisplayName: user.displayName,
+          userPhotoURL: user.photoURL,
+        });
+      }
+
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
       toast({
@@ -186,3 +201,5 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     </LoginPromptDialog>
   );
 }
+
+    

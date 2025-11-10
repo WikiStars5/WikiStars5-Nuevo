@@ -63,6 +63,7 @@ export interface Figure {
     '5': number;
   };
   createdAt?: Timestamp;
+  pioneerCount?: number;
 }
 
 export interface Hashtag {
@@ -161,5 +162,24 @@ export interface GoatVote {
     vote: 'messi' | 'ronaldo';
     createdAt: Timestamp;
 }
+
+export interface Achievement {
+    id: string;
+    name: string;
+    description: string;
+    imageUrl: string;
+}
+
+export interface UserAchievement {
+    id: string;
+    userId: string;
+    achievementId: string;
+    figureId: string;
+    unlockedAt: Timestamp;
+    // Denormalized user data for display on leaderboards
+    userDisplayName: string;
+    userPhotoURL?: string | null;
+}
+    
 
     

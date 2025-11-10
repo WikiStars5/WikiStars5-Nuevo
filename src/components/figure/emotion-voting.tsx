@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils';
 import type { Figure, EmotionVote } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
+import { grantPioneerAchievement } from '@/firebase/achievements';
+
 
 type EmotionOption = 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
 
@@ -59,6 +61,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
     if (isVoting || !firestore || !auth) return;
     setIsVoting(vote);
+    let isFirstVote = false;
 
     try {
       const figureRef = doc(firestore, 'figures', figure.id);
@@ -94,11 +97,23 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             toast({ title: '¡Voto actualizado!' });
           }
         } else {
+          isFirstVote = true;
           transaction.update(figureRef, { [`emotion.${vote}`]: increment(1) });
           transaction.set(voteRef, newVoteData);
           toast({ title: '¡Voto registrado!' });
         }
       });
+
+      if (isFirstVote) {
+        await grantPioneerAchievement({
+          firestore,
+          figureId: figure.id,
+          userId: user.uid,
+          userDisplayName: user.displayName,
+          userPhotoURL: user.photoURL,
+        });
+      }
+
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
       toast({
@@ -169,3 +184,5 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     </LoginPromptDialog>
   );
 }
+
+    

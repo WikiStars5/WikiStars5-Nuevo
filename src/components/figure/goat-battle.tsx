@@ -15,6 +15,7 @@ import { Skeleton } from '../ui/skeleton';
 import { ShareButton } from '../shared/ShareButton';
 import { usePathname } from 'next/navigation';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
+import { grantPioneerAchievement } from '@/firebase/achievements';
 
 
 const BATTLE_ID = 'messi-vs-ronaldo';
@@ -109,7 +110,7 @@ export default function GoatBattle() {
   if (isBattleOver && !winner && battleData) {
       if (battleData.messiVotes > battleData.ronaldoVotes) {
           winner = 'messi';
-      } else if (battleData.ronaldoVotes > battleData.messiVotes) {
+      } else if (battleData.ronaldoVotes > battleData.ronaldoVotes) {
           winner = 'ronaldo';
       } else {
           winner = 'tie'; // Or handle ties as you see fit
@@ -158,6 +159,7 @@ export default function GoatBattle() {
 
     if (isVoting || !firestore || !auth || !isBattleActive) return;
     setIsVoting(true);
+    let isFirstVote = false;
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -188,6 +190,8 @@ export default function GoatBattle() {
                 if (currentVote) {
                     const otherPlayer = player === 'messi' ? 'ronaldo' : 'messi';
                     updates[`${otherPlayer}Votes`] = increment(-1);
+                } else {
+                    isFirstVote = true; // This is the user's first vote in the battle
                 }
                 
                 transaction.set(userVoteRef, { 
@@ -200,6 +204,17 @@ export default function GoatBattle() {
 
             transaction.update(battleRef, updates);
         });
+
+        if (isFirstVote) {
+            const figureId = player === 'messi' ? (messiData?.id || 'lionel-messi') : (ronaldoData?.id || 'cristiano-ronaldo');
+            await grantPioneerAchievement({
+              firestore,
+              figureId: figureId,
+              userId: user.uid,
+              userDisplayName: user.displayName,
+              userPhotoURL: user.photoURL,
+            });
+        }
 
     } catch (error: any) {
         console.error("Error casting vote:", error);
@@ -377,3 +392,5 @@ export default function GoatBattle() {
     </LoginPromptDialog>
   );
 }
+
+    

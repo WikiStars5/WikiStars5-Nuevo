@@ -25,6 +25,7 @@ import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
 import { countries } from '@/lib/countries';
+import Achievements from '@/components/figure/achievements';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -339,15 +340,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
             <TopStreaks figureId={figureId} />
           </TabsContent>
           <TabsContent value="logros" className="mt-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Logros</CardTitle>
-                    <CardDescription>Insignias y reconocimientos de la comunidad.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground text-center">Próximamente: ¡Aquí se mostrarán los logros de los usuarios!</p>
-                </CardContent>
-            </Card>
+            <Achievements figureId={figureId} />
           </TabsContent>
            {isGoatCandidate && (
              <TabsContent value="goat" className="mt-4">
@@ -373,3 +366,5 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </Suspense>
   );
 }
+
+    
