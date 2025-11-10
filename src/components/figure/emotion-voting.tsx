@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import type { Figure, EmotionVote } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
 import { grantPioneerAchievement } from '@/firebase/achievements';
+import { AchievementAnimationContext } from '@/context/AchievementAnimationContext';
 
 
 type EmotionOption = 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
@@ -42,6 +43,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
+  const { showAchievementAnimation } = useContext(AchievementAnimationContext);
 
   const [isVoting, setIsVoting] = useState<EmotionOption | null>(null);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
@@ -114,10 +116,11 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
         });
 
          if (achievementGranted) {
-           toast({
-            title: "¡Logro Desbloqueado!",
-            description: "Has ganado el logro 'Pionero' por ser uno de los primeros en votar.",
-          });
+           showAchievementAnimation({
+            name: "Pionero",
+            imageUrl: "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf",
+            soundUrl: "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fbrass-new-level-151765.mp3?alt=media&token=c4d12c3d-bb6f-4736-96ed-2894a85012a1",
+           });
         }
       }
 

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { ShareButton } from '../shared/ShareButton';
 import { usePathname } from 'next/navigation';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { grantPioneerAchievement } from '@/firebase/achievements';
+import { AchievementAnimationContext } from '@/context/AchievementAnimationContext';
 
 
 const BATTLE_ID = 'messi-vs-ronaldo';
@@ -60,6 +61,7 @@ export default function GoatBattle() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const pathname = usePathname();
+  const { showAchievementAnimation } = useContext(AchievementAnimationContext);
 
   const [isVoting, setIsVoting] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
@@ -216,9 +218,10 @@ export default function GoatBattle() {
             });
 
              if (achievementGranted) {
-                toast({
-                    title: "¡Logro Desbloqueado!",
-                    description: "Has ganado el logro 'Pionero' por ser uno de los primeros en votar.",
+                showAchievementAnimation({
+                    name: "Pionero",
+                    imageUrl: "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf",
+                    soundUrl: "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fbrass-new-level-151765.mp3?alt=media&token=c4d12c3d-bb6f-4736-96ed-2894a85012a1",
                 });
             }
         }
