@@ -38,7 +38,7 @@ export function AchievementAnimationProvider({ children }: AchievementAnimationP
 
     setTimeout(() => {
       setIsVisible(false);
-    }, 3000); // Animation visible for 3 seconds
+    }, 5000); // Animation visible for 5 seconds
   }, []);
 
   return (
