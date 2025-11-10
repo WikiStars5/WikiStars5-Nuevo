@@ -183,6 +183,8 @@ export interface UserAchievement {
 export interface Referral {
     referredUserId: string;
     createdAt: Timestamp;
+    sourceFigureId?: string | null;
+    hasVoted?: boolean;
 }
 
 export interface RecruiterAchievement {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -15,7 +14,7 @@ import {
     getCountFromServer,
     getDoc
 } from 'firebase/firestore';
-import type { UserAchievement } from '@/lib/types';
+import type { UserAchievement, Referral } from '@/lib/types';
 
 
 interface GrantPioneerAchievementParams {
@@ -28,6 +27,7 @@ interface GrantPioneerAchievementParams {
 
 const PIONEER_LIMIT = 1000;
 const PIONEER_ACHIEVEMENT_ID = 'pioneer_voter';
+const RECRUITER_ACHIEVEMENT_ID = 'recruiter';
 
 export async function grantPioneerAchievement({
     firestore,
@@ -44,28 +44,21 @@ export async function grantPioneerAchievement({
     let achievementWasGranted = false;
     
     try {
-        // Step 1: Perform reads outside the transaction first.
         const [privateDocSnap, publicCountSnap] = await Promise.all([
             getDoc(privateAchievementRef),
-            getCountFromServer(query(publicAchievementsCollectionRef, limit(PIONEER_LIMIT)))
+            getCountFromServer(query(publicAchievementsCollectionRef, where('achievementId', '==', PIONEER_ACHIEVEMENT_ID), limit(PIONEER_LIMIT)))
         ]);
         
-        // 1. Check if user already has this achievement for this figure
         if (privateDocSnap.exists()) {
             return false;
         }
 
-        // 2. Check if the pioneer limit for this figure has been reached
         const currentPioneerCount = publicCountSnap.data().count;
         if (currentPioneerCount >= PIONEER_LIMIT) {
             return false;
         }
 
-        // Step 2: Perform the write operations inside a transaction to ensure atomicity.
         await runTransaction(firestore, async (transaction) => {
-            // We can re-read inside the transaction for consistency check if needed, but for an append-only
-            // log like this, the initial check is often sufficient.
-            
             const achievementPayload: Omit<UserAchievement, 'id'> = {
                 userId,
                 achievementId: PIONEER_ACHIEVEMENT_ID,
@@ -75,11 +68,9 @@ export async function grantPioneerAchievement({
                 userPhotoURL: userPhotoURL,
             };
 
-            // Write to both private and public collections
             transaction.set(privateAchievementRef, achievementPayload);
             transaction.set(publicAchievementDocRef, achievementPayload);
             
-            // Set flag to indicate success
             achievementWasGranted = true;
         });
 
@@ -87,6 +78,78 @@ export async function grantPioneerAchievement({
 
     } catch (error) {
         console.error("Error granting Pioneer achievement:", error);
+        return false;
+    }
+}
+
+
+interface GrantRecruiterAchievementParams {
+    firestore: Firestore;
+    votingUserId: string;
+}
+
+export async function grantRecruiterAchievementIfApplicable({ firestore, votingUserId }: GrantRecruiterAchievementParams): Promise<boolean> {
+    const userRef = doc(firestore, 'users', votingUserId);
+    
+    try {
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists()) return false;
+        
+        // Find the referral record for this user
+        const referralsQuery = query(
+            collectionGroup(firestore, 'referrals'),
+            where('referredUserId', '==', votingUserId),
+            limit(1)
+        );
+
+        const referralsSnapshot = await getDocs(referralsQuery);
+        if (referralsSnapshot.empty) {
+            return false; // This user was not referred.
+        }
+
+        const referralDoc = referralsSnapshot.docs[0];
+        const referralData = referralDoc.data() as Referral;
+        
+        // Check if the user has already triggered a recruiter achievement
+        if (referralData.hasVoted) {
+            return false;
+        }
+
+        const referrerId = referralDoc.ref.parent.parent!.id;
+        const sourceFigureId = referralData.sourceFigureId;
+
+        if (!referrerId || !sourceFigureId) {
+            return false; // Not a valid referral for this type of achievement.
+        }
+        
+        // Mark that this referral has now led to a vote
+        await runTransaction(firestore, async (transaction) => {
+            transaction.update(referralDoc.ref, { hasVoted: true });
+
+            // Now, grant the achievement to the referrer on the specific figure's profile
+            const referrerDataDoc = await transaction.get(doc(firestore, 'users', referrerId));
+            const referrerData = referrerDataDoc.data();
+            
+            const achievementPayload: Omit<UserAchievement, 'id'> = {
+                userId: referrerId,
+                achievementId: RECRUITER_ACHIEVEMENT_ID,
+                figureId: sourceFigureId,
+                unlockedAt: serverTimestamp() as any,
+                userDisplayName: referrerData?.username || 'Usuario',
+                userPhotoURL: referrerData?.photoURL || null,
+            };
+
+            const privateAchievementRef = doc(firestore, `users/${referrerId}/user_achievements`, `${sourceFigureId}_${RECRUITER_ACHIEVEMENT_ID}`);
+            const publicAchievementRef = doc(collection(firestore, `figures/${sourceFigureId}/achievements`), referrerId);
+
+            transaction.set(privateAchievementRef, achievementPayload);
+            transaction.set(publicAchievementRef, achievementPayload);
+        });
+
+        return true;
+
+    } catch (error) {
+        console.error("Error in grantRecruiterAchievementIfApplicable:", error);
         return false;
     }
 }

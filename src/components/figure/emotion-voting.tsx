@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -12,7 +11,7 @@ import { cn } from '@/lib/utils';
 import type { Figure, EmotionVote } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
-import { grantPioneerAchievement } from '@/firebase/achievements';
+import { grantPioneerAchievement, grantRecruiterAchievementIfApplicable } from '@/firebase/achievements';
 import { AchievementAnimationContext } from '@/context/AchievementAnimationContext';
 
 
@@ -107,7 +106,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
       });
 
       if (isFirstVote) {
-        const achievementGranted = await grantPioneerAchievement({
+        const pioneerAchievementGranted = await grantPioneerAchievement({
           firestore,
           figureId: figure.id,
           userId: user.uid,
@@ -115,12 +114,24 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
           userPhotoURL: user.photoURL,
         });
 
-         if (achievementGranted) {
+         if (pioneerAchievementGranted) {
            showAchievementAnimation({
             name: "Pionero",
             imageUrl: "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero.png?alt=media&token=6cd4c34e-38d1-4a47-8c08-7c96b5533ecf",
             soundUrl: "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fbrass-new-level-151765.mp3?alt=media&token=c4d12c3d-bb6f-4736-96ed-2894a85012a1",
            });
+        }
+
+        // Also check if this first vote should trigger a Recruiter achievement for the referrer
+        const recruiterAchievementGranted = await grantRecruiterAchievementIfApplicable({
+          firestore,
+          votingUserId: user.uid,
+        });
+
+        if (recruiterAchievementGranted) {
+          // You might want a different animation/sound for this one, or just a toast.
+          // For now, let's just log it. The referrer will get a notification.
+          console.log(`Recruiter achievement granted to referrer of user ${user.uid}`);
         }
       }
 

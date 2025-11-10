@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -51,10 +50,19 @@ export default function Header() {
     // This effect runs only on the client after hydration
     const searchParams = new URLSearchParams(window.location.search);
     const referrerId = searchParams.get('ref');
+    const figureMatch = window.location.pathname.match(/\/figures\/([^?\/]+)/);
+    const sourceFigureId = figureMatch ? figureMatch[1] : null;
+
     if (referrerId) {
       localStorage.setItem('referrerId', referrerId);
+      if (sourceFigureId) {
+        localStorage.setItem('sourceFigureId', sourceFigureId);
+      } else {
+        // If there's a referrer but no figure, clear any old sourceFigureId
+        localStorage.removeItem('sourceFigureId');
+      }
     }
-  }, [pathname]); // Rerun if the path changes, capturing the ref ID on any page load
+  }, [pathname]); // Rerun if the path changes
 
   const handleLogout = () => {
     if (auth) {

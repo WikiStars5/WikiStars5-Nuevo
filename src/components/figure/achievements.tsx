@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -31,8 +30,8 @@ const PIONEER_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars
 const RECRUITER_IMAGE_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Freclutador.png?alt=media&token=b389cd59-d524-4fdd-94f7-3994ec5694f5";
 
 const PIONEER_TOTAL_LIMIT = 1000;
-const PIONEER_DISPLAY_LIMIT = 10;
 const RECRUITER_DISPLAY_LIMIT = 10;
+const PIONEER_DISPLAY_LIMIT = 10;
 
 
 const getTrophyColor = (rank: number) => {
@@ -42,18 +41,19 @@ const getTrophyColor = (rank: number) => {
     return 'text-muted-foreground';
 };
 
-function PioneerList({ figureId }: { figureId: string }) {
+function AchievementList({ figureId, achievementId, limit: displayLimit }: { figureId: string; achievementId: string; limit: number; }) {
     const firestore = useFirestore();
-    const pioneersQuery = useMemoFirebase(() => {
+    const achievementsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(
             collection(firestore, `figures/${figureId}/achievements`),
+            where('achievementId', '==', achievementId),
             orderBy('unlockedAt', 'asc'),
-            limit(PIONEER_DISPLAY_LIMIT)
+            limit(displayLimit)
         );
-    }, [firestore, figureId]);
+    }, [firestore, figureId, achievementId, displayLimit]);
 
-    const { data: pioneers, isLoading } = useCollection<UserAchievement>(pioneersQuery);
+    const { data: achievements, isLoading } = useCollection<UserAchievement>(achievementsQuery);
 
     if (isLoading) {
         return (
@@ -74,24 +74,24 @@ function PioneerList({ figureId }: { figureId: string }) {
         );
     }
     
-    if (!pioneers || pioneers.length === 0) {
-        return <p className="text-sm text-muted-foreground text-center py-4">Aún no hay pioneros. ¡Sé el primero en votar!</p>;
+    if (!achievements || achievements.length === 0) {
+        return <p className="text-sm text-muted-foreground text-center py-4">Aún no hay ganadores. ¡Participa para ser el primero!</p>;
     }
 
     return (
         <div className="space-y-1">
-            {pioneers.map((pioneer, index) => (
-                <div key={pioneer.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
+            {achievements.map((achievement, index) => (
+                <div key={achievement.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                     <div className="flex items-center gap-3">
                         <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
-                        <Link href={`/u/${pioneer.userDisplayName}`} className="flex items-center gap-3 group">
+                        <Link href={`/u/${achievement.userDisplayName}`} className="flex items-center gap-3 group">
                             <Avatar className="h-10 w-10">
-                                <AvatarImage src={pioneer.userPhotoURL ?? undefined} alt={pioneer.userDisplayName} />
-                                <AvatarFallback>{pioneer.userDisplayName.charAt(0)}</AvatarFallback>
+                                <AvatarImage src={achievement.userPhotoURL ?? undefined} alt={achievement.userDisplayName} />
+                                <AvatarFallback>{achievement.userDisplayName.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <p className="font-semibold text-sm group-hover:underline">{pioneer.userDisplayName}</p>
-                                <p className="text-xs text-muted-foreground">Desbloqueado el {pioneer.unlockedAt.toDate().toLocaleDateString()}</p>
+                                <p className="font-semibold text-sm group-hover:underline">{achievement.userDisplayName}</p>
+                                <p className="text-xs text-muted-foreground">Desbloqueado el {achievement.unlockedAt.toDate().toLocaleDateString()}</p>
                             </div>
                         </Link>
                     </div>
@@ -101,121 +101,45 @@ function PioneerList({ figureId }: { figureId: string }) {
     );
 }
 
-const RecruiterListSkeleton = () => (
-    <div className="space-y-2">
-        {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between p-2">
-                <div className="flex items-center gap-3">
-                    <Skeleton className="h-5 w-5" />
-                    <Skeleton className="h-10 w-10 rounded-full" />
-                    <div className="space-y-1">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-3 w-16" />
-                    </div>
-                </div>
-                <Skeleton className="h-6 w-12 rounded-md" />
-            </div>
-        ))}
-    </div>
-);
-
-
-function TopRecruitersList() {
-    const firestore = useFirestore();
-
-    // Query the new 'recruiters' collection directly
-    const recruitersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(
-            collection(firestore, 'recruiters'),
-            orderBy('referralCount', 'desc'),
-            limit(RECRUITER_DISPLAY_LIMIT)
-        );
-    }, [firestore]);
-
-    const { data: recruiters, isLoading } = useCollection<any>(recruitersQuery);
-
-    if (isLoading) {
-        return <RecruiterListSkeleton />;
-    }
-
-    if (!recruiters || recruiters.length === 0) {
-        return (
-            <p className="text-sm text-muted-foreground text-center py-4">Aún no hay reclutadores. ¡Comparte la app para ser el primero!</p>
-        );
-    }
-    
-    return (
-        <div className="space-y-1">
-            {recruiters.map((user, index) => {
-                 const country = countries.find(c => c.name === user.country);
-                return (
-                    <div key={user.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
-                        <div className="flex items-center gap-3">
-                            <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
-                            <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
-                                <Avatar className="h-10 w-10">
-                                    <AvatarImage src={user.photoURL ?? undefined} alt={user.username} />
-                                    <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <p className="font-semibold text-sm group-hover:underline">{user.username}</p>
-                                        {user.gender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                                        {user.gender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
-                                        {country && (
-                                            <Image
-                                                src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                                                alt={country.name}
-                                                width={20}
-                                                height={15}
-                                                className="object-contain"
-                                                title={country.name}
-                                            />
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">Usuario Registrado</p>
-                                </div>
-                            </Link>
-                        </div>
-                        <div className="flex items-center gap-2 font-bold text-lg text-primary">
-                            <span>{user.referralCount || 0}</span>
-                            <Users className="h-4 w-4" />
-                        </div>
-                    </div>
-                )
-            })}
-        </div>
-    );
-}
 
 export default function Achievements({ figure }: AchievementsProps) {
     const firestore = useFirestore();
     const [pioneerCount, setPioneerCount] = useState(0);
+    const [recruiterCount, setRecruiterCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchPioneerCount = async () => {
+        const fetchCounts = async () => {
             if (!firestore) return;
             setIsLoading(true);
             try {
                 const achievementsColRef = collection(firestore, `figures/${figure.id}/achievements`);
-                const snapshot = await getCountFromServer(achievementsColRef);
-                setPioneerCount(snapshot.data().count);
+                
+                const pioneerQuery = query(achievementsColRef, where('achievementId', '==', 'pioneer_voter'));
+                const recruiterQuery = query(achievementsColRef, where('achievementId', '==', 'recruiter'));
+
+                const [pioneerSnapshot, recruiterSnapshot] = await Promise.all([
+                    getCountFromServer(pioneerQuery),
+                    getCountFromServer(recruiterQuery),
+                ]);
+
+                setPioneerCount(pioneerSnapshot.data().count);
+                setRecruiterCount(recruiterSnapshot.data().count);
+
             } catch (error) {
-                console.error("Error fetching pioneer count:", error);
+                console.error("Error fetching achievement counts:", error);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchPioneerCount();
+        fetchCounts();
     }, [firestore, figure.id]);
 
     return (
         <Card className="dark:bg-black">
             <CardHeader>
                 <CardTitle>Logros de la Comunidad</CardTitle>
-                <CardDescription className="text-muted-foreground">Reconocimientos especiales obtenidos por los usuarios.</CardDescription>
+                <CardDescription className="text-muted-foreground">Reconocimientos especiales obtenidos por los usuarios en este perfil.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-4">
                  <Dialog>
@@ -239,10 +163,10 @@ export default function Achievements({ figure }: AchievementsProps) {
                         <DialogHeader>
                             <DialogTitle>Ganadores del Logro "Pionero"</DialogTitle>
                             <DialogDescription>
-                                El logro se otorga a los primeros {PIONEER_TOTAL_LIMIT} usuarios, pero aquí solo se muestra el Top {PIONEER_DISPLAY_LIMIT} de pioneros para el perfil de {figure.name}.
+                                El logro se otorga a los primeros {PIONEER_TOTAL_LIMIT} usuarios en votar. Aquí se muestra el Top {PIONEER_DISPLAY_LIMIT}.
                             </DialogDescription>
                         </DialogHeader>
-                        <PioneerList figureId={figure.id} />
+                        <AchievementList figureId={figure.id} achievementId="pioneer_voter" limit={PIONEER_DISPLAY_LIMIT} />
                     </DialogContent>
                 </Dialog>
 
@@ -256,17 +180,21 @@ export default function Achievements({ figure }: AchievementsProps) {
                                 height={80}
                             />
                             <p className="font-bold">Reclutador</p>
-                            <p className="text-xs text-muted-foreground">Top Reclutadores</p>
+                             {isLoading ? (
+                                <Skeleton className="h-4 w-20" />
+                            ) : (
+                                <p className="text-xs text-muted-foreground">{recruiterCount} Ganadores</p>
+                            )}
                          </button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Top Reclutadores de la Plataforma</DialogTitle>
+                            <DialogTitle>Ganadores del Logro "Reclutador"</DialogTitle>
                             <DialogDescription>
-                                Los usuarios que más nuevos miembros han traído a WikiStars5, clasificados por su número de referidos.
+                                Se otorga a quienes traen nuevos usuarios a votar a este perfil. Aquí se muestra el Top {RECRUITER_DISPLAY_LIMIT}.
                             </DialogDescription>
                         </DialogHeader>
-                        <TopRecruitersList />
+                        <AchievementList figureId={figure.id} achievementId="recruiter" limit={RECRUITER_DISPLAY_LIMIT} />
                     </DialogContent>
                 </Dialog>
             </CardContent>

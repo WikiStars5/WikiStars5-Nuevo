@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -73,16 +72,20 @@ export function LoginPromptDialog({ children, open, onOpenChange }: LoginPromptD
                 dataToSave.username = finalUsername;
                 dataToSave.usernameLower = normalizeText(finalUsername);
 
-                // --- Step 3: Handle Referral ---
+                // --- Handle Referral ---
                 const referrerId = localStorage.getItem('referrerId');
+                const sourceFigureId = localStorage.getItem('sourceFigureId');
                 if (referrerId && referrerId !== signedInUser.uid) {
                     const referralRef = doc(collection(firestore, 'users', referrerId, 'referrals'), signedInUser.uid);
                     transaction.set(referralRef, {
                         referredUserId: signedInUser.uid,
                         createdAt: serverTimestamp(),
+                        sourceFigureId: sourceFigureId || null, // Store which profile the referral came from
+                        hasVoted: false, // Mark that the new user has not voted yet
                     });
-                    // Remove from localStorage after processing
+                    // Clear local storage after processing
                     localStorage.removeItem('referrerId');
+                    localStorage.removeItem('sourceFigureId');
                 }
             }
             
