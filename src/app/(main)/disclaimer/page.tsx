@@ -1,6 +1,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+export const dynamic = 'force-dynamic';
+
 export default function DisclaimerPage() {
   return (
     <div className="container mx-auto max-w-3xl px-4 py-12">
