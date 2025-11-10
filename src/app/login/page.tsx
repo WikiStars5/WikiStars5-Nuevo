@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ export default function LoginPage() {
   const firestore = useFirestore();
   const { user, isUserLoading, reloadUser } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -111,6 +112,13 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     if (!auth || !firestore) return;
+    
+    // Before signing in, check for a referrer ID in the URL and save it.
+    const referrerId = searchParams.get('ref');
+    if (referrerId) {
+      localStorage.setItem('referrerId', referrerId);
+    }
+    
     setIsSubmitting(true);
     const provider = new GoogleAuthProvider();
 
@@ -173,5 +181,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
