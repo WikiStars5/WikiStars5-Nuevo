@@ -155,13 +155,13 @@ export default function AdminNewFigurePage() {
         imageUrl: data.imageUrl || `https://placehold.co/600x400?text=${encodeURIComponent(data.name)}`,
         imageHint: data.imageUrl ? `portrait of ${data.name}` : `placeholder for ${data.name}`,
         description: data.description || '',
-        nationality: data.nationality || '',
-        gender: data.gender || undefined,
-        birthDate: data.birthDate || '',
-        deathDate: data.deathDate || '',
-        occupation: data.occupation || '',
-        maritalStatus: data.maritalStatus || undefined,
-        height: data.height || undefined,
+        nationality: data.nationality || null,
+        gender: data.gender || null,
+        birthDate: data.birthDate || null,
+        deathDate: data.deathDate || null,
+        occupation: data.occupation || null,
+        maritalStatus: data.maritalStatus || null,
+        height: data.height || null,
         socialLinks: data.socialLinks || {},
         isFeatured: data.isFeatured,
         tags: data.tags?.map(t => normalizeText(t)) || [],
@@ -366,3 +366,5 @@ export default function AdminNewFigurePage() {
     </Card>
   );
 }
+
+    

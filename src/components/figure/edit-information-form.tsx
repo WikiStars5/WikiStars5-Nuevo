@@ -469,3 +469,5 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
 }
 
     
+
+    
