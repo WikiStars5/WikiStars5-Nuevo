@@ -85,7 +85,7 @@ function ActivityDisplay({ votes, figures, category }: { votes: FetchedVote[], f
                 if (!figure) return null;
                 return (
                     <Link key={figure.id} href={`/figures/${figure.id}`} className="flex flex-col items-center gap-2 text-center group">
-                        <Image src={figure.imageUrl} alt={figure.name} width={80} height={80} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
+                        <Image src={figure.imageUrl} alt={figure.name} width={64} height={64} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
                         <span className="text-xs font-medium group-hover:text-primary transition-colors">{figure.name}</span>
                     </Link>
                 );
@@ -114,7 +114,7 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
         if (!figure) return null;
         return (
           <Link key={figure.id} href={`/figures/${figure.id}`} className="flex flex-col items-center gap-2 text-center group relative">
-            <Image src={figure.imageUrl} alt={figure.name} width={80} height={80} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
+            <Image src={figure.imageUrl} alt={figure.name} width={64} height={64} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
             <span className="text-xs font-medium group-hover:text-primary transition-colors">{figure.name}</span>
             <div className="absolute top-0 right-0 flex items-center gap-1 rounded-full bg-card border px-2 py-0.5 text-xs font-bold text-orange-500">
                 <span>{streak.currentStreak}</span>
@@ -266,3 +266,5 @@ export default function UserActivity({ userId }: UserActivityProps) {
     </Card>
   );
 }
+
+    
