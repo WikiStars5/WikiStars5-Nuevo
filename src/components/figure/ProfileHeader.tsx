@@ -9,7 +9,7 @@ import PersonalStreak from '../streaks/personal-streak';
 import { ShareButton } from '../shared/ShareButton';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface ProfileHeaderProps {
   figure: Figure;
@@ -57,6 +57,10 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
                 </Button>
               </DialogTrigger>
               <DialogContent className="p-0 bg-transparent border-0 max-w-4xl">
+                 <DialogHeader className="sr-only">
+                    <DialogTitle>Imagen de perfil de {figure.name}</DialogTitle>
+                    <DialogDescription>Una vista ampliada de la imagen de perfil.</DialogDescription>
+                 </DialogHeader>
                  <Image
                     src={figure.imageUrl || `https://placehold.co/800x800?text=${encodeURIComponent(figure.name)}`}
                     alt={figure.name}
