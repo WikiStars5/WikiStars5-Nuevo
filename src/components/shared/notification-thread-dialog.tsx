@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -112,49 +111,42 @@ export default function NotificationThreadDialog({
 
 
     useEffect(() => {
-        const fetchComments = async () => {
+        const fetchThreadComments = async () => {
             if (!firestore) return;
             setIsLoading(true);
             setError(null);
             
             try {
                 const commentsRef = collection(firestore, `figures/${figureId}/comments`);
-                const commentChain: Comment[] = [];
-                let currentId = replyId;
+                const threadQuery = query(commentsRef, where("threadId", "==", parentId));
+                
+                const [rootDocSnap, threadSnapshot] = await Promise.all([
+                    getDoc(doc(commentsRef, parentId)),
+                    getDocs(threadQuery),
+                ]);
 
-                // Trace back from the reply to the root
-                while(currentId) {
-                    const docRef = doc(commentsRef, currentId);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        const commentData = { id: docSnap.id, ...docSnap.data() } as Comment;
-                        commentChain.unshift(commentData); // Add to the beginning to maintain order
-                        currentId = commentData.parentId!;
-                    } else {
-                        // If any comment in the chain is missing, we stop.
-                        if (currentId === parentId) {
-                             setError("El comentario original de esta conversación ha sido eliminado.");
-                        } else {
-                             setError("Un comentario en esta conversación ha sido eliminado, no se puede mostrar el hilo completo.");
-                        }
-                        break;
+                if (!rootDocSnap.exists()) {
+                    setError("El comentario original de esta conversación ha sido eliminado.");
+                    setIsLoading(false);
+                    return;
+                }
+
+                const allCommentsInThread: Comment[] = [];
+                // Add the root comment first
+                allCommentsInThread.push({ id: rootDocSnap.id, ...rootDocSnap.data() } as Comment);
+
+                // Add all replies
+                threadSnapshot.forEach(doc => {
+                    // Avoid duplicating the root comment if it has a threadId pointing to itself
+                    if (doc.id !== parentId) {
+                        allCommentsInThread.push({ id: doc.id, ...doc.data() } as Comment);
                     }
-                }
+                });
+
+                // Sort by creation date to ensure correct order
+                allCommentsInThread.sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
                 
-                // Ensure the root comment is the first one if the chain was incomplete
-                if (commentChain.length > 0 && commentChain[0].id !== parentId) {
-                    const rootRef = doc(commentsRef, parentId);
-                    const rootSnap = await getDoc(rootRef);
-                    if (rootSnap.exists()) {
-                         commentChain.unshift({ id: rootSnap.id, ...rootSnap.data() } as Comment);
-                    } else {
-                         setError("El comentario original de esta conversación ha sido eliminado.");
-                    }
-                }
-                
-                if (!error) {
-                    setThreadComments(commentChain);
-                }
+                setThreadComments(allCommentsInThread);
 
             } catch (err) {
                 console.error("Error fetching comments for notification dialog:", err);
@@ -164,8 +156,8 @@ export default function NotificationThreadDialog({
             }
         };
 
-        fetchComments();
-    }, [firestore, figureId, parentId, replyId, error]);
+        fetchThreadComments();
+    }, [firestore, figureId, parentId]);
 
      useEffect(() => {
         // Scroll to the highlighted comment after it's rendered
@@ -182,6 +174,13 @@ export default function NotificationThreadDialog({
     const handleReplySuccess = () => {
         onOpenChange(false); // Close dialog on successful reply
     };
+
+    // Group comments into root and replies for rendering
+    const { root, replies } = useMemo(() => {
+        const rootC = threadComments.find(c => c.id === parentId);
+        const rep = threadComments.filter(c => c.parentId === parentId);
+        return { root: rootC, replies: rep };
+    }, [threadComments, parentId]);
 
     return (
         <DialogContent className="sm:max-w-xl">
@@ -201,13 +200,18 @@ export default function NotificationThreadDialog({
                     <p className="text-center text-destructive py-10">{error}</p>
                 ) : (
                     <div className="space-y-4">
-                        {threadComments.map(comment => (
-                             <div key={comment.id} className={comment.parentId ? `pl-8 border-l-2 ml-4` : ''}>
-                                <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
-                             </div>
-                        ))}
+                        {root && <CommentDisplay comment={root} isHighlighted={root.id === replyId} />}
+
+                        {replies.length > 0 && (
+                            <div className="pl-8 border-l-2 ml-4 space-y-4">
+                                {replies.map(reply => (
+                                    <CommentDisplay key={reply.id} comment={reply} isHighlighted={reply.id === replyId} />
+                                ))}
+                            </div>
+                        )}
+                        
                         {rootComment && activeReplyTarget && (
-                             <div className="pl-8 border-l-2 ml-4">
+                             <div className="pl-8 border-l-2 ml-4 pt-4">
                                 <ReplyForm
                                     figureId={figureId}
                                     figureName={figureName}
@@ -223,5 +227,3 @@ export default function NotificationThreadDialog({
         </DialogContent>
     );
 }
-
-    
