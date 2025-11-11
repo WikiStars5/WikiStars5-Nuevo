@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, writeBatch, doc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
 import {
   Popover,
   PopoverContent,
@@ -24,27 +24,39 @@ import NotificationThreadDialog from './notification-thread-dialog';
 
 const NOTIFICATION_SOUND_URL = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/AUDIO--NOTIFICACION%2Flivechat.mp3?alt=media&token=6f7084e4-9bad-4599-9f72-5534ad2464b7';
 
-function NotificationItem({ notification }: { notification: Notification }) {
+function NotificationItem({ notification, onNotificationClick }: { notification: Notification, onNotificationClick: (id: string) => void }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const getParamsFromLink = (link: string) => {
-    const url = new URL(link, window.location.origin);
-    const figureId = url.pathname.split('/').pop() || '';
-    const parentId = url.searchParams.get('thread') || '';
-    const replyId = url.searchParams.get('reply') || '';
-    return { figureId, parentId, replyId };
+    try {
+        const url = new URL(link, window.location.origin);
+        const figureId = url.pathname.split('/').pop() || '';
+        const parentId = url.searchParams.get('thread') || '';
+        const replyId = url.searchParams.get('reply') || '';
+        return { figureId, parentId, replyId };
+    } catch (error) {
+        console.warn("Invalid notification link:", link);
+        return { figureId: '', parentId: '', replyId: '' };
+    }
   };
 
   const getFigureNameFromMessage = (message: string): string => {
       const match = message.match(/en el perfil de (.*?)\.$/);
       return match ? match[1] : '';
   }
+  
+  const handleOpenDialog = (open: boolean) => {
+    if (open && !notification.isRead) {
+        onNotificationClick(notification.id);
+    }
+    setIsDialogOpen(open);
+  }
 
   const { figureId, parentId, replyId } = getParamsFromLink(notification.link);
   const figureName = getFigureNameFromMessage(notification.message);
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+    <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
       <DialogTrigger asChild>
         <button className={cn(
             "w-full text-left flex items-start gap-3 p-3 hover:bg-muted/50 rounded-md",
@@ -105,24 +117,18 @@ export default function NotificationBell() {
   }, [unreadCount]);
 
 
-  const handleOpenChange = async (open: boolean) => {
-    setIsOpen(open);
-    if (open && hasUnread && firestore && user) {
-        const unreadIds = (notifications || []).filter(n => !n.isRead).map(n => n.id);
-        if (unreadIds.length === 0) return;
-
-        const batch = writeBatch(firestore);
-        unreadIds.forEach(id => {
-            const notifRef = doc(firestore, 'users', user.uid, 'notifications', id);
-            batch.update(notifRef, { isRead: true });
-        });
-        await batch.commit();
-        previousUnreadCountRef.current = 0;
+ const handleMarkAsRead = async (notificationId: string) => {
+    if (!firestore || !user) return;
+    const notifRef = doc(firestore, 'users', user.uid, 'notifications', notificationId);
+    try {
+      await updateDoc(notifRef, { isRead: true });
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
     }
-  }
+  };
 
   return (
-    <Popover open={isOpen} onOpenChange={handleOpenChange}>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -150,7 +156,7 @@ export default function NotificationBell() {
             {!isLoading && notifications && notifications.length > 0 && (
                 <div className="divide-y">
                     {notifications.map(n => (
-                        <NotificationItem key={n.id} notification={n} />
+                        <NotificationItem key={n.id} notification={n} onNotificationClick={handleMarkAsRead} />
                     ))}
                 </div>
             )}
@@ -170,5 +176,3 @@ export default function NotificationBell() {
     </Popover>
   );
 }
-
-    
