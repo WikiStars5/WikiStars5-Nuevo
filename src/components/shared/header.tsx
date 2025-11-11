@@ -21,7 +21,7 @@ import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin, useFirestore } from '@/firebase';
 import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
-import { Dialog, DialogTrigger, DialogContent } from '../ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
 import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog';
 import SearchBar from './search-bar';
@@ -127,6 +127,10 @@ export default function Header() {
                 </Button>
             </DialogTrigger>
             <DialogContent className="top-20 translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>Buscar</DialogTitle>
+                    <DialogDescription>Busca un perfil en WikiStars5.</DialogDescription>
+                </DialogHeader>
                 <SearchBar onResultClick={() => setIsSearchDialogOpen(false)}/>
             </DialogContent>
           </Dialog>
