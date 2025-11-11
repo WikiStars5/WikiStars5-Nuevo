@@ -27,9 +27,11 @@ service cloud.firestore {
     // --- User Data Collections ---
 
     match /users/{userId} {
-      allow get, update, delete: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
 
       // Rules for user's private subcollections
       match /attitudeVotes/{figureId} {
@@ -73,8 +75,16 @@ service cloud.firestore {
 
     match /figures/{figureId} {
       allow get, list: if true;
-      allow create, update: if isSignedIn();
+      allow create: if isSignedIn();
       allow delete: if isAdmin();
+      
+      allow update: if isSignedIn() && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
+            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
+        ]) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
+      );
       
       // Rules for public-facing subcollections within figures
       match /attitudeVotes/{userId} {
