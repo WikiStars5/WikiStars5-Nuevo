@@ -49,13 +49,15 @@ interface SearchBarProps {
   initialQuery?: string;
   className?: string;
   onResultClick?: (figure: Figure) => void;
+  onSearchSubmit?: () => void;
 }
 
 
 export default function SearchBar({ 
   initialQuery = '', 
   className,
-  onResultClick
+  onResultClick,
+  onSearchSubmit,
 }: SearchBarProps) {
   const [currentQuery, setCurrentQuery] = useState(initialQuery);
   const [figureResults, setFigureResults] = useState<Figure[]>([]);
@@ -133,6 +135,9 @@ export default function SearchBar({
       router.push(`/search?q=${encodeURIComponent(trimmedTerm)}`);
     }
     clearSearch();
+    if (onSearchSubmit) {
+        onSearchSubmit();
+    }
   };
 
 
@@ -205,10 +210,14 @@ export default function SearchBar({
 
   const handleResultItemClick = () => {
     clearSearch();
+    // This is where we call the prop for both Link and button clicks
+    if (onResultClick) {
+      onResultClick({} as Figure); // Pass empty or appropriate data
+    }
   };
 
   const handleFigureResultClick = (figure: Figure) => {
-    handleResultItemClick();
+    clearSearch();
     if (onResultClick) {
       onResultClick(figure);
     }

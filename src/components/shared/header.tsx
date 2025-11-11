@@ -114,7 +114,7 @@ export default function Header() {
                 <span className="font-headline text-primary">WikiStars5</span>
             </Link>
             <div className="hidden md:block w-96">
-              <SearchBar onResultClick={() => isSearchDialogOpen && setIsSearchDialogOpen(false)} />
+              <SearchBar />
             </div>
         </div>
 
@@ -131,7 +131,7 @@ export default function Header() {
                     <DialogTitle>Buscar</DialogTitle>
                     <DialogDescription>Busca un perfil en WikiStars5.</DialogDescription>
                 </DialogHeader>
-                <SearchBar onResultClick={() => setIsSearchDialogOpen(false)}/>
+                <SearchBar onSearchSubmit={() => setIsSearchDialogOpen(false)} onResultClick={() => setIsSearchDialogOpen(false)}/>
             </DialogContent>
           </Dialog>
           <InstallPwaButton />
