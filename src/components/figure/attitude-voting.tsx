@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
-import { grantPioneerAchievement } from '@/firebase/achievements';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
