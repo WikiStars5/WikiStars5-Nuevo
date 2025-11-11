@@ -47,7 +47,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
           <div className="relative flex-shrink-0">
             <Button className="h-28 w-28 md:h-36 md:w-36 rounded-full border-4 border-card p-0 shadow-lg">
                 <Image
-                    src={figure.imageUrl}
+                    src={figure.imageUrl || `https://placehold.co/400x400?text=${encodeURIComponent(figure.name)}`}
                     alt={figure.name}
                     fill
                     className="rounded-full object-cover"
