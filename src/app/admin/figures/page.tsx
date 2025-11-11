@@ -47,15 +47,14 @@ export default function AdminFiguresPage() {
       <CardHeader>
         <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Figures</CardTitle>
-                <CardDescription>Manage public figure profiles.</CardDescription>
+                <CardTitle>Figuras Públicas</CardTitle>
+                <CardDescription>Gestiona los perfiles de las figuras públicas.</CardDescription>
             </div>
             <div className="flex gap-2">
-                 <Button variant="destructive">Delete All</Button>
                  <Button asChild>
                     <Link href="/admin/figures/new">
                         <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Figure
+                        Añadir Nuevo Perfil
                     </Link>
                  </Button>
             </div>
@@ -68,10 +67,10 @@ export default function AdminFiguresPage() {
               <TableHead className="hidden w-[100px] sm:table-cell">
                 <span className="sr-only">Image</span>
               </TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Nationality</TableHead>
-              <TableHead className="hidden md:table-cell">Tags</TableHead>
-              <TableHead className="hidden md:table-cell">Featured</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Nacionalidad</TableHead>
+              <TableHead className="hidden md:table-cell">Etiquetas</TableHead>
+              <TableHead className="hidden md:table-cell">Destacado</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -119,7 +118,7 @@ export default function AdminFiguresPage() {
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   <Badge variant={figure.isFeatured ? 'default' : 'secondary'}>
-                    {figure.isFeatured ? 'Yes' : 'No'}
+                    {figure.isFeatured ? 'Si' : 'No'}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -131,9 +130,9 @@ export default function AdminFiguresPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem>Delete</DropdownMenuItem>
+                      <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                      <DropdownMenuItem>Editar</DropdownMenuItem>
+                      <DropdownMenuItem>Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -143,8 +142,8 @@ export default function AdminFiguresPage() {
         </Table>
          {figures?.length === 0 && !isLoading && (
             <div className="text-center py-16 text-muted-foreground">
-                <p>No figures found in the database.</p>
-                <p className="text-sm">You can add one using the "Add Figure" button.</p>
+                <p>No se encontraron figuras en la base de datos.</p>
+                <p className="text-sm">Puedes añadir una usando el botón "Añadir Nuevo Perfil".</p>
             </div>
         )}
       </CardContent>
