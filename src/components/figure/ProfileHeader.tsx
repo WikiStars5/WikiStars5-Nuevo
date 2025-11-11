@@ -2,7 +2,6 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { Figure, GoatBattle } from '@/lib/types';
@@ -10,7 +9,7 @@ import PersonalStreak from '../streaks/personal-streak';
 import { ShareButton } from '../shared/ShareButton';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 interface ProfileHeaderProps {
   figure: Figure;
@@ -45,15 +44,28 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
         </div>
         <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
           <div className="relative flex-shrink-0">
-            <Button className="h-28 w-28 md:h-36 md:w-36 rounded-full border-4 border-card p-0 shadow-lg">
-                <Image
-                    src={figure.imageUrl || `https://placehold.co/400x400?text=${encodeURIComponent(figure.name)}`}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="h-28 w-28 md:h-36 md:w-36 rounded-full border-4 border-card p-0 shadow-lg cursor-pointer">
+                    <Image
+                        src={figure.imageUrl || `https://placehold.co/400x400?text=${encodeURIComponent(figure.name)}`}
+                        alt={figure.name}
+                        fill
+                        className="rounded-full object-cover"
+                        data-ai-hint={figure.imageHint}
+                    />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="p-0 bg-transparent border-0 max-w-4xl">
+                 <Image
+                    src={figure.imageUrl || `https://placehold.co/800x800?text=${encodeURIComponent(figure.name)}`}
                     alt={figure.name}
-                    fill
-                    className="rounded-full object-cover"
-                    data-ai-hint={figure.imageHint}
-                />
-            </Button>
+                    width={800}
+                    height={800}
+                    className="rounded-lg object-contain w-full h-auto"
+                  />
+              </DialogContent>
+            </Dialog>
           </div>
           <div className="flex-1 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-3">
