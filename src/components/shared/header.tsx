@@ -19,9 +19,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin, useFirestore } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
-import { Dialog, DialogTrigger } from '../ui/dialog';
+import { Dialog, DialogTrigger, DialogContent } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
 import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog';
 import SearchBar from './search-bar';
@@ -44,6 +44,7 @@ export default function Header() {
   const { toast } = useToast();
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = React.useState(false);
   const { setTheme, theme } = useTheme();
   
   React.useEffect(() => {
@@ -113,11 +114,22 @@ export default function Header() {
                 <span className="font-headline text-primary">WikiStars5</span>
             </Link>
             <div className="hidden md:block w-96">
-              <SearchBar />
+              <SearchBar onResultClick={() => isSearchDialogOpen && setIsSearchDialogOpen(false)} />
             </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <Dialog open={isSearchDialogOpen} onOpenChange={setIsSearchDialogOpen}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                    <Search className="h-5 w-5" />
+                    <span className="sr-only">Buscar</span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="top-20 translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
+                <SearchBar onResultClick={() => setIsSearchDialogOpen(false)}/>
+            </DialogContent>
+          </Dialog>
           <InstallPwaButton />
           {isUserLoading ? (
             <Skeleton className="h-10 w-20" />
