@@ -99,7 +99,7 @@ export default function AdminFiguresPage() {
                       alt={figure.name}
                       className="aspect-square rounded-md object-cover"
                       height="64"
-                      src={figure.imageUrl}
+                      src={figure.imageUrl || `https://placehold.co/64x64?text=${encodeURIComponent(figure.name.charAt(0))}`}
                       width="64"
                       data-ai-hint={figure.imageHint}
                     />
