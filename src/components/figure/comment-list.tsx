@@ -265,7 +265,7 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
                 alt="Romper el hielo"
                 width={128}
                 height={128}
-                className="mx-auto h-32 w-32"
+                className="mx-auto h-52 w-52"
             />
             <h3 className="mt-2 text-lg font-semibold">
                 {activeFilter === 'featured' && (!comments || comments.length === 0) 
