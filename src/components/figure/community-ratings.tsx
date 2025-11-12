@@ -26,7 +26,7 @@ const RatingRow = ({ stars, count, total }: { stars: number; count: number; tota
             <div className="h-2 flex-1 rounded-full bg-muted">
                 <div className="h-full rounded-full bg-yellow-400" style={{ width: `${percentage}%` }} />
             </div>
-            <div className="w-8 text-right text-muted-foreground">{count.toLocaleString()}</div>
+            <div className="w-16 text-right text-muted-foreground tabular-nums">{count.toLocaleString()}</div>
         </div>
     );
 };
