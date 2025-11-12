@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -28,11 +27,10 @@ interface ReplyFormProps {
   figureId: string;
   figureName: string;
   parentComment: CommentType; // The root comment of the thread
-  replyingTo: CommentType; // The specific comment being replied to (for @mention)
-  onReplySuccess: (newReply: CommentType) => void;
+  onReplySuccess: () => void;
 }
 
-export default function ReplyForm({ figureId, figureName, parentComment, replyingTo, onReplySuccess }: ReplyFormProps) {
+export default function ReplyForm({ figureId, figureName, parentComment, onReplySuccess }: ReplyFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -40,12 +38,9 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
 
-  // Set the default @mention if replying to a specific user who is not the original poster
-  const defaultText = replyingTo.id !== parentComment.id ? `@${replyingTo.userDisplayName} ` : '';
-
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { text: defaultText },
+    defaultValues: { text: '' },
   });
   
   const getAvatarFallback = () => {
@@ -81,7 +76,6 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
         dislikes: 0,
         parentId: parentComment.id, // Always associate with the root comment
         rating: -1, // Replies don't have ratings
-        threadId: parentComment.threadId || parentComment.id
       };
 
       const newReplyRef = await addDoc(commentsColRef, {
@@ -89,13 +83,8 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
         createdAt: serverTimestamp(), // Replace with server timestamp for storage
       });
 
-      const newReplyForState: CommentType = {
-        ...newReplyData,
-        id: newReplyRef.id,
-      } as CommentType;
-      
       // --- Create Notification ---
-      const replyToAuthorId = replyingTo?.userId;
+      const replyToAuthorId = parentComment.userId;
       // Only send notification if replying to someone else
       if (replyToAuthorId && replyToAuthorId !== user.uid) {
         const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
@@ -131,7 +120,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
         title: '¡Respuesta Publicada!',
       });
       form.reset({ text: '' });
-      onReplySuccess(newReplyForState);
+      onReplySuccess();
     } catch (error) {
       console.error('Error al publicar respuesta:', error);
       toast({
@@ -154,12 +143,12 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
                 <Textarea
                 {...form.register('text')}
-                placeholder={`Respondiendo a ${replyingTo.userDisplayName}...`}
+                placeholder={`Respondiendo a ${parentComment.userDisplayName}...`}
                 className="text-sm"
                 rows={2}
                 />
                 <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => onReplySuccess({} as CommentType)} disabled={isSubmitting}>
+                    <Button variant="ghost" size="sm" onClick={() => onReplySuccess()} disabled={isSubmitting}>
                         Cancelar
                     </Button>
                     <Button type="submit" size="sm" disabled={isSubmitting}>

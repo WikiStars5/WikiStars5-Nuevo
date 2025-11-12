@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -36,7 +35,7 @@ interface CommentItemProps {
   isReply?: boolean;
   onReply: (parent: CommentType) => void;
   isReplying: boolean;
-  onReplySuccess: (newReply: CommentType) => void;
+  onReplySuccess: () => void;
 }
 
 function CommentItem({ comment, figureId, figureName, isReply = false, onReply, isReplying, onReplySuccess }: CommentItemProps) {
@@ -112,20 +111,19 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
 
         try {
-            // Find all replies to this comment
-            const repliesQuery = query(collection(firestore, `figures/${figureId}/comments`), where('parentId', '==', comment.id));
-            const repliesSnapshot = await getDocs(repliesQuery);
+            // If this is a root comment, delete all its replies
+            if (!comment.parentId) {
+                const repliesQuery = query(collection(firestore, `figures/${figureId}/comments`), where('parentId', '==', comment.id));
+                const repliesSnapshot = await getDocs(repliesQuery);
+                repliesSnapshot.forEach(replyDoc => {
+                    batch.delete(replyDoc.ref);
+                });
+            }
 
             // Add the main comment to the batch for deletion
             batch.delete(commentRef);
             
-            // Add all replies to the batch for deletion
-            repliesSnapshot.forEach(replyDoc => {
-                batch.delete(replyDoc.ref);
-            });
-            
             // If the comment being deleted has a rating, adjust the figure's totals.
-            // This is a separate transaction as it operates on a different document.
             if (typeof comment.rating === 'number' && comment.rating >= 0) {
                  const figureRef = doc(firestore, 'figures', figureId);
                  await runTransaction(firestore, async (transaction) => {
@@ -137,21 +135,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                     ratingUpdates['totalRating'] = increment(-comment.rating);
                     ratingUpdates[`ratingsBreakdown.${comment.rating}`] = increment(-1);
 
-                    // Adjust for any ratings on the replies being deleted
-                    for (const replyDoc of repliesSnapshot.docs) {
-                        const reply = replyDoc.data() as CommentType;
-                        if (typeof reply.rating === 'number' && reply.rating >= 0) {
-                            ratingUpdates['ratingCount'] = increment(-1);
-                            ratingUpdates['totalRating'] = increment(-reply.rating);
-                            ratingUpdates[`ratingsBreakdown.${reply.rating}`] = increment(-1);
-                        }
-                    }
-
                     transaction.update(figureRef, ratingUpdates);
                  });
             }
 
-            // Commit the batch deletion of comments and replies
             await batch.commit();
 
             toast({
@@ -160,7 +147,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
             });
 
         } catch (error: any) {
-            console.error("Error al eliminar comentario y respuestas:", error);
+            console.error("Error al eliminar comentario:", error);
             toast({
                 title: "Error al Eliminar",
                 description: error.message || "No se pudo eliminar el comentario.",
@@ -203,7 +190,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
 
     const renderCommentText = () => {
         const mentionMatch = comment.text.match(/^(@\S+)/);
-        if (mentionMatch) {
+        if (isReply && mentionMatch) {
             const mention = mentionMatch[1];
             const restOfText = comment.text.substring(mention.length).trim();
             return (
@@ -294,7 +281,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                             <span>{comment.dislikes ?? 0}</span>
                         </Button>
                         
-                        {user && (
+                        {user && !isReply && (
                             <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
                                 <MessageSquare className="h-4 w-4" />
                                 <span>Responder</span>
@@ -343,7 +330,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
               figureId={figureId}
               figureName={figureName}
               parentComment={comment}
-              replyingTo={comment}
               onReplySuccess={onReplySuccess}
             />
           </div>
@@ -394,13 +380,11 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     setActiveReplyId(prevId => prevId === targetComment.id ? null : targetComment.id);
   }
   
-  // This function is now simplified, as the useCollection hook handles updates automatically.
-  const handleReplySuccess = useCallback((newReply: CommentType) => {
+  const handleReplySuccess = useCallback(() => {
     setActiveReplyId(null);
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
-    // Ensure the new reply is visible
     if (threadReplies && threadReplies.length + 1 > visibleRepliesCount) {
         setVisibleRepliesCount(threadReplies.length + 1);
     }
