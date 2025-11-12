@@ -260,9 +260,16 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
       ) : (
         <div className="text-center py-10">
             <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
-            <h3 className="mt-2 text-lg font-semibold">No se encontraron opiniones</h3>
+            <h3 className="mt-2 text-lg font-semibold">
+                {activeFilter === 'featured' && (!comments || comments.length === 0) 
+                    ? 'Sé el primero en romper el hielo' 
+                    : 'No se encontraron opiniones'}
+            </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-                No hay comentarios que coincidan con el filtro seleccionado.
+                {activeFilter === 'featured' && (!comments || comments.length === 0)
+                    ? 'Aún no hay comentarios para este perfil. ¡Da tu opinión!'
+                    : 'No hay comentarios que coincidan con el filtro seleccionado.'
+                }
             </p>
         </div>
       )}
