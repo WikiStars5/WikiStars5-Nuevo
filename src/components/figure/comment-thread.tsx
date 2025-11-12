@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -36,7 +35,7 @@ interface CommentItemProps {
   isReply?: boolean;
   onReply: (parent: CommentType) => void;
   isReplying: boolean;
-  onReplySuccess: () => void;
+  onReplySuccess: (newReply: CommentType) => void;
 }
 
 function CommentItem({ comment, figureId, figureName, isReply = false, onReply, isReplying, onReplySuccess }: CommentItemProps) {
@@ -367,25 +366,23 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const repliesContainerRef = useRef<HTMLDivElement>(null);
+  const [localReplies, setLocalReplies] = useState<CommentType[]>([]);
 
-
-  const replies = useMemo(() => {
-    return allReplies
+  useEffect(() => {
+    // Initialize local replies with replies from props
+    const initialReplies = allReplies
       .filter(reply => reply.parentId === comment.id)
-      .sort((a, b) => {
-        if (!a.createdAt) return 1;
-        if (!b.createdAt) return -1;
-        return a.createdAt.toMillis() - b.createdAt.toMillis();
-      });
+      .sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+    setLocalReplies(initialReplies);
   }, [allReplies, comment.id]);
-  
+
   const visibleReplies = useMemo(() => {
-      return replies.slice(0, visibleRepliesCount);
-  }, [replies, visibleRepliesCount]);
+      return localReplies.slice(0, visibleRepliesCount);
+  }, [localReplies, visibleRepliesCount]);
 
 
-  const hasReplies = replies.length > 0;
-  const hasMoreReplies = replies.length > visibleRepliesCount;
+  const hasReplies = localReplies.length > 0;
+  const hasMoreReplies = localReplies.length > visibleRepliesCount;
 
   const handleReplyClick = (targetComment: CommentType) => {
     if (!repliesVisible) {
@@ -394,17 +391,16 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
     setActiveReplyId(prevId => prevId === targetComment.id ? null : targetComment.id);
   }
 
-  const handleReplySuccess = () => {
+  const handleReplySuccess = (newReply: CommentType) => {
     setActiveReplyId(null);
+    setLocalReplies(prevReplies => [...prevReplies, newReply]);
+    
     // Expand the visible replies to show the new one
-    setVisibleRepliesCount(replies.length + 1);
+    setVisibleRepliesCount(localReplies.length + 1);
     
     // After a short delay, scroll to the last comment
     setTimeout(() => {
-        const lastReplyElement = repliesContainerRef.current?.lastElementChild as HTMLElement;
-        if(lastReplyElement) {
-            lastReplyElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }
+        repliesContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, 100);
   };
   
@@ -441,7 +437,7 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
             ) : (
                 <>
                 <ChevronDown className="mr-1 h-4 w-4" />
-                Ver {replies.length} {replies.length > 1 ? 'respuestas' : 'respuesta'}
+                Ver {localReplies.length} {localReplies.length > 1 ? 'respuestas' : 'respuesta'}
                 </>
             )}
         </Button>

@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, getDoc, Timestamp } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useFirestore, useUser } from '@/firebase';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,7 +28,7 @@ interface ReplyFormProps {
   figureName: string;
   parentComment: CommentType; // The root comment of the thread
   replyingTo: CommentType; // The specific comment being replied to (for @mention)
-  onReplySuccess: () => void;
+  onReplySuccess: (newReply: CommentType) => void;
 }
 
 export default function ReplyForm({ figureId, figureName, parentComment, replyingTo, onReplySuccess }: ReplyFormProps) {
@@ -68,11 +67,11 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
       
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
-      const newReply: Omit<CommentType, 'id' | 'createdAt'> & { createdAt: any } = {
+      const newReplyData = {
         figureId: figureId,
         userId: user.uid,
         text: data.text,
-        createdAt: serverTimestamp(),
+        createdAt: Timestamp.now(), // Use client-side timestamp for immediate feedback
         userDisplayName: displayName,
         userPhotoURL: user.photoURL,
         userCountry: userProfileData.country || null,
@@ -84,8 +83,15 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
         threadId: parentComment.threadId || parentComment.id
       };
 
-      const newReplyRef = await addDocumentNonBlocking(commentsColRef, newReply);
-      const newReplyId = newReplyRef.id;
+      const newReplyRef = await addDoc(commentsColRef, {
+        ...newReplyData,
+        createdAt: serverTimestamp(), // Replace with server timestamp for storage
+      });
+
+      const newReplyForState: CommentType = {
+        ...newReplyData,
+        id: newReplyRef.id,
+      } as CommentType;
       
       // --- Create Notification ---
       const replyToAuthorId = replyingTo?.userId;
@@ -98,7 +104,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
             message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
             isRead: false,
             createdAt: serverTimestamp(),
-            link: `/figures/${figureId}?thread=${parentComment.id}&reply=${newReplyId}`
+            link: `/figures/${figureId}?thread=${parentComment.id}&reply=${newReplyRef.id}`
         };
         await addDocumentNonBlocking(notificationsColRef, notification);
       }
@@ -124,7 +130,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
         title: '¡Respuesta Publicada!',
       });
       form.reset({ text: '' });
-      onReplySuccess();
+      onReplySuccess(newReplyForState);
     } catch (error) {
       console.error('Error al publicar respuesta:', error);
       toast({
@@ -152,7 +158,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
                 rows={2}
                 />
                 <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" onClick={onReplySuccess} disabled={isSubmitting}>
+                    <Button variant="ghost" size="sm" onClick={() => onReplySuccess({} as CommentType)} disabled={isSubmitting}>
                         Cancelar
                     </Button>
                     <Button type="submit" size="sm" disabled={isSubmitting}>
