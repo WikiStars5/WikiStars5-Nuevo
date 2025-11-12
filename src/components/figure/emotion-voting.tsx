@@ -159,7 +159,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                             <div>
                                 <span className={cn("font-semibold text-sm", textColorClass)}>{label}</span>
                                 <span className={cn("block text-lg font-bold", textColorClass)}>
-                                {figure.emotion?.[id] ?? 0}
+                                {(figure.emotion?.[id] ?? 0).toLocaleString()}
                                 </span>
                             </div>
                         </div>
@@ -169,7 +169,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             })}
         </div>
         <p className="mt-4 text-center text-sm text-muted-foreground">
-            Total de respuestas: {totalVotes}
+            Total de respuestas: {totalVotes.toLocaleString()}
         </p>
         </div>
     </LoginPromptDialog>

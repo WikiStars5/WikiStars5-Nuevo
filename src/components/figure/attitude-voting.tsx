@@ -181,7 +181,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
                         <div>
                             <span className="font-semibold text-sm">{label}</span>
                             <span className="block text-lg font-bold">
-                            {figure.attitude?.[id] ?? 0}
+                            {(figure.attitude?.[id] ?? 0).toLocaleString()}
                             </span>
                         </div>
                     </div>
@@ -190,7 +190,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
             )})}
         </div>
         <p className="mt-4 text-center text-sm text-muted-foreground">
-            Total de respuestas: {totalVotes}
+            Total de respuestas: {totalVotes.toLocaleString()}
         </p>
         </div>
     </LoginPromptDialog>
