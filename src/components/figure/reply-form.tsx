@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, getDoc, Timestamp, addDoc } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useFirestore, useUser } from '@/firebase';
 import { Textarea } from '@/components/ui/textarea';
