@@ -293,7 +293,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                             <span>{comment.dislikes ?? 0}</span>
                         </Button>
                         
-                        {user && (
+                        {user && !isReply && (
                             <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
                                 <MessageSquare className="h-4 w-4" />
                                 <span>Responder</span>
