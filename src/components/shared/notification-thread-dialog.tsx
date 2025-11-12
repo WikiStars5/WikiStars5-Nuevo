@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, doc, getDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, doc, getDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -105,22 +105,6 @@ export default function NotificationThreadDialog({
         return comments.find(c => c.id === parentId);
     }, [comments, parentId]);
     
-    const activeReply = useMemo(() => {
-        return comments.find(c => c.id === replyId);
-    }, [comments, replyId]);
-
-    // This is the "in-between" comment, the one being replied to.
-    const parentOfReply = useMemo(() => {
-        // If the activeReply's text mentions someone, find that comment.
-        const mentionMatch = activeReply?.text.match(/^@(\S+)/);
-        if (!mentionMatch) return null;
-
-        const mentionedUsername = mentionMatch[1];
-        // Find the comment in the thread made by the mentioned user, which is not the root comment.
-        return comments.find(c => c.userDisplayName === mentionedUsername && c.id !== parentId);
-    }, [comments, activeReply, parentId]);
-
-
     useEffect(() => {
         const fetchEssentialComments = async () => {
             if (!firestore) return;
@@ -129,6 +113,8 @@ export default function NotificationThreadDialog({
             
             try {
                 const commentsRef = collection(firestore, `figures/${figureId}/comments`);
+                const fetchedComments = new Map<string, Comment>();
+
                 const rootDocRef = doc(commentsRef, parentId);
                 const replyDocRef = doc(commentsRef, replyId);
 
@@ -137,54 +123,41 @@ export default function NotificationThreadDialog({
                     getDoc(replyDocRef),
                 ]);
 
-                const fetchedComments: Comment[] = [];
-                let rootCommentExists = false;
-
-                if (rootDocSnap.exists()) {
-                    fetchedComments.push({ id: rootDocSnap.id, ...rootDocSnap.data() } as Comment);
-                    rootCommentExists = true;
-                } else {
+                if (!rootDocSnap.exists()) {
                     setError("El comentario original de esta conversación ha sido eliminado.");
                     setIsLoading(false);
                     return;
                 }
-                
+                const rootCommentData = { id: rootDocSnap.id, ...rootDocSnap.data() } as Comment;
+                fetchedComments.set(rootCommentData.id, rootCommentData);
+
                 let activeReplyData: Comment | null = null;
                 if (replyDocSnap.exists()) {
                     activeReplyData = { id: replyDocSnap.id, ...replyDocSnap.data() } as Comment;
-                    if (replyDocSnap.id !== rootDocSnap.id) {
-                        fetchedComments.push(activeReplyData);
+                    if (activeReplyData.id !== rootCommentData.id) {
+                         fetchedComments.set(activeReplyData.id, activeReplyData);
                     }
                 }
-
-                // --- LOGIC FOR CASE 2 ---
-                // If the reply mentions someone, try to fetch the comment it's replying to.
+                
                 if (activeReplyData) {
                     const mentionMatch = activeReplyData.text.match(/^@(\S+)/);
                     if (mentionMatch) {
-                        // This is a reply to a reply. We need to find the intermediate comment.
-                        const q = query(
+                        const mentionedUsername = mentionMatch[1];
+                        const intermediateQuery = query(
                             commentsRef,
                             where('threadId', '==', parentId),
-                            orderBy('createdAt', 'desc')
+                            where('userDisplayName', '==', mentionedUsername),
+                            limit(1)
                         );
-                        const threadSnapshot = await getDocs(q);
-                        const allThreadComments = threadSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Comment));
-                        
-                        // Add all comments from the thread to our state to be rendered
-                        const uniqueComments = new Map<string, Comment>();
-                        fetchedComments.forEach(c => uniqueComments.set(c.id, c));
-                        allThreadComments.forEach(c => uniqueComments.set(c.id, c));
-                        
-                        setComments(Array.from(uniqueComments.values()));
-
-                    } else {
-                         setComments(fetchedComments);
+                        const intermediateSnapshot = await getDocs(intermediateQuery);
+                        if (!intermediateSnapshot.empty) {
+                            const intermediateComment = { id: intermediateSnapshot.docs[0].id, ...intermediateSnapshot.docs[0].data() } as Comment;
+                            fetchedComments.set(intermediateComment.id, intermediateComment);
+                        }
                     }
-                } else {
-                     setComments(fetchedComments);
                 }
-
+                
+                setComments(Array.from(fetchedComments.values()));
 
             } catch (err) {
                 console.error("Error fetching comments for notification dialog:", err);
@@ -211,19 +184,17 @@ export default function NotificationThreadDialog({
     const handleReplySuccess = () => {
         onOpenChange(false);
     };
+    
+    const replyingToForForm = useMemo(() => {
+        // Default to replying to the latest comment (the one that triggered the notification)
+        return comments.find(c => c.id === replyId) || comments.find(c => c.id === parentId);
+    }, [comments, replyId, parentId]);
 
-    // Determine the correct comment to reply to for the form
-    const replyingToForForm = activeReply || rootComment;
 
     const orderedComments = useMemo(() => {
-        if (!rootComment) return [];
-        
-        const thread = comments
-            .filter(c => c.threadId === rootComment.id && c.id !== rootComment.id)
-            .sort((a,b) => a.createdAt.toMillis() - b.createdAt.toMillis());
-
-        return [rootComment, ...thread];
-    }, [comments, rootComment]);
+        if (comments.length === 0) return [];
+        return comments.sort((a,b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+    }, [comments]);
 
     return (
         <DialogContent className="sm:max-w-xl">
@@ -243,7 +214,7 @@ export default function NotificationThreadDialog({
                     <p className="text-center text-destructive py-10">{error}</p>
                 ) : (
                     <div className="space-y-4">
-                        {orderedComments.map((comment, index) => (
+                        {orderedComments.map((comment) => (
                              <div key={comment.id} className={comment.id !== parentId ? "pl-8 border-l-2 ml-4" : ""}>
                                 <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
                              </div>
