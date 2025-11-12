@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Image from 'next/image';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -259,7 +260,13 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
         ))
       ) : (
         <div className="text-center py-10">
-            <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground/50" />
+            <Image 
+                src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/hielo%2Fhielo1.png?alt=media&token=e49ade39-786f-4aff-aa2b-a7279546cc69"
+                alt="Romper el hielo"
+                width={128}
+                height={128}
+                className="mx-auto h-32 w-32"
+            />
             <h3 className="mt-2 text-lg font-semibold">
                 {activeFilter === 'featured' && (!comments || comments.length === 0) 
                     ? 'Sé el primero en romper el hielo' 
