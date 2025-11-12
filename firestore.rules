@@ -35,15 +35,16 @@ service cloud.firestore {
 
       // Rules for user's private subcollections
       match /attitudeVotes/{figureId} {
-        allow get, write: if isOwner(userId);
-        allow list: if isOwner(userId);
+        allow get, list: if true; // Allow public read
+        allow write: if isOwner(userId);
       }
       match /emotionVotes/{figureId} {
-        allow get, write: if isOwner(userId);
-        allow list: if isOwner(userId);
+        allow get, list: if true; // Allow public read
+        allow write: if isOwner(userId);
       }
        match /streaks/{streakId} {
-        allow get, list, write: if isOwner(userId);
+        allow get, list: if true; // Allow public read
+        allow write: if isOwner(userId);
       }
       match /user_achievements/{achievementId} {
         allow get, list, write: if isOwner(userId);
@@ -94,27 +95,55 @@ service cloud.firestore {
           allow get, write: if isOwner(userId);
       }
 
-      // --- /figures/{figureId}/comments/{commentId} ---
-      match /comments/{commentId} {
-        allow get, list: if true;
-        allow create: if isSignedIn();
-        allow update: if isSignedIn() && (
-          (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
-          isIncrement('likes') || isIncrement('dislikes')
-        );
-        allow delete: if 
-          // Allow if user is the owner of the comment
-          resource.data.userId == request.auth.uid ||
-          // OR if user is the owner of the parent comment (to delete replies)
-          (resource.data.parentId != null && get(/databases/$(database)/documents/figures/$(figureId)/comments/$(resource.data.parentId)).data.userId == request.auth.uid) ||
-          // OR if user is an admin
-          isAdmin();
+// --- /figures/{figureId}/comments/{commentId} ---
+match /comments/{commentId} {
+  allow get, list: if true;
+  allow create: if isSignedIn();
+  allow update: if isSignedIn() && (
+    (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
+    isIncrement('likes') || isIncrement('dislikes')
+  );
+  allow delete: if 
+    // Allow if user is the owner of the comment
+    resource.data.userId == request.auth.uid ||
+    // OR if user is the owner of the parent comment (to delete replies)
+    (resource.data.parentId != null && get(/databases/$(database)/documents/figures/$(figureId)/comments/$(resource.data.parentId)).data.userId == request.auth.uid) ||
+    // OR if user is an admin
+    isAdmin();
 
-        match /votes/{userId} {
-          allow get, write: if isOwner(userId);
-          allow list: if false;
-        }
-      }
+  match /votes/{userId} {
+    allow get, write: if isOwner(userId);
+    allow list: if false;
+  }
+
+  // 🚀 NUEVO BLOQUE: Reglas para la subcolección de respuestas (replies)
+  // Ruta: /figures/{figureId}/comments/{commentId}/replies/{replyId}
+  match /replies/{replyId} {
+    // Lectura: Todos pueden leer las respuestas
+    allow get, list: if true;
+
+    // Creación: Solo usuarios autenticados
+    allow create: if isSignedIn();
+
+    // Actualización: Solo dueño (texto) o cualquiera (likes/dislikes)
+    allow update: if isSignedIn() && (
+      (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
+      isIncrement('likes') || isIncrement('dislikes')
+    );
+
+    // Borrado: Dueño del reply, dueño del comentario padre, o Admin
+    allow delete: if 
+      resource.data.userId == request.auth.uid ||
+      get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid ||
+      isAdmin();
+      
+    // Votos (Likes/Dislikes) para los Replies
+    match /votes/{userId} {
+      allow get, write: if isOwner(userId);
+      allow list: if false;
+    }
+  }
+}
 
       // --- /figures/{figureId}/streaks/{userId} ---
       // This is for the public leaderboard on the figure's page.
