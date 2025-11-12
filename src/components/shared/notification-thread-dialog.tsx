@@ -112,16 +112,11 @@ export default function NotificationThreadDialog({
             setError(null);
             
             try {
-                const commentsRef = collection(firestore, `figures/${figureId}/comments`);
                 const fetchedComments = new Map<string, Comment>();
-
-                const rootDocRef = doc(commentsRef, parentId);
-                const replyDocRef = doc(commentsRef, replyId);
-
-                const [rootDocSnap, replyDocSnap] = await Promise.all([
-                    getDoc(rootDocRef),
-                    getDoc(replyDocRef),
-                ]);
+                
+                // 1. Get the root comment
+                const rootDocRef = doc(firestore, 'figures', figureId, 'comments', parentId);
+                const rootDocSnap = await getDoc(rootDocRef);
 
                 if (!rootDocSnap.exists()) {
                     setError("El comentario original de esta conversación ha sido eliminado.");
@@ -131,30 +126,15 @@ export default function NotificationThreadDialog({
                 const rootCommentData = { id: rootDocSnap.id, ...rootDocSnap.data() } as Comment;
                 fetchedComments.set(rootCommentData.id, rootCommentData);
 
-                let activeReplyData: Comment | null = null;
-                if (replyDocSnap.exists()) {
-                    activeReplyData = { id: replyDocSnap.id, ...replyDocSnap.data() } as Comment;
-                    if (activeReplyData.id !== rootCommentData.id) {
-                         fetchedComments.set(activeReplyData.id, activeReplyData);
-                    }
-                }
+                // 2. Get the specific reply that triggered the notification
+                const replyDocRef = doc(firestore, `figures/${figureId}/comments/${parentId}/replies`, replyId);
+                const replyDocSnap = await getDoc(replyDocRef);
                 
-                if (activeReplyData) {
-                    const mentionMatch = activeReplyData.text.match(/^@(\S+)/);
-                    if (mentionMatch) {
-                        const mentionedUsername = mentionMatch[1];
-                        const intermediateQuery = query(
-                            commentsRef,
-                            where('threadId', '==', parentId),
-                            where('userDisplayName', '==', mentionedUsername),
-                            limit(1)
-                        );
-                        const intermediateSnapshot = await getDocs(intermediateQuery);
-                        if (!intermediateSnapshot.empty) {
-                            const intermediateComment = { id: intermediateSnapshot.docs[0].id, ...intermediateSnapshot.docs[0].data() } as Comment;
-                            fetchedComments.set(intermediateComment.id, intermediateComment);
-                        }
-                    }
+                if (replyDocSnap.exists()) {
+                    const replyData = { id: replyDocSnap.id, ...replyDocSnap.data() } as Comment;
+                    fetchedComments.set(replyData.id, replyData);
+                } else {
+                     setError("La respuesta que generó esta notificación ha sido eliminada.");
                 }
                 
                 setComments(Array.from(fetchedComments.values()));
@@ -170,6 +150,7 @@ export default function NotificationThreadDialog({
         fetchEssentialComments();
     }, [firestore, figureId, parentId, replyId]);
 
+
     useEffect(() => {
         if (!isLoading && replyId) {
             setTimeout(() => {
@@ -184,16 +165,10 @@ export default function NotificationThreadDialog({
     const handleReplySuccess = () => {
         onOpenChange(false);
     };
-    
-    const replyingToForForm = useMemo(() => {
-        // Default to replying to the latest comment (the one that triggered the notification)
-        return comments.find(c => c.id === replyId) || comments.find(c => c.id === parentId);
-    }, [comments, replyId, parentId]);
-
 
     const orderedComments = useMemo(() => {
         if (comments.length === 0) return [];
-        return comments.sort((a,b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+        return comments.sort((a,b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
     }, [comments]);
 
     return (
@@ -220,13 +195,12 @@ export default function NotificationThreadDialog({
                              </div>
                         ))}
                         
-                        {rootComment && replyingToForForm && (
+                        {rootComment && (
                              <div className="pl-8 border-l-2 ml-4 pt-4">
                                 <ReplyForm
                                     figureId={figureId}
                                     figureName={figureName}
                                     parentComment={rootComment}
-                                    replyingTo={replyingToForForm}
                                     onReplySuccess={handleReplySuccess}
                                 />
                              </div>
