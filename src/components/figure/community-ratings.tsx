@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -70,7 +71,7 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
                         </div>
                         <StarRating rating={averageRating} starClassName="h-5 w-5" />
                         <div className="text-sm text-muted-foreground">
-                            {totalVotes} {totalVotes === 1 ? 'calificación' : 'calificaciones'}
+                            {totalVotes.toLocaleString()} {totalVotes === 1 ? 'calificación' : 'calificaciones'}
                         </div>
                     </div>
                     <div className="md:col-span-2 flex flex-col justify-center space-y-2">
