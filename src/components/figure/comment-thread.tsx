@@ -344,22 +344,31 @@ interface CommentThreadProps {
   figureName: string;
 }
 
+const INITIAL_REPLIES_LIMIT = 3;
+const REPLIES_INCREMENT = 5;
+
 export default function CommentThread({ comment, allReplies, figureId, figureName }: CommentThreadProps) {
   const [repliesVisible, setRepliesVisible] = useState(false);
+  const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
   const [activeReply, setActiveReply] = useState<CommentType | null>(null);
 
   const replies = useMemo(() => {
     return allReplies
       .filter(reply => reply.parentId === comment.id)
       .sort((a, b) => {
-        // Handle cases where createdAt might not be populated yet for newly added comments
         if (!a.createdAt) return 1;
         if (!b.createdAt) return -1;
         return a.createdAt.toMillis() - b.createdAt.toMillis();
       });
   }, [allReplies, comment.id]);
+  
+  const visibleReplies = useMemo(() => {
+      return replies.slice(0, visibleRepliesCount);
+  }, [replies, visibleRepliesCount]);
+
 
   const hasReplies = replies.length > 0;
+  const hasMoreReplies = replies.length > visibleRepliesCount;
 
   const handleReplyClick = (targetComment: CommentType) => {
     if (!repliesVisible) {
@@ -373,9 +382,11 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
   };
   
   const toggleReplies = () => {
-    setRepliesVisible(prev => !prev);
-    if (repliesVisible) {
+    const nextRepliesVisible = !repliesVisible;
+    setRepliesVisible(nextRepliesVisible);
+    if (!nextRepliesVisible) {
         setActiveReply(null);
+        setVisibleRepliesCount(INITIAL_REPLIES_LIMIT); // Reset count when hiding
     }
   }
 
@@ -409,7 +420,7 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
 
       {repliesVisible && (
         <div className="ml-8 space-y-4 border-l-2 pl-4">
-          {replies.map(reply => (
+          {visibleReplies.map(reply => (
             <CommentItem
               key={reply.id}
               comment={reply}
@@ -419,6 +430,15 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
               onReply={handleReplyClick}
             />
           ))}
+           {hasMoreReplies && (
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setVisibleRepliesCount(prev => prev + REPLIES_INCREMENT)}
+                >
+                    Ver más respuestas
+                </Button>
+            )}
         </div>
       )}
       
