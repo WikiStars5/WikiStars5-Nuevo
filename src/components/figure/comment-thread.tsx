@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -50,10 +51,16 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
 
     const isOwner = user && user.uid === comment.userId;
     
+    // Determine the correct path for the vote based on whether it's a root comment or a reply
+    const votePath = isReply 
+        ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}/votes`
+        : `figures/${figureId}/comments/${comment.id}/votes`;
+        
     const userVoteRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
-        return doc(firestore, `figures/${figureId}/comments/${comment.id}/votes`, user.uid);
-    }, [firestore, user, figureId, comment.id]);
+        return doc(firestore, votePath, user.uid);
+    }, [firestore, user, votePath]);
+
 
     const { data: userVote, isLoading: isVoteLoading } = useDoc<CommentVote>(userVoteRef);
 
@@ -63,8 +70,12 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         if (!firestore || !user || isVoting) return;
         setIsVoting(voteType);
 
-        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
-        const voteRef = doc(firestore, `figures/${figureId}/comments/${comment.id}/votes`, user.uid);
+        const commentPath = isReply
+            ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
+            : `figures/${figureId}/comments/${comment.id}`;
+            
+        const commentRef = doc(firestore, commentPath);
+        const voteRef = doc(firestore, votePath, user.uid);
 
         try {
             await runTransaction(firestore, async (transaction) => {
@@ -73,15 +84,12 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 const updates: { [key: string]: any } = {};
 
                 if (existingVote === voteType) {
-                    // User is retracting their vote
                     updates[`${voteType}s`] = increment(-1);
                     transaction.delete(voteRef);
                     toast({ title: "Voto eliminado" });
                 } else {
-                    // New vote or changing vote
                     updates[`${voteType}s`] = increment(1);
                     if (existingVote) {
-                        // Changing vote from like to dislike or vice-versa
                         const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
                         updates[`${otherVoteType}s`] = increment(-1);
                     }
@@ -107,24 +115,26 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         if (!firestore || !isOwner) return;
         setIsDeleting(true);
 
-        const batch = writeBatch(firestore);
-        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+         const commentPath = isReply
+            ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
+            : `figures/${figureId}/comments/${comment.id}`;
+        const commentRef = doc(firestore, commentPath);
 
         try {
-            // If this is a root comment, delete all its replies
-            if (!comment.parentId) {
-                const repliesQuery = query(collection(firestore, `figures/${figureId}/comments`), where('parentId', '==', comment.id));
-                const repliesSnapshot = await getDocs(repliesQuery);
-                repliesSnapshot.forEach(replyDoc => {
-                    batch.delete(replyDoc.ref);
-                });
+            // If it's a root comment, also delete its 'replies' subcollection
+            if (!isReply) {
+                const repliesRef = collection(firestore, commentRef.path, 'replies');
+                const repliesSnapshot = await getDocs(repliesRef);
+                const batch = writeBatch(firestore);
+                repliesSnapshot.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
             }
 
-            // Add the main comment to the batch for deletion
-            batch.delete(commentRef);
-            
-            // If the comment being deleted has a rating, adjust the figure's totals.
-            if (typeof comment.rating === 'number' && comment.rating >= 0) {
+            // Delete the comment itself
+            await deleteDoc(commentRef);
+
+            // If the deleted comment was a root comment with a rating, adjust figure totals
+            if (!isReply && typeof comment.rating === 'number' && comment.rating >= 0) {
                  const figureRef = doc(firestore, 'figures', figureId);
                  await runTransaction(firestore, async (transaction) => {
                     const figureDoc = await transaction.get(figureRef);
@@ -139,11 +149,9 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                  });
             }
 
-            await batch.commit();
-
             toast({
                 title: "Comentario Eliminado",
-                description: "El comentario y sus respuestas han sido eliminados."
+                description: "El comentario ha sido eliminado."
             });
 
         } catch (error: any) {
@@ -162,7 +170,11 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         if (!firestore || !isOwner || editText.trim() === '') return;
         setIsSavingEdit(true);
 
-        const commentRef = doc(firestore, `figures/${figureId}/comments`, comment.id);
+         const commentPath = isReply
+            ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
+            : `figures/${figureId}/comments/${comment.id}`;
+        const commentRef = doc(firestore, commentPath);
+
         try {
             await updateDoc(commentRef, {
                 text: editText,
@@ -189,13 +201,13 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
     }
 
     const renderCommentText = () => {
-        const mentionMatch = comment.text.match(/^(@\S+)/);
-        if (isReply && mentionMatch) {
+        const mentionMatch = comment.text.match(/^@\[(.*?)\]/);
+        if (mentionMatch) {
             const mention = mentionMatch[1];
-            const restOfText = comment.text.substring(mention.length).trim();
+            const restOfText = comment.text.substring(mentionMatch[0].length).trim();
             return (
                 <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-1">
-                    <span className="text-primary font-semibold mr-1">{mention}</span>
+                    <span className="text-primary font-semibold mr-1">@{mention}</span>
                     {restOfText}
                 </p>
             );
@@ -281,7 +293,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                             <span>{comment.dislikes ?? 0}</span>
                         </Button>
                         
-                        {user && !isReply && (
+                        {user && (
                             <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
                                 <MessageSquare className="h-4 w-4" />
                                 <span>Responder</span>
@@ -355,9 +367,9 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
 
   const repliesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    // New: Query the subcollection for replies
     return query(
-        collection(firestore, 'figures', figureId, 'comments'),
-        where('parentId', '==', comment.id),
+        collection(firestore, 'figures', figureId, 'comments', comment.id, 'replies'),
         orderBy('createdAt', 'asc')
     );
   }, [firestore, figureId, comment.id]);
@@ -377,7 +389,8 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
-    setActiveReplyId(prevId => prevId === targetComment.id ? null : targetComment.id);
+    // For a single-level reply system, we always set the target to be the root comment.
+    setActiveReplyId(prevId => prevId === comment.id ? null : comment.id);
   }
   
   const handleReplySuccess = useCallback(() => {
@@ -405,7 +418,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
         comment={comment} 
         figureId={figureId}
         figureName={figureName}
-        onReply={handleReplyClick}
+        onReply={() => handleReplyClick(comment)}
         isReplying={activeReplyId === comment.id}
         onReplySuccess={handleReplySuccess}
       />
@@ -438,14 +451,16 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
           ) : (
             visibleReplies.map(reply => (
                 <CommentItem
-                key={reply.id}
-                comment={reply}
-                figureId={figureId}
-                figureName={figureName}
-                isReply={true}
-                onReply={handleReplyClick}
-                isReplying={activeReplyId === reply.id}
-                onReplySuccess={handleReplySuccess}
+                    key={reply.id}
+                    comment={reply}
+                    figureId={figureId}
+                    figureName={figureName}
+                    isReply={true}
+                    // Since we have a single-level reply system, the "onReply" for a reply
+                    // should also trigger a reply to the main comment.
+                    onReply={() => handleReplyClick(comment)}
+                    isReplying={activeReplyId === reply.id} // This should be based on root comment
+                    onReplySuccess={handleReplySuccess}
                 />
             ))
           )}

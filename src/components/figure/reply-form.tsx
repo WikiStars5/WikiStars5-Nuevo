@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -40,7 +41,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { text: '' },
+    defaultValues: { text: `@[${parentComment.userDisplayName}] ` },
   });
   
   const getAvatarFallback = () => {
@@ -61,7 +62,8 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
       const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
       const displayName = userProfileData.username || user.displayName || 'Usuario';
       
-      const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
+      // New: Get a reference to the 'replies' subcollection of the parent comment
+      const repliesColRef = collection(firestore, 'figures', figureId, 'comments', parentComment.id, 'replies');
       
       const newReplyData = {
         figureId: figureId,
@@ -74,18 +76,18 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
         userGender: userProfileData.gender || null,
         likes: 0,
         dislikes: 0,
-        parentId: parentComment.id, // Always associate with the root comment
+        parentId: parentComment.id, // Keep parentId for context if needed
         rating: -1, // Replies don't have ratings
       };
 
-      const newReplyRef = await addDoc(commentsColRef, {
+      // Add the new reply to the 'replies' subcollection
+      const newReplyRef = await addDoc(repliesColRef, {
         ...newReplyData,
         createdAt: serverTimestamp(), // Replace with server timestamp for storage
       });
 
       // --- Create Notification ---
       const replyToAuthorId = parentComment.userId;
-      // Only send notification if replying to someone else
       if (replyToAuthorId && replyToAuthorId !== user.uid) {
         const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
         const notification = {
@@ -119,7 +121,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
       toast({
         title: '¡Respuesta Publicada!',
       });
-      form.reset({ text: '' });
+      form.reset({ text: `@[${parentComment.userDisplayName}] ` });
       onReplySuccess();
     } catch (error) {
       console.error('Error al publicar respuesta:', error);
