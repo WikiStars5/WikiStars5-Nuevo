@@ -28,8 +28,8 @@ interface ReplyFormProps {
   figureId: string;
   figureName: string;
   parentComment: CommentType; // The root comment of the thread
-  replyingTo?: CommentType; // The specific comment being replied to (for the @mention). Optional.
-  onReplySuccess: (newReplyId: string) => void;
+  replyingTo: CommentType; // The specific comment being replied to (for @mention)
+  onReplySuccess: () => void;
 }
 
 export default function ReplyForm({ figureId, figureName, parentComment, replyingTo, onReplySuccess }: ReplyFormProps) {
@@ -40,8 +40,8 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
 
-  // Make sure replyingTo exists before creating the default value
-  const defaultText = replyingTo ? `@${replyingTo.userDisplayName} ` : '';
+  // Set the default @mention if replying to a specific user who is not the original poster
+  const defaultText = replyingTo.id !== parentComment.id ? `@${replyingTo.userDisplayName} ` : '';
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
@@ -124,7 +124,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
         title: '¡Respuesta Publicada!',
       });
       form.reset({ text: '' });
-      onReplySuccess(newReplyId);
+      onReplySuccess();
     } catch (error) {
       console.error('Error al publicar respuesta:', error);
       toast({
@@ -139,7 +139,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
 
   return (
     <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <div className="flex items-start gap-4 mt-4">
+        <div className="flex items-start gap-4">
             <Avatar className="h-9 w-9">
                 <AvatarImage src={user?.photoURL || undefined} />
                 <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
@@ -147,12 +147,12 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
                 <Textarea
                 {...form.register('text')}
-                placeholder={replyingTo ? `Respondiendo a ${replyingTo.userDisplayName}...` : 'Añade una respuesta...'}
+                placeholder={`Respondiendo a ${replyingTo.userDisplayName}...`}
                 className="text-sm"
                 rows={2}
                 />
                 <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => onReplySuccess('')} disabled={isSubmitting}>
+                    <Button variant="ghost" size="sm" onClick={onReplySuccess} disabled={isSubmitting}>
                         Cancelar
                     </Button>
                     <Button type="submit" size="sm" disabled={isSubmitting}>
@@ -170,5 +170,3 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyin
     </LoginPromptDialog>
   );
 }
-
-    

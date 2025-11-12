@@ -35,9 +35,11 @@ interface CommentItemProps {
   figureName: string,
   isReply?: boolean;
   onReply: (parent: CommentType) => void;
+  isReplying: boolean;
+  onReplySuccess: () => void;
 }
 
-function CommentItem({ comment, figureId, figureName, isReply = false, onReply }: CommentItemProps) {
+function CommentItem({ comment, figureId, figureName, isReply = false, onReply, isReplying, onReplySuccess }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -215,7 +217,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
     };
 
     return (
-        <div id={`comment-${comment.id}`} className="flex items-start gap-4">
+      <div id={`comment-${comment.id}`} className="space-y-2">
+        <div className="flex items-start gap-4">
             <Avatar className={cn("h-10 w-10", isReply && "h-8 w-8")}>
                  <Link href={`/u/${comment.userDisplayName}`}><AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} /></Link>
                 <AvatarFallback><Link href={`/u/${comment.userDisplayName}`}>{getAvatarFallback()}</Link></AvatarFallback>
@@ -334,6 +337,18 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply }
                 )}
             </div>
         </div>
+        {isReplying && (
+          <div className="pl-14">
+            <ReplyForm 
+              figureId={figureId}
+              figureName={figureName}
+              parentComment={comment}
+              replyingTo={comment}
+              onReplySuccess={onReplySuccess}
+            />
+          </div>
+        )}
+      </div>
     )
 }
 
@@ -350,7 +365,7 @@ const REPLIES_INCREMENT = 3;
 export default function CommentThread({ comment, allReplies, figureId, figureName }: CommentThreadProps) {
   const [repliesVisible, setRepliesVisible] = useState(false);
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
-  const [activeReply, setActiveReply] = useState<CommentType | null>(null);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
 
   const replies = useMemo(() => {
     return allReplies
@@ -374,18 +389,18 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
-    setActiveReply(targetComment);
+    setActiveReplyId(prevId => prevId === targetComment.id ? null : targetComment.id);
   }
 
   const handleReplySuccess = () => {
-    setActiveReply(null);
+    setActiveReplyId(null);
   };
   
   const toggleReplies = () => {
     const nextRepliesVisible = !repliesVisible;
     setRepliesVisible(nextRepliesVisible);
     if (!nextRepliesVisible) {
-        setActiveReply(null);
+        setActiveReplyId(null);
         setVisibleRepliesCount(INITIAL_REPLIES_LIMIT); // Reset count when hiding
     }
   }
@@ -397,6 +412,8 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
         figureId={figureId}
         figureName={figureName}
         onReply={handleReplyClick}
+        isReplying={activeReplyId === comment.id}
+        onReplySuccess={handleReplySuccess}
       />
       {hasReplies && (
         <Button
@@ -428,6 +445,8 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
               figureName={figureName}
               isReply={true}
               onReply={handleReplyClick}
+              isReplying={activeReplyId === reply.id}
+              onReplySuccess={handleReplySuccess}
             />
           ))}
            {hasMoreReplies && (
@@ -440,18 +459,6 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
                 </Button>
             )}
         </div>
-      )}
-      
-      {activeReply && (
-         <div className="ml-8 pt-4 border-l-2 pl-4">
-            <ReplyForm
-                figureId={figureId}
-                figureName={figureName}
-                parentComment={comment} // Always reply to the root comment
-                replyingTo={activeReply} // The specific comment we're replying to (for @mention)
-                onReplySuccess={handleReplySuccess}
-            />
-         </div>
       )}
     </div>
   );
