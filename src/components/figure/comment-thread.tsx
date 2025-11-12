@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -365,24 +366,20 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
   const [repliesVisible, setRepliesVisible] = useState(false);
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
-  const repliesContainerRef = useRef<HTMLDivElement>(null);
-  const [localReplies, setLocalReplies] = useState<CommentType[]>([]);
 
-  useEffect(() => {
-    // Initialize local replies with replies from props
-    const initialReplies = allReplies
+  const threadReplies = useMemo(() => {
+    return allReplies
       .filter(reply => reply.parentId === comment.id)
       .sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
-    setLocalReplies(initialReplies);
   }, [allReplies, comment.id]);
 
   const visibleReplies = useMemo(() => {
-      return localReplies.slice(0, visibleRepliesCount);
-  }, [localReplies, visibleRepliesCount]);
+      return threadReplies.slice(0, visibleRepliesCount);
+  }, [threadReplies, visibleRepliesCount]);
 
 
-  const hasReplies = localReplies.length > 0;
-  const hasMoreReplies = localReplies.length > visibleRepliesCount;
+  const hasReplies = threadReplies.length > 0;
+  const hasMoreReplies = threadReplies.length > visibleRepliesCount;
 
   const handleReplyClick = (targetComment: CommentType) => {
     if (!repliesVisible) {
@@ -393,15 +390,9 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
 
   const handleReplySuccess = (newReply: CommentType) => {
     setActiveReplyId(null);
-    setLocalReplies(prevReplies => [...prevReplies, newReply]);
-    
-    // Expand the visible replies to show the new one
-    setVisibleRepliesCount(localReplies.length + 1);
-    
-    // After a short delay, scroll to the last comment
-    setTimeout(() => {
-        repliesContainerRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }, 100);
+    if (!repliesVisible) {
+        setRepliesVisible(true);
+    }
   };
   
   const toggleReplies = () => {
@@ -437,14 +428,14 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
             ) : (
                 <>
                 <ChevronDown className="mr-1 h-4 w-4" />
-                Ver {localReplies.length} {localReplies.length > 1 ? 'respuestas' : 'respuesta'}
+                Ver {threadReplies.length} {threadReplies.length > 1 ? 'respuestas' : 'respuesta'}
                 </>
             )}
         </Button>
       )}
 
       {repliesVisible && (
-        <div ref={repliesContainerRef} className="ml-8 space-y-4 border-l-2 pl-4">
+        <div className="ml-8 space-y-4 border-l-2 pl-4">
           {visibleReplies.map(reply => (
             <CommentItem
               key={reply.id}
@@ -471,3 +462,5 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
     </div>
   );
 }
+
+    
