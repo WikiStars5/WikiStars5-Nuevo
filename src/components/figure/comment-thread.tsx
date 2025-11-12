@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
 import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -354,7 +354,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
 
 interface CommentThreadProps {
   comment: CommentType;
-  allReplies: CommentType[];
   figureId: string;
   figureName: string;
 }
@@ -362,24 +361,31 @@ interface CommentThreadProps {
 const INITIAL_REPLIES_LIMIT = 3;
 const REPLIES_INCREMENT = 3;
 
-export default function CommentThread({ comment, allReplies, figureId, figureName }: CommentThreadProps) {
+export default function CommentThread({ comment, figureId, figureName }: CommentThreadProps) {
+  const firestore = useFirestore();
   const [repliesVisible, setRepliesVisible] = useState(false);
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
 
-  const threadReplies = useMemo(() => {
-    return allReplies
-      .filter(reply => reply.parentId === comment.id)
-      .sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
-  }, [allReplies, comment.id]);
+  const repliesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+        collection(firestore, 'figures', figureId, 'comments'),
+        where('parentId', '==', comment.id),
+        orderBy('createdAt', 'asc')
+    );
+  }, [firestore, figureId, comment.id]);
+
+  const { data: threadReplies, isLoading: areRepliesLoading } = useCollection<CommentType>(repliesQuery);
 
   const visibleReplies = useMemo(() => {
+      if (!threadReplies) return [];
       return threadReplies.slice(0, visibleRepliesCount);
   }, [threadReplies, visibleRepliesCount]);
 
 
-  const hasReplies = threadReplies.length > 0;
-  const hasMoreReplies = threadReplies.length > visibleRepliesCount;
+  const hasReplies = threadReplies && threadReplies.length > 0;
+  const hasMoreReplies = threadReplies && threadReplies.length > visibleRepliesCount;
 
   const handleReplyClick = (targetComment: CommentType) => {
     if (!repliesVisible) {
@@ -387,13 +393,18 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
     }
     setActiveReplyId(prevId => prevId === targetComment.id ? null : targetComment.id);
   }
-
-  const handleReplySuccess = (newReply: CommentType) => {
+  
+  // This function is now simplified, as the useCollection hook handles updates automatically.
+  const handleReplySuccess = useCallback((newReply: CommentType) => {
     setActiveReplyId(null);
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
-  };
+    // Ensure the new reply is visible
+    if (threadReplies && threadReplies.length + 1 > visibleRepliesCount) {
+        setVisibleRepliesCount(threadReplies.length + 1);
+    }
+  }, [repliesVisible, threadReplies, visibleRepliesCount]);
   
   const toggleReplies = () => {
     const nextRepliesVisible = !repliesVisible;
@@ -428,7 +439,7 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
             ) : (
                 <>
                 <ChevronDown className="mr-1 h-4 w-4" />
-                Ver {threadReplies.length} {threadReplies.length > 1 ? 'respuestas' : 'respuesta'}
+                Ver {threadReplies!.length} {threadReplies!.length > 1 ? 'respuestas' : 'respuesta'}
                 </>
             )}
         </Button>
@@ -436,18 +447,24 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
 
       {repliesVisible && (
         <div className="ml-8 space-y-4 border-l-2 pl-4">
-          {visibleReplies.map(reply => (
-            <CommentItem
-              key={reply.id}
-              comment={reply}
-              figureId={figureId}
-              figureName={figureName}
-              isReply={true}
-              onReply={handleReplyClick}
-              isReplying={activeReplyId === reply.id}
-              onReplySuccess={handleReplySuccess}
-            />
-          ))}
+          {areRepliesLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Loader2 className="h-4 w-4 animate-spin"/> Cargando respuestas...
+            </div>
+          ) : (
+            visibleReplies.map(reply => (
+                <CommentItem
+                key={reply.id}
+                comment={reply}
+                figureId={figureId}
+                figureName={figureName}
+                isReply={true}
+                onReply={handleReplyClick}
+                isReplying={activeReplyId === reply.id}
+                onReplySuccess={handleReplySuccess}
+                />
+            ))
+          )}
            {hasMoreReplies && (
                 <Button 
                     variant="outline" 
@@ -462,5 +479,3 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
     </div>
   );
 }
-
-    

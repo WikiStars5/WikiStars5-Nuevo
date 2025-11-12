@@ -74,17 +74,18 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
 
   const { data: comments, isLoading } = useCollection<Comment>(commentsQuery);
 
-  const { rootComments, allReplies } = useMemo(() => {
-    if (!comments) return { rootComments: [], allReplies: [] };
-    const roots = comments.filter(c => !c.parentId);
-    const replies = comments.filter(c => c.parentId);
-    return { rootComments: roots, allReplies: replies };
+  // We only need all replies for the "mine" filter logic now.
+  const allReplies = useMemo(() => {
+    if (!comments) return [];
+    return comments.filter(c => c.parentId);
   }, [comments]);
 
 
   const filteredRootComments = useMemo(() => {
-    if (!rootComments) return [];
+    if (!comments) return [];
     
+    const rootComments = comments.filter(comment => !comment.parentId);
+
     if (activeFilter === 'mine') {
       if (!user) return [];
       
@@ -106,7 +107,7 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     // For 'featured', 'popular' and 'newest', we start with all root comments.
     // The sorting logic below will handle these.
     return rootComments;
-  }, [rootComments, allReplies, activeFilter, user, myCommentsFilter]);
+  }, [comments, allReplies, activeFilter, user, myCommentsFilter]);
 
   const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
@@ -252,7 +253,6 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
             <CommentThread 
                 key={comment.id} 
                 comment={comment}
-                allReplies={allReplies}
                 figureId={figureId} 
                 figureName={figureName}
             />
