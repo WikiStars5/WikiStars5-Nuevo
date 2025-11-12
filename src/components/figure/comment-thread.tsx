@@ -345,7 +345,7 @@ interface CommentThreadProps {
 }
 
 const INITIAL_REPLIES_LIMIT = 3;
-const REPLIES_INCREMENT = 5;
+const REPLIES_INCREMENT = 3;
 
 export default function CommentThread({ comment, allReplies, figureId, figureName }: CommentThreadProps) {
   const [repliesVisible, setRepliesVisible] = useState(false);
