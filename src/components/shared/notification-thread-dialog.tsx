@@ -104,10 +104,22 @@ export default function NotificationThreadDialog({
     const rootComment = useMemo(() => {
         return comments.find(c => c.id === parentId);
     }, [comments, parentId]);
-
+    
     const activeReply = useMemo(() => {
         return comments.find(c => c.id === replyId);
     }, [comments, replyId]);
+
+    // This is the "in-between" comment, the one being replied to.
+    const parentOfReply = useMemo(() => {
+        // If the activeReply's text mentions someone, find that comment.
+        const mentionMatch = activeReply?.text.match(/^@(\S+)/);
+        if (!mentionMatch) return null;
+
+        const mentionedUsername = mentionMatch[1];
+        // Find the comment in the thread made by the mentioned user, which is not the root comment.
+        return comments.find(c => c.userDisplayName === mentionedUsername && c.id !== parentId);
+    }, [comments, activeReply, parentId]);
+
 
     useEffect(() => {
         const fetchEssentialComments = async () => {
@@ -126,23 +138,53 @@ export default function NotificationThreadDialog({
                 ]);
 
                 const fetchedComments: Comment[] = [];
+                let rootCommentExists = false;
 
                 if (rootDocSnap.exists()) {
                     fetchedComments.push({ id: rootDocSnap.id, ...rootDocSnap.data() } as Comment);
+                    rootCommentExists = true;
                 } else {
                     setError("El comentario original de esta conversación ha sido eliminado.");
                     setIsLoading(false);
                     return;
                 }
-
+                
+                let activeReplyData: Comment | null = null;
                 if (replyDocSnap.exists()) {
-                     // Avoid adding if it's the same as the root comment
+                    activeReplyData = { id: replyDocSnap.id, ...replyDocSnap.data() } as Comment;
                     if (replyDocSnap.id !== rootDocSnap.id) {
-                        fetchedComments.push({ id: replyDocSnap.id, ...replyDocSnap.data() } as Comment);
+                        fetchedComments.push(activeReplyData);
                     }
                 }
-                
-                setComments(fetchedComments);
+
+                // --- LOGIC FOR CASE 2 ---
+                // If the reply mentions someone, try to fetch the comment it's replying to.
+                if (activeReplyData) {
+                    const mentionMatch = activeReplyData.text.match(/^@(\S+)/);
+                    if (mentionMatch) {
+                        // This is a reply to a reply. We need to find the intermediate comment.
+                        const q = query(
+                            commentsRef,
+                            where('threadId', '==', parentId),
+                            orderBy('createdAt', 'desc')
+                        );
+                        const threadSnapshot = await getDocs(q);
+                        const allThreadComments = threadSnapshot.docs.map(d => ({id: d.id, ...d.data()} as Comment));
+                        
+                        // Add all comments from the thread to our state to be rendered
+                        const uniqueComments = new Map<string, Comment>();
+                        fetchedComments.forEach(c => uniqueComments.set(c.id, c));
+                        allThreadComments.forEach(c => uniqueComments.set(c.id, c));
+                        
+                        setComments(Array.from(uniqueComments.values()));
+
+                    } else {
+                         setComments(fetchedComments);
+                    }
+                } else {
+                     setComments(fetchedComments);
+                }
+
 
             } catch (err) {
                 console.error("Error fetching comments for notification dialog:", err);
@@ -170,6 +212,19 @@ export default function NotificationThreadDialog({
         onOpenChange(false);
     };
 
+    // Determine the correct comment to reply to for the form
+    const replyingToForForm = activeReply || rootComment;
+
+    const orderedComments = useMemo(() => {
+        if (!rootComment) return [];
+        
+        const thread = comments
+            .filter(c => c.threadId === rootComment.id && c.id !== rootComment.id)
+            .sort((a,b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+
+        return [rootComment, ...thread];
+    }, [comments, rootComment]);
+
     return (
         <DialogContent className="sm:max-w-xl">
             <DialogHeader>
@@ -188,21 +243,19 @@ export default function NotificationThreadDialog({
                     <p className="text-center text-destructive py-10">{error}</p>
                 ) : (
                     <div className="space-y-4">
-                        {rootComment && <CommentDisplay comment={rootComment} isHighlighted={rootComment.id === replyId} />}
-
-                        {activeReply && activeReply.id !== rootComment?.id && (
-                             <div className="pl-8 border-l-2 ml-4 space-y-4">
-                                <CommentDisplay comment={activeReply} isHighlighted={true} />
-                            </div>
-                        )}
+                        {orderedComments.map((comment, index) => (
+                             <div key={comment.id} className={comment.id !== parentId ? "pl-8 border-l-2 ml-4" : ""}>
+                                <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
+                             </div>
+                        ))}
                         
-                        {rootComment && activeReply && (
+                        {rootComment && replyingToForForm && (
                              <div className="pl-8 border-l-2 ml-4 pt-4">
                                 <ReplyForm
                                     figureId={figureId}
                                     figureName={figureName}
                                     parentComment={rootComment}
-                                    replyingTo={activeReply}
+                                    replyingTo={replyingToForForm}
                                     onReplySuccess={handleReplySuccess}
                                 />
                              </div>
