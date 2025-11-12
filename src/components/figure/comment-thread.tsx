@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
 import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -366,6 +366,8 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
   const [repliesVisible, setRepliesVisible] = useState(false);
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const repliesContainerRef = useRef<HTMLDivElement>(null);
+
 
   const replies = useMemo(() => {
     return allReplies
@@ -394,6 +396,16 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
 
   const handleReplySuccess = () => {
     setActiveReplyId(null);
+    // Expand the visible replies to show the new one
+    setVisibleRepliesCount(replies.length + 1);
+    
+    // After a short delay, scroll to the last comment
+    setTimeout(() => {
+        const lastReplyElement = repliesContainerRef.current?.lastElementChild as HTMLElement;
+        if(lastReplyElement) {
+            lastReplyElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    }, 100);
   };
   
   const toggleReplies = () => {
@@ -436,7 +448,7 @@ export default function CommentThread({ comment, allReplies, figureId, figureNam
       )}
 
       {repliesVisible && (
-        <div className="ml-8 space-y-4 border-l-2 pl-4">
+        <div ref={repliesContainerRef} className="ml-8 space-y-4 border-l-2 pl-4">
           {visibleReplies.map(reply => (
             <CommentItem
               key={reply.id}
