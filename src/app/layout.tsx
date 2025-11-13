@@ -25,8 +25,8 @@ const sourceCodePro = Source_Code_Pro({
 
 
 export const metadata: Metadata = {
-  title: 'WikiStars5',
-  description: 'Explore, rate, and discuss public figures.',
+  title: 'WikiStars5 - Percepción de Figuras Públicas',
+  description: 'Explora, califica y debate sobre figuras públicas. Tu centro de opinión para saber qué piensa el mundo.',
   manifest: '/manifest.json',
 };
 
