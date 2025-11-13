@@ -56,18 +56,19 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
                     />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="p-0 bg-transparent border-0 max-w-4xl">
+              <DialogContent className="p-2 bg-transparent border-0 max-w-4xl h-screen flex items-center justify-center">
                  <DialogHeader className="sr-only">
                     <DialogTitle>Imagen de perfil de {figure.name}</DialogTitle>
                     <DialogDescription>Una vista ampliada de la imagen de perfil.</DialogDescription>
                  </DialogHeader>
-                 <Image
-                    src={figure.imageUrl || `https://placehold.co/800x800?text=${encodeURIComponent(figure.name)}`}
-                    alt={figure.name}
-                    width={800}
-                    height={800}
-                    className="rounded-lg object-contain w-full h-auto"
-                  />
+                 <div className="relative w-full h-full max-h-[90vh]">
+                    <Image
+                        src={figure.imageUrl || `https://placehold.co/800x800?text=${encodeURIComponent(figure.name)}`}
+                        alt={figure.name}
+                        fill
+                        className="rounded-lg object-contain"
+                    />
+                 </div>
               </DialogContent>
             </Dialog>
           </div>
