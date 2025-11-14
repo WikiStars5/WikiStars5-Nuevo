@@ -42,13 +42,6 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
   return (
     <Card className="overflow-hidden shadow-md dark:bg-black">
       <CardContent className="relative p-6 md:p-8">
-        <div className="absolute top-4 right-4 z-10">
-           <ShareButton 
-            figureId={figure.id} 
-            figureName={isGoatCandidate && isGoatTab ? 'La Batalla del GOAT: Messi vs Ronaldo' : figure.name}
-            isGoatShare={isGoatCandidate && isGoatTab}
-          />
-        </div>
         <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
           <div className="relative flex-shrink-0">
             <Dialog>
