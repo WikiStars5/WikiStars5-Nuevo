@@ -67,15 +67,14 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
               urlParams.set('vote', goatVote);
             }
         } else {
-            // Ensure GOAT params are not included for general shares
-            urlParams.delete('tab');
-            urlParams.delete('vote');
+            // When not a goat share, we only keep the ref if it exists
+             const ref = urlParams.get('ref');
+             urlParams.forEach((_, key) => urlParams.delete(key));
+             if (ref) urlParams.set('ref', ref);
         }
 
-        if (user) {
+        if (user && !urlParams.has('ref')) {
             urlParams.set('ref', user.uid);
-        } else {
-            urlParams.delete('ref');
         }
 
         const baseUrl = `${window.location.origin}/figures/${figureId}`;
@@ -108,10 +107,15 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
       let shareTitle = `¡Echa un vistazo a ${figureName} en WikiStars5!`;
       let shareText = `¡Únete a la conversación sobre ${figureName} en WikiStars5! Vota, comenta y mira lo que otros piensan.`;
 
-      if (isGoatShare && goatVote) {
-          const votedFor = goatVote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
-          shareTitle = `¡Ya voté por ${votedFor} en la Batalla del GOAT!`;
-          shareText = `Demostré mi lealtad al verdadero GOAT. Ahora te toca a ti decidir. ¡Entra y vota!`;
+      if (isGoatShare) {
+          if (goatVote) {
+            const votedFor = goatVote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
+            shareTitle = `¡Ya voté por ${votedFor} en la Batalla del GOAT!`;
+            shareText = `Demostré mi lealtad al verdadero GOAT. Ahora te toca a ti decidir. ¡Entra y vota!`;
+          } else {
+             shareTitle = `Batalla del GOAT: Messi vs Ronaldo`;
+             shareText = `Vota y decide quién es el mejor de todos los tiempos en WikiStars5.`;
+          }
       }
 
       try {
@@ -143,9 +147,13 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
 
   // --- Fallback for browsers that don't support Web Share API (e.g., desktop) ---
   let shareTitle = `¡Echa un vistazo a ${figureName} en WikiStars5!`;
-  if (isGoatShare && goatVote) {
-      const votedFor = goatVote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
-      shareTitle = `¡Ya voté por ${votedFor} en la Batalla del GOAT! Demostré mi lealtad, ahora te toca a ti.`;
+  if (isGoatShare) {
+      if (goatVote) {
+          const votedFor = goatVote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
+          shareTitle = `¡Ya voté por ${votedFor} en la Batalla del GOAT! Demostré mi lealtad, ahora te toca a ti.`;
+      } else {
+          shareTitle = `Batalla del GOAT: Messi vs Ronaldo. Vota y decide.`;
+      }
   }
   const encodedUrl = encodeURIComponent(currentUrl);
   const encodedTitle = encodeURIComponent(shareTitle);

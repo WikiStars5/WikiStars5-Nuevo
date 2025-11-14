@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -10,6 +9,7 @@ import { ShareButton } from '../shared/ShareButton';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useSearchParams } from 'next/navigation';
 
 interface ProfileHeaderProps {
   figure: Figure;
@@ -20,6 +20,7 @@ const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nu
 
 export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) {
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
 
   const battleDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -36,11 +37,17 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
     ((figure.name === 'Lionel Messi' && battleWinner === 'messi') || 
      (figure.name === 'Cristiano Ronaldo' && battleWinner === 'ronaldo'));
 
+  const isGoatTab = searchParams.get('tab') === 'goat';
+
   return (
     <Card className="overflow-hidden shadow-md dark:bg-black">
       <CardContent className="relative p-6 md:p-8">
         <div className="absolute top-4 right-4 z-10">
-          <ShareButton figureId={figure.id} figureName={figure.name} />
+           <ShareButton 
+            figureId={figure.id} 
+            figureName={isGoatCandidate && isGoatTab ? 'La Batalla del GOAT: Messi vs Ronaldo' : figure.name}
+            isGoatShare={isGoatCandidate && isGoatTab}
+          />
         </div>
         <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
           <div className="relative flex-shrink-0">
