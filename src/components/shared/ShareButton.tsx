@@ -60,7 +60,7 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       
-      if (user && !urlParams.has('ref')) {
+      if (user) {
         urlParams.set('ref', user.uid);
       }
 
@@ -70,8 +70,8 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
           urlParams.set('vote', goatVote);
         }
       } else {
-        urlParams.delete('tab');
-        urlParams.delete('vote');
+         urlParams.delete('tab');
+         urlParams.delete('vote');
       }
 
       const baseUrl = `${window.location.origin}/figures/${figureId}`;
