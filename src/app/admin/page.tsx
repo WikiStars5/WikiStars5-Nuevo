@@ -1,11 +1,10 @@
-
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, PlusCircle, Users, Trophy, Loader2 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { List, PlusCircle, Users, Trophy, Loader2, StarOff } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +15,9 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import type { GlobalSettings } from '@/lib/types';
+
 
 const battleFormSchema = z.object({
   duration: z.coerce.number().int().positive('La duración debe ser un número positivo.'),
@@ -29,6 +31,10 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isStartingBattle, setIsStartingBattle] = useState(false);
+
+  // --- Fetch global settings ---
+  const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  const { data: globalSettings, isLoading: isLoadingSettings } = useDoc<GlobalSettings>(settingsDocRef);
 
 
   const figuresCollection = useMemoFirebase(() => {
@@ -50,6 +56,23 @@ export default function AdminDashboard() {
       unit: 'days',
     },
   });
+
+  const handleToggleRatings = async (isEnabled: boolean) => {
+    if (!settingsDocRef) return;
+    try {
+        setDocumentNonBlocking(settingsDocRef, { isRatingEnabled: isEnabled }, { merge: true });
+        toast({
+            title: `Calificaciones ${isEnabled ? 'Habilitadas' : 'Deshabilitadas'}`,
+            description: `Los usuarios ${isEnabled ? 'ahora pueden' : 'ya no pueden'} dejar calificaciones con estrellas.`,
+        });
+    } catch (error) {
+        console.error("Error toggling ratings:", error);
+        toast({
+            title: 'Error al cambiar la configuración',
+            variant: 'destructive',
+        });
+    }
+  };
 
 
   const handleStartGoatBattle = async (data: BattleFormValues) => {
@@ -156,10 +179,10 @@ export default function AdminDashboard() {
         </Card>
          <Card>
             <CardHeader>
-                <CardTitle>Gestión de Eventos</CardTitle>
-                <CardDescription>Controla los eventos especiales de la plataforma.</CardDescription>
+                <CardTitle>Gestión de Eventos y Funciones</CardTitle>
+                <CardDescription>Controla los eventos y funciones especiales de la plataforma.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
                 <Form {...battleForm}>
                     <form onSubmit={battleForm.handleSubmit(handleStartGoatBattle)} className="rounded-lg border p-4 space-y-4">
                         <div>
@@ -213,6 +236,22 @@ export default function AdminDashboard() {
                         </div>
                     </form>
                 </Form>
+
+                <div className="rounded-lg border p-4 flex items-center justify-between">
+                    <div>
+                        <h3 className="font-semibold flex items-center gap-2"><StarOff /> Calificaciones con Estrellas</h3>
+                        <p className="text-sm text-muted-foreground">Activa o desactiva la capacidad de los usuarios para calificar perfiles.</p>
+                    </div>
+                    {isLoadingSettings ? (
+                        <Skeleton className="h-6 w-12" />
+                    ) : (
+                        <Switch
+                            checked={globalSettings?.isRatingEnabled ?? true}
+                            onCheckedChange={handleToggleRatings}
+                            aria-label="Toggle star ratings"
+                        />
+                    )}
+                </div>
             </CardContent>
         </Card>
         <Card>

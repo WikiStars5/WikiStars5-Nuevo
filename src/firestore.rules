@@ -181,5 +181,11 @@ service cloud.firestore {
       allow write: if isAdmin();
       allow list: if false;
     }
+    
+    match /settings/{settingId} {
+      allow get: if true;
+      allow list: if true;
+      allow write: if isAdmin();
+    }
   }
 }

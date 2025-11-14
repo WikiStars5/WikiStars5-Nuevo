@@ -9,6 +9,10 @@ export interface User {
   referralCount?: number;
 }
 
+export interface GlobalSettings {
+  isRatingEnabled: boolean;
+}
+
 export interface Figure {
   id: string;
   name: string;
@@ -104,7 +108,7 @@ export interface Comment {
   userId: string;
   figureId: string;
   text: string;
-  rating: number; // Star rating from 0-5 associated with the comment. -1 for replies.
+  rating: number; // Star rating from 0-5 associated with the comment. -1 for replies or when ratings are disabled.
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   likes?: number;
