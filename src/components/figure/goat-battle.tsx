@@ -271,7 +271,7 @@ export default function GoatBattle() {
         <Card className="dark:bg-black">
             <CardHeader className="items-center text-center">
                  <CardTitle className="flex items-center gap-2 text-3xl">
-                    <GoatIcon/> La Batalla del GOAT
+                    <GoatIcon/> ELIJAMOS AL VERDADERO GOAT
                 </CardTitle>
                 <CardDescription className="text-muted-foreground">El evento no ha comenzado. Vuelve más tarde.</CardDescription>
             </CardHeader>
@@ -295,7 +295,7 @@ export default function GoatBattle() {
             </div>
         <CardHeader className="items-center text-center pt-12">
             <CardTitle className="flex items-center gap-2 text-3xl">
-            <GoatIcon/> La Batalla del GOAT
+            <GoatIcon/> ELIJAMOS AL VERDADERO GOAT
             </CardTitle>
             <CardDescription className="max-w-md flex flex-col items-center text-center gap-2 text-muted-foreground">
                 <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
