@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -15,6 +14,7 @@ import { Skeleton } from '../ui/skeleton';
 import { ShareButton } from '../shared/ShareButton';
 import { usePathname } from 'next/navigation';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 
 const BATTLE_ID = 'messi-vs-ronaldo';
@@ -235,6 +235,10 @@ export default function GoatBattle() {
   );
   
   const isLoading = isUserLoading || isBattleLoading || (user && isUserVoteLoading) || arePlayersLoading;
+  const shareMessage = userVote?.vote === 'messi'
+    ? "**¡Demuestra tu apoyo!** Comparte la batalla si eres un verdadero fan de Messi."
+    : "**¡Demuestra tu lealtad!** Comparte la batalla si eres un verdadero fan de CR7.";
+
 
   if (isLoading) {
     return (
@@ -376,8 +380,27 @@ export default function GoatBattle() {
                 </Button>
                 </div>
             )}
+             {userVote && isBattleActive && (
+                <div className="mt-6 w-full max-w-md">
+                    <Alert className="flex items-center justify-between gap-4">
+                        <AlertDescription className="text-sm font-semibold">
+                            {userVote.vote === 'messi'
+                            ? "¡Demuestra tu apoyo! Comparte la batalla si eres un verdadero fan de Messi."
+                            : "¡Demuestra tu lealtad! Comparte la batalla si eres un verdadero fan de CR7."
+                            }
+                        </AlertDescription>
+                        <ShareButton
+                            figureId={figureIdForShare}
+                            figureName="La Batalla del GOAT: Messi vs Ronaldo"
+                            showText={false}
+                        />
+                    </Alert>
+                </div>
+            )}
         </CardContent>
       </Card>
     </LoginPromptDialog>
   );
 }
+
+    
