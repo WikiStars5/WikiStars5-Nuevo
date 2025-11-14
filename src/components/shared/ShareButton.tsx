@@ -57,30 +57,27 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
 
 
   useEffect(() => {
-    // This effect runs only on the client
     if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        if (isGoatShare) {
-            urlParams.set('tab', 'goat');
-            if (goatVote) {
-              urlParams.set('vote', goatVote);
-            }
-        } else {
-            // When not a goat share, we only keep the ref if it exists
-             const ref = urlParams.get('ref');
-             urlParams.forEach((_, key) => urlParams.delete(key));
-             if (ref) urlParams.set('ref', ref);
-        }
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      if (user && !urlParams.has('ref')) {
+        urlParams.set('ref', user.uid);
+      }
 
-        if (user && !urlParams.has('ref')) {
-            urlParams.set('ref', user.uid);
+      if (isGoatShare) {
+        urlParams.set('tab', 'goat');
+        if (goatVote) {
+          urlParams.set('vote', goatVote);
         }
+      } else {
+        urlParams.delete('tab');
+        urlParams.delete('vote');
+      }
 
-        const baseUrl = `${window.location.origin}/figures/${figureId}`;
-        const finalUrl = `${baseUrl}?${urlParams.toString()}`.replace(/\?$/, ''); // Remove trailing '?' if no params
-        
-        setCurrentUrl(finalUrl);
+      const baseUrl = `${window.location.origin}/figures/${figureId}`;
+      const finalUrl = `${baseUrl}?${urlParams.toString()}`.replace(/\?$/, '');
+      
+      setCurrentUrl(finalUrl);
 
       if (navigator.share) {
         setIsWebShareSupported(true);
