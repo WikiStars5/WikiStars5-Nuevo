@@ -46,7 +46,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
          <div className="absolute top-4 right-4 z-10">
           <ShareButton 
             figureId={figureId} 
-            figureName={figureName}
+            figureName={figure.name}
             isGoatShare={isGoatTab}
           />
         </div>
