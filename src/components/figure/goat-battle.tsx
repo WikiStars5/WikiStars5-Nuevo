@@ -208,7 +208,7 @@ export default function GoatBattle() {
         console.error("Error casting vote:", error);
         toast({
             title: "Error al Votar",
-            description: error.message || "No se pudo registrar tu voto. Inténtalo de nuevo.",
+            description: error.message || "No se pudo registrar tu voto.",
             variant: "destructive"
         });
     } finally {
@@ -341,6 +341,7 @@ export default function GoatBattle() {
                     <span className="text-blue-400">{messiVotes.toLocaleString()} votos</span>
                     <span className="text-red-400">{ronaldoVotes.toLocaleString()} votos</span>
                 </div>
+                 <p className="text-center text-xs text-muted-foreground mt-2">Deja tu voto para el mejor. ¿Qué opinas?</p>
             </div>
 
             {isBattleOver ? (
@@ -380,5 +381,3 @@ export default function GoatBattle() {
     </LoginPromptDialog>
   );
 }
-
-    
