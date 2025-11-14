@@ -13,22 +13,33 @@ type FigurePageProps = {
 export async function generateMetadata({ params, searchParams }: FigurePageProps): Promise<Metadata> {
   const { id } = params;
   const isGoatShare = searchParams.tab === 'goat';
+  const vote = searchParams.vote as 'messi' | 'ronaldo' | undefined;
   
   const figureName = id
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+  
+  let title = `Perfil de ${figureName} - WikiStars5`;
+  let description = `Explora el perfil, las opiniones y las calificaciones de ${figureName} en WikiStars5.`;
+  let imageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6';
+  let imageAlt = 'Logo de WikiStars5';
 
-  const title = isGoatShare ? 'Batalla del GOAT: Messi vs Ronaldo' : `Perfil de ${figureName} - WikiStars5`;
-  const description = isGoatShare 
-    ? 'Vota y decide quién es el mejor de todos los tiempos en WikiStars5.'
-    : `Explora el perfil, las opiniones y las calificaciones de ${figureName} en WikiStars5.`;
-    
-  const imageUrl = isGoatShare 
-    ? 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAR%20CUADRADO.png?alt=media&token=3a3bed2f-672a-4a9d-88ef-36a7bb867034'
-    : 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6';
+  if (isGoatShare) {
+      if (vote === 'messi') {
+          title = '¡Ya voté por Messi en la Batalla del GOAT!';
+          description = 'Demostré mi lealtad al verdadero GOAT. Ahora te toca a ti decidir. ¡Entra y vota!';
+      } else if (vote === 'ronaldo') {
+          title = '¡Ya voté por Cristiano Ronaldo en la Batalla del GOAT!';
+          description = 'Demostré mi lealtad al verdadero GOAT. Ahora te toca a ti decidir. ¡Entra y vota!';
+      } else {
+          title = 'Batalla del GOAT: Messi vs Ronaldo';
+          description = 'Vota y decide quién es el mejor de todos los tiempos en WikiStars5.';
+      }
+      imageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAR%20CUADRADO.png?alt=media&token=3a3bed2f-672a-4a9d-88ef-36a7bb867034';
+      imageAlt = 'Batalla del GOAT: Messi vs Ronaldo';
+  }
 
-  const imageAlt = isGoatShare ? 'Batalla del GOAT: Messi vs Ronaldo' : `Logo de WikiStars5`;
 
   return {
     title: title,
