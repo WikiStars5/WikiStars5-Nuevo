@@ -13,9 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Share2, Link as LinkIcon, Facebook, Twitter, Linkedin, MessageCircle, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { GoatVote } from '@/lib/types';
+import { useUser } from '@/firebase';
 
 
 // Simple inline SVG component for Reddit Icon
@@ -40,6 +38,8 @@ interface ShareButtonProps {
   figureName: string;
   figureId: string;
   showText?: boolean;
+  isGoatShare?: boolean;
+  goatVote?: 'messi' | 'ronaldo';
 }
 
 interface SocialShareOption {
@@ -49,33 +49,25 @@ interface SocialShareOption {
   isMailto?: boolean;
 }
 
-export function ShareButton({ figureName, figureId, showText = false }: ShareButtonProps) {
+export function ShareButton({ figureName, figureId, showText = false, isGoatShare = false, goatVote }: ShareButtonProps) {
   const { toast } = useToast();
   const [currentUrl, setCurrentUrl] = useState('');
   const [isWebShareSupported, setIsWebShareSupported] = useState(false);
   const { user } = useUser();
-  const firestore = useFirestore();
-
-  // Get user's GOAT vote to customize the share message
-  const userVoteDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, `goat_battles/messi-vs-ronaldo/votes`, user.uid);
-  }, [firestore, user]);
-  const { data: userVote } = useDoc<GoatVote>(userVoteDocRef);
 
 
   useEffect(() => {
     // This effect runs only on the client
     if (typeof window !== 'undefined') {
-        const isGoatBattleShare = figureName.includes('La Batalla del GOAT');
         const urlParams = new URLSearchParams(window.location.search);
         
-        if (isGoatBattleShare) {
+        if (isGoatShare) {
             urlParams.set('tab', 'goat');
-            if (userVote?.vote) {
-              urlParams.set('vote', userVote.vote);
+            if (goatVote) {
+              urlParams.set('vote', goatVote);
             }
         } else {
+            // Ensure GOAT params are not included for general shares
             urlParams.delete('tab');
             urlParams.delete('vote');
         }
@@ -95,7 +87,7 @@ export function ShareButton({ figureName, figureId, showText = false }: ShareBut
         setIsWebShareSupported(true);
       }
     }
-  }, [figureId, figureName, user, userVote]);
+  }, [figureId, figureName, user, isGoatShare, goatVote]);
 
   const buttonSize = showText ? "default" : "icon";
 
@@ -116,8 +108,8 @@ export function ShareButton({ figureName, figureId, showText = false }: ShareBut
       let shareTitle = `¡Echa un vistazo a ${figureName} en WikiStars5!`;
       let shareText = `¡Únete a la conversación sobre ${figureName} en WikiStars5! Vota, comenta y mira lo que otros piensan.`;
 
-      if (figureName.includes('La Batalla del GOAT') && userVote?.vote) {
-          const votedFor = userVote.vote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
+      if (isGoatShare && goatVote) {
+          const votedFor = goatVote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
           shareTitle = `¡Ya voté por ${votedFor} en la Batalla del GOAT!`;
           shareText = `Demostré mi lealtad al verdadero GOAT. Ahora te toca a ti decidir. ¡Entra y vota!`;
       }
@@ -151,8 +143,8 @@ export function ShareButton({ figureName, figureId, showText = false }: ShareBut
 
   // --- Fallback for browsers that don't support Web Share API (e.g., desktop) ---
   let shareTitle = `¡Echa un vistazo a ${figureName} en WikiStars5!`;
-  if (figureName.includes('La Batalla del GOAT') && userVote?.vote) {
-      const votedFor = userVote.vote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
+  if (isGoatShare && goatVote) {
+      const votedFor = goatVote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
       shareTitle = `¡Ya voté por ${votedFor} en la Batalla del GOAT! Demostré mi lealtad, ahora te toca a ti.`;
   }
   const encodedUrl = encodeURIComponent(currentUrl);

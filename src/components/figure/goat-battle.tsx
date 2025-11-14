@@ -110,7 +110,7 @@ export default function GoatBattle() {
   if (isBattleOver && !winner && battleData) {
       if (battleData.messiVotes > battleData.ronaldoVotes) {
           winner = 'messi';
-      } else if (battleData.ronaldoVotes > battleData.ronaldoVotes) {
+      } else if (battleData.ronaldoVotes > battleData.messiVotes) {
           winner = 'ronaldo';
       } else {
           winner = 'tie'; // Or handle ties as you see fit
@@ -389,6 +389,8 @@ export default function GoatBattle() {
                         <ShareButton
                             figureId={figureIdForShare}
                             figureName="La Batalla del GOAT: Messi vs Ronaldo"
+                            isGoatShare={true}
+                            goatVote={userVote.vote}
                             showText={false}
                         />
                     </Alert>
