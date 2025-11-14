@@ -341,7 +341,7 @@ export default function GoatBattle() {
                     <span className="text-blue-400">{messiVotes.toLocaleString()} votos</span>
                     <span className="text-red-400">{ronaldoVotes.toLocaleString()} votos</span>
                 </div>
-                 <p className="text-center text-xs text-muted-foreground mt-2">Deja tu voto para el mejor. ¿Qué opinas?</p>
+                 <p className="text-center text-sm text-muted-foreground mt-2">Deja tu voto para el mejor. ¿Qué opinas?</p>
             </div>
 
             {isBattleOver ? (
