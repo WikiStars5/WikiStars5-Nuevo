@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -235,11 +236,7 @@ export default function GoatBattle() {
   );
   
   const isLoading = isUserLoading || isBattleLoading || (user && isUserVoteLoading) || arePlayersLoading;
-  const shareMessage = userVote?.vote === 'messi'
-    ? "**¡Demuestra tu apoyo!** Comparte la batalla si eres un verdadero fan de Messi."
-    : "**¡Demuestra tu lealtad!** Comparte la batalla si eres un verdadero fan de CR7.";
-
-
+  
   if (isLoading) {
     return (
         <Card className="dark:bg-black">
@@ -385,8 +382,8 @@ export default function GoatBattle() {
                     <Alert className="flex items-center justify-between gap-4">
                         <AlertDescription className="text-sm font-semibold">
                             {userVote.vote === 'messi'
-                            ? "¡Demuestra tu apoyo! Comparte la batalla si eres un verdadero fan de Messi."
-                            : "¡Demuestra tu lealtad! Comparte la batalla si eres un verdadero fan de CR7."
+                            ? "¿Solo vas a votar? La batalla se gana con números. Los verdaderos fans traen refuerzos."
+                            : "¿Solo vas a votar? La batalla se gana con números. Los verdaderos fans traen refuerzos."
                             }
                         </AlertDescription>
                         <ShareButton
@@ -402,5 +399,7 @@ export default function GoatBattle() {
     </LoginPromptDialog>
   );
 }
+
+    
 
     
