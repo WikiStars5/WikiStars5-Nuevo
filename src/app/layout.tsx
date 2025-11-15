@@ -40,6 +40,7 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
         <ThemeProvider
