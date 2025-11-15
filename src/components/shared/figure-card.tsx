@@ -31,7 +31,6 @@ export default function FigureCard({ figure }: FigureCardProps) {
         </CardHeader>
         <CardContent className="p-4 flex-grow">
           <h3 className="font-bold text-lg font-headline truncate">{figure.name}</h3>
-          <p className="text-sm text-muted-foreground">{figure.nationality}</p>
         </CardContent>
       </Card>
     </Link>
