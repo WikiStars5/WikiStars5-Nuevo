@@ -1,14 +1,28 @@
 
 /** @type {import('next').NextConfig} */
 
-/*
 const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+  runtimeCaching: [
+    {
+      urlPattern: /^https?:\/\/firebasestorage\.googleapis\.com\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'firebase-storage-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+  ],
 });
-*/
 
 
 const nextConfig = {
@@ -50,7 +64,7 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
+       {
         protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
         port: '',
@@ -78,5 +92,4 @@ const nextConfig = {
   }
 }
 
-// module.exports = withPWA(nextConfig);
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig);
