@@ -131,7 +131,9 @@ export default function AdminFiguresPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                      <DropdownMenuItem>Editar</DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href={`/admin/figures/${figure.id}/edit`}>Editar</Link>
+                      </DropdownMenuItem>
                       <DropdownMenuItem>Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

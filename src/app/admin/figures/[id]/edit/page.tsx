@@ -3,11 +3,11 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
-import { useFirestore } from '@/firebase';
+import { useRouter, useParams } from 'next/navigation';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { generateKeywords, normalizeText } from '@/lib/keywords';
 
@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel, FormDescription } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, X, Link as LinkIcon, Tag, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, X, Link as LinkIcon, Tag, Plus, Trash2, ArrowLeft, ShieldCheck, Lock, Unlock } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from '@/components/figure/country-selector';
 import DateInput from '@/components/figure/date-input';
@@ -27,8 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import HashtagCombobox from '@/components/figure/hashtag-combobox';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-
+import { Skeleton } from '@/components/ui/skeleton';
 
 const SOCIAL_MEDIA_CONFIG = {
     website: { label: 'Página Web', placeholder: 'https://...' },
@@ -43,7 +42,7 @@ const SOCIAL_MEDIA_CONFIG = {
 
 type SocialPlatform = keyof typeof SOCIAL_MEDIA_CONFIG;
 
-const createFormSchema = z.object({
+const editFormSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
   imageUrl: z.string().url('Debe ser una URL válida.').optional().or(z.literal('')),
   description: z.string().optional(),
@@ -62,10 +61,14 @@ const createFormSchema = z.object({
   ).optional(),
   tags: z.array(z.string()).optional(),
   isFeatured: z.boolean().default(false),
+   locks: z.object({
+    isVotingLocked: z.boolean().default(false),
+    isEditingLocked: z.boolean().default(false),
+    isRatingLocked: z.boolean().default(false),
+  }).optional(),
 });
 
-type CreateFormValues = z.infer<typeof createFormSchema>;
-
+type EditFormValues = z.infer<typeof editFormSchema>;
 
 const isValidImageUrl = (url: string | undefined | null): boolean => {
     if (!url) return false;
@@ -77,31 +80,56 @@ const isValidImageUrl = (url: string | undefined | null): boolean => {
     }
 };
 
-export default function AdminNewFigurePage() {
+const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
+    const defaultSocialLinks: { [key in SocialPlatform]?: string } = {};
+
+    for (const key in SOCIAL_MEDIA_CONFIG) {
+        const platform = key as SocialPlatform;
+        const linkValue = figure.socialLinks?.[platform];
+        defaultSocialLinks[platform] = linkValue || '';
+    }
+
+    return {
+      name: figure.name || '',
+      imageUrl: figure.imageUrl || '',
+      description: figure.description || '',
+      nationality: figure.nationality || '',
+      gender: figure.gender || undefined,
+      birthDate: figure.birthDate || '',
+      deathDate: figure.deathDate || '',
+      occupation: figure.occupation || '',
+      maritalStatus: figure.maritalStatus || undefined,
+      height: figure.height || undefined,
+      socialLinks: defaultSocialLinks,
+      tags: figure.tags?.map(tag => normalizeText(tag)) || [],
+      isFeatured: figure.isFeatured || false,
+      locks: {
+        isVotingLocked: figure.locks?.isVotingLocked || false,
+        isEditingLocked: figure.locks?.isEditingLocked || false,
+        isRatingLocked: figure.locks?.isRatingLocked || false,
+      },
+    };
+};
+
+function EditFigurePageContent({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const [isSaving, setIsSaving] = React.useState(false);
-  
-  const form = useForm<CreateFormValues>({
-    resolver: zodResolver(createFormSchema),
-    defaultValues: {
-      name: '',
-      imageUrl: '',
-      description: '',
-      nationality: '',
-      gender: undefined,
-      birthDate: '',
-      deathDate: '',
-      occupation: '',
-      maritalStatus: undefined,
-      height: undefined,
-      isFeatured: false,
-      tags: [],
-      socialLinks: {},
-    },
+
+  const figureRef = useMemoFirebase(() => doc(firestore, 'figures', figureId), [firestore, figureId]);
+  const { data: figure, isLoading } = useDoc<Figure>(figureRef);
+
+  const form = useForm<EditFormValues>({
+    resolver: zodResolver(editFormSchema),
   });
-  
+
+  React.useEffect(() => {
+    if (figure) {
+      form.reset(getSanitizedDefaultValues(figure));
+    }
+  }, [figure, form]);
+
   const imageUrlWatcher = form.watch('imageUrl');
   const heightWatcher = form.watch('height');
   const tagsWatcher = form.watch('tags') || [];
@@ -110,16 +138,10 @@ export default function AdminNewFigurePage() {
   const handleAddHashtag = (newTag?: string) => {
     const tagToAdd = normalizeText(newTag || hashtagInput);
     if (!tagToAdd) return;
-
     if (tagsWatcher.length >= 10) {
-      toast({
-        title: 'Límite de Hashtags Alcanzado',
-        description: 'No puedes añadir más de 10 hashtags.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Límite de Hashtags Alcanzado', description: 'No puedes añadir más de 10 hashtags.', variant: 'destructive' });
       return;
     }
-
     const currentTagsLower = tagsWatcher.map(t => normalizeText(t));
     if (!currentTagsLower.includes(tagToAdd)) {
         form.setValue('tags', [...tagsWatcher, tagToAdd]);
@@ -128,81 +150,98 @@ export default function AdminNewFigurePage() {
   };
 
   const handleRemoveHashtag = (tagToRemove: string) => {
-    form.setValue(
-        'tags',
-        tagsWatcher.filter(tag => normalizeText(tag) !== normalizeText(tagToRemove))
-    );
+    form.setValue('tags', tagsWatcher.filter(tag => normalizeText(tag) !== normalizeText(tagToRemove)));
   };
 
-  const onSubmit = async (data: CreateFormValues) => {
+  const onSubmit = async (data: EditFormValues) => {
     if (!firestore) return;
     setIsSaving(true);
     
-    const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-    const figureRef = doc(firestore, 'figures', slug);
-
     try {
-      const docSnap = await getDoc(figureRef);
-      if (docSnap.exists()) {
-        toast({
-          variant: 'destructive',
-          title: 'Perfil Duplicado',
-          description: `Ya existe un perfil para "${data.name}" con el ID "${slug}".`,
-        });
-        setIsSaving(false);
-        return;
-      }
+      const batch = writeBatch(firestore);
+      const dataToSave: { [key: string]: any } = {};
       
-      const keywords = generateKeywords(data.name);
-      
-      const figureData: Partial<Figure> = {
-        id: slug,
-        name: data.name,
-        imageUrl: data.imageUrl || `https://placehold.co/600x400?text=${encodeURIComponent(data.name)}`,
-        imageHint: data.imageUrl ? `portrait of ${data.name}` : `placeholder for ${data.name}`,
-        description: data.description || '',
-        nationality: data.nationality || null,
-        gender: data.gender || null,
-        birthDate: data.birthDate || null,
-        deathDate: data.deathDate || null,
-        occupation: data.occupation || null,
-        maritalStatus: data.maritalStatus || null,
-        height: data.height || null,
-        socialLinks: data.socialLinks || {},
-        isFeatured: data.isFeatured,
-        featuredAt: data.isFeatured ? serverTimestamp() : null,
-        tags: data.tags?.map(t => normalizeText(t)) || [],
-        nameKeywords: keywords,
-        approved: true, // Admin-created profiles are auto-approved
-        createdAt: serverTimestamp(),
-        attitude: { neutral: 0, fan: 0, simp: 0, hater: 0 },
-        emotion: { alegria: 0, envidia: 0, tristeza: 0, miedo: 0, desagrado: 0, furia: 0 },
-        ratingCount: 0,
-        totalRating: 0,
-        ratingsBreakdown: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
-        locks: { isVotingLocked: false, isEditingLocked: false, isRatingLocked: false },
-      };
-
-      setDocumentNonBlocking(figureRef, figureData, { merge: false });
-
-      toast({
-        title: '¡Perfil Creado!',
-        description: `El perfil para ${data.name} ha sido añadido.`,
+      Object.entries(data).forEach(([key, value]) => {
+          if (key !== 'socialLinks' && key !== 'tags') {
+            dataToSave[key] = value === '' || value === undefined ? null : value;
+          }
       });
       
-      router.push(`/admin/figures`);
+      if (data.isFeatured && !figure?.featuredAt) {
+        dataToSave.featuredAt = serverTimestamp();
+      } else if (!data.isFeatured) {
+        dataToSave.featuredAt = null;
+      }
 
+      if (data.socialLinks) {
+        dataToSave.socialLinks = {};
+        for (const platform in SOCIAL_MEDIA_CONFIG) {
+          const key = platform as SocialPlatform;
+          const link = data.socialLinks[key];
+          dataToSave.socialLinks[key] = (link && link.trim()) ? link.trim() : null;
+        }
+      }
+      
+      const finalTags = (data.tags || []).map(tag => normalizeText(tag)).filter(Boolean);
+      dataToSave.tags = finalTags;
+      dataToSave.nameKeywords = generateKeywords(data.name);
+
+      finalTags.forEach(tag => {
+        const hashtagRef = doc(firestore, 'hashtags', tag);
+        batch.set(hashtagRef, { name: tag }, { merge: true });
+      });
+
+      batch.update(figureRef, dataToSave);
+      await batch.commit();
+
+      toast({
+        title: '¡Perfil Actualizado!',
+        description: `La información de ${data.name} ha sido guardada.`,
+      });
+      router.push('/admin/figures');
     } catch (error) {
-      console.error('Error creating profile:', error);
+      console.error('Error updating profile:', error);
       toast({
         variant: 'destructive',
-        title: 'Error al Crear',
-        description: 'No se pudo crear el perfil. Inténtalo de nuevo.',
+        title: 'Error al Guardar',
+        description: 'No se pudo actualizar el perfil. Por favor, inténtalo de nuevo.',
       });
     } finally {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-8 w-1/3" />
+                <Skeleton className="h-5 w-2/3" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-48 w-full" />
+            </CardContent>
+            <CardFooter>
+                 <Skeleton className="h-10 w-24" />
+            </CardFooter>
+        </Card>
+    )
+  }
+
+  if (!figure) {
+      return (
+          <Card>
+              <CardHeader>
+                <CardTitle>Perfil no encontrado</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>No se pudo encontrar el perfil que intentas editar.</p>
+                <Button asChild className="mt-4"><Link href="/admin/figures">Volver a la lista</Link></Button>
+              </CardContent>
+          </Card>
+      )
+  }
 
   return (
     <Card>
@@ -211,8 +250,8 @@ export default function AdminNewFigurePage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                    <CardTitle>Añadir Nuevo Perfil</CardTitle>
-                    <CardDescription>Crea un perfil de figura pública manualmente.</CardDescription>
+                    <CardTitle>Editar Perfil</CardTitle>
+                    <CardDescription>Modifica los datos de {figure.name}.</CardDescription>
                 </div>
                 <Button variant="outline" asChild>
                     <Link href="/admin/figures"><ArrowLeft className="mr-2 h-4 w-4" /> Volver a la lista</Link>
@@ -220,7 +259,7 @@ export default function AdminNewFigurePage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-8 pt-6">
-                <div className="space-y-4">
+                 <div className="space-y-4">
                     <h3 className="text-lg font-medium flex items-center">
                         <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -248,7 +287,7 @@ export default function AdminNewFigurePage() {
                                 <FormItem>
                                     <FormLabel>URL de la Imagen</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="https://..." {...field} />
+                                        <Input placeholder="https://..." {...field} value={field.value || ''} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -359,6 +398,56 @@ export default function AdminNewFigurePage() {
                     </div>
                 </div>
 
+                 <div className="space-y-4">
+                    <h3 className="text-lg font-medium flex items-center">
+                        <span className="flex-shrink-0 h-8 w-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mr-3">
+                            <ShieldCheck />
+                        </span>
+                        Control de Interacciones
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="locks.isVotingLocked"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="flex items-center gap-2">{field.value ? <Lock/> : <Unlock/>}Votación</FormLabel>
+                                        <FormDescription className="text-xs">Bloquea la votación de actitud y emoción.</FormDescription>
+                                    </div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="locks.isEditingLocked"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="flex items-center gap-2">{field.value ? <Lock/> : <Unlock/>}Edición</FormLabel>
+                                        <FormDescription className="text-xs">Bloquea la edición de información del perfil.</FormDescription>
+                                    </div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="locks.isRatingLocked"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="flex items-center gap-2">{field.value ? <Lock/> : <Unlock/>}Calificación</FormLabel>
+                                        <FormDescription className="text-xs">Bloquea el envío de nuevas calificaciones.</FormDescription>
+                                    </div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                 </div>
+
             </CardContent>
             <CardFooter className="flex justify-end gap-2 p-6 border-t mt-6">
                 <Button variant="ghost" onClick={() => router.back()} type="button">
@@ -366,7 +455,7 @@ export default function AdminNewFigurePage() {
                 </Button>
                 <Button type="submit" disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Crear Perfil
+                    Guardar Cambios
                 </Button>
             </CardFooter>
         </form>
@@ -375,4 +464,9 @@ export default function AdminNewFigurePage() {
   );
 }
 
-    
+export default function EditFigurePage() {
+    const params = useParams();
+    const figureId = Array.isArray(params.id) ? params.id[0] : params.id;
+
+    return <EditFigurePageContent figureId={figureId} />;
+}

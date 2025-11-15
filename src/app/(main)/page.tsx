@@ -8,6 +8,8 @@ import {
   Users,
 } from 'lucide-react';
 import SearchBar from '@/components/shared/search-bar';
+import FeaturedFigures from '@/components/shared/featured-figures';
+import { Separator } from '@/components/ui/separator';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +77,11 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+      
+      <Separator className="my-16" />
+
+      <FeaturedFigures />
+
     </div>
   );
 }
