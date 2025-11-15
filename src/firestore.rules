@@ -78,13 +78,16 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow delete: if isAdmin();
       
-      allow update: if isSignedIn() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+      allow update: if 
+        // PERMISO 1: El Admin puede actualizar cualquier campo.
+        isAdmin() || 
+        // PERMISO 2: Un usuario normal puede actualizar solo los campos de información.
+        (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
             'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
-        ]) ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
-      );
+        ])) ||
+        // PERMISO 3: Un usuario puede actualizar los contadores de votos.
+        (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown']));
       
       // Rules for public-facing subcollections within figures
       match /attitudeVotes/{userId} {
