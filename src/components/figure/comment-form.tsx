@@ -11,9 +11,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, Send, Flame } from 'lucide-react';
+import { Loader2, MessageSquare, Send, Flame, Lock } from 'lucide-react';
 import StarInput from './star-input';
-import { Comment, Streak, GlobalSettings } from '@/lib/types';
+import { Comment, Streak, GlobalSettings, Figure } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
@@ -31,6 +31,7 @@ type CommentFormValues = z.infer<ReturnType<typeof createCommentSchema>>;
 interface CommentFormProps {
   figureId: string;
   figureName: string;
+  isRatingLocked?: boolean;
 }
 
 const ratingSounds: { [key: number]: string } = {
@@ -42,7 +43,7 @@ const ratingSounds: { [key: number]: string } = {
 };
 
 
-export default function CommentForm({ figureId, figureName }: CommentFormProps) {
+export default function CommentForm({ figureId, figureName, isRatingLocked }: CommentFormProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -53,7 +54,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
-  const isRatingEnabled = globalSettings?.isRatingEnabled ?? true;
+  const isRatingEnabled = (globalSettings?.isRatingEnabled ?? true) && !isRatingLocked;
   
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled)),
@@ -203,7 +204,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         <CardContent>
           <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {isRatingEnabled && (
+              {isRatingLocked ? (
+                <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-muted">
+                    <Lock className="h-6 w-6 text-muted-foreground" />
+                    <p className="mt-2 font-semibold text-sm">Calificaciones Cerradas</p>
+                    <p className="text-xs text-muted-foreground">El administrador ha bloqueado las calificaciones para este perfil.</p>
+                </div>
+              ) : isRatingEnabled && (
                 <FormField
                   control={form.control}
                   name="rating"
