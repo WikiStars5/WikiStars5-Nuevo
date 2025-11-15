@@ -270,69 +270,69 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 )}
 
                 {!isEditing && (
-                   <>
-                    <div className="mt-2 flex items-center gap-1 text-muted-foreground">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && 'text-primary' )}
-                            onClick={() => handleVote('like')}
-                            disabled={!user || !!isVoting}
-                        >
-                            {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
-                            <span>{(comment.likes ?? 0).toLocaleString()}</span>
-                        </Button>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && 'text-destructive' )}
-                            onClick={() => handleVote('dislike')}
-                            disabled={!user || !!isVoting}
-                        >
-                            {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
-                            <span>{(comment.dislikes ?? 0).toLocaleString()}</span>
-                        </Button>
-                        
-                        {user && !isReply && (
-                            <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
-                                <MessageSquare className="h-4 w-4" />
-                                <span>Responder</span>
-                            </Button>
-                        )}
+                   <div className="mt-2 space-y-2 text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                           {user && !isReply && (
+                                <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
+                                    <MessageSquare className="h-4 w-4" />
+                                    <span>Responder</span>
+                                </Button>
+                            )}
 
-
-                        {isOwner && (
-                            <>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
-                                <FilePenLine className="h-4 w-4" />
-                                <span className="sr-only">Editar comentario</span>
+                            {isOwner && (
+                                <>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
+                                    <FilePenLine className="h-4 w-4" />
+                                    <span className="sr-only">Editar comentario</span>
+                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" disabled={isDeleting}>
+                                            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                            <span className="sr-only">Eliminar comentario</span>
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta acción no se puede deshacer. Esto eliminará permanentemente
+                                            tu comentario y todas sus respuestas.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            
+                                </>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                             <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && 'text-primary' )}
+                                onClick={() => handleVote('like')}
+                                disabled={!user || !!isVoting}
+                            >
+                                {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
+                                <span>{(comment.likes ?? 0).toLocaleString()}</span>
                             </Button>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" disabled={isDeleting}>
-                                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                        <span className="sr-only">Eliminar comentario</span>
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                        tu comentario y todas sus respuestas.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        
-                            </>
-                        )}
-                    </div>
-                   </>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && 'text-destructive' )}
+                                onClick={() => handleVote('dislike')}
+                                disabled={!user || !!isVoting}
+                            >
+                                {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
+                                <span>{(comment.dislikes ?? 0).toLocaleString()}</span>
+                            </Button>
+                        </div>
+                   </div>
                 )}
             </div>
         </div>
