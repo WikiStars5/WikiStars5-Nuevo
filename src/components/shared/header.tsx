@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin, useFirestore } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
@@ -32,6 +32,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from 'next-themes';
+import { InstallPwaButton } from '../layout/InstallPwaButton';
 
 
 export default function Header() {
@@ -138,6 +139,7 @@ export default function Header() {
             <Skeleton className="h-10 w-20" />
           ) : user ? (
             <>
+              <InstallPwaButton />
               <NotificationBell />
               <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
                 <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
@@ -224,6 +226,7 @@ export default function Header() {
             </>
           ) : (
              <div className="flex items-center gap-2">
+                <InstallPwaButton />
                 {pathname !== '/login' && (
                   <Button asChild>
                       <Link href="/login">
