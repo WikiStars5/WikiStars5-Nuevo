@@ -40,8 +40,22 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
+        <Script id="sw-registration">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                  console.log('Service Worker registrado con éxito:', registration);
+                }).catch(error => {
+                  console.log('Error en el registro del Service Worker:', error);
+                });
+              });
+            }
+          `}
+        </Script>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
