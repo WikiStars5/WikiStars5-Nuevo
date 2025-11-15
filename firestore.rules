@@ -17,30 +17,40 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
     
-    function isIncrement(field) {
-      let currentValue = resource.data[field];
-      let nextValue = request.resource.data[field];
-      // Allow increment or decrement by 1. Also handle the case where the field doesn't exist yet (currentValue is null) and is being initialized to 1.
-      return (nextValue == currentValue + 1) || (currentValue == null && nextValue == 1) || (nextValue == currentValue - 1);
+    function isIncrement(field, count) {
+        let nextValue = request.resource.data[field];
+        let prevValue = resource.data[field];
+        return nextValue == prevValue + count;
+    }
+
+    function isVoteIncrement(voteType, voteField) {
+        let nextVoteMap = request.resource.data[voteType];
+        let prevVoteMap = resource.data[voteType];
+        
+        // Check if only the specific vote field is being incremented by 1
+        return nextVoteMap[voteField] == prevVoteMap[voteField] + 1 &&
+               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
     
-    // --- Figure Data Helper Functions ---
-    function isChangingOwnVote(voteType, figureId) {
-        let votePathPrefix = voteType == 'attitude' ? 'attitudeVotes' : 'emotionVotes';
-        let previousVoteDoc = get(/databases/$(database)/documents/figures/$(figureId)/$(votePathPrefix)/$(request.auth.uid));
-        let newVoteDoc = request.resource.data;
+    function isVoteDecrement(voteType, voteField) {
+        let nextVoteMap = request.resource.data[voteType];
+        let prevVoteMap = resource.data[voteType];
 
-        // If user is retracting their vote
-        if (!newVoteDoc[voteType][previousVoteDoc.data.vote] == resource.data[voteType][previousVoteDoc.data.vote] - 1) {
-            return false;
-        }
-        // If user is changing their vote
-        if (!newVoteDoc[voteType][request.resource.data.vote] == resource.data[voteType][request.resource.data.vote] + 1) {
-            return false;
-        }
-        return true;
+        // Check if only the specific vote field is being decremented by 1
+        return nextVoteMap[voteField] == prevVoteMap[voteField] - 1 &&
+               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
 
+    function isChangingVote(voteType, oldVoteField, newVoteField) {
+        let nextVoteMap = request.resource.data[voteType];
+        let prevVoteMap = resource.data[voteType];
+
+        // Check if old vote is decremented and new vote is incremented, and nothing else changed.
+        return nextVoteMap[oldVoteField] == prevVoteMap[oldVoteField] - 1 &&
+               nextVoteMap[newVoteField] == prevVoteMap[newVoteField] + 1 &&
+               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
+    }
+    
     // --- User Data Collections ---
 
     match /users/{userId} {
@@ -102,10 +112,17 @@ service cloud.firestore {
             'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
         ])) ||
         // Allow atomic increments for attitude/emotion votes based on a corresponding user vote document
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude']) && isChangingOwnVote('attitude', figureId)) ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion']) && isChangingOwnVote('emotion', figureId)) ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion']) &&
+          (
+            isVoteIncrement('attitude', request.resource.data.attitude) || isVoteDecrement('attitude', resource.data.attitude) ||
+            isChangingVote('attitude', resource.data.attitude, request.resource.data.attitude) ||
+            isVoteIncrement('emotion', request.resource.data.emotion) || isVoteDecrement('emotion', resource.data.emotion) ||
+            isChangingVote('emotion', resource.data.emotion, request.resource.data.emotion)
+          )
+        ) ||
         // Allow atomic increments for ratings
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']))
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']) && isIncrement('ratingCount', 1))
       );
       
       // Rules for public-facing subcollections within figures
@@ -122,7 +139,7 @@ match /comments/{commentId} {
   allow create: if isSignedIn();
   allow update: if isSignedIn() && (
     (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
-    isIncrement('likes') || isIncrement('dislikes')
+    isIncrement('likes', 1) || isIncrement('dislikes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', -1)
   );
   allow delete: if 
     // Allow if user is the owner of the comment
@@ -149,7 +166,7 @@ match /comments/{commentId} {
     // Actualización: Solo dueño (texto) o cualquiera (likes/dislikes)
     allow update: if isSignedIn() && (
       (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
-      isIncrement('likes') || isIncrement('dislikes')
+      isIncrement('likes', 1) || isIncrement('dislikes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', -1)
     );
 
     // Borrado: Dueño del reply, dueño del comentario padre, o Admin
@@ -211,8 +228,8 @@ match /goat_battles/{battleId} {
         
         // Permiso 2: Cualquier usuario autenticado puede incrementar los votos (isIncrement)
         (isSignedIn() && (
-            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && isIncrement('messiVotes')) ||
-            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) && isIncrement('ronaldoVotes'))
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && (isIncrement('messiVotes', 1) || isIncrement('messiVotes', -1))) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) && (isIncrement('ronaldoVotes', 1) || isIncrement('ronaldoVotes', -1)))
         ))
     );
     
