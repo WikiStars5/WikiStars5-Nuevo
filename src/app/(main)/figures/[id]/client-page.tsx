@@ -14,7 +14,7 @@ import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy, Lock } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -189,6 +189,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
 
   const hasInfo = infoItems.some(item => !!item.value);
   const hasSocialLinks = figure.socialLinks && Object.values(figure.socialLinks).some(link => !!link);
+  const isEditingLocked = figure.locks?.isEditingLocked === true;
 
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
@@ -243,9 +244,17 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                                 <CardTitle>Información Detallada</CardTitle>
                                 <CardDescription className="text-muted-foreground">Datos biográficos y descriptivos de {figure.name}.</CardDescription>
                             </div>
-                            <Button variant="outline" onClick={() => setIsEditing(true)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Editar
-                            </Button>
+                            {!isEditingLocked && (
+                                <Button variant="outline" onClick={() => setIsEditing(true)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Editar
+                                </Button>
+                            )}
+                             {isEditingLocked && (
+                                <div className="flex items-center gap-2 rounded-md border px-3 py-2 bg-muted text-muted-foreground text-sm">
+                                    <Lock className="h-4 w-4" />
+                                    <span>Edición Bloqueada</span>
+                                </div>
+                            )}
                         </div>
                     </CardHeader>
                     <CardContent className="p-6">
@@ -351,7 +360,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
 
        <div className="mt-8 space-y-8">
         <CommunityRatings figure={figure} />
-        <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
+        <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} isRatingLocked={figure.locks?.isRatingLocked} />
         <RelatedFigures figure={figure} />
       </div>
     </div>

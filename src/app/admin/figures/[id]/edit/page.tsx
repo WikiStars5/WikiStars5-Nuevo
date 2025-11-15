@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel, FormDescription } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, X, Link as LinkIcon, Tag, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, X, Link as LinkIcon, Tag, Plus, Trash2, ArrowLeft, ShieldCheck, Lock, Unlock } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from '@/components/figure/country-selector';
 import DateInput from '@/components/figure/date-input';
@@ -61,6 +61,11 @@ const editFormSchema = z.object({
   ).optional(),
   tags: z.array(z.string()).optional(),
   isFeatured: z.boolean().default(false),
+   locks: z.object({
+    isVotingLocked: z.boolean().default(false),
+    isEditingLocked: z.boolean().default(false),
+    isRatingLocked: z.boolean().default(false),
+  }).optional(),
 });
 
 type EditFormValues = z.infer<typeof editFormSchema>;
@@ -98,6 +103,11 @@ const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
       socialLinks: defaultSocialLinks,
       tags: figure.tags?.map(tag => normalizeText(tag)) || [],
       isFeatured: figure.isFeatured || false,
+      locks: {
+        isVotingLocked: figure.locks?.isVotingLocked || false,
+        isEditingLocked: figure.locks?.isEditingLocked || false,
+        isRatingLocked: figure.locks?.isRatingLocked || false,
+      },
     };
 };
 
@@ -157,6 +167,12 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
           }
       });
       
+      if (data.isFeatured && !figure?.featuredAt) {
+        dataToSave.featuredAt = serverTimestamp();
+      } else if (!data.isFeatured) {
+        dataToSave.featuredAt = null;
+      }
+
       if (data.socialLinks) {
         dataToSave.socialLinks = {};
         for (const platform in SOCIAL_MEDIA_CONFIG) {
@@ -381,6 +397,56 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
                         />
                     </div>
                 </div>
+
+                 <div className="space-y-4">
+                    <h3 className="text-lg font-medium flex items-center">
+                        <span className="flex-shrink-0 h-8 w-8 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mr-3">
+                            <ShieldCheck />
+                        </span>
+                        Control de Interacciones
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="locks.isVotingLocked"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="flex items-center gap-2">{field.value ? <Lock/> : <Unlock/>}Votación</FormLabel>
+                                        <FormDescription className="text-xs">Bloquea la votación de actitud y emoción.</FormDescription>
+                                    </div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="locks.isEditingLocked"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="flex items-center gap-2">{field.value ? <Lock/> : <Unlock/>}Edición</FormLabel>
+                                        <FormDescription className="text-xs">Bloquea la edición de información del perfil.</FormDescription>
+                                    </div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="locks.isRatingLocked"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <FormLabel className="flex items-center gap-2">{field.value ? <Lock/> : <Unlock/>}Calificación</FormLabel>
+                                        <FormDescription className="text-xs">Bloquea el envío de nuevas calificaciones.</FormDescription>
+                                    </div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                 </div>
 
             </CardContent>
             <CardFooter className="flex justify-end gap-2 p-6 border-t mt-6">

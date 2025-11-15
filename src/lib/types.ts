@@ -23,6 +23,7 @@ export interface Figure {
   tagsLower?: string[];
   tagKeywords?: string[];
   isFeatured?: boolean;
+  featuredAt?: Timestamp;
   nameKeywords: string[];
   approved: boolean;
   description?: string;
@@ -66,6 +67,11 @@ export interface Figure {
     '3': number;
     '4': number;
     '5': number;
+  };
+  locks?: {
+    isVotingLocked?: boolean;
+    isEditingLocked?: boolean;
+    isRatingLocked?: boolean;
   };
   createdAt?: Timestamp;
 }

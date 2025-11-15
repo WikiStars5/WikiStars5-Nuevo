@@ -227,6 +227,24 @@
               "type": "number"
             }
           }
+        },
+         "locks": {
+          "type": "object",
+          "description": "Defines user interaction locks for this profile.",
+          "properties": {
+            "isVotingLocked": {
+              "type": "boolean",
+              "description": "If true, disables attitude and emotion voting."
+            },
+            "isEditingLocked": {
+              "type": "boolean",
+              "description": "If true, disables community profile edits."
+            },
+            "isRatingLocked": {
+              "type": "boolean",
+              "description": "If true, disables new star ratings in comments."
+            }
+          }
         }
       },
       "required": [
