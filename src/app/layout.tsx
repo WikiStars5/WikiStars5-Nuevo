@@ -27,6 +27,7 @@ const sourceCodePro = Source_Code_Pro({
 export const metadata: Metadata = {
   title: 'WikiStars5 - Percepción de Figuras Públicas',
   description: 'Explora, califica y debate sobre figuras públicas. Tu centro de opinión para saber qué piensa el mundo.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -39,6 +40,7 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
         <ThemeProvider
@@ -55,6 +57,19 @@ export default function RootLayout({
             </StreakAnimationProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
+         <Script id="service-worker-registration" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                  console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                  console.log('ServiceWorker registration failed: ', err);
+                });
+              });
+            }
+          `}
+        </Script>
       </body>
     </html>
   );

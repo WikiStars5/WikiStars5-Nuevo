@@ -1,22 +1,21 @@
-
 {
   "name": "WikiStars5",
   "short_name": "WikiStars5",
   "description": "Explora, califica y debate sobre figuras públicas. Tu centro de opinión para saber qué piensa el mundo.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#facc15",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "theme_color": "#F0F0F5",
-  "background_color": "#F0F0F5",
-  "start_url": "/",
-  "display": "standalone"
+  ]
 }
