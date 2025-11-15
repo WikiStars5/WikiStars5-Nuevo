@@ -105,25 +105,9 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow delete: if isAdmin();
       
-      allow update: if isSignedIn() && (
-        // Allow authorized users to edit biographical data
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
-            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
-        ])) ||
-        // Allow atomic increments for attitude/emotion votes based on a corresponding user vote document
-        (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion']) &&
-          (
-            isVoteIncrement('attitude', request.resource.data.attitude) || isVoteDecrement('attitude', resource.data.attitude) ||
-            isChangingVote('attitude', resource.data.attitude, request.resource.data.attitude) ||
-            isVoteIncrement('emotion', request.resource.data.emotion) || isVoteDecrement('emotion', resource.data.emotion) ||
-            isChangingVote('emotion', resource.data.emotion, request.resource.data.emotion)
-          )
-        ) ||
-        // Allow atomic increments for ratings
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']) && isIncrement('ratingCount', 1))
-      );
+      // Only Admins can update the figure document directly.
+      // Vote counts are now updated via Cloud Functions.
+      allow update: if isAdmin();
       
       // Rules for public-facing subcollections within figures
       match /attitudeVotes/{userId} {

@@ -3,7 +3,7 @@
 
 import { useState, useContext } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore'; 
+import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc } from 'firebase/firestore'; 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Loader2, Lock } from 'lucide-react';
@@ -62,48 +62,24 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     setIsVoting(vote);
     
     try {
-      const figureRef = doc(firestore, 'figures', figure.id);
       const publicVoteRef = doc(firestore, `figures/${figure.id}/emotionVotes`, user.uid);
       const privateVoteRef = doc(firestore, `users/${user.uid}/emotionVotes`, figure.id);
 
-      await runTransaction(firestore, async (transaction) => {
-        const existingVoteDoc = await transaction.get(privateVoteRef);
-        const figureDoc = await transaction.get(figureRef);
+      const isRetracting = userVote?.vote === vote;
 
-        if (!figureDoc.exists()) {
-          throw new Error('¡El perfil no existe!');
-        }
-
+      if (isRetracting) {
+        await Promise.all([deleteDoc(publicVoteRef), deleteDoc(privateVoteRef)]);
+        toast({ title: 'Voto eliminado' });
+      } else {
         const newVoteData: Omit<EmotionVote, 'id'> = {
           userId: user.uid,
           figureId: figure.id,
           vote: vote,
           createdAt: serverTimestamp(),
         };
-
-        if (existingVoteDoc.exists()) {
-          const previousVote = existingVoteDoc.data().vote as EmotionOption;
-          if (previousVote === vote) {
-            transaction.update(figureRef, { [`emotion.${vote}`]: increment(-1) });
-            transaction.delete(publicVoteRef);
-            transaction.delete(privateVoteRef);
-            toast({ title: 'Voto eliminado' });
-          } else {
-            transaction.update(figureRef, {
-              [`emotion.${previousVote}`]: increment(-1),
-              [`emotion.${vote}`]: increment(1),
-            });
-            transaction.set(publicVoteRef, newVoteData);
-            transaction.set(privateVoteRef, newVoteData);
-            toast({ title: '¡Voto actualizado!' });
-          }
-        } else {
-          transaction.update(figureRef, { [`emotion.${vote}`]: increment(1) });
-          transaction.set(publicVoteRef, newVoteData);
-          transaction.set(privateVoteRef, newVoteData);
-          toast({ title: '¡Voto registrado!' });
-        }
-      });
+        await Promise.all([setDoc(publicVoteRef, newVoteData), setDoc(privateVoteRef, newVoteData)]);
+        toast({ title: userVote ? '¡Voto actualizado!' : '¡Voto registrado!' });
+      }
 
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);

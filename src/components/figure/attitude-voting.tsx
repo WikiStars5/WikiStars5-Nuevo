@@ -3,7 +3,7 @@
 
 import { useState, useContext } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore'; 
+import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc } from 'firebase/firestore'; 
 import { onAuthStateChanged, User as FirebaseUser, Auth } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -66,60 +66,32 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     setIsVoting(vote);
 
     let finalAttitude: AttitudeOption | null = null;
-    let isFirstVote = false;
-
+    
     try {
-      const figureRef = doc(firestore, 'figures', figure.id);
       const publicVoteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
       const privateVoteRef = doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
 
-      await runTransaction(firestore, async (transaction) => {
-        const existingVoteDoc = await transaction.get(privateVoteRef);
-        const figureDoc = await transaction.get(figureRef);
+      const isRetracting = userVote?.vote === vote;
 
-        if (!figureDoc.exists()) {
-          throw new Error('¡El perfil no existe!');
-        }
-
+      if (isRetracting) {
+        // User is retracting their vote. Delete the vote documents.
+        // The Cloud Function will detect the deletion and adjust the count.
+        await Promise.all([deleteDoc(publicVoteRef), deleteDoc(privateVoteRef)]);
+        toast({ title: 'Voto eliminado' });
+        finalAttitude = null;
+      } else {
+        // User is casting a new vote or changing their vote.
+        // The Cloud Function will detect the write/update and adjust counts.
         const voteData: Omit<AttitudeVote, 'id'> = {
             userId: user.uid,
             figureId: figure.id,
             vote: vote,
             createdAt: serverTimestamp(),
         };
-
-        if (existingVoteDoc.exists()) {
-          const existingData = existingVoteDoc.data() as AttitudeVote;
-          const previousVote = existingData.vote;
-          
-          if (previousVote === vote) {
-            // Retracting vote
-            transaction.update(figureRef, { [`attitude.${vote}`]: increment(-1) });
-            transaction.delete(publicVoteRef);
-            transaction.delete(privateVoteRef);
-            toast({ title: 'Voto eliminado' });
-            finalAttitude = null;
-          } else {
-            // Changing vote
-            transaction.update(figureRef, {
-              [`attitude.${previousVote}`]: increment(-1),
-              [`attitude.${vote}`]: increment(1),
-            });
-            transaction.set(publicVoteRef, voteData);
-            transaction.set(privateVoteRef, voteData);
-            toast({ title: '¡Voto actualizado!' });
-            finalAttitude = vote;
-          }
-        } else {
-          // First vote for this user on this figure
-          isFirstVote = true; 
-          transaction.update(figureRef, { [`attitude.${vote}`]: increment(1) });
-          transaction.set(publicVoteRef, voteData);
-          transaction.set(privateVoteRef, voteData);
-          toast({ title: '¡Voto registrado!' });
-          finalAttitude = vote;
-        }
-      });
+        await Promise.all([setDoc(publicVoteRef, voteData), setDoc(privateVoteRef, voteData)]);
+        toast({ title: userVote ? '¡Voto actualizado!' : '¡Voto registrado!' });
+        finalAttitude = vote;
+      }
       
       onVote(finalAttitude);
       

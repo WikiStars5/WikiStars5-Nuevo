@@ -8,13 +8,91 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {onDocumentCreated} from "firebase-functions/v2/firestore";
+import {onDocumentCreated, onDocumentWritten} from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
 const db = admin.firestore();
+
+
+/**
+ * Cloud Function that triggers when a user's attitude vote is written (created, updated, or deleted).
+ * It securely updates the aggregated vote counts on the corresponding public figure document.
+ */
+export const onAttitudeVoteChange = onDocumentWritten("figures/{figureId}/attitudeVotes/{userId}", async (event) => {
+    const { figureId, userId } = event.params;
+    const figureRef = db.collection("figures").doc(figureId);
+
+    const voteBefore = event.data?.before.data()?.vote;
+    const voteAfter = event.data?.after.data()?.vote;
+    
+    // If the vote is the same, do nothing.
+    if (voteBefore === voteAfter) {
+        logger.info(`Vote for user ${userId} on figure ${figureId} did not change. No action taken.`);
+        return;
+    }
+
+    const updates: { [key: string]: admin.firestore.FieldValue } = {};
+
+    // Decrement the old vote count if it existed
+    if (voteBefore) {
+        updates[`attitude.${voteBefore}`] = admin.firestore.FieldValue.increment(-1);
+    }
+
+    // Increment the new vote count if it exists
+    if (voteAfter) {
+        updates[`attitude.${voteAfter}`] = admin.firestore.FieldValue.increment(1);
+    }
+    
+    if (Object.keys(updates).length > 0) {
+        logger.info(`Updating attitude counts for figure ${figureId}. Changes: ${JSON.stringify(updates)}`);
+        try {
+            await figureRef.update(updates);
+            logger.info(`Successfully updated attitude counts for figure ${figureId}.`);
+        } catch (error) {
+            logger.error(`Failed to update attitude counts for figure ${figureId}:`, error);
+        }
+    }
+});
+
+
+/**
+ * Cloud Function that triggers when a user's emotion vote is written (created, updated, or deleted).
+ * It securely updates the aggregated vote counts on the corresponding public figure document.
+ */
+export const onEmotionVoteChange = onDocumentWritten("figures/{figureId}/emotionVotes/{userId}", async (event) => {
+    const { figureId, userId } = event.params;
+    const figureRef = db.collection("figures").doc(figureId);
+
+    const voteBefore = event.data?.before.data()?.vote;
+    const voteAfter = event.data?.after.data()?.vote;
+
+    if (voteBefore === voteAfter) {
+        logger.info(`Emotion vote for user ${userId} on figure ${figureId} did not change.`);
+        return;
+    }
+
+    const updates: { [key: string]: admin.firestore.FieldValue } = {};
+
+    if (voteBefore) {
+        updates[`emotion.${voteBefore}`] = admin.firestore.FieldValue.increment(-1);
+    }
+    if (voteAfter) {
+        updates[`emotion.${voteAfter}`] = admin.firestore.FieldValue.increment(1);
+    }
+
+    if (Object.keys(updates).length > 0) {
+        logger.info(`Updating emotion counts for figure ${figureId}. Changes: ${JSON.stringify(updates)}`);
+        try {
+            await figureRef.update(updates);
+            logger.info(`Successfully updated emotion counts for figure ${figureId}.`);
+        } catch (error) {
+            logger.error(`Failed to update emotion counts for figure ${figureId}:`, error);
+        }
+    }
+});
 
 
 /**
@@ -130,6 +208,3 @@ export const onAchievementUnlocked = onDocumentCreated("users/{userId}/user_achi
 
     logger.info(`Notification sent to user ${userId} for achievement ${achievementName}`);
 });
-
-
-
