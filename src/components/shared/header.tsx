@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -31,7 +32,6 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from 'next-themes';
-import { InstallPwaButton } from '@/components/layout/InstallPwaButton';
 
 
 export default function Header() {
@@ -134,7 +134,6 @@ export default function Header() {
                 <SearchBar onSearchSubmit={() => setIsSearchDialogOpen(false)} onResultClick={() => setIsSearchDialogOpen(false)}/>
             </DialogContent>
           </Dialog>
-          <InstallPwaButton />
           {isUserLoading ? (
             <Skeleton className="h-10 w-20" />
           ) : user ? (
