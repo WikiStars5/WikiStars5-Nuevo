@@ -35,16 +35,15 @@ service cloud.firestore {
 
       // Rules for user's private subcollections
       match /attitudeVotes/{figureId} {
-        allow get, list: if true; // Allow public read
-        allow write: if isOwner(userId);
+        allow get, write: if isOwner(userId);
+        allow list: if isOwner(userId);
       }
       match /emotionVotes/{figureId} {
-        allow get, list: if true; // Allow public read
-        allow write: if isOwner(userId);
+        allow get, write: if isOwner(userId);
+        allow list: if isOwner(userId);
       }
        match /streaks/{streakId} {
-        allow get, list: if true; // Allow public read
-        allow write: if isOwner(userId);
+        allow get, list, write: if isOwner(userId);
       }
       match /user_achievements/{achievementId} {
         allow get, list, write: if isOwner(userId);
@@ -180,22 +179,40 @@ match /comments/{commentId} {
       allow update: if false;
     }
 
-    match /goat_battles/{battleId} {
-        allow get, list: if true; 
-        allow create, delete: if isAdmin();
-        allow update: if (isSignedIn() && (isIncrement('messiVotes') || isIncrement('ronaldoVotes'))) ||
-                         (isAdmin() && request.resource.data.winner != resource.data.winner);
+match /goat_battles/{battleId} {
+    allow get, list: if true; 
+    allow create, delete: if isAdmin(); // Solo el Admin puede crear/borrar
+    
+    allow update: if (
+        // Permiso 1: El administrador puede actualizar cualquier campo
+        isAdmin() ||
         
-        match /votes/{userId} {
-            allow get, write: if isOwner(userId);
-            allow list: if false;
-        }
+        // Permiso 2: Cualquier usuario autenticado puede incrementar los votos (isIncrement)
+        (isSignedIn() && (
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && isIncrement('messiVotes')) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) && isIncrement('ronaldoVotes'))
+        ))
+    );
+    
+    // El resto de la subcolección de votos queda igual
+    match /votes/{userId} {
+        allow get, write: if isOwner(userId);
+        allow list: if false;
     }
+}
     
     match /roles_admin/{userId} {
       allow get: if isSignedIn();
       allow write: if isAdmin();
       allow list: if false;
+      
+    }
+    
+    match /settings/{settingId} {
+      allow get: if true;
+      allow list: if true;
+      allow write: if isAdmin();      
+      
     }
   }
 }
