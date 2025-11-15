@@ -31,7 +31,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from 'next-themes';
-import { InstallPwaButton } from './InstallPwaButton';
+import { InstallPwaButton } from '@/components/layout/InstallPwaButton';
 
 
 export default function Header() {
