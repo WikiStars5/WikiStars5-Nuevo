@@ -280,7 +280,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                             disabled={!user || !!isVoting}
                         >
                             {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
-                            <span>{comment.likes ?? 0}</span>
+                            <span>{(comment.likes ?? 0).toLocaleString()}</span>
                         </Button>
                         <Button 
                             variant="ghost" 
@@ -290,7 +290,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                             disabled={!user || !!isVoting}
                         >
                             {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
-                            <span>{comment.dislikes ?? 0}</span>
+                            <span>{(comment.dislikes ?? 0).toLocaleString()}</span>
                         </Button>
                         
                         {user && !isReply && (
