@@ -60,7 +60,6 @@ const editFormSchema = z.object({
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
   tags: z.array(z.string()).optional(),
-  isFeatured: z.boolean().default(false),
    locks: z.object({
     isVotingLocked: z.boolean().default(false),
     isEditingLocked: z.boolean().default(false),
@@ -102,7 +101,6 @@ const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
       height: figure.height || undefined,
       socialLinks: defaultSocialLinks,
       tags: figure.tags?.map(tag => normalizeText(tag)) || [],
-      isFeatured: figure.isFeatured || false,
       locks: {
         isVotingLocked: figure.locks?.isVotingLocked || false,
         isEditingLocked: figure.locks?.isEditingLocked || false,
@@ -167,12 +165,6 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
           }
       });
       
-      if (data.isFeatured && !figure?.featuredAt) {
-        dataToSave.featuredAt = serverTimestamp();
-      } else if (!data.isFeatured) {
-        dataToSave.featuredAt = null;
-      }
-
       if (data.socialLinks) {
         dataToSave.socialLinks = {};
         for (const platform in SOCIAL_MEDIA_CONFIG) {
@@ -377,24 +369,6 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
                                 ))}
                             </div>
                         </div>
-                         <FormField
-                            control={form.control}
-                            name="isFeatured"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm h-fit mt-auto">
-                                <div className="space-y-0.5">
-                                    <FormLabel>Perfil Destacado</FormLabel>
-                                    <FormMessage />
-                                </div>
-                                <FormControl>
-                                    <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    />
-                                </FormControl>
-                                </FormItem>
-                            )}
-                        />
                     </div>
                 </div>
 

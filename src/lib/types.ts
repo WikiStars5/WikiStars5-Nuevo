@@ -22,8 +22,6 @@ export interface Figure {
   tags?: string[];
   tagsLower?: string[];
   tagKeywords?: string[];
-  isFeatured?: boolean;
-  featuredAt?: Timestamp;
   nameKeywords: string[];
   approved: boolean;
   description?: string;

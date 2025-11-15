@@ -70,7 +70,6 @@ export default function AdminFiguresPage() {
               <TableHead>Nombre</TableHead>
               <TableHead>Nacionalidad</TableHead>
               <TableHead className="hidden md:table-cell">Etiquetas</TableHead>
-              <TableHead className="hidden md:table-cell">Destacado</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -86,7 +85,6 @@ export default function AdminFiguresPage() {
                   <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                   <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-32" /></TableCell>
-                  <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-10" /></TableCell>
                   <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                 </TableRow>
               ))
@@ -115,11 +113,6 @@ export default function AdminFiguresPage() {
                     <div className="flex flex-wrap gap-1">
                         {figure.tags?.map((tag:string) => <Badge key={tag} variant="outline">{tag}</Badge>)}
                     </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  <Badge variant={figure.isFeatured ? 'default' : 'secondary'}>
-                    {figure.isFeatured ? 'Si' : 'No'}
-                  </Badge>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

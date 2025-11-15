@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,6 @@ import {
   Users,
 } from 'lucide-react';
 import SearchBar from '@/components/shared/search-bar';
-import FeaturedFigures from '@/components/shared/featured-figures';
 import { Separator } from '@/components/ui/separator';
 
 export const dynamic = 'force-dynamic';
@@ -78,9 +78,6 @@ export default function HomePage() {
         </div>
       </section>
       
-      <Separator className="my-16" />
-
-      <FeaturedFigures />
 
     </div>
   );

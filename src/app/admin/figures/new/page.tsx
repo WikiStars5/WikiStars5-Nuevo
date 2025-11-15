@@ -61,7 +61,6 @@ const createFormSchema = z.object({
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
   tags: z.array(z.string()).optional(),
-  isFeatured: z.boolean().default(false),
 });
 
 type CreateFormValues = z.infer<typeof createFormSchema>;
@@ -96,7 +95,6 @@ export default function AdminNewFigurePage() {
       occupation: '',
       maritalStatus: undefined,
       height: undefined,
-      isFeatured: false,
       tags: [],
       socialLinks: {},
     },
@@ -169,8 +167,6 @@ export default function AdminNewFigurePage() {
         maritalStatus: data.maritalStatus || null,
         height: data.height || null,
         socialLinks: data.socialLinks || {},
-        isFeatured: data.isFeatured,
-        featuredAt: data.isFeatured ? serverTimestamp() : null,
         tags: data.tags?.map(t => normalizeText(t)) || [],
         nameKeywords: keywords,
         approved: true, // Admin-created profiles are auto-approved
@@ -338,24 +334,6 @@ export default function AdminNewFigurePage() {
                                 ))}
                             </div>
                         </div>
-                         <FormField
-                            control={form.control}
-                            name="isFeatured"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm h-fit mt-auto">
-                                <div className="space-y-0.5">
-                                    <FormLabel>Perfil Destacado</FormLabel>
-                                    <FormMessage />
-                                </div>
-                                <FormControl>
-                                    <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    />
-                                </FormControl>
-                                </FormItem>
-                            )}
-                        />
                     </div>
                 </div>
 
