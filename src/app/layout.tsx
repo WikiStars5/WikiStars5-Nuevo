@@ -43,6 +43,19 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
+        <Script id="sw-registration">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                  console.log('Service Worker registrado con éxito:', registration);
+                }).catch(error => {
+                  console.log('Error en el registro del Service Worker:', error);
+                });
+              });
+            }
+          `}
+        </Script>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
