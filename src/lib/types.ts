@@ -66,11 +66,6 @@ export interface Figure {
     '4': number;
     '5': number;
   };
-  locks?: {
-    isVotingLocked?: boolean;
-    isEditingLocked?: boolean;
-    isRatingLocked?: boolean;
-  };
   createdAt?: Timestamp;
 }
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -147,8 +148,6 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
   const gridColsClass = attitudeOptions.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4';
 
-  const isLocked = figure.locks?.isVotingLocked === true;
-
   return (
     <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
         <div className="w-full">
@@ -156,49 +155,40 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
             <h3 className="text-xl font-bold font-headline">¿Qué te consideras?</h3>
             <p className="text-muted-foreground">Define tu actitud hacia {figure.name}. Tu voto es anónimo.</p>
         </div>
-        {isLocked && (
-            <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-muted">
-                <Lock className="h-8 w-8 text-muted-foreground" />
-                <p className="mt-2 font-semibold">Votación Cerrada</p>
-                <p className="text-sm text-muted-foreground">El administrador ha bloqueado la votación para este perfil.</p>
-            </div>
-        )}
-        {!isLocked && (
-            <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
-                {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
-                const isSelected = userVote?.vote === id;
-                return (
-                <Button
-                    key={id}
-                    variant="outline"
-                    className={cn(
-                    'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
-                    'dark:bg-black dark:hover:bg-neutral-900',
-                    isSelected ? `scale-105 ${selectedClass}` : `${colorClass}`,
-                    isVoting === id ? 'cursor-not-allowed' : ''
-                    )}
-                    onClick={() => handleVote(id)}
-                    disabled={!!isVoting}
-                >
-                    {isVoting === id ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    ) : (
-                        <div className="flex h-full flex-col items-center justify-center text-center">
-                            <div className="flex-1 flex items-center justify-center">
-                                <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
-                            </div>
-                            <div>
-                                <span className="font-semibold text-sm">{label}</span>
-                                <span className="block text-lg font-bold">
-                                {(figure.attitude?.[id] ?? 0).toLocaleString()}
-                                </span>
-                            </div>
+        <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
+            {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
+            const isSelected = userVote?.vote === id;
+            return (
+            <Button
+                key={id}
+                variant="outline"
+                className={cn(
+                'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
+                'dark:bg-black dark:hover:bg-neutral-900',
+                isSelected ? `scale-105 ${selectedClass}` : `${colorClass}`,
+                isVoting === id ? 'cursor-not-allowed' : ''
+                )}
+                onClick={() => handleVote(id)}
+                disabled={!!isVoting}
+            >
+                {isVoting === id ? (
+                <Loader2 className="h-8 w-8 animate-spin" />
+                ) : (
+                    <div className="flex h-full flex-col items-center justify-center text-center">
+                        <div className="flex-1 flex items-center justify-center">
+                            <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
                         </div>
-                    )}
-                </Button>
-                )})}
-            </div>
-        )}
+                        <div>
+                            <span className="font-semibold text-sm">{label}</span>
+                            <span className="block text-lg font-bold">
+                            {(figure.attitude?.[id] ?? 0).toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                )}
+            </Button>
+            )})}
+        </div>
         <p className="mt-4 text-center text-sm text-muted-foreground">
             Total de respuestas: {totalVotes.toLocaleString()}
         </p>

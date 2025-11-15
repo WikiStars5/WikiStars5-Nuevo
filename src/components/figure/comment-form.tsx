@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -31,7 +32,6 @@ type CommentFormValues = z.infer<ReturnType<typeof createCommentSchema>>;
 interface CommentFormProps {
   figureId: string;
   figureName: string;
-  isRatingLocked?: boolean;
 }
 
 const ratingSounds: { [key: number]: string } = {
@@ -43,7 +43,7 @@ const ratingSounds: { [key: number]: string } = {
 };
 
 
-export default function CommentForm({ figureId, figureName, isRatingLocked }: CommentFormProps) {
+export default function CommentForm({ figureId, figureName }: CommentFormProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -54,7 +54,7 @@ export default function CommentForm({ figureId, figureName, isRatingLocked }: Co
 
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
-  const isRatingEnabled = (globalSettings?.isRatingEnabled ?? true) && !isRatingLocked;
+  const isRatingEnabled = (globalSettings?.isRatingEnabled ?? true);
   
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled)),
@@ -204,13 +204,7 @@ export default function CommentForm({ figureId, figureName, isRatingLocked }: Co
         <CardContent>
           <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {isRatingLocked ? (
-                <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg bg-muted">
-                    <Lock className="h-6 w-6 text-muted-foreground" />
-                    <p className="mt-2 font-semibold text-sm">Calificaciones Cerradas</p>
-                    <p className="text-xs text-muted-foreground">El administrador ha bloqueado las calificaciones para este perfil.</p>
-                </div>
-              ) : isRatingEnabled && (
+              {isRatingEnabled && (
                 <FormField
                   control={form.control}
                   name="rating"

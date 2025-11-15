@@ -176,7 +176,6 @@ export default function AdminNewFigurePage() {
         ratingCount: 0,
         totalRating: 0,
         ratingsBreakdown: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
-        locks: { isVotingLocked: false, isEditingLocked: false, isRatingLocked: false },
       };
 
       setDocumentNonBlocking(figureRef, figureData, { merge: false });
@@ -352,5 +351,3 @@ export default function AdminNewFigurePage() {
     </Card>
   );
 }
-
-    

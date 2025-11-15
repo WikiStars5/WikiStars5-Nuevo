@@ -1,3 +1,4 @@
+
 'use client';
 
 import CommentForm from './comment-form';
@@ -10,13 +11,12 @@ interface CommentSectionProps {
   figureId: string;
   figureName: string;
   sortPreference: AttitudeOption | null;
-  isRatingLocked?: boolean;
 }
 
-export default function CommentSection({ figureId, figureName, sortPreference, isRatingLocked }: CommentSectionProps) {
+export default function CommentSection({ figureId, figureName, sortPreference }: CommentSectionProps) {
   return (
     <div className="space-y-6">
-      <CommentForm figureId={figureId} figureName={figureName} isRatingLocked={isRatingLocked} />
+      <CommentForm figureId={figureId} figureName={figureName} />
       <Separator />
       <CommentList figureId={figureId} figureName={figureName} sortPreference={sortPreference} />
     </div>
