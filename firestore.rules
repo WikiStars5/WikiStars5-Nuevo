@@ -23,6 +23,23 @@ service cloud.firestore {
       // Allow increment or decrement by 1. Also handle the case where the field doesn't exist yet (currentValue is null) and is being initialized to 1.
       return (nextValue == currentValue + 1) || (currentValue == null && nextValue == 1) || (nextValue == currentValue - 1);
     }
+    
+    // --- Figure Data Helper Functions ---
+    function isChangingOwnVote(voteType, figureId) {
+        let votePathPrefix = voteType == 'attitude' ? 'attitudeVotes' : 'emotionVotes';
+        let previousVoteDoc = get(/databases/$(database)/documents/figures/$(figureId)/$(votePathPrefix)/$(request.auth.uid));
+        let newVoteDoc = request.resource.data;
+
+        // If user is retracting their vote
+        if (!newVoteDoc[voteType][previousVoteDoc.data.vote] == resource.data[voteType][previousVoteDoc.data.vote] - 1) {
+            return false;
+        }
+        // If user is changing their vote
+        if (!newVoteDoc[voteType][request.resource.data.vote] == resource.data[voteType][request.resource.data.vote] + 1) {
+            return false;
+        }
+        return true;
+    }
 
     // --- User Data Collections ---
 
@@ -79,11 +96,16 @@ service cloud.firestore {
       allow delete: if isAdmin();
       
       allow update: if isSignedIn() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        // Allow authorized users to edit biographical data
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
             'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
-        ]) ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
+        ])) ||
+        // Allow atomic increments for attitude/emotion votes based on a corresponding user vote document
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude']) && isChangingOwnVote('attitude', figureId)) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion']) && isChangingOwnVote('emotion', figureId)) ||
+        // Allow atomic increments for ratings
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']))
       );
       
       // Rules for public-facing subcollections within figures
