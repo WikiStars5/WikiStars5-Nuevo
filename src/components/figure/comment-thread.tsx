@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -83,16 +82,18 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 const existingVote = voteDoc.exists() ? voteDoc.data().vote : null;
                 const updates: { [key: string]: any } = {};
 
-                if (existingVote === voteType) {
+                if (existingVote === voteType) { // Retracting vote
                     updates[`${voteType}s`] = increment(-1);
                     transaction.delete(voteRef);
                     toast({ title: "Voto eliminado" });
-                } else {
+                } else if (existingVote) { // Changing vote
+                    const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
                     updates[`${voteType}s`] = increment(1);
-                    if (existingVote) {
-                        const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
-                        updates[`${otherVoteType}s`] = increment(-1);
-                    }
+                    updates[`${otherVoteType}s`] = increment(-1);
+                    transaction.set(voteRef, { vote: voteType, createdAt: serverTimestamp() });
+                    toast({ title: "¡Voto actualizado!" });
+                } else { // First vote
+                    updates[`${voteType}s`] = increment(1);
                     transaction.set(voteRef, { vote: voteType, createdAt: serverTimestamp() });
                     toast({ title: "¡Voto registrado!" });
                 }
