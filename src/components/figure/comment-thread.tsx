@@ -142,7 +142,9 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                     const figureDoc = await transaction.get(figureRef);
                     if (!figureDoc.exists()) return;
                     
-                    const ratingUpdates: { [key: string]: any } = {};
+                    const ratingUpdates: { [key: string]: any } = {
+                        updatedAt: serverTimestamp()
+                    };
                     ratingUpdates['ratingCount'] = increment(-1);
                     ratingUpdates['totalRating'] = increment(-comment.rating);
                     ratingUpdates[`ratingsBreakdown.${comment.rating}`] = increment(-1);

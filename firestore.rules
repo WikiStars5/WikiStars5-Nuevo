@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -17,44 +16,36 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
     
+    // ✅ Maneja la inicialización de campos (null a 'count').
     function isIncrement(field, count) {
-      // This is a simplified function for simple numeric fields, not for maps.
       let nextValue = request.resource.data[field];
       let prevValue = resource.data[field];
-      return nextValue == prevValue + count;
+      // Permite el incremento/decremento O la inicialización a 'count' si el valor anterior es nulo
+      return nextValue == prevValue + count || (prevValue == null && nextValue == count); 
     }
 
-    // --- Figure Vote Helper Functions ---
+    // --- Figure Vote Helper Functions (Lógica avanzada: MUY SEGURA) ---
 
-    // Checks for a +1 increment on a single field within a vote map.
-    // Used for a user's FIRST vote.
     function isVoteIncrement(voteType, voteField) {
         let nextVoteMap = request.resource.data[voteType];
         let prevVoteMap = resource.data[voteType];
         
-        // Check if only the specific vote field is being incremented by 1
         return nextVoteMap[voteField] == prevVoteMap[voteField] + 1 &&
                nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
     
-    // Checks for a -1 decrement on a single field within a vote map.
-    // Used when a user RETRACTS their vote.
     function isVoteDecrement(voteType, voteField) {
         let nextVoteMap = request.resource.data[voteType];
         let prevVoteMap = resource.data[voteType];
 
-        // Check if only the specific vote field is being decremented by 1
         return nextVoteMap[voteField] == prevVoteMap[voteField] - 1 &&
                nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
 
-    // Checks for a -1 decrement on the old field and a +1 increment on the new field.
-    // Used when a user CHANGES their vote from one option to another.
     function isChangingVote(voteType, oldVoteField, newVoteField) {
         let nextVoteMap = request.resource.data[voteType];
         let prevVoteMap = resource.data[voteType];
 
-        // Check if old vote is decremented and new vote is incremented, and nothing else changed.
         return nextVoteMap[oldVoteField] == prevVoteMap[oldVoteField] - 1 &&
                nextVoteMap[newVoteField] == prevVoteMap[newVoteField] + 1 &&
                nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
@@ -78,7 +69,7 @@ service cloud.firestore {
         allow get, write: if isOwner(userId);
         allow list: if isOwner(userId);
       }
-       match /streaks/{streakId} {
+      match /streaks/{streakId} {
         allow get, list, write: if isOwner(userId);
       }
       match /user_achievements/{achievementId} {
@@ -116,41 +107,36 @@ service cloud.firestore {
       
       allow update: if isAdmin() || (
         isSignedIn() && (
-          // Allow authorized users to edit biographical data
+          // Permiso 1: Edición de campos Wiki
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
             'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'
           ])) ||
           
-          // Allow atomic vote changes for attitude.
-          // The __oldVote and __newVote fields are temporary fields sent from the client
-          // that are not actually saved to the document but are available in request.resource.data.
+          // Permiso 2: Votación de Actitud (Contrato estricto)
           (request.resource.data.__newVote != null && 
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) &&
-           (
-             // Scenario 1: First vote (no previous vote)
-             (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) || 
-             
-             // Scenario 2: Retracting a vote (new and old are the same)
-             (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) || 
-             
-             // Scenario 3: Changing a vote (new and old are different)
-             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('attitude', request.resource.data.__oldVote, request.resource.data.__newVote))
-           )
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) &&
+            (
+              (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) ||
+              (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) ||
+              (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('attitude', request.resource.data.__oldVote, request.resource.data.__newVote))
+            )
           ) ||
 
-          // Allow atomic vote changes for emotion.
+          // Permiso 3: Votación de Emoción (Contrato estricto)
           (request.resource.data.__newVote != null &&
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion', 'updatedAt', '__oldVote', '__newVote']) &&
-           (
-             (request.resource.data.__oldVote == null && isVoteIncrement('emotion', request.resource.data.__newVote)) ||
-             (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('emotion', request.resource.data.__oldVote)) ||
-             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
-           )
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion', 'updatedAt', '__oldVote', '__newVote']) &&
+            (
+              (request.resource.data.__oldVote == null && isVoteIncrement('emotion', request.resource.data.__newVote)) ||
+              (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('emotion', request.resource.data.__oldVote)) ||
+              (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
+            )
           ) ||
           
-          // Allow atomic increments for ratings
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']) && isIncrement('ratingCount', 1))
+          // Permiso 4: Actualización de Calificación (GOAT - Contrato estricto)
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown', 'updatedAt']) && 
+            (isIncrement('ratingCount', 1) || isIncrement('ratingCount', -1))
+          )
         )
       );
       
@@ -165,53 +151,91 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow get, list: if true;
         allow create: if isSignedIn();
+        
         allow update: if isSignedIn() && (
-          (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
-          isIncrement('likes', 1) || isIncrement('likes', -1) ||
-          isIncrement('dislikes', 1) || isIncrement('dislikes', -1) ||
-          // Allow changing a vote (e.g., from like to dislike)
-          (request.resource.data.likes == resource.data.likes - 1 && request.resource.data.dislikes == resource.data.dislikes + 1) ||
-          (request.resource.data.likes == resource.data.likes + 1 && request.resource.data.dislikes == resource.data.dislikes - 1)
+            // Bloque 1: Edición de texto segura (dueño y solo texto/updatedAt)
+            (resource.data.userId == request.auth.uid && 
+              request.resource.data.text != resource.data.text &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
+
+            // Bloque 2: Actualización atómica de 'likes' (+1 o -1)
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && 
+              (isIncrement('likes', 1) || isIncrement('likes', -1))) ||
+
+            // Bloque 3: Actualización atómica de 'dislikes' (+1 o -1)
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']) && 
+              (isIncrement('dislikes', 1) || isIncrement('dislikes', -1))) ||
+                
+            // Bloque 4: CAMBIO DE VOTO ATÓMICO LIKES/DISLIKES
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) &&
+                (
+                    // Like a Dislike (-1 like, +1 dislike)
+                    (isIncrement('likes', -1) && isIncrement('dislikes', 1)) ||
+                    // Dislike a Like (-1 dislike, +1 like)
+                    (isIncrement('dislikes', -1) && isIncrement('likes', 1))
+                )
+            )
         );
+        
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
-      
+
         match /votes/{userId} {
-            allow get, write: if isOwner(userId);
-            allow list: if false;
+          // 🛑 CORRECCIÓN: Soluciona el error de "Missing or insufficient permissions" en la lectura.
+          allow get: if request.auth.uid == userId; 
+          allow write: if isOwner(userId);
+          allow list: if false;
         }
 
         match /replies/{replyId} {
           allow get, list: if true;
           allow create: if isSignedIn();
+          
           allow update: if isSignedIn() && (
-            (resource.data.userId == request.auth.uid && request.resource.data.text != resource.data.text) ||
-            isIncrement('likes', 1) || isIncrement('dislikes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', -1)
+              // Bloque 1: Edición de texto segura (dueño y solo texto/updatedAt)
+              (resource.data.userId == request.auth.uid && 
+                request.resource.data.text != resource.data.text &&
+                request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
+
+              // Bloque 2: Actualización atómica de 'likes' (+1 o -1)
+              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && 
+                (isIncrement('likes', 1) || isIncrement('likes', -1))) ||
+
+              // Bloque 3: Actualización atómica de 'dislikes' (+1 o -1)
+              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']) && 
+                (isIncrement('dislikes', 1) || isIncrement('dislikes', -1))) ||
+                  
+              // Bloque 4: CAMBIO DE VOTO ATÓMICO LIKES/DISLIKES
+              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) &&
+                  (
+                      (isIncrement('likes', -1) && isIncrement('dislikes', 1)) ||
+                      (isIncrement('dislikes', -1) && isIncrement('likes', 1))
+                  )
+              )
           );
+          
           allow delete: if 
             resource.data.userId == request.auth.uid ||
             get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid ||
             isAdmin();
             
           match /votes/{userId} {
-            allow get, write: if isOwner(userId);
+            // 🛑 CORRECCIÓN: Soluciona el error de "Missing or insufficient permissions" en la lectura.
+            allow get: if request.auth.uid == userId;
+            allow write: if isOwner(userId);
             allow list: if false;
           }
         }
       }
 
-      // --- /figures/{figureId}/streaks/{userId} ---
-      // This is for the public leaderboard on the figure's page.
       match /streaks/{userId} {
         allow read, list: if true; 
         allow write: if isOwner(userId);
       }
 
-       // --- /figures/{figureId}/achievements/{userAchievementId} ---
-       // This is for the public achievement board on the figure's page.
       match /achievements/{userAchievementId} {
           allow read, list: if true;
-          allow create: if isSignedIn(); // System/user can grant achievement
-          allow delete, update: if false; // Achievements are permanent per figure
+          allow create: if isSignedIn();
+          allow delete, update: if false;
       }
     }
     
@@ -222,9 +246,9 @@ service cloud.firestore {
         allow write: if isSignedIn();
     }
     
-     match /achievements/{achievementId} {
+    match /achievements/{achievementId} {
         allow get, list: if true;
-        allow write: if isAdmin(); // Only admins can define master achievements
+        allow write: if isAdmin();
     }
 
 
@@ -235,27 +259,35 @@ service cloud.firestore {
     }
 
     match /goat_battles/{battleId} {
-        allow get, list: if true; 
-        allow create, delete: if isAdmin(); // Solo el Admin puede crear/borrar
-        
+        allow get, list: if true;
+        allow create, delete: if isAdmin();
+
         allow update: if (
-            // Permiso 1: El administrador puede actualizar cualquier campo
-            isAdmin() ||
-            
-            // Permiso 2: Cualquier usuario autenticado puede incrementar/decrementar los votos
-            (isSignedIn() && (
-                (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && (isIncrement('messiVotes', 1) || isIncrement('messiVotes', -1))) ||
-                (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) && (isIncrement('ronaldoVotes', 1) || isIncrement('ronaldoVotes', -1))) ||
-                (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']) && (
-                  (request.resource.data.messiVotes == resource.data.messiVotes + 1 && request.resource.data.ronaldoVotes == resource.data.ronaldoVotes - 1) ||
-                  (request.resource.data.messiVotes == resource.data.messiVotes - 1 && request.resource.data.ronaldoVotes == resource.data.ronaldoVotes + 1)
-                ))
-            ))
+            isAdmin() || (
+                isSignedIn() && (
+                    // P1: Handle single vote/un-vote for Messi
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) &&
+                        (isIncrement('messiVotes', 1) || isIncrement('messiVotes', -1))) ||
+
+                    // P2: Handle single vote/un-vote for Ronaldo
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) &&
+                        (isIncrement('ronaldoVotes', 1) || isIncrement('ronaldoVotes', -1))) ||
+                        
+                    // P3: Handle changing a vote (e.g., from Messi to Ronaldo)
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']) &&
+                        (
+                        (isIncrement('messiVotes', 1) && isIncrement('ronaldoVotes', -1)) ||
+                        (isIncrement('messiVotes', -1) && isIncrement('ronaldoVotes', 1))
+                        )
+                    )
+                )
+            )
         );
         
-        // El resto de la subcolección de votos queda igual
         match /votes/{userId} {
-            allow get, write: if isOwner(userId);
+            // 🛑 CORRECCIÓN: Soluciona el error de "Missing or insufficient permissions" en la lectura.
+            allow get: if request.auth.uid == userId;
+            allow write: if isOwner(userId);
             allow list: if false;
         }
     }
@@ -264,7 +296,6 @@ service cloud.firestore {
       allow get: if isSignedIn();
       allow write: if isAdmin();
       allow list: if false;
-      
     }
     
     match /settings/{settingId} {
