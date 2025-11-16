@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -88,38 +89,47 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         const previousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as AttitudeVote).vote : null;
         
         const isRetracting = previousVote === vote;
+        
+        // These temporary fields are read by security rules and then discarded.
         const updates: any = {
-          updatedAt: serverTimestamp(),
           __oldVote: previousVote,
-          __newVote: isRetracting ? previousVote : vote, // On retract, old and new are the same
+          __newVote: isRetracting ? previousVote : vote, 
         };
 
-
         if (isRetracting) {
+          // --- RETRACTING VOTE ---
           transaction.delete(publicVoteRef);
           transaction.delete(privateVoteRef);
           updates[`attitude.${vote}`] = increment(-1);
           finalAttitude = null;
           toast({ title: 'Voto eliminado' });
+
+        } else if (previousVote) {
+          // --- CHANGING VOTE ---
+          const voteData = { userId: user.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
+          transaction.set(publicVoteRef, voteData, { merge: true });
+          transaction.set(privateVoteRef, voteData, { merge: true });
+          
+          updates[`attitude.${previousVote}`] = increment(-1);
+          updates[`attitude.${vote}`] = increment(1);
+          
+          finalAttitude = vote;
+          toast({ title: '¡Voto actualizado!' });
+
         } else {
-          const voteData = {
-            userId: user.uid,
-            figureId: figure.id,
-            vote: vote,
-            createdAt: serverTimestamp(),
-          };
+          // --- FIRST VOTE ---
+          const voteData = { userId: user.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
           transaction.set(publicVoteRef, voteData);
           transaction.set(privateVoteRef, voteData);
 
-          if (previousVote) {
-            updates[`attitude.${previousVote}`] = increment(-1);
-          }
           updates[`attitude.${vote}`] = increment(1);
-
           finalAttitude = vote;
-          toast({ title: previousVote ? '¡Voto actualizado!' : '¡Voto registrado!' });
+          toast({ title: '¡Voto registrado!' });
         }
-         transaction.update(figureRef, updates);
+        
+        // Add timestamp to the final update for security rules
+        updates.updatedAt = serverTimestamp();
+        transaction.update(figureRef, updates);
       });
       
       onVote(finalAttitude);
@@ -129,7 +139,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
       toast({
         variant: 'destructive',
         title: 'Error al votar',
-        description: error.message || 'No se pudo registrar tu voto.',
+        description: 'Hubo un problema al registrar tu voto. Es posible que las reglas de seguridad lo hayan impedido.',
       });
     } finally {
       setIsVoting(null);
@@ -207,3 +217,5 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     </LoginPromptDialog>
   );
 }
+
+    

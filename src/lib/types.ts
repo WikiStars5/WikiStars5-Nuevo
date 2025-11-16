@@ -68,6 +68,10 @@ export interface Figure {
     '5': number;
   };
   createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+  // Temporary fields for security rules, not stored in DB.
+  __oldVote?: string | null;
+  __newVote?: string | null;
 }
 
 export interface Hashtag {
@@ -173,3 +177,5 @@ export interface Referral {
     sourceFigureId?: string | null;
     hasVoted?: boolean;
 }
+
+    
