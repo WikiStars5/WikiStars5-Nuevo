@@ -73,17 +73,31 @@ service cloud.firestore {
 
     // --- Figure Data Collections ---
 
-    match /figures/{figureId} {
+match /figures/{figureId} {
       allow get, list: if true;
       allow create: if isSignedIn();
       allow delete: if isAdmin();
       
-      allow update: if isSignedIn() && (
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+      allow update: if isAdmin() || (
+        isSignedIn() && (
+          // Permiso 1: Edición de campos Wiki
+          // Permite actualizar la metadata wiki
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
-            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords'
-        ]) ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown'])
+            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords',
+            // Si el editor wiki toca updatedAt, se debe añadir aquí también: 'updatedAt' 
+          ]) ||
+          
+          // Permiso 2+3: Votación de Actitud y Emoción (FUNCIONAL - Tolerancia Máxima)
+          // Permite actualizar los contadores de Attitude, Emotion y el campo updatedAt.
+          // ADVERTENCIA: Esta regla es vulnerable a la manipulación directa de contadores.
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'attitude', 'emotion', 'updatedAt' // Los campos más amplios que usa el cliente
+          ])) ||
+          
+          // Permiso 4: Actualización de Calificación (SEGURO: fuerza isIncrement en el contador principal)
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']) && isIncrement('ratingCount'))
+        )
       );
       
       // Rules for public-facing subcollections within figures
