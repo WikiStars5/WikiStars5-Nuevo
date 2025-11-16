@@ -50,6 +50,26 @@ service cloud.firestore {
                nextVoteMap[newVoteField] == prevVoteMap[newVoteField] + 1 &&
                nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
     }
+
+    // 🏆 NUEVA FUNCIÓN: Verifica la seguridad y atomicidad del cambio de calificación
+    function isRatingChangeValid(count, ratingValue) {
+        // 1. Verifica si ratingCount cambia correctamente (+1 o -1)
+        let countCheck = isIncrement('ratingCount', count);
+        
+        // 2. Verifica si totalRating cambia por el valor de la calificación (+/- ratingValue)
+        let totalRatingCheck = isIncrement('totalRating', count * ratingValue);
+
+        // 3. Verifica que ratingsBreakdown solo se modifique en el índice de la calificación
+        let breakdownKeys = request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys();
+        let breakdownCheck = breakdownKeys.hasOnly([string(ratingValue)]);
+
+        // 4. Verifica si el bucket específico de ratingsBreakdown cambia correctamente (+1 o -1)
+        let nextBucketValue = request.resource.data.ratingsBreakdown[string(ratingValue)];
+        let prevBucketValue = resource.data.ratingsBreakdown[string(ratingValue)];
+        let bucketChangeCheck = nextBucketValue == prevBucketValue + count || (prevBucketValue == null && nextBucketValue == count);
+
+        return countCheck && totalRatingCheck && breakdownCheck && bucketChangeCheck;
+    }
     
     // --- User Data Collections ---
 
@@ -133,9 +153,17 @@ service cloud.firestore {
             )
           ) ||
           
-          // Permiso 4: Actualización de Calificación (GOAT - Contrato estricto)
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown', 'updatedAt']) && 
-            (isIncrement('ratingCount', 1) || isIncrement('ratingCount', -1))
+          // Permiso 4: Actualización de Calificación (GOAT - Contrato estricto y Seguro)
+          (request.resource.data.__ratingValue is number && request.resource.data.__ratingValue >= 0 && request.resource.data.__ratingValue <= 5 &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'ratingCount', 'totalRating', 'ratingsBreakdown', 'updatedAt', '__ratingValue'
+            ]) &&
+            (
+              // Añadir una calificación (count = 1)
+              isRatingChangeValid(1, request.resource.data.__ratingValue) ||
+              // Remover una calificación (count = -1)
+              isRatingChangeValid(-1, request.resource.data.__ratingValue)
+            )
           )
         )
       );

@@ -107,25 +107,42 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const previousCommentDoc = previousCommentSnapshot.docs[0];
         const previousComment = previousCommentDoc?.data() as Comment | undefined;
 
-        const updates: { [key: string]: any } = {};
+        const updates: { [key: string]: any } = {
+          updatedAt: serverTimestamp(),
+        };
 
         if (isRatingEnabled && typeof newRating === 'number' && newRating >= 0) {
+            updates.__ratingValue = newRating; // Pass rating value for security rules
+
             if (previousComment && typeof previousComment.rating === 'number' && previousComment.rating >= 0) {
               const oldRating = previousComment.rating;
               if (oldRating !== newRating) {
+                // This scenario is complex and might be better handled by just adding a new rating
+                // and letting the user know their previous rating is now archived.
+                // For simplicity, we just add the new rating. Let's adjust counts.
                 updates['totalRating'] = increment(newRating - oldRating);
                 updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
                 updates[`ratingsBreakdown.${newRating}`] = increment(1);
+                // Mark old comment's rating as void
                 transaction.update(previousCommentDoc.ref, { rating: -1 });
+              } else {
+                 // The rating is the same, no change to figure stats needed.
+                 // We still need to pass a value to security rules to allow the transaction.
+                 // We can use a no-op value like -1 if we add it to the rules. Or just don't update figure.
+                 // For now, let's assume we proceed and the rule needs to handle no-change scenarios.
+                 // Let's remove the __ratingValue if there is no change to avoid triggering the rule.
+                 delete updates.__ratingValue;
               }
             } else {
+              // This is the first rating from this user, or previous ones were voided.
               updates['ratingCount'] = increment(1);
               updates['totalRating'] = increment(newRating);
               updates[`ratingsBreakdown.${newRating}`] = increment(1);
             }
         }
         
-        if (Object.keys(updates).length > 0) {
+        // Only update the figure if there are actual changes to the rating.
+        if (updates.__ratingValue !== undefined) {
           transaction.update(figureRef, updates);
         }
         
