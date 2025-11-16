@@ -105,33 +105,38 @@ match /figures/{figureId} {
       allow create: if isSignedIn();
       allow delete: if isAdmin();
       
-<<<<<<< HEAD
       allow update: if isAdmin() || (
         isSignedIn() && (
-          // Permiso 1: Edición de campos Wiki
-          // Permite actualizar la metadata wiki
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
-            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords',
-            // Si el editor wiki toca updatedAt, se debe añadir aquí también: 'updatedAt' 
-          ]) ||
-          
-          // Permiso 2+3: Votación de Actitud y Emoción (FUNCIONAL - Tolerancia Máxima)
-          // Permite actualizar los contadores de Attitude, Emotion y el campo updatedAt.
-          // ADVERTENCIA: Esta regla es vulnerable a la manipulación directa de contadores.
+          // Allow authorized users to edit biographical data
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'attitude', 'emotion', 'updatedAt' // Los campos más amplios que usa el cliente
+            'name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 
+            'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'
           ])) ||
           
-          // Permiso 4: Actualización de Calificación (SEGURO: fuerza isIncrement en el contador principal)
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']) && isIncrement('ratingCount'))
+          // Allow atomic vote changes for attitude
+          (request.resource.data.__newVote != null && 
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) &&
+           (
+             (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) || // First vote
+             (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) || // Retract vote
+             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('attitude', request.resource.data.__oldVote, request.resource.data.__newVote)) // Change vote
+           )
+          ) ||
+
+          // Allow atomic vote changes for emotion
+          (request.resource.data.__newVote != null &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion', 'updatedAt', '__oldVote', '__newVote']) &&
+           (
+             (request.resource.data.__oldVote == null && isVoteIncrement('emotion', request.resource.data.__newVote)) || // First vote
+             (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('emotion', request.resource.data.__oldVote)) || // Retract vote
+             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote)) // Change vote
+           )
+          ) ||
+          
+          // Allow atomic increments for ratings
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown']) && isIncrement('ratingCount', 1))
         )
       );
-=======
-      // Only Admins can update the figure document directly.
-      // Vote counts are now updated via Cloud Functions.
-      allow update: if isAdmin();
->>>>>>> e0b938255779fa597f97d5b6b8aadcaa2987a40b
       
       // Rules for public-facing subcollections within figures
       match /attitudeVotes/{userId} {
@@ -256,10 +261,4 @@ match /goat_battles/{battleId} {
     }
     
     match /settings/{settingId} {
-      allow get: if true;
-      allow list: if true;
-      allow write: if isAdmin();      
-      
-    }
-  }
-}
+      allow get:

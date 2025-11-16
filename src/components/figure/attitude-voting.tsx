@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -89,14 +88,17 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         const previousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as AttitudeVote).vote : null;
         
         const isRetracting = previousVote === vote;
+        const updates: any = {
+          updatedAt: serverTimestamp(),
+          __oldVote: previousVote,
+          __newVote: isRetracting ? previousVote : vote, // On retract, old and new are the same
+        };
+
 
         if (isRetracting) {
           transaction.delete(publicVoteRef);
           transaction.delete(privateVoteRef);
-          transaction.update(figureRef, {
-            [`attitude.${vote}`]: increment(-1),
-            updatedAt: serverTimestamp(),
-          });
+          updates[`attitude.${vote}`] = increment(-1);
           finalAttitude = null;
           toast({ title: 'Voto eliminado' });
         } else {
@@ -110,22 +112,14 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
           transaction.set(privateVoteRef, voteData);
 
           if (previousVote) {
-            // Changing vote: decrement old, increment new
-            transaction.update(figureRef, { [`attitude.${previousVote}`]: increment(-1) });
-            transaction.update(figureRef, { 
-                [`attitude.${vote}`]: increment(1),
-                updatedAt: serverTimestamp()
-            });
-          } else {
-            // First vote
-            transaction.update(figureRef, { 
-                [`attitude.${vote}`]: increment(1),
-                updatedAt: serverTimestamp()
-            });
+            updates[`attitude.${previousVote}`] = increment(-1);
           }
+          updates[`attitude.${vote}`] = increment(1);
+
           finalAttitude = vote;
           toast({ title: previousVote ? '¡Voto actualizado!' : '¡Voto registrado!' });
         }
+         transaction.update(figureRef, updates);
       });
       
       onVote(finalAttitude);
