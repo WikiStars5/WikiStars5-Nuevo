@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -68,20 +69,20 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
     const handleVote = async (voteType: 'like' | 'dislike') => {
         if (!firestore || !user || isVoting) return;
         setIsVoting(voteType);
-
+    
         const commentPath = isReply
             ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
             : `figures/${figureId}/comments/${comment.id}`;
-            
+                
         const commentRef = doc(firestore, commentPath);
         const voteRef = doc(firestore, votePath, user.uid);
-
+    
         try {
             await runTransaction(firestore, async (transaction) => {
                 const voteDoc = await transaction.get(voteRef);
                 const existingVote = voteDoc.exists() ? voteDoc.data().vote : null;
                 const updates: { [key: string]: any } = {};
-
+    
                 if (existingVote === voteType) { // Retracting vote
                     updates[`${voteType}s`] = increment(-1);
                     transaction.delete(voteRef);
