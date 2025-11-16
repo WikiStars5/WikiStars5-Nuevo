@@ -3,13 +3,13 @@
 
 import { useState, useContext } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore'; 
+import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc } from 'firebase/firestore'; 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { Figure, EmotionVote } from '@/lib/types';
+import type { Figure, EmotionVote, GlobalSettings } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
 
@@ -45,6 +45,12 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   const [isVoting, setIsVoting] = useState<EmotionOption | null>(null);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
+  // Fetch global settings
+  const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
+  const areVotesEnabled = globalSettings?.isVotingEnabled ?? true;
+
+
   const userVoteRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, `users/${user.uid}/emotionVotes`, figure.id);
@@ -53,58 +59,65 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   const { data: userVote, isLoading: isVoteLoading } = useDoc<EmotionVote>(userVoteRef);
 
   const handleVote = async (vote: EmotionOption) => {
+     if (!areVotesEnabled) {
+      toast({
+        title: 'Votaciones deshabilitadas',
+        description: 'El administrador ha desactivado temporalmente las votaciones.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (!user) {
       setShowLoginDialog(true);
       return;
     }
-
     if (isVoting || !firestore || !auth) return;
     setIsVoting(vote);
     
     try {
-      const figureRef = doc(firestore, 'figures', figure.id);
       const publicVoteRef = doc(firestore, `figures/${figure.id}/emotionVotes`, user.uid);
       const privateVoteRef = doc(firestore, `users/${user.uid}/emotionVotes`, figure.id);
+      const figureRef = doc(firestore, 'figures', figure.id);
 
       await runTransaction(firestore, async (transaction) => {
-        const existingVoteDoc = await transaction.get(privateVoteRef);
-        const figureDoc = await transaction.get(figureRef);
+        const privateVoteDoc = await transaction.get(privateVoteRef);
+        const previousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as EmotionVote).vote : null;
 
-        if (!figureDoc.exists()) {
-          throw new Error('¡El perfil no existe!');
-        }
+        const isRetracting = previousVote === vote;
 
-        const newVoteData: Omit<EmotionVote, 'id'> = {
-          userId: user.uid,
-          figureId: figure.id,
-          vote: vote,
-          createdAt: serverTimestamp(),
-        };
-
-        if (existingVoteDoc.exists()) {
-          const previousVote = existingVoteDoc.data().vote as EmotionOption;
-          if (previousVote === vote) {
-            transaction.update(figureRef, { [`emotion.${vote}`]: increment(-1) });
-            transaction.delete(publicVoteRef);
-            transaction.delete(privateVoteRef);
-            toast({ title: 'Voto eliminado' });
-          } else {
-            transaction.update(figureRef, {
-              [`emotion.${previousVote}`]: increment(-1),
-              [`emotion.${vote}`]: increment(1),
-            });
-            transaction.set(publicVoteRef, newVoteData);
-            transaction.set(privateVoteRef, newVoteData);
-            toast({ title: '¡Voto actualizado!' });
-          }
+        if (isRetracting) {
+          transaction.delete(publicVoteRef);
+          transaction.delete(privateVoteRef);
+          transaction.update(figureRef, { 
+              [`emotion.${vote}`]: increment(-1),
+              updatedAt: serverTimestamp()
+          });
+          toast({ title: 'Voto eliminado' });
         } else {
-          transaction.update(figureRef, { [`emotion.${vote}`]: increment(1) });
+          const newVoteData = {
+            userId: user.uid,
+            figureId: figure.id,
+            vote: vote,
+            createdAt: serverTimestamp(),
+          };
           transaction.set(publicVoteRef, newVoteData);
           transaction.set(privateVoteRef, newVoteData);
-          toast({ title: '¡Voto registrado!' });
+          
+          if (previousVote) {
+             transaction.update(figureRef, { [`emotion.${previousVote}`]: increment(-1) });
+             transaction.update(figureRef, { 
+                [`emotion.${vote}`]: increment(1),
+                updatedAt: serverTimestamp()
+            });
+          } else {
+            transaction.update(figureRef, { 
+                [`emotion.${vote}`]: increment(1),
+                updatedAt: serverTimestamp()
+            });
+          }
+          toast({ title: previousVote ? '¡Voto actualizado!' : '¡Voto registrado!' });
         }
       });
-
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
       toast({
@@ -122,6 +135,16 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
   if (isLoading && user) {
     return <Skeleton className="h-48 w-full" />;
+  }
+
+  if (!areVotesEnabled) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted">
+        <Lock className="h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-4 text-lg font-semibold">Votaciones Deshabilitadas</h3>
+        <p className="mt-1 text-sm text-muted-foreground">El administrador ha desactivado temporalmente las votaciones de emoción.</p>
+      </div>
+    );
   }
 
   return (

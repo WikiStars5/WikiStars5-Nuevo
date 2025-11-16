@@ -1,9 +1,10 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, PlusCircle, Users, Trophy, Loader2, StarOff } from 'lucide-react';
+import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -67,6 +68,23 @@ export default function AdminDashboard() {
         });
     } catch (error) {
         console.error("Error toggling ratings:", error);
+        toast({
+            title: 'Error al cambiar la configuración',
+            variant: 'destructive',
+        });
+    }
+  };
+
+  const handleToggleVoting = async (isEnabled: boolean) => {
+    if (!settingsDocRef) return;
+    try {
+        setDocumentNonBlocking(settingsDocRef, { isVotingEnabled: isEnabled }, { merge: true });
+        toast({
+            title: `Votaciones ${isEnabled ? 'Habilitadas' : 'Deshabilitadas'}`,
+            description: `Los usuarios ${isEnabled ? 'ahora pueden' : 'ya no pueden'} votar por actitud y emoción.`,
+        });
+    } catch (error) {
+        console.error("Error toggling voting:", error);
         toast({
             title: 'Error al cambiar la configuración',
             variant: 'destructive',
@@ -249,6 +267,22 @@ export default function AdminDashboard() {
                             checked={globalSettings?.isRatingEnabled ?? true}
                             onCheckedChange={handleToggleRatings}
                             aria-label="Toggle star ratings"
+                        />
+                    )}
+                </div>
+
+                <div className="rounded-lg border p-4 flex items-center justify-between">
+                    <div>
+                        <h3 className="font-semibold flex items-center gap-2"><Smile /> Votaciones de Actitud y Emoción</h3>
+                        <p className="text-sm text-muted-foreground">Activa o desactiva la capacidad de los usuarios para votar.</p>
+                    </div>
+                    {isLoadingSettings ? (
+                        <Skeleton className="h-6 w-12" />
+                    ) : (
+                        <Switch
+                            checked={globalSettings?.isVotingEnabled ?? true}
+                            onCheckedChange={handleToggleVoting}
+                            aria-label="Toggle attitude and emotion voting"
                         />
                     )}
                 </div>

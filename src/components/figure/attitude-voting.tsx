@@ -3,14 +3,14 @@
 
 import { useState, useContext } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore'; 
+import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc } from 'firebase/firestore'; 
 import { onAuthStateChanged, User as FirebaseUser, Auth } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { Figure, AttitudeVote } from '@/lib/types';
+import type { Figure, AttitudeVote, GlobalSettings } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
 
@@ -44,80 +44,87 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
 
+  // Fetch global settings
+  const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
+  const areVotesEnabled = globalSettings?.isVotingEnabled ?? true;
+
+
   const attitudeOptions = figure.nationality === 'Web'
     ? allAttitudeOptions.filter(option => option.id !== 'simp')
     : allAttitudeOptions;
 
   const userVoteRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // Check the user's private collection first for the vote
     return doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
 
   const handleVote = async (vote: AttitudeOption) => {
+    if (!areVotesEnabled) {
+      toast({
+        title: 'Votaciones deshabilitadas',
+        description: 'El administrador ha desactivado temporalmente las votaciones.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (!user) {
       setShowLoginDialog(true);
       return;
     }
-
     if (isVoting || !firestore || !auth) return;
     setIsVoting(vote);
 
     let finalAttitude: AttitudeOption | null = null;
-    let isFirstVote = false;
-
+    
     try {
-      const figureRef = doc(firestore, 'figures', figure.id);
       const publicVoteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
       const privateVoteRef = doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
+      const figureRef = doc(firestore, `figures/${figure.id}`);
 
       await runTransaction(firestore, async (transaction) => {
-        const existingVoteDoc = await transaction.get(privateVoteRef);
-        const figureDoc = await transaction.get(figureRef);
+        const privateVoteDoc = await transaction.get(privateVoteRef);
+        const previousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as AttitudeVote).vote : null;
+        
+        const isRetracting = previousVote === vote;
 
-        if (!figureDoc.exists()) {
-          throw new Error('¡El perfil no existe!');
-        }
-
-        const voteData: Omit<AttitudeVote, 'id'> = {
+        if (isRetracting) {
+          transaction.delete(publicVoteRef);
+          transaction.delete(privateVoteRef);
+          transaction.update(figureRef, {
+            [`attitude.${vote}`]: increment(-1),
+            updatedAt: serverTimestamp(),
+          });
+          finalAttitude = null;
+          toast({ title: 'Voto eliminado' });
+        } else {
+          const voteData = {
             userId: user.uid,
             figureId: figure.id,
             vote: vote,
             createdAt: serverTimestamp(),
-        };
-
-        if (existingVoteDoc.exists()) {
-          const existingData = existingVoteDoc.data() as AttitudeVote;
-          const previousVote = existingData.vote;
-          
-          if (previousVote === vote) {
-            // Retracting vote
-            transaction.update(figureRef, { [`attitude.${vote}`]: increment(-1) });
-            transaction.delete(publicVoteRef);
-            transaction.delete(privateVoteRef);
-            toast({ title: 'Voto eliminado' });
-            finalAttitude = null;
-          } else {
-            // Changing vote
-            transaction.update(figureRef, {
-              [`attitude.${previousVote}`]: increment(-1),
-              [`attitude.${vote}`]: increment(1),
-            });
-            transaction.set(publicVoteRef, voteData);
-            transaction.set(privateVoteRef, voteData);
-            toast({ title: '¡Voto actualizado!' });
-            finalAttitude = vote;
-          }
-        } else {
-          // First vote for this user on this figure
-          isFirstVote = true; 
-          transaction.update(figureRef, { [`attitude.${vote}`]: increment(1) });
+          };
           transaction.set(publicVoteRef, voteData);
           transaction.set(privateVoteRef, voteData);
-          toast({ title: '¡Voto registrado!' });
+
+          if (previousVote) {
+            // Changing vote: decrement old, increment new
+            transaction.update(figureRef, { [`attitude.${previousVote}`]: increment(-1) });
+            transaction.update(figureRef, { 
+                [`attitude.${vote}`]: increment(1),
+                updatedAt: serverTimestamp()
+            });
+          } else {
+            // First vote
+            transaction.update(figureRef, { 
+                [`attitude.${vote}`]: increment(1),
+                updatedAt: serverTimestamp()
+            });
+          }
           finalAttitude = vote;
+          toast({ title: previousVote ? '¡Voto actualizado!' : '¡Voto registrado!' });
         }
       });
       
@@ -147,6 +154,16 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
   }
 
   const gridColsClass = attitudeOptions.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4';
+  
+  if (!areVotesEnabled) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted">
+        <Lock className="h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-4 text-lg font-semibold">Votaciones Deshabilitadas</h3>
+        <p className="mt-1 text-sm text-muted-foreground">El administrador ha desactivado temporalmente las votaciones de actitud.</p>
+      </div>
+    );
+  }
 
   return (
     <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
