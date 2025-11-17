@@ -239,7 +239,7 @@ export default function GoatBattle() {
   
   if (isLoading) {
     return (
-        <Card className="dark:bg-black">
+        <Card>
             <CardHeader className="items-center text-center">
                 <Skeleton className="h-8 w-2/3" />
                 <Skeleton className="h-5 w-1/2" />
@@ -269,7 +269,7 @@ export default function GoatBattle() {
 
   if (!battleData || !battleData.endTime) {
     return (
-        <Card className="dark:bg-black">
+        <Card>
             <CardHeader className="items-center text-center">
                  <CardTitle className="flex items-center gap-2 text-3xl">
                     <GoatIcon/> ELIJAMOS AL VERDADERO GOAT
@@ -287,7 +287,7 @@ export default function GoatBattle() {
 
   return (
     <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-      <Card className="relative dark:bg-black">
+      <Card className="relative">
         <CardHeader className="items-center text-center pt-12">
             <CardTitle className="flex items-center gap-2 text-3xl">
             <GoatIcon/> ELIJAMOS AL VERDADERO GOAT
@@ -395,7 +395,3 @@ export default function GoatBattle() {
     </LoginPromptDialog>
   );
 }
-
-    
-
-    
