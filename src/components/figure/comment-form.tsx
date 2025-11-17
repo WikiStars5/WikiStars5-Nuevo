@@ -62,7 +62,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   });
 
   useEffect(() => {
-    // Re-initialize form validation schema when rating setting changes
     form.reset(form.getValues());
   }, [isRatingEnabled, form]);
 
@@ -85,18 +84,9 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
       await runTransaction(firestore, async (transaction) => {
         const userProfileRef = doc(firestore, 'users', user!.uid);
-        const [figureDoc, userProfileSnap, previousCommentSnapshot] = await Promise.all([
+        const [figureDoc, userProfileSnap] = await Promise.all([
           transaction.get(figureRef),
           transaction.get(userProfileRef),
-          // Only look for previous comments with ratings if ratings are enabled
-          isRatingEnabled ? getDocs(query(
-            commentsColRef,
-            where('userId', '==', user!.uid),
-            where('rating', '>=', 0),
-            orderBy('rating'),
-            orderBy('createdAt', 'desc'),
-            limit(1)
-          )) : Promise.resolve({ docs: [] })
         ]);
         
         if (!figureDoc.exists()) throw new Error("Figure not found.");
@@ -104,45 +94,33 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
         displayName = displayName || userProfileData.username || 'Usuario';
         
-        const previousCommentDoc = previousCommentSnapshot.docs[0];
-        const previousComment = previousCommentDoc?.data() as Comment | undefined;
+        const previousCommentsQuery = query(
+            commentsColRef,
+            where('userId', '==', user!.uid),
+            orderBy('createdAt', 'desc')
+        );
+        const previousCommentSnapshot = await getDocs(previousCommentsQuery);
+        const previousRatingComment = previousCommentSnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Comment))
+            .find(comment => typeof comment.rating === 'number' && comment.rating >= 0);
 
-        const updates: { [key: string]: any } = {
-          updatedAt: serverTimestamp(),
-        };
+        const updates: { [key: string]: any } = { updatedAt: serverTimestamp() };
 
         if (isRatingEnabled && typeof newRating === 'number' && newRating >= 0) {
-            updates.__ratingValue = newRating; // Pass rating value for security rules
-
-            if (previousComment && typeof previousComment.rating === 'number' && previousComment.rating >= 0) {
-              const oldRating = previousComment.rating;
-              if (oldRating !== newRating) {
-                // This scenario is complex and might be better handled by just adding a new rating
-                // and letting the user know their previous rating is now archived.
-                // For simplicity, we just add the new rating. Let's adjust counts.
-                updates['totalRating'] = increment(newRating - oldRating);
-                updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
-                updates[`ratingsBreakdown.${newRating}`] = increment(1);
-                // Mark old comment's rating as void
-                transaction.update(previousCommentDoc.ref, { rating: -1 });
-              } else {
-                 // The rating is the same, no change to figure stats needed.
-                 // We still need to pass a value to security rules to allow the transaction.
-                 // We can use a no-op value like -1 if we add it to the rules. Or just don't update figure.
-                 // For now, let's assume we proceed and the rule needs to handle no-change scenarios.
-                 // Let's remove the __ratingValue if there is no change to avoid triggering the rule.
-                 delete updates.__ratingValue;
-              }
+            if (previousRatingComment) {
+                const oldRating = previousRatingComment.rating;
+                if (oldRating !== newRating) {
+                    updates.__oldRatingValue = oldRating;
+                    updates.__newRatingValue = newRating;
+                    transaction.update(doc(commentsColRef, previousRatingComment.id), { rating: -1, updatedAt: serverTimestamp() });
+                }
             } else {
-              // This is the first rating from this user, or previous ones were voided.
-              updates['ratingCount'] = increment(1);
-              updates['totalRating'] = increment(newRating);
-              updates[`ratingsBreakdown.${newRating}`] = increment(1);
+                updates.__ratingValue = newRating;
+                updates['ratingCount'] = increment(1);
             }
         }
         
-        // Only update the figure if there are actual changes to the rating.
-        if (updates.__ratingValue !== undefined) {
+        if (updates.__ratingValue !== undefined || updates.__newRatingValue !== undefined) {
           transaction.update(figureRef, updates);
         }
         
@@ -196,7 +174,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       toast({
             variant: 'destructive',
             title: 'Error al Publicar',
-            description: 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
+            description: error.message || 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
         });
     } finally {
       setIsSubmitting(false);
