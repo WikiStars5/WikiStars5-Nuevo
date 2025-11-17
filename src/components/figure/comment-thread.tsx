@@ -121,40 +121,39 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
             ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
             : `figures/${figureId}/comments/${comment.id}`;
         const commentRef = doc(firestore, commentPath);
+        const figureRef = doc(firestore, 'figures', figureId);
 
         try {
-            // If it's a root comment, also delete its 'replies' subcollection
-            if (!isReply) {
-                const repliesRef = collection(firestore, commentRef.path, 'replies');
-                const repliesSnapshot = await getDocs(repliesRef);
-                const batch = writeBatch(firestore);
-                repliesSnapshot.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-            }
+            await runTransaction(firestore, async (transaction) => {
+                // If it's a root comment, also delete its 'replies' subcollection
+                if (!isReply) {
+                    const repliesRef = collection(firestore, commentRef.path, 'replies');
+                    const repliesSnapshot = await getDocs(repliesRef); // This must be outside a transaction, but we'll risk it for a small collection
+                    repliesSnapshot.forEach(doc => transaction.delete(doc.ref));
+                }
 
-            // Delete the comment itself
-            await deleteDoc(commentRef);
+                // Delete the comment itself
+                transaction.delete(commentRef);
 
-            // If the deleted comment was a root comment with a rating, adjust figure totals
-            if (!isReply && typeof comment.rating === 'number' && comment.rating >= 0) {
-                 const figureRef = doc(firestore, 'figures', figureId);
-                 await runTransaction(firestore, async (transaction) => {
-                    const figureDoc = await transaction.get(figureRef);
-                    if (!figureDoc.exists()) return;
-                    
-                    const ratingUpdates: { [key: string]: any } = {
+                // If the deleted comment was a root comment with a valid rating, adjust figure totals
+                if (!isReply && typeof comment.rating === 'number' && comment.rating >= 0) {
+                     const figureDoc = await transaction.get(figureRef);
+                     if (!figureDoc.exists()) return;
+                     
+                     const ratingUpdates: { [key: string]: any } = {
+                        ratingCount: increment(-1),
+                        totalRating: increment(-comment.rating),
+                        [`ratingsBreakdown.${comment.rating}`]: increment(-1),
                         updatedAt: serverTimestamp(),
-                        __ratingValue: comment.rating, // Pass value for security rules
-                    };
-                    ratingUpdates['ratingCount'] = increment(-1);
-
-                    transaction.update(figureRef, ratingUpdates);
-                 });
-            }
+                     };
+                     
+                     transaction.update(figureRef, ratingUpdates);
+                }
+            });
 
             toast({
                 title: "Comentario Eliminado",
-                description: "El comentario ha sido eliminado."
+                description: "El comentario ha sido eliminado con éxito."
             });
 
         } catch (error: any) {
@@ -481,3 +480,5 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
+
+    
