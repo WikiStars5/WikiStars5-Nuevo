@@ -47,40 +47,6 @@ service cloud.firestore {
                nextVoteMap[newVoteField] == prevVoteMap[newVoteField] + 1 &&
                nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
     }
-
-    // --- Rating Helper Functions ---
-    
-    function isRatingChange(count, ratingValue) {
-        let countCheck = isIncrement('ratingCount', count);
-        // Corrected totalRating check to be explicit
-        let totalRatingCheck = request.resource.data.totalRating == resource.data.totalRating + (count * ratingValue);
-        let breakdownKeys = request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys();
-        let breakdownCheck = breakdownKeys.hasOnly([string(ratingValue)]);
-        // Use isIncrement for the specific bucket
-        let bucketChangeCheck = isIncrement('ratingsBreakdown.' + string(ratingValue), count);
-        return countCheck && totalRatingCheck && breakdownCheck && bucketChangeCheck;
-    }
-
-    function isRatingChangeComplex(oldRatingValue, newRatingValue) {
-        // When changing a vote, ratingCount does not change.
-        let countCheck = request.resource.data.ratingCount == resource.data.ratingCount;
-
-        // totalRating is updated by the difference between the new and old rating.
-        // Corrected totalRating check to be explicit
-        let totalRatingCheck = request.resource.data.totalRating == resource.data.totalRating - oldRatingValue + newRatingValue;
-        
-        // Only the buckets for the old and new rating should change.
-        let breakdownKeys = request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys();
-        let breakdownCheck = breakdownKeys.hasOnly([string(oldRatingValue), string(newRatingValue)]);
-
-        // Verify old bucket decrement.
-        let oldBucketDecrement = request.resource.data.ratingsBreakdown[string(oldRatingValue)] == resource.data.ratingsBreakdown[string(oldRatingValue)] - 1;
-        // Verify new bucket increment.
-        let newBucketIncrement = isIncrement('ratingsBreakdown.' + string(newRatingValue), 1);
-        let bucketChangeCheck = oldBucketDecrement && newBucketIncrement;
-
-        return countCheck && totalRatingCheck && breakdownCheck && bucketChangeCheck;
-    }
     
     // --- User Data Collections ---
 
@@ -141,13 +107,29 @@ service cloud.firestore {
               // Case A: Adding or removing a rating.
               request.resource.data.__ratingValue is number &&
               request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown', 'updatedAt', '__ratingValue']) &&
-              (isRatingChange(1, request.resource.data.__ratingValue) || isRatingChange(-1, request.resource.data.__ratingValue))
+              (
+                // Adding a new rating
+                (request.resource.data.ratingCount == resource.data.ratingCount + 1 &&
+                 request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__ratingValue &&
+                 request.resource.data.ratingsBreakdown[string(request.resource.data.__ratingValue)] == resource.data.ratingsBreakdown[string(request.resource.data.__ratingValue)] + 1 &&
+                 request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys().hasOnly([string(request.resource.data.__ratingValue)]))
+                ||
+                // Removing a rating
+                (request.resource.data.ratingCount == resource.data.ratingCount - 1 &&
+                 request.resource.data.totalRating == resource.data.totalRating - request.resource.data.__ratingValue &&
+                 request.resource.data.ratingsBreakdown[string(request.resource.data.__ratingValue)] == resource.data.ratingsBreakdown[string(request.resource.data.__ratingValue)] - 1 &&
+                 request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys().hasOnly([string(request.resource.data.__ratingValue)]))
+              )
             ) ||
             (
               // Case B: Changing an existing rating.
               request.resource.data.__oldRatingValue is number && request.resource.data.__newRatingValue is number &&
               request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalRating', 'ratingsBreakdown', 'updatedAt', '__oldRatingValue', '__newRatingValue']) &&
-              isRatingChangeComplex(request.resource.data.__oldRatingValue, request.resource.data.__newRatingValue)
+              request.resource.data.ratingCount == resource.data.ratingCount && // Rating count does not change
+              request.resource.data.totalRating == resource.data.totalRating - request.resource.data.__oldRatingValue + request.resource.data.__newRatingValue &&
+              request.resource.data.ratingsBreakdown[string(request.resource.data.__oldRatingValue)] == resource.data.ratingsBreakdown[string(request.resource.data.__oldRatingValue)] - 1 &&
+              request.resource.data.ratingsBreakdown[string(request.resource.data.__newRatingValue)] == resource.data.ratingsBreakdown[string(request.resource.data.__newRatingValue)] + 1 &&
+              request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys().hasOnly([string(request.resource.data.__oldRatingValue), string(request.resource.data.__newRatingValue)])
             )
           )
         )
