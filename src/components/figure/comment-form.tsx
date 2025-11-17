@@ -85,9 +85,18 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
         const userProfileRef = doc(firestore, 'users', user!.uid);
         
-        const [figureDoc, userProfileSnap] = await Promise.all([
+        // Define the query *inside* the transaction to ensure context is valid
+        const previousCommentsQuery = query(
+            commentsColRef,
+            where('userId', '==', user!.uid),
+            orderBy('createdAt', 'desc')
+        );
+
+        // Fetch documents needed within the transaction
+        const [figureDoc, userProfileSnap, previousCommentSnapshot] = await Promise.all([
           transaction.get(figureRef),
           transaction.get(userProfileRef),
+          transaction.get(previousCommentsQuery)
         ]);
         
         if (!figureDoc.exists()) throw new Error("Figure not found.");
@@ -95,12 +104,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
         displayName = displayName || userProfileData.username || 'Usuario';
         
-        const previousCommentsQuery = query(
-            commentsColRef,
-            where('userId', '==', user!.uid),
-            orderBy('createdAt', 'desc')
-        );
-        const previousCommentSnapshot = await transaction.get(previousCommentsQuery);
         const previousRatingComment = previousCommentSnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as Comment))
             .find(comment => typeof comment.rating === 'number' && comment.rating >= 0);
