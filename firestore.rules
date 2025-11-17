@@ -138,7 +138,7 @@ service cloud.firestore {
           (
             (
               // Case A: Adding or removing a rating.
-              request.resource.data.__ratingValue is number && request.resource.data.__ratingValue >= 0 &&
+              request.resource.data.__ratingValue is number &&
               request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown', 'updatedAt', '__ratingValue']) &&
               (isRatingChange(1, request.resource.data.__ratingValue) || isRatingChange(-1, request.resource.data.__ratingValue))
             ) ||
@@ -215,5 +215,3 @@ service cloud.firestore {
     match /settings/{settingId} { allow get: if true; allow write: if isAdmin(); }
   }
 }
-
-    
