@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -111,19 +110,23 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             if (previousRatingComment) {
                 const oldRating = previousRatingComment.rating;
                 if (typeof oldRating === 'number' && oldRating >= 0 && oldRating !== newRating) {
-                    // This is a change of vote.
+                    // Case B: Changing a rating
                     updates.totalRating = increment(newRating - oldRating);
                     updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
                     updates[`ratingsBreakdown.${newRating}`] = increment(1);
+                    updates.__ratingCount_delta = 0; // Count doesn't change
+                    updates.__totalRating_delta = newRating - oldRating;
                 }
                 // Void the old comment's rating regardless of whether the new rating is different.
                 const oldCommentRef = doc(commentsColRef, previousRatingComment.id);
                 transaction.update(oldCommentRef, { rating: -1, updatedAt: serverTimestamp() });
             } else {
-                // This is the user's first rating.
+                // Case A: Adding first rating
                 updates.ratingCount = increment(1);
                 updates.totalRating = increment(newRating);
                 updates[`ratingsBreakdown.${newRating}`] = increment(1);
+                updates.__ratingCount_delta = 1;
+                updates.__totalRating_delta = newRating;
             }
             transaction.update(figureRef, updates);
         }

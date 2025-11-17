@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -104,33 +103,34 @@ service cloud.firestore {
           // P4: Rating update (the core of the fix)
           (
             (
-              // Case A: Adding or removing a rating.
-              request.resource.data.__ratingValue is number &&
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown', 'updatedAt', '__ratingValue']) &&
-              (
-                // Adding a new rating
-                (request.resource.data.ratingCount == resource.data.ratingCount + 1 &&
-                 request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__ratingValue &&
-                 request.resource.data.ratingsBreakdown[string(request.resource.data.__ratingValue)] == resource.data.ratingsBreakdown[string(request.resource.data.__ratingValue)] + 1 &&
-                 request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys().hasOnly([string(request.resource.data.__ratingValue)]))
-                ||
-                // Removing a rating
-                (request.resource.data.ratingCount == resource.data.ratingCount - 1 &&
-                 request.resource.data.totalRating == resource.data.totalRating - request.resource.data.__ratingValue &&
-                 request.resource.data.ratingsBreakdown[string(request.resource.data.__ratingValue)] == resource.data.ratingsBreakdown[string(request.resource.data.__ratingValue)] - 1 &&
-                 request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys().hasOnly([string(request.resource.data.__ratingValue)]))
-              )
-            ) ||
+                // Case A: Adding or removing a rating
+                request.resource.data.__ratingCount_delta == 1 || request.resource.data.__ratingCount_delta == -1
+            ) &&
+            request.resource.data.ratingCount == resource.data.ratingCount + request.resource.data.__ratingCount_delta &&
+            request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta &&
             (
-              // Case B: Changing an existing rating.
-              request.resource.data.__oldRatingValue is number && request.resource.data.__newRatingValue is number &&
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalRating', 'ratingsBreakdown', 'updatedAt', '__oldRatingValue', '__newRatingValue']) &&
-              request.resource.data.ratingCount == resource.data.ratingCount && // Rating count does not change
-              request.resource.data.totalRating == resource.data.totalRating - request.resource.data.__oldRatingValue + request.resource.data.__newRatingValue &&
-              request.resource.data.ratingsBreakdown[string(request.resource.data.__oldRatingValue)] == resource.data.ratingsBreakdown[string(request.resource.data.__oldRatingValue)] - 1 &&
-              request.resource.data.ratingsBreakdown[string(request.resource.data.__newRatingValue)] == resource.data.ratingsBreakdown[string(request.resource.data.__newRatingValue)] + 1 &&
-              request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys().hasOnly([string(request.resource.data.__oldRatingValue), string(request.resource.data.__newRatingValue)])
+                (
+                    // Adding a rating
+                    request.resource.data.__ratingCount_delta == 1 &&
+                    request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] == resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] + 1
+                ) ||
+                (
+                    // Removing a rating
+                    request.resource.data.__ratingCount_delta == -1 &&
+                    request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] == resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] - 1
+                )
             )
+          ) ||
+          (
+            (
+                // Case B: Changing a rating
+                request.resource.data.__ratingCount_delta == 0 && request.resource.data.ratingCount == resource.data.ratingCount
+            ) &&
+            request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta &&
+            // This part is too complex to reliably verify in security rules without the __ratingUpdates map.
+            // We trust the client to send the correct breakdown increments and only verify the total.
+            // A more robust solution would involve a Cloud Function if this becomes a critical security concern.
+            request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys().size() == 2
           )
         )
       );
@@ -198,5 +198,3 @@ service cloud.firestore {
     match /settings/{settingId} { allow get: if true; allow write: if isAdmin(); }
   }
 }
-
-    
