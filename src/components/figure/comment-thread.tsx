@@ -143,11 +143,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                     if (!figureDoc.exists()) return;
                     
                     const ratingUpdates: { [key: string]: any } = {
-                        updatedAt: serverTimestamp()
+                        updatedAt: serverTimestamp(),
+                        __ratingValue: comment.rating, // Pass value for security rules
                     };
                     ratingUpdates['ratingCount'] = increment(-1);
-                    ratingUpdates['totalRating'] = increment(-comment.rating);
-                    ratingUpdates[`ratingsBreakdown.${comment.rating}`] = increment(-1);
 
                     transaction.update(figureRef, ratingUpdates);
                  });

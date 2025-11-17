@@ -99,7 +99,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             where('userId', '==', user!.uid),
             orderBy('createdAt', 'desc')
         );
-        const previousCommentSnapshot = await getDocs(previousCommentsQuery);
+        const previousCommentSnapshot = await transaction.get(previousCommentsQuery);
         const previousRatingComment = previousCommentSnapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as Comment))
             .find(comment => typeof comment.rating === 'number' && comment.rating >= 0);
@@ -112,16 +112,18 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                 if (oldRating !== newRating) {
                     updates.__oldRatingValue = oldRating;
                     updates.__newRatingValue = newRating;
-                    transaction.update(doc(commentsColRef, previousRatingComment.id), { rating: -1, updatedAt: serverTimestamp() });
+                    // Void the old comment's rating
+                    const oldCommentRef = doc(commentsColRef, previousRatingComment.id);
+                    transaction.update(oldCommentRef, { rating: -1, updatedAt: serverTimestamp() });
+                } else {
+                    // Rating is the same, no change to figure stats, but we still need to void old comment
+                    const oldCommentRef = doc(commentsColRef, previousRatingComment.id);
+                    transaction.update(oldCommentRef, { rating: -1, updatedAt: serverTimestamp() });
                 }
             } else {
                 updates.__ratingValue = newRating;
-                updates['ratingCount'] = increment(1);
             }
-        }
-        
-        if (updates.__ratingValue !== undefined || updates.__newRatingValue !== undefined) {
-          transaction.update(figureRef, updates);
+            transaction.update(figureRef, updates);
         }
         
         const newCommentRef = doc(commentsColRef);
