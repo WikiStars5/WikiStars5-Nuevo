@@ -49,15 +49,15 @@ service cloud.firestore {
     }
 
     // --- Rating Helper Functions ---
-
+    
     function isRatingChange(count, ratingValue) {
         let countCheck = isIncrement('ratingCount', count);
-        let totalRatingCheck = isIncrement('totalRating', count * ratingValue);
+        // Corrected totalRating check to be explicit
+        let totalRatingCheck = request.resource.data.totalRating == resource.data.totalRating + (count * ratingValue);
         let breakdownKeys = request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys();
         let breakdownCheck = breakdownKeys.hasOnly([string(ratingValue)]);
-        let nextBucketValue = request.resource.data.ratingsBreakdown[string(ratingValue)];
-        let prevBucketValue = resource.data.ratingsBreakdown[string(ratingValue)];
-        let bucketChangeCheck = nextBucketValue == prevBucketValue + count || (prevBucketValue == null && nextBucketValue == count);
+        // Use isIncrement for the specific bucket
+        let bucketChangeCheck = isIncrement('ratingsBreakdown.' + string(ratingValue), count);
         return countCheck && totalRatingCheck && breakdownCheck && bucketChangeCheck;
     }
 
@@ -66,7 +66,8 @@ service cloud.firestore {
         let countCheck = request.resource.data.ratingCount == resource.data.ratingCount;
 
         // totalRating is updated by the difference between the new and old rating.
-        let totalRatingCheck = isIncrement('totalRating', newRatingValue - oldRatingValue);
+        // Corrected totalRating check to be explicit
+        let totalRatingCheck = request.resource.data.totalRating == resource.data.totalRating - oldRatingValue + newRatingValue;
         
         // Only the buckets for the old and new rating should change.
         let breakdownKeys = request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys();
@@ -80,7 +81,7 @@ service cloud.firestore {
 
         return countCheck && totalRatingCheck && breakdownCheck && bucketChangeCheck;
     }
-
+    
     // --- User Data Collections ---
 
     match /users/{userId} {
