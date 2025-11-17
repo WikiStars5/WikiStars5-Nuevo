@@ -77,13 +77,14 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     
     try {
       const figureRef = doc(firestore, 'figures', figureId);
-      const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       
       let displayName = user.displayName;
       const newRating = isRatingEnabled ? data.rating : -1;
 
       await runTransaction(firestore, async (transaction) => {
+        const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
         const userProfileRef = doc(firestore, 'users', user!.uid);
+        
         const [figureDoc, userProfileSnap] = await Promise.all([
           transaction.get(figureRef),
           transaction.get(userProfileRef),
