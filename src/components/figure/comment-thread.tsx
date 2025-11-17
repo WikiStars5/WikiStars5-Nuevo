@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -124,11 +123,11 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         const figureRef = doc(firestore, 'figures', figureId);
         
         try {
-            await runTransaction(firestore, async (transaction) => {
+             await runTransaction(firestore, async (transaction) => {
                 // --- 1. READS FIRST ---
                 const figureDoc = await transaction.get(figureRef);
-                
-                // Fetch replies only if it's a root comment
+                if (!figureDoc.exists()) throw new Error("Figure not found.");
+
                 let repliesSnapshot;
                 if (!isReply) {
                     const repliesRef = collection(firestore, commentRef.path, 'replies');
@@ -136,30 +135,25 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 }
 
                 // --- 2. WRITES SECOND ---
-                if (!figureDoc.exists()) {
-                    // Although unlikely, good to have this check.
-                    throw new Error("Figure not found.");
-                }
-
-                // If the deleted comment was a root comment with a valid rating, adjust figure totals.
                 if (!isReply && typeof comment.rating === 'number' && comment.rating >= 0) {
                      const ratingUpdates: { [key: string]: any } = {
                         ratingCount: increment(-1),
                         totalRating: increment(-comment.rating),
                         [`ratingsBreakdown.${comment.rating}`]: increment(-1),
+                        __ratingCount_delta: -1,
+                        __totalRating_delta: -comment.rating,
                         updatedAt: serverTimestamp(),
                      };
                      transaction.update(figureRef, ratingUpdates);
                 }
 
-                // If it's a root comment, delete all its replies first.
                 if (repliesSnapshot) {
                     repliesSnapshot.forEach(replyDoc => transaction.delete(replyDoc.ref));
                 }
                 
-                // Finally, delete the comment itself.
                 transaction.delete(commentRef);
             });
+
 
             toast({
                 title: "Comentario Eliminado",
@@ -489,7 +483,3 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
-
-    
-
-    

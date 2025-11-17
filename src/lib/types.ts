@@ -72,6 +72,8 @@ export interface Figure {
   // Temporary fields for security rules, not stored in DB.
   __oldVote?: string | null;
   __newVote?: string | null;
+  __ratingCount_delta?: number;
+  __totalRating_delta?: number;
 }
 
 export interface Hashtag {
@@ -177,5 +179,3 @@ export interface Referral {
     sourceFigureId?: string | null;
     hasVoted?: boolean;
 }
-
-    
