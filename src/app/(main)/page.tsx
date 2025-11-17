@@ -10,6 +10,9 @@ import {
 } from 'lucide-react';
 import SearchBar from '@/components/shared/search-bar';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -78,6 +81,15 @@ export default function HomePage() {
         </div>
       </section>
       
+      <section className="mt-16 md:mt-24">
+        <Alert>
+            <Info className="h-4 w-4" />
+            <AlertTitle>Versión Beta</AlertTitle>
+            <AlertDescription>
+                Nuestra plataforma se encuentra actualmente en fase de desarrollo activo. Agradecemos tu paciencia y tus comentarios mientras trabajamos para mejorar la experiencia.
+            </AlertDescription>
+        </Alert>
+      </section>
 
     </div>
   );
