@@ -170,7 +170,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                 variant="outline"
                 className={cn(
                 'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
-                'dark:bg-black dark:hover:bg-neutral-900',
+                'dark:bg-black',
                 isSelected ? `scale-105 ${selectedClass}` : `${colorClass}`,
                 isVoting === id ? 'cursor-not-allowed' : ''
                 )}
@@ -203,5 +203,3 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     </LoginPromptDialog>
   );
 }
-
-    
