@@ -110,16 +110,20 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         if (isRatingEnabled && typeof newRating === 'number' && newRating >= 0) {
             if (previousRatingComment) {
                 const oldRating = previousRatingComment.rating;
-                if (oldRating !== newRating) {
-                    updates.__oldRatingValue = oldRating;
-                    updates.__newRatingValue = newRating;
+                if (typeof oldRating === 'number' && oldRating >= 0 && oldRating !== newRating) {
+                    // This is a change of vote.
+                    updates.totalRating = increment(newRating - oldRating);
+                    updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
+                    updates[`ratingsBreakdown.${newRating}`] = increment(1);
                 }
                 // Void the old comment's rating regardless of whether the new rating is different.
                 const oldCommentRef = doc(commentsColRef, previousRatingComment.id);
                 transaction.update(oldCommentRef, { rating: -1, updatedAt: serverTimestamp() });
             } else {
                 // This is the user's first rating.
-                updates.__ratingValue = newRating;
+                updates.ratingCount = increment(1);
+                updates.totalRating = increment(newRating);
+                updates[`ratingsBreakdown.${newRating}`] = increment(1);
             }
             transaction.update(figureRef, updates);
         }
