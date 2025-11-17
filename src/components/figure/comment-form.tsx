@@ -77,26 +77,27 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     
     try {
       const figureRef = doc(firestore, 'figures', figureId);
-      
+      const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
       let displayName = user.displayName;
       const newRating = isRatingEnabled ? data.rating : -1;
 
+      // Find the user's previous comment with a rating outside the transaction.
+      const previousCommentsQuery = query(
+          commentsColRef,
+          where('userId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+      );
+      const previousCommentSnapshot = await getDocs(previousCommentsQuery);
+      const previousRatingComment = previousCommentSnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as Comment))
+          .find(comment => typeof comment.rating === 'number' && comment.rating >= 0);
+
       await runTransaction(firestore, async (transaction) => {
-        const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
         const userProfileRef = doc(firestore, 'users', user!.uid);
         
-        // Define the query *inside* the transaction to ensure context is valid
-        const previousCommentsQuery = query(
-            commentsColRef,
-            where('userId', '==', user!.uid),
-            orderBy('createdAt', 'desc')
-        );
-
-        // Fetch documents needed within the transaction
-        const [figureDoc, userProfileSnap, previousCommentSnapshot] = await Promise.all([
+        const [figureDoc, userProfileSnap] = await Promise.all([
           transaction.get(figureRef),
-          transaction.get(userProfileRef),
-          transaction.get(previousCommentsQuery)
+          transaction.get(userProfileRef)
         ]);
         
         if (!figureDoc.exists()) throw new Error("Figure not found.");
@@ -104,10 +105,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
         displayName = displayName || userProfileData.username || 'Usuario';
         
-        const previousRatingComment = previousCommentSnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as Comment))
-            .find(comment => typeof comment.rating === 'number' && comment.rating >= 0);
-
         const updates: { [key: string]: any } = { updatedAt: serverTimestamp() };
 
         if (isRatingEnabled && typeof newRating === 'number' && newRating >= 0) {
@@ -116,15 +113,12 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                 if (oldRating !== newRating) {
                     updates.__oldRatingValue = oldRating;
                     updates.__newRatingValue = newRating;
-                    // Void the old comment's rating
-                    const oldCommentRef = doc(commentsColRef, previousRatingComment.id);
-                    transaction.update(oldCommentRef, { rating: -1, updatedAt: serverTimestamp() });
-                } else {
-                    // Rating is the same, no change to figure stats, but we still need to void old comment
-                    const oldCommentRef = doc(commentsColRef, previousRatingComment.id);
-                    transaction.update(oldCommentRef, { rating: -1, updatedAt: serverTimestamp() });
                 }
+                // Void the old comment's rating regardless of whether the new rating is different.
+                const oldCommentRef = doc(commentsColRef, previousRatingComment.id);
+                transaction.update(oldCommentRef, { rating: -1, updatedAt: serverTimestamp() });
             } else {
+                // This is the user's first rating.
                 updates.__ratingValue = newRating;
             }
             transaction.update(figureRef, updates);
