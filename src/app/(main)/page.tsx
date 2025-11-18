@@ -82,12 +82,12 @@ export default function HomePage() {
       </section>
       
       <section className="mt-16 md:mt-24">
-        <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>Versión Beta</AlertTitle>
-            <AlertDescription>
-                Nuestra plataforma se encuentra actualmente en fase de desarrollo activo. Agradecemos tu paciencia y tus comentarios mientras trabajamos para mejorar la experiencia.
-            </AlertDescription>
+        <Alert className="border-primary/50 bg-primary/10 text-primary-foreground">
+          <Info className="h-4 w-4 text-primary" />
+          <AlertTitle className="text-primary">Versión Beta</AlertTitle>
+          <AlertDescription>
+              Nuestra plataforma se encuentra actualmente en fase de desarrollo activo. Agradecemos tu paciencia y tus comentarios mientras trabajamos para mejorar la experiencia.
+          </AlertDescription>
         </Alert>
       </section>
 
