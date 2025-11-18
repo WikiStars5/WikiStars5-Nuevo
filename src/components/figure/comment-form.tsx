@@ -129,7 +129,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         }
         
         const newCommentRef = doc(commentsColRef);
-        const newCommentPayload: Omit<Comment, 'id' | 'children' | 'createdAt'> & { createdAt: any } = {
+        const newCommentPayload: Omit<Comment, 'id' | 'createdAt'> & { createdAt: any } = {
             threadId: newCommentRef.id,
             figureId: figureId,
             userId: user!.uid,
@@ -202,7 +202,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         <CardContent className="p-6 text-center space-y-3">
           <MessageCircle className="mx-auto h-8 w-8 text-muted-foreground" />
           <h3 className="font-semibold">Ya has dejado tu opinión</h3>
-          <p className="text-sm text-muted-foreground">Solo se permite una reseña por perfil para mantener la calidad de las calificaciones. Puedes editar la tuya si quieres cambiar algo.</p>
+          <p className="text-sm text-muted-foreground">Solo se permite una reseña por perfil. Para dejar una nueva calificación, elimina tu comentario anterior.</p>
            <Button asChild variant="outline">
               <Link href={`#comment-${existingComment.id}`}>
                 <Edit className="mr-2 h-4 w-4" />
