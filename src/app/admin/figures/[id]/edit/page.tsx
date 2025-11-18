@@ -110,6 +110,20 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
 
   const form = useForm<EditFormValues>({
     resolver: zodResolver(editFormSchema),
+    defaultValues: {
+      name: '',
+      imageUrl: '',
+      description: '',
+      nationality: '',
+      gender: undefined,
+      birthDate: '',
+      deathDate: '',
+      occupation: '',
+      maritalStatus: undefined,
+      height: undefined,
+      socialLinks: {},
+      tags: [],
+    }
   });
 
   React.useEffect(() => {
@@ -384,3 +398,5 @@ export default function EditFigurePage() {
 
     return <EditFigurePageContent figureId={figureId} />;
 }
+
+    
