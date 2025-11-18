@@ -1,8 +1,5 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useFirestore, useUser } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Footer from '@/components/shared/footer';
 import Header from '@/components/shared/header';
 
@@ -13,49 +10,6 @@ export default function MainLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const isUnloading = useRef(false);
-
-  useEffect(() => {
-    if (!user || !firestore) return;
-
-    const uid = user.uid;
-    const statusRef = doc(firestore, 'status', uid);
-
-    const updateStatus = (isOnline: boolean) => {
-      setDoc(doc(firestore, 'status', uid), { isOnline, lastChanged: serverTimestamp() }, { merge: true });
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        isUnloading.current = false;
-        updateStatus(true);
-      } else {
-        if (!isUnloading.current) {
-            updateStatus(false);
-        }
-      }
-    };
-    
-    const handlePageHide = () => {
-      isUnloading.current = true;
-      updateStatus(false);
-    }
-    
-    updateStatus(true);
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('pagehide', handlePageHide);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pagehide', handlePageHide);
-      if (uid && firestore) {
-        updateStatus(false);
-      }
-    };
-  }, [user, firestore]);
 
   return (
       <div className="flex min-h-screen flex-col bg-background">
