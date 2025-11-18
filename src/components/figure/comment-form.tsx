@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -12,13 +11,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, Send, Flame, Lock } from 'lucide-react';
+import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle } from 'lucide-react';
 import StarInput from './star-input';
 import { Comment, Streak, GlobalSettings, Figure } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const createCommentSchema = (isRatingEnabled: boolean) => z.object({
   text: z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.'),
@@ -52,6 +52,9 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
 
+  const [existingComment, setExistingComment] = useState<Comment | null>(null);
+  const [isCheckingComment, setIsCheckingComment] = useState(true);
+
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
   const isRatingEnabled = (globalSettings?.isRatingEnabled ?? true);
@@ -60,6 +63,30 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     resolver: zodResolver(createCommentSchema(isRatingEnabled)),
     defaultValues: { text: '', rating: null },
   });
+  
+  useEffect(() => {
+    const checkForExistingComment = async () => {
+      if (!firestore || !user) {
+        setIsCheckingComment(false);
+        return;
+      }
+      setIsCheckingComment(true);
+      const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
+      const q = query(commentsColRef, where('userId', '==', user.uid), limit(1));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const commentDoc = snapshot.docs[0];
+        setExistingComment({ id: commentDoc.id, ...commentDoc.data() } as Comment);
+      } else {
+        setExistingComment(null);
+      }
+      setIsCheckingComment(false);
+    };
+
+    if (!isUserLoading) {
+      checkForExistingComment();
+    }
+  }, [user, firestore, figureId, isUserLoading]);
 
   useEffect(() => {
     form.reset(form.getValues());
@@ -81,16 +108,18 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       let displayName = user.displayName;
       const newRating = isRatingEnabled ? data.rating : -1;
 
-      // Find the user's previous comment with a rating outside the transaction.
+      // This is now redundant due to the UI change but serves as a final backend check simulation
       const previousCommentsQuery = query(
           commentsColRef,
           where('userId', '==', user.uid),
           orderBy('createdAt', 'desc')
       );
       const previousCommentSnapshot = await getDocs(previousCommentsQuery);
-      const previousRatingComment = previousCommentSnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() } as Comment))
-          .find(comment => typeof comment.rating === 'number' && comment.rating >= 0);
+      if (!previousCommentSnapshot.empty) {
+        toast({ title: 'Ya has comentado', description: 'Solo se permite un comentario por perfil.', variant: 'destructive'});
+        setIsSubmitting(false);
+        return;
+      }
 
       await runTransaction(firestore, async (transaction) => {
         const userProfileRef = doc(firestore, 'users', user!.uid);
@@ -108,27 +137,12 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const updates: { [key: string]: any } = { updatedAt: serverTimestamp() };
 
         if (isRatingEnabled && typeof newRating === 'number' && newRating >= 0) {
-            if (previousRatingComment) {
-                const oldRating = previousRatingComment.rating;
-                if (typeof oldRating === 'number' && oldRating >= 0 && oldRating !== newRating) {
-                    // Case B: Changing a rating
-                    updates.totalRating = increment(newRating - oldRating);
-                    updates[`ratingsBreakdown.${oldRating}`] = increment(-1);
-                    updates[`ratingsBreakdown.${newRating}`] = increment(1);
-                    updates.__ratingCount_delta = 0; // Count doesn't change
-                    updates.__totalRating_delta = newRating - oldRating;
-                }
-                // Void the old comment's rating regardless of whether the new rating is different.
-                const oldCommentRef = doc(commentsColRef, previousRatingComment.id);
-                transaction.update(oldCommentRef, { rating: -1, updatedAt: serverTimestamp() });
-            } else {
-                // Case A: Adding first rating
-                updates.ratingCount = increment(1);
-                updates.totalRating = increment(newRating);
-                updates[`ratingsBreakdown.${newRating}`] = increment(1);
-                updates.__ratingCount_delta = 1;
-                updates.__totalRating_delta = newRating;
-            }
+            updates.ratingCount = increment(1);
+            updates.totalRating = increment(newRating);
+            updates[`ratingsBreakdown.${newRating}`] = increment(1);
+            updates.__ratingCount_delta = 1;
+            updates.__totalRating_delta = newRating;
+            
             transaction.update(figureRef, updates);
         }
         
@@ -147,6 +161,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             likes: 0,
             dislikes: 0,
             parentId: null,
+            replyCount: 0,
         };
         transaction.set(newCommentRef, newCommentPayload);
       });
@@ -188,6 +203,35 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       setIsSubmitting(false);
     }
   };
+  
+  if (isCheckingComment) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+            <Skeleton className="h-24 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+  
+  if (existingComment) {
+    return (
+      <Card className="bg-muted/50 dark:bg-black">
+        <CardContent className="p-6 text-center space-y-3">
+          <MessageCircle className="mx-auto h-8 w-8 text-muted-foreground" />
+          <h3 className="font-semibold">Ya has dejado tu opinión</h3>
+          <p className="text-sm text-muted-foreground">Solo se permite una reseña por perfil para mantener la calidad de las calificaciones. Puedes editar la tuya si quieres cambiar algo.</p>
+           <Button asChild variant="outline">
+              <Link href={`#comment-${existingComment.id}`}>
+                <Edit className="mr-2 h-4 w-4" />
+                Ir a mi opinión
+              </Link>
+           </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
 
   return (
     <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>

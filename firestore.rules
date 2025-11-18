@@ -138,8 +138,13 @@ service cloud.firestore {
       
       match /comments/{commentId} {
         allow get, list: if true;
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
-        
+        allow create: if isSignedIn() && 
+                      request.resource.data.userId == request.auth.uid && 
+                      request.resource.data.text is string && 
+                      request.resource.data.text.size() > 0 &&
+                      // Enforce one comment per user per figure
+                      getAfter(/databases/$(database)/documents/figures/$(figureId)/comments?orderBy=userId&limit=1&query.equalTo=$(request.auth.uid)).size() == 0;
+
         allow update: if isSignedIn() && (
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) || // Text edit
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (isIncrement('likes', 1) || isIncrement('likes', -1))) || // Like/unlike
