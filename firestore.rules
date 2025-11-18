@@ -64,6 +64,7 @@ service cloud.firestore {
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); }
     }
 
+   
     match /usernames/{username} {
       allow get: if true; 
       allow list: if false;
@@ -138,13 +139,8 @@ service cloud.firestore {
       
       match /comments/{commentId} {
         allow get, list: if true;
-        allow create: if isSignedIn() && 
-                      request.resource.data.userId == request.auth.uid && 
-                      request.resource.data.text is string && 
-                      request.resource.data.text.size() > 0 &&
-                      // Enforce one comment per user per figure
-                      getAfter(/databases/$(database)/documents/figures/$(figureId)/comments?orderBy=userId&limit=1&query.equalTo=$(request.auth.uid)).size() == 0;
-
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
+        
         allow update: if isSignedIn() && (
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) || // Text edit
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (isIncrement('likes', 1) || isIncrement('likes', -1))) || // Like/unlike
@@ -157,6 +153,19 @@ service cloud.firestore {
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
         match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
+
+        match /replies/{replyId} {
+          allow get, list: if true;
+          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
+          allow update: if isSignedIn() && (
+              (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
+              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (isIncrement('likes', 1) || isIncrement('likes', -1))) ||
+              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']) && (isIncrement('dislikes', 1) || isIncrement('dislikes', -1))) ||
+              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) && ((isIncrement('likes', -1) && isIncrement('dislikes', 1)) || (isIncrement('dislikes', -1) && isIncrement('likes', 1))))
+          );
+          allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
+          match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
+        }
       }
 
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId); }
