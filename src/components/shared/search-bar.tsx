@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -132,8 +133,22 @@ export default function SearchBar({
     }
     clearSearch();
     // If a submit callback exists (e.g., to close a dialog), call it.
+    // We pass an empty figure object because a submit action doesn't select a specific figure.
     if (onResultClick) {
-      onResultClick({} as Figure); // Pass empty data just to trigger the action
+      onResultClick({} as Figure); 
+    }
+  };
+  
+  const handleResultClick = (figure: Figure) => {
+    // Always navigate to the figure's page
+    router.push(`/figures/${figure.id}`);
+    
+    // Clear search state
+    clearSearch();
+    
+    // If a callback is provided (like closing a dialog), execute it.
+    if (onResultClick) {
+      onResultClick(figure);
     }
   };
 
@@ -204,17 +219,6 @@ export default function SearchBar({
     };
   }, [searchContainerRef]);
   
-  const handleResultClick = (figure: Figure) => {
-    clearSearch();
-    if (onResultClick) {
-      // Let the parent component handle the navigation/action
-      onResultClick(figure);
-    } else {
-      // Default behavior: navigate directly
-      router.push(`/figures/${figure.id}`);
-    }
-  };
-
   const clearSearch = () => {
     setCurrentQuery('');
     setFigureResults([]);
