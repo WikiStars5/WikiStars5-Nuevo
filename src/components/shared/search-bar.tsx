@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -49,7 +48,6 @@ interface SearchBarProps {
   initialQuery?: string;
   className?: string;
   onResultClick?: (figure: Figure) => void;
-  onSearchSubmit?: () => void;
 }
 
 
@@ -57,7 +55,6 @@ export default function SearchBar({
   initialQuery = '', 
   className,
   onResultClick,
-  onSearchSubmit,
 }: SearchBarProps) {
   const [currentQuery, setCurrentQuery] = useState(initialQuery);
   const [figureResults, setFigureResults] = useState<Figure[]>([]);
@@ -121,7 +118,6 @@ export default function SearchBar({
     }
   }
 
-
   const handleSearchSubmit = (searchTerm: string) => {
     const trimmedTerm = searchTerm.trim();
     if (!trimmedTerm) return;
@@ -135,11 +131,11 @@ export default function SearchBar({
       router.push(`/search?q=${encodeURIComponent(trimmedTerm)}`);
     }
     clearSearch();
-    if (onSearchSubmit) {
-        onSearchSubmit();
+    // If a submit callback exists (e.g., to close a dialog), call it.
+    if (onResultClick) {
+      onResultClick({} as Figure); // Pass empty data just to trigger the action
     }
   };
-
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
@@ -207,19 +203,15 @@ export default function SearchBar({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [searchContainerRef]);
-
-  const handleResultItemClick = () => {
-    clearSearch();
-    // This is where we call the prop for both Link and button clicks
-    if (onResultClick) {
-      onResultClick({} as Figure); // Pass empty or appropriate data
-    }
-  };
-
-  const handleFigureResultClick = (figure: Figure) => {
+  
+  const handleResultClick = (figure: Figure) => {
     clearSearch();
     if (onResultClick) {
+      // Let the parent component handle the navigation/action
       onResultClick(figure);
+    } else {
+      // Default behavior: navigate directly
+      router.push(`/figures/${figure.id}`);
     }
   };
 
@@ -280,39 +272,9 @@ export default function SearchBar({
             <ul className="divide-y divide-border">
               {figureResults.map((figure) => (
                 <li key={figure.id}>
-                  {onResultClick ? (
-                     <button
-                      onClick={() => handleFigureResultClick(figure)}
-                      className="w-full flex items-center p-2 hover:bg-muted transition-colors duration-150 ease-in-out text-left"
-                    >
-                      <div className="flex-shrink-0 mr-2">
-                      {figure.imageUrl ? (
-                        <Image
-                          src={correctMalformedUrl(figure.imageUrl)}
-                          alt={figure.name}
-                          width={32}
-                          height={40}
-                          className="rounded-sm object-cover aspect-[4/5]"
-                          data-ai-hint="thumbnail person"
-                        />
-                      ) : (
-                        <div className="w-8 h-10 bg-muted rounded-sm flex items-center justify-center" data-ai-hint="placeholder icon">
-                          <ImageOff className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-grow min-w-0">
-                      <p className="font-medium text-xs text-foreground truncate">{figure.name}</p>
-                      {figure.description && (
-                        <p className="text-xs text-muted-foreground truncate">{figure.description}</p>
-                      )}
-                    </div>
-                     </button>
-                  ) : (
-                  <Link
-                    href={`/figures/${figure.id}`}
-                    onClick={handleResultItemClick}
-                    className="flex items-center p-2 hover:bg-muted transition-colors duration-150 ease-in-out"
+                  <button
+                    onClick={() => handleResultClick(figure)}
+                    className="w-full flex items-center p-2 hover:bg-muted transition-colors duration-150 ease-in-out text-left"
                   >
                     <div className="flex-shrink-0 mr-2">
                       {figure.imageUrl ? (
@@ -337,8 +299,7 @@ export default function SearchBar({
                         : figure.description && <p className="text-xs text-muted-foreground truncate">{figure.description}</p>
                       }
                     </div>
-                  </Link>
-                  )}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -348,9 +309,3 @@ export default function SearchBar({
     </div>
   );
 }
-
-    
-
-    
-
-    

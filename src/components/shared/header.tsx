@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -132,7 +131,7 @@ export default function Header() {
                     <DialogTitle>Buscar</DialogTitle>
                     <DialogDescription>Busca un perfil en WikiStars5.</DialogDescription>
                 </DialogHeader>
-                <SearchBar onSearchSubmit={() => setIsSearchDialogOpen(false)} onResultClick={() => setIsSearchDialogOpen(false)}/>
+                <SearchBar onResultClick={() => setIsSearchDialogOpen(false)} />
             </DialogContent>
           </Dialog>
           {isUserLoading ? (
