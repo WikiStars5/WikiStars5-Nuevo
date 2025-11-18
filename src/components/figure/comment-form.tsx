@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -19,6 +20,7 @@ import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const createCommentSchema = (isRatingEnabled: boolean) => z.object({
   text: z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.'),
