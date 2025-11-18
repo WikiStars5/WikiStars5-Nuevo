@@ -8,7 +8,8 @@ import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
-import { generateKeywords } from '@/lib/keywords';
+import { generateKeywords, normalizeText } from '@/lib/keywords';
+import { BLOCKED_NAMES } from '@/lib/blocked-names';
 
 import {
   DialogContent,
@@ -141,6 +142,18 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
 
   const handleCreate = async () => {
     if (!firestore || !verificationResult?.title) return;
+
+    // --- CENSORSHIP CHECK ---
+    const normalizedTitle = normalizeText(verificationResult.title);
+    if (BLOCKED_NAMES.includes(normalizedTitle)) {
+        toast({
+            title: 'Creación de Perfil Bloqueada',
+            description: 'La creación de perfiles para esta figura está restringida.',
+            variant: 'destructive',
+        });
+        return;
+    }
+    
     setIsCreating(true);
 
     const slug = verificationResult.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
