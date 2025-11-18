@@ -1,13 +1,10 @@
-'use server';
+'use client';
 /**
- * @fileOverview A flow to verify a CHARACTER on Wikipedia and extract their main image.
- * This flow validates the presence of a character-specific infobox by checking the wikitext source.
+ * @fileOverview A client-side function to verify a CHARACTER on Wikipedia and extract their main image.
+ * This function validates the presence of a character-specific infobox by checking the wikitext source.
  */
 
 import { z } from 'zod';
-import {
-  verifyWikipediaCharacter as verifyWikipediaCharacterFlow,
-} from './verify-wikipedia-character';
 
 const WikipediaVerificationInputSchema = z.object({
   name: z.string().describe('The name of the public figure or character to verify.'),
@@ -200,7 +197,7 @@ export async function verifyWikipediaCharacter(
     };
 
   } catch (error: any) {
-    console.error(`Wikipedia character flow failed for name "${input.name}":`, error);
+    console.error(`Wikipedia character verification failed for name "${input.name}":`, error);
     return {
       found: false,
       title: null,
