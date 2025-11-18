@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc } from 'firebase/firestore';
-import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -54,9 +54,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
 
-  const [existingComment, setExistingComment] = useState<Comment | null>(null);
-  const [isCheckingComment, setIsCheckingComment] = useState(true);
-
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
   const isRatingEnabled = (globalSettings?.isRatingEnabled ?? true);
@@ -65,30 +62,19 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     resolver: zodResolver(createCommentSchema(isRatingEnabled)),
     defaultValues: { text: '', rating: null },
   });
-  
-  useEffect(() => {
-    const checkForExistingComment = async () => {
-      if (!firestore || !user) {
-        setIsCheckingComment(false);
-        return;
-      }
-      setIsCheckingComment(true);
-      const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-      const q = query(commentsColRef, where('userId', '==', user.uid), limit(1));
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        const commentDoc = snapshot.docs[0];
-        setExistingComment({ id: commentDoc.id, ...commentDoc.data() } as Comment);
-      } else {
-        setExistingComment(null);
-      }
-      setIsCheckingComment(false);
-    };
 
-    if (!isUserLoading) {
-      checkForExistingComment();
-    }
-  }, [user, firestore, figureId, isUserLoading]);
+  const existingCommentQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collection(firestore, 'figures', figureId, 'comments'),
+      where('userId', '==', user.uid),
+      limit(1)
+    );
+  }, [firestore, user, figureId]);
+
+  const { data: existingComments, isLoading: isCheckingComment } = useCollection<Comment>(existingCommentQuery);
+  
+  const existingComment = existingComments && existingComments.length > 0 ? existingComments[0] : null;
 
   useEffect(() => {
     form.reset(form.getValues());
@@ -110,14 +96,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       let displayName = user.displayName;
       const newRating = isRatingEnabled ? data.rating : -1;
 
-      // This is now redundant due to the UI change but serves as a final backend check simulation
-      const previousCommentsQuery = query(
-          commentsColRef,
-          where('userId', '==', user.uid),
-          orderBy('createdAt', 'desc')
-      );
-      const previousCommentSnapshot = await getDocs(previousCommentsQuery);
-      if (!previousCommentSnapshot.empty) {
+      // This is now redundant because the UI hides the form, but it's a good final security check.
+      if (existingComment) {
         toast({ title: 'Ya has comentado', description: 'Solo se permite un comentario por perfil.', variant: 'destructive'});
         setIsSubmitting(false);
         return;
@@ -206,7 +186,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     }
   };
   
-  if (isCheckingComment) {
+  if (isUserLoading || (user && isCheckingComment)) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -312,3 +292,5 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     </LoginPromptDialog>
   );
 }
+
+    
