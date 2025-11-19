@@ -91,6 +91,7 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
       
+      // Default sort based on the selected filter tab
       switch(activeFilter) {
         case 'featured':
             tempComments.sort((a, b) => calculateHotScore(b) - calculateHotScore(a));
@@ -107,35 +108,26 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
             break;
       }
       
+      // "Machiavellian" sort override if an attitude is selected
       if (sortPreference) {
-          tempComments.sort((a, b) => {
-              const ratingA = a.rating ?? -1;
-              const ratingB = b.rating ?? -1;
-
-              if (sortPreference === 'fan') {
-                  // Higher ratings first
-                  const diff = ratingB - ratingA;
-                  if (diff !== 0) return diff;
-              } else if (sortPreference === 'simp') {
-                  // 5-star and 0-star ratings first
-                  const isSimpA = ratingA === 5 || ratingA === 0;
-                  const isSimpB = ratingB === 5 || ratingB === 0;
-                  if (isSimpB && !isSimpA) return 1;
-                  if (!isSimpB && isSimpA) return -1;
-                  // If both are "simp" ratings, sort 5-star before 0-star
-                  if (isSimpA && isSimpB) {
-                      const diff = ratingB - ratingA;
-                      if (diff !== 0) return diff;
-                  }
-              } else if (sortPreference === 'hater') {
-                  // Lower ratings first
-                  const diff = ratingA - ratingB;
-                  if (diff !== 0) return diff;
-              }
-              
-              // Fallback to date for all cases
-              return b.createdAt.toMillis() - a.createdAt.toMillis();
-          });
+          if (sortPreference === 'fan' || sortPreference === 'simp') {
+              // Show Haters first (ratings 0-3)
+              tempComments.sort((a, b) => {
+                  const ratingA = a.rating ?? -1;
+                  const ratingB = b.rating ?? -1;
+                  // Lower ratings get higher priority (come first)
+                  return ratingA - ratingB;
+              });
+          } else if (sortPreference === 'hater') {
+              // Show Fans first (ratings 5-3)
+              tempComments.sort((a, b) => {
+                  const ratingA = a.rating ?? -1;
+                  const ratingB = b.rating ?? -1;
+                  // Higher ratings get higher priority (come first)
+                  return ratingB - ratingA;
+              });
+          }
+          // If 'neutral', we don't apply any special sorting, so it keeps the default from the activeFilter.
       }
 
 
