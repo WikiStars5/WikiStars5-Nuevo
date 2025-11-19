@@ -173,7 +173,7 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
         <div className="flex items-center gap-2 flex-wrap">
             <FilterButton filter="featured" isActive={activeFilter === 'featured'}>Destacados</FilterButton>
             <FilterButton filter="popular" isActive={activeFilter === 'popular'}>Más Populares</FilterButton>
-            {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>Mis Opiniones</FilterButton>}
+            {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>Mi Opinión</FilterButton>}
             
             <div className="flex-grow" />
             
