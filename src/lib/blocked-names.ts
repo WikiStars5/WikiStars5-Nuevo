@@ -5,7 +5,7 @@
 export const BLOCKED_NAMES: string[] = [
     'adolf hitler',
     'Iósif Stalin',
-    
+
 
     // Add other controversial names here in lowercase and without accents.
     // e.g., 'osama bin laden',
