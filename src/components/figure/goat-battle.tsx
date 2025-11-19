@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { Loader2, Timer } from 'lucide-react';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import type { GoatBattle, GoatVote, Figure } from '@/lib/types';
+import type { GoatBattle, GoatVote, Figure, GlobalSettings } from '@/lib/types';
 import { doc, runTransaction, serverTimestamp, increment, getDoc, query, where, collection, getDocs, limit, Timestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
@@ -84,6 +84,12 @@ export default function GoatBattle() {
   }, [firestore, user]);
   const { data: userVote, isLoading: isUserVoteLoading } = useDoc<GoatVote>(userVoteDocRef);
 
+  // Fetch global settings to check if voting is enabled
+  const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
+  const areVotesEnabled = globalSettings?.isVotingEnabled ?? true;
+
+
   useEffect(() => {
     async function fetchPlayers() {
         if (!firestore) return;
@@ -102,7 +108,7 @@ export default function GoatBattle() {
   }, [firestore]);
   
   const battleEndTime = battleData?.endTime?.toDate();
-  const isBattleActive = battleEndTime && new Date() < battleEndTime;
+  const isBattleActive = battleEndTime && new Date() < battleEndTime && !battleData?.isPaused;
   const isBattleOver = battleEndTime ? new Date() > battleEndTime : false;
   let winner = battleData?.winner;
 
@@ -152,6 +158,15 @@ export default function GoatBattle() {
 
 
   const handleVote = async (player: 'messi' | 'ronaldo') => {
+    if (!areVotesEnabled) {
+      toast({
+        title: 'Votaciones deshabilitadas',
+        description: 'El administrador ha desactivado temporalmente las votaciones.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     if (!user) {
       setShowLoginDialog(true);
       return;
@@ -269,7 +284,7 @@ export default function GoatBattle() {
 
   if (!battleData || !battleData.endTime) {
     return (
-        <Card>
+        <Card className="dark:bg-black">
             <CardHeader className="items-center text-center">
                  <CardTitle className="flex items-center gap-2 text-3xl">
                     <GoatIcon/> ELIJAMOS AL VERDADERO GOAT
@@ -287,7 +302,7 @@ export default function GoatBattle() {
 
   return (
     <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-      <Card className="relative">
+      <Card className="relative dark:bg-black">
         <CardHeader className="items-center text-center pt-12">
             <CardTitle className="flex items-center gap-2 text-3xl">
             <GoatIcon/> ELIJAMOS AL VERDADERO GOAT
@@ -298,6 +313,11 @@ export default function GoatBattle() {
             </CardDescription>
             {isBattleOver ? (
                 <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
+            ) : battleData.isPaused ? (
+                 <div className="flex items-center gap-2 font-mono text-lg font-bold text-yellow-500">
+                    <Timer className="h-5 w-5" />
+                    <span>BATALLA EN PAUSA</span>
+                </div>
             ) : (
                 <div className="flex items-center gap-2 font-mono text-lg font-bold text-primary animate-pulse">
                     <Timer className="h-5 w-5" />
@@ -354,7 +374,7 @@ export default function GoatBattle() {
                         userVote?.vote === 'messi' && "ring-2 ring-offset-2 ring-blue-400 ring-offset-background"
                     )}
                     onClick={() => handleVote('messi')}
-                    disabled={isVoting}
+                    disabled={isVoting || battleData?.isPaused}
                 >
                     {isVoting && userVote?.vote !== 'messi' ? <Loader2 className="animate-spin" /> : 'Votar por Messi'}
                 </Button>
@@ -365,7 +385,7 @@ export default function GoatBattle() {
                         userVote?.vote === 'ronaldo' && "ring-2 ring-offset-2 ring-red-400 ring-offset-background"
                     )}
                     onClick={() => handleVote('ronaldo')}
-                    disabled={isVoting}
+                    disabled={isVoting || battleData?.isPaused}
                 >
                     {isVoting && userVote?.vote !== 'ronaldo' ? <Loader2 className="animate-spin" /> : 'Votar por Ronaldo'}
                 </Button>
@@ -395,3 +415,5 @@ export default function GoatBattle() {
     </LoginPromptDialog>
   );
 }
+
+    
