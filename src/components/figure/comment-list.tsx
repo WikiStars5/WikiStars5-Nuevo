@@ -27,7 +27,6 @@ const INITIAL_COMMENT_LIMIT = 5;
 const COMMENT_INCREMENT = 5;
 
 type FilterType = 'featured' | 'popular' | 'newest' | 'mine' | number;
-type MyCommentsFilterType = 'all' | 'answered' | 'unanswered';
 
 
 interface CommentListProps {
@@ -57,7 +56,6 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   const { user } = useUser();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
-  const [myCommentsFilter, setMyCommentsFilter] = useState<MyCommentsFilterType>('all');
 
 
   // The base query now sorts by creation date by default.
@@ -75,13 +73,6 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
 
   const { data: comments, isLoading } = useCollection<Comment>(commentsQuery);
 
-  // We only need all replies for the "mine" filter logic now.
-  const allReplies = useMemo(() => {
-    if (!comments) return [];
-    return comments.filter(c => c.parentId);
-  }, [comments]);
-
-
   const filteredRootComments = useMemo(() => {
     if (!comments) return [];
     
@@ -89,26 +80,13 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
 
     if (activeFilter === 'mine') {
       if (!user) return [];
-      
-      const userComments = rootComments.filter(comment => comment.userId === user.uid);
-      const replyIds = new Set(allReplies.map(reply => reply.parentId));
-
-      if (myCommentsFilter === 'answered') {
-          return userComments.filter(comment => replyIds.has(comment.id));
-      }
-      if (myCommentsFilter === 'unanswered') {
-          return userComments.filter(comment => !replyIds.has(comment.id));
-      }
-      // 'all' case
-      return userComments;
-
+      return rootComments.filter(comment => comment.userId === user.uid);
     } else if (typeof activeFilter === 'number') {
        return rootComments.filter(comment => comment.rating === activeFilter);
     }
-    // For 'featured', 'popular' and 'newest', we start with all root comments.
-    // The sorting logic below will handle these.
+    
     return rootComments;
-  }, [comments, allReplies, activeFilter, user, myCommentsFilter]);
+  }, [comments, activeFilter, user]);
 
   const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
@@ -181,27 +159,11 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
             "h-8 px-3",
             isActive && "bg-primary text-primary-foreground hover:bg-primary/90"
         )}
-        onClick={() => {
-            setActiveFilter(filter);
-            setMyCommentsFilter('all'); // Reset sub-filter when main filter changes
-        }}
+        onClick={() => setActiveFilter(filter)}
     >
         {children}
     </Button>
   );
-
-  const SubFilterButton = ({ filter, children, isActive }: { filter: MyCommentsFilterType, children: React.ReactNode, isActive: boolean }) => (
-     <Button
-        variant={isActive ? 'secondary' : 'ghost'}
-        className={cn(
-            "h-7 px-2.5 text-xs",
-            isActive && "bg-primary text-primary-foreground hover:bg-primary/90"
-        )}
-        onClick={() => setMyCommentsFilter(filter)}
-     >
-        {children}
-     </Button>
-  )
 
   const isStarFilterActive = typeof activeFilter === 'number';
 
@@ -239,13 +201,6 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
             </DropdownMenu>
 
         </div>
-        {activeFilter === 'mine' && (
-            <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
-                <SubFilterButton filter='all' isActive={myCommentsFilter === 'all'}>Todos</SubFilterButton>
-                <SubFilterButton filter='answered' isActive={myCommentsFilter === 'answered'}>Respondidas</SubFilterButton>
-                <SubFilterButton filter='unanswered' isActive={myCommentsFilter === 'unanswered'}>No Respondidas</SubFilterButton>
-            </div>
-        )}
       </div>
 
 
