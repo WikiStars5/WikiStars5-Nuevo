@@ -107,20 +107,33 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
             break;
       }
       
-      // The maquiavélico sort is an override that only applies when triggered from attitude voting
       if (sortPreference) {
           tempComments.sort((a, b) => {
-              const ratingA = a.rating ?? 3;
-              const ratingB = b.rating ?? 3;
-              let ratingDiff;
+              const ratingA = a.rating ?? -1;
+              const ratingB = b.rating ?? -1;
 
-              if (sortPreference === 'fan' || sortPreference === 'simp') {
-                  ratingDiff = ratingB - ratingA; // Higher ratings first
-              } else { // 'hater'
-                  ratingDiff = ratingA - ratingB; // Lower ratings first
+              if (sortPreference === 'fan') {
+                  // Higher ratings first
+                  const diff = ratingB - ratingA;
+                  if (diff !== 0) return diff;
+              } else if (sortPreference === 'simp') {
+                  // 5-star and 0-star ratings first
+                  const isSimpA = ratingA === 5 || ratingA === 0;
+                  const isSimpB = ratingB === 5 || ratingB === 0;
+                  if (isSimpB && !isSimpA) return 1;
+                  if (!isSimpB && isSimpA) return -1;
+                  // If both are "simp" ratings, sort 5-star before 0-star
+                  if (isSimpA && isSimpB) {
+                      const diff = ratingB - ratingA;
+                      if (diff !== 0) return diff;
+                  }
+              } else if (sortPreference === 'hater') {
+                  // Lower ratings first
+                  const diff = ratingA - ratingB;
+                  if (diff !== 0) return diff;
               }
               
-              if (ratingDiff !== 0) return ratingDiff;
+              // Fallback to date for all cases
               return b.createdAt.toMillis() - a.createdAt.toMillis();
           });
       }
