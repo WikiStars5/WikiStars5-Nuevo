@@ -94,17 +94,17 @@ export default function AddRelatedFigureDialog({ sourceFigure, onDialogClose }: 
                             />
                             <p className="font-semibold">{selectedFigure.name}</p>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedFigure(null)}>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => setSelectedFigure(null)}>
                             <X className="h-4 w-4" />
                         </Button>
                     </div>
                 )}
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={onDialogClose}>
+                <Button type="button" variant="outline" onClick={onDialogClose}>
                     Cancelar
                 </Button>
-                <Button onClick={handleAddRelation} disabled={!selectedFigure || isSaving}>
+                <Button type="button" onClick={handleAddRelation} disabled={!selectedFigure || isSaving}>
                     {isSaving ? <Loader2 className="animate-spin" /> : <LinkIcon className="mr-2"/>}
                     Confirmar Relación
                 </Button>
