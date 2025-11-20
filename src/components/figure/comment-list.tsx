@@ -36,7 +36,7 @@ interface CommentListProps {
 }
 
 const K_REPLY_WEIGHT = 1.0;
-const C_DECAY_CONSTANT = 18.0;
+const C_DECAY_CONSTANT = 24.0;
 
 
 const calculateHotScore = (comment: Comment): number => {
@@ -99,25 +99,19 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
       let tempComments = [...filteredRootComments];
       const hotScoreSort = (a: Comment, b: Comment) => calculateHotScore(b) - calculateHotScore(a);
 
-      // --- CAPA 1: FILTRO MAQUIAVÉLICO ---
+      const provocativeSort = (commentsToSort: Comment[], isProvocativeCheck: (comment: Comment) => boolean) => {
+          const provocative = commentsToSort.filter(isProvocativeCheck).sort(hotScoreSort);
+          const nonProvocative = commentsToSort.filter(comment => !isProvocativeCheck(comment)).sort(hotScoreSort);
+          return [...provocative, ...nonProvocative];
+      };
+
       if (sortPreference === 'fan' || sortPreference === 'simp') {
-          // Para fans/simps, mostrar comentarios negativos (0-3 estrellas) primero
-          tempComments.sort((a, b) => {
-              const isAProvocative = (a.rating ?? 3) <= 3; // 0-3 stars is provocative
-              const isBProvocative = (b.rating ?? 3) <= 3;
-              if (isAProvocative !== isBProvocative) return isBProvocative ? 1 : -1;
-              return hotScoreSort(a, b); // CAPA 2: Hot Score dentro de cada grupo
-          });
+          // Para fans/simps, mostrar comentarios negativos (0-2 estrellas) primero
+          tempComments = provocativeSort(tempComments, c => (c.rating ?? 3) < 3);
       } else if (sortPreference === 'hater') {
           // Para haters, mostrar comentarios positivos (3-5 estrellas) primero
-          tempComments.sort((a, b) => {
-              const isAProvocative = (a.rating ?? 0) >= 3; // 3-5 stars is provocative
-              const isBProvocative = (b.rating ?? 0) >= 3;
-              if (isAProvocative !== isBProvocative) return isBProvocative ? 1 : -1;
-              return hotScoreSort(a, b); // CAPA 2: Hot Score dentro de cada grupo
-          });
+          tempComments = provocativeSort(tempComments, c => (c.rating ?? 0) >= 3);
       } else { 
-        // --- CAPA 2 (POR DEFECTO): ORDENAMIENTO NORMAL ---
         // Para 'neutral' o cualquier otro caso, aplicar el filtro de la pestaña seleccionada.
         switch(activeFilter) {
           case 'featured':
