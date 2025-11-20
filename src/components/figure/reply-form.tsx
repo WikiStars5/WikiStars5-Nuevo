@@ -5,7 +5,7 @@ import { useState, useContext } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, getDoc, Timestamp, addDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, getDoc, Timestamp, addDoc, runTransaction, increment } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useFirestore, useUser } from '@/firebase';
 import { Textarea } from '@/components/ui/textarea';
@@ -57,49 +57,52 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
     setIsSubmitting(true);
 
     try {
-      const userProfileRef = doc(firestore, 'users', user.uid);
-      const userProfileSnap = await getDoc(userProfileRef);
-      const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
-      const displayName = userProfileData.username || user.displayName || 'Usuario';
-      
-      // New: Get a reference to the 'replies' subcollection of the parent comment
-      const repliesColRef = collection(firestore, 'figures', figureId, 'comments', parentComment.id, 'replies');
-      
-      const newReplyData = {
-        figureId: figureId,
-        userId: user.uid,
-        text: data.text,
-        createdAt: Timestamp.now(), // Use client-side timestamp for immediate feedback
-        userDisplayName: displayName,
-        userPhotoURL: user.photoURL,
-        userCountry: userProfileData.country || null,
-        userGender: userProfileData.gender || null,
-        likes: 0,
-        dislikes: 0,
-        parentId: parentComment.id, // Keep parentId for context if needed
-        rating: -1, // Replies don't have ratings
-      };
+        const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentComment.id);
+        const repliesColRef = collection(parentCommentRef, 'replies');
 
-      // Add the new reply to the 'replies' subcollection
-      const newReplyRef = await addDoc(repliesColRef, {
-        ...newReplyData,
-        createdAt: serverTimestamp(), // Replace with server timestamp for storage
-      });
+        await runTransaction(firestore, async (transaction) => {
+            const userProfileRef = doc(firestore, 'users', user.uid);
+            const userProfileSnap = await transaction.get(userProfileRef);
+            const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
+            const displayName = userProfileData.username || user.displayName || 'Usuario';
 
-      // --- Create Notification ---
-      const replyToAuthorId = parentComment.userId;
-      if (replyToAuthorId && replyToAuthorId !== user.uid) {
-        const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
-        const notification = {
-            userId: replyToAuthorId,
-            type: 'comment_reply',
-            message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
-            isRead: false,
-            createdAt: serverTimestamp(),
-            link: `/figures/${figureId}?thread=${parentComment.id}&reply=${newReplyRef.id}`
-        };
-        await addDocumentNonBlocking(notificationsColRef, notification);
-      }
+            const newReplyData = {
+                figureId: figureId,
+                userId: user.uid,
+                text: data.text,
+                createdAt: serverTimestamp(),
+                userDisplayName: displayName,
+                userPhotoURL: user.photoURL,
+                userCountry: userProfileData.country || null,
+                userGender: userProfileData.gender || null,
+                likes: 0,
+                dislikes: 0,
+                parentId: parentComment.id,
+                rating: -1,
+            };
+            
+            // 1. Add the new reply
+            transaction.set(doc(repliesColRef), newReplyData);
+            
+            // 2. Increment the reply count on the parent comment
+            transaction.update(parentCommentRef, { replyCount: increment(1) });
+            
+            // 3. Create a notification for the parent comment's author
+            const replyToAuthorId = parentComment.userId;
+            if (replyToAuthorId && replyToAuthorId !== user.uid) {
+                const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
+                const notification = {
+                    userId: replyToAuthorId,
+                    type: 'comment_reply',
+                    message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
+                    isRead: false,
+                    createdAt: serverTimestamp(),
+                    link: `/figures/${figureId}?thread=${parentComment.id}`
+                };
+                transaction.set(doc(notificationsColRef), notification);
+            }
+        });
+
 
       // --- Streak Update ---
       const streakResult = await updateStreak({
@@ -107,10 +110,8 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
         figureId,
         figureName,
         userId: user.uid,
-        userDisplayName: displayName,
+        userDisplayName: user.displayName || 'Usuario',
         userPhotoURL: user.photoURL,
-        userCountry: userProfileData.country || null,
-        userGender: userProfileData.gender || null,
         isAnonymous: user.isAnonymous,
       });
 

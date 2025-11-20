@@ -35,21 +35,32 @@ interface CommentListProps {
   sortPreference: AttitudeOption | null;
 }
 
-const GRAVITY = 1.8;
-const INITIAL_OFFSET_HOURS = 2;
+const K_REPLY_WEIGHT = 1.0;
+const C_DECAY_CONSTANT = 18.0;
+
 
 const calculateHotScore = (comment: Comment): number => {
     const likes = comment.likes ?? 0;
     const dislikes = comment.dislikes ?? 0;
-    const score = likes - dislikes;
+    const replies = comment.replyCount ?? 0;
     
-    if (score === 0) return 0;
+    // Paso A: Puntuación Neta Ajustada (s)
+    const s = (likes) - (dislikes) + K_REPLY_WEIGHT * replies;
+
+    if (s === 0) return 0;
     
+    // Paso B: Magnitud Logarítmica y Dirección (z)
+    const y = Math.sign(s);
+    const z = y * Math.log10(Math.max(1, Math.abs(s)));
+
+    // Paso C: Factor de Decadencia por Tiempo (t)
     const hoursAgo = (new Date().getTime() - comment.createdAt.toDate().getTime()) / (1000 * 3600);
+    const decay = hoursAgo / C_DECAY_CONSTANT;
     
-    // The core of the hot sort algorithm
-    return score / Math.pow(hoursAgo + INITIAL_OFFSET_HOURS, GRAVITY);
+    // Fusión y Algoritmo Final
+    return z - decay;
 }
+
 
 export default function CommentList({ figureId, figureName, sortPreference }: CommentListProps) {
   const firestore = useFirestore();
@@ -88,48 +99,45 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     return rootComments;
   }, [comments, activeFilter, user]);
 
-  const sortedAndFilteredComments = useMemo(() => {
+ const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
-      
-      // Default sort based on the selected filter tab
-      switch(activeFilter) {
-        case 'featured':
-            tempComments.sort((a, b) => calculateHotScore(b) - calculateHotScore(a));
-            break;
-        case 'popular':
-            tempComments.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
-            break;
-        case 'newest':
-             // Already sorted by createdAt descending from the query
-            break;
-        default:
-             // For 'mine' and star ratings, default to newest first
-            tempComments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-            break;
-      }
-      
-      // "Machiavellian" sort override if an attitude is selected
-      if (sortPreference) {
-          if (sortPreference === 'fan' || sortPreference === 'simp') {
-              // Show Haters first (ratings 0-3)
-              tempComments.sort((a, b) => {
-                  const ratingA = a.rating ?? -1;
-                  const ratingB = b.rating ?? -1;
-                  // Lower ratings get higher priority (come first)
-                  return ratingA - ratingB;
-              });
-          } else if (sortPreference === 'hater') {
-              // Show Fans first (ratings 5-3)
-              tempComments.sort((a, b) => {
-                  const ratingA = a.rating ?? -1;
-                  const ratingB = b.rating ?? -1;
-                  // Higher ratings get higher priority (come first)
-                  return ratingB - ratingA;
-              });
-          }
-          // If 'neutral', we don't apply any special sorting, so it keeps the default from the activeFilter.
-      }
+      const baseSort = (a: Comment, b: Comment) => calculateHotScore(b) - calculateHotScore(a);
 
+      // Layer 1: "Maquiavélica" Sorting Logic
+      if (sortPreference === 'fan' || sortPreference === 'simp') {
+          // Show provocative (negative) comments first
+          tempComments.sort((a, b) => {
+              const ratingA = (a.rating ?? 3) <= 3 ? 1 : 0; // 1 if provocative
+              const ratingB = (b.rating ?? 3) <= 3 ? 1 : 0; // 1 if provocative
+              if (ratingA !== ratingB) return ratingB - ratingA; // Prioritize provocative
+              return baseSort(a, b); // Layer 2: Hot Score within groups
+          });
+      } else if (sortPreference === 'hater') {
+          // Show provocative (positive) comments first
+          tempComments.sort((a, b) => {
+              const ratingA = (a.rating ?? 3) >= 4 ? 1 : 0; // 1 if provocative
+              const ratingB = (b.rating ?? 3) >= 4 ? 1 : 0; // 1 if provocative
+              if (ratingA !== ratingB) return ratingB - ratingA; // Prioritize provocative
+              return baseSort(a, b); // Layer 2: Hot Score within groups
+          });
+      } else {
+        // Layer 2 only: Default sorting based on the selected filter tab
+        switch(activeFilter) {
+          case 'featured':
+              tempComments.sort(baseSort);
+              break;
+          case 'popular':
+              tempComments.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+              break;
+          case 'newest':
+              // Already sorted by createdAt descending from the query
+              break;
+          default:
+              // For 'mine' and star ratings, default to Hot Score
+              tempComments.sort(baseSort);
+              break;
+        }
+      }
 
       return tempComments;
 

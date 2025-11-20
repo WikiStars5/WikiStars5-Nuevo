@@ -120,6 +120,7 @@ export interface Comment {
   likes?: number;
   dislikes?: number;
   parentId: string | null;
+  replyCount?: number; // Number of direct replies to this comment
   threadId?: string; // ID of the root comment in the thread
   // Denormalized user data for display
   userDisplayName: string;
