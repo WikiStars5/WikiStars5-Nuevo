@@ -44,20 +44,16 @@ const calculateHotScore = (comment: Comment): number => {
     const dislikes = comment.dislikes ?? 0;
     const replies = comment.replyCount ?? 0;
     
-    // Paso A: Puntuación Neta Ajustada (s)
     const s = (likes) - (dislikes) + K_REPLY_WEIGHT * replies;
 
     if (s === 0) return 0;
     
-    // Paso B: Magnitud Logarítmica y Dirección (z)
     const y = Math.sign(s);
     const z = y * Math.log10(Math.max(1, Math.abs(s)));
 
-    // Paso C: Factor de Decadencia por Tiempo (t)
     const hoursAgo = (new Date().getTime() - comment.createdAt.toDate().getTime()) / (1000 * 3600);
     const decay = hoursAgo / C_DECAY_CONSTANT;
     
-    // Fusión y Algoritmo Final
     return z - decay;
 }
 
@@ -101,40 +97,41 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
 
  const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
-      const baseSort = (a: Comment, b: Comment) => calculateHotScore(b) - calculateHotScore(a);
+      const hotScoreSort = (a: Comment, b: Comment) => calculateHotScore(b) - calculateHotScore(a);
 
-      // Layer 1: "Maquiavélica" Sorting Logic
+      // --- CAPA 1: FILTRO MAQUIAVÉLICO ---
       if (sortPreference === 'fan' || sortPreference === 'simp') {
-          // Show provocative (negative) comments first
+          // Para fans/simps, mostrar comentarios negativos (0-3 estrellas) primero
           tempComments.sort((a, b) => {
-              const ratingA = (a.rating ?? 3) <= 3 ? 1 : 0; // 1 if provocative
-              const ratingB = (b.rating ?? 3) <= 3 ? 1 : 0; // 1 if provocative
-              if (ratingA !== ratingB) return ratingB - ratingA; // Prioritize provocative
-              return baseSort(a, b); // Layer 2: Hot Score within groups
+              const isAProvocative = (a.rating ?? 3) <= 3; // 0-3 stars is provocative
+              const isBProvocative = (b.rating ?? 3) <= 3;
+              if (isAProvocative !== isBProvocative) return isBProvocative ? 1 : -1;
+              return hotScoreSort(a, b); // CAPA 2: Hot Score dentro de cada grupo
           });
       } else if (sortPreference === 'hater') {
-          // Show provocative (positive) comments first
+          // Para haters, mostrar comentarios positivos (3-5 estrellas) primero
           tempComments.sort((a, b) => {
-              const ratingA = (a.rating ?? 3) >= 4 ? 1 : 0; // 1 if provocative
-              const ratingB = (b.rating ?? 3) >= 4 ? 1 : 0; // 1 if provocative
-              if (ratingA !== ratingB) return ratingB - ratingA; // Prioritize provocative
-              return baseSort(a, b); // Layer 2: Hot Score within groups
+              const isAProvocative = (a.rating ?? 0) >= 3; // 3-5 stars is provocative
+              const isBProvocative = (b.rating ?? 0) >= 3;
+              if (isAProvocative !== isBProvocative) return isBProvocative ? 1 : -1;
+              return hotScoreSort(a, b); // CAPA 2: Hot Score dentro de cada grupo
           });
-      } else {
-        // Layer 2 only: Default sorting based on the selected filter tab
+      } else { 
+        // --- CAPA 2 (POR DEFECTO): ORDENAMIENTO NORMAL ---
+        // Para 'neutral' o cualquier otro caso, aplicar el filtro de la pestaña seleccionada.
         switch(activeFilter) {
           case 'featured':
-              tempComments.sort(baseSort);
+              tempComments.sort(hotScoreSort);
               break;
           case 'popular':
               tempComments.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
               break;
           case 'newest':
-              // Already sorted by createdAt descending from the query
+              // Ya está ordenado por createdAt desc desde la consulta de Firestore
               break;
           default:
-              // For 'mine' and star ratings, default to Hot Score
-              tempComments.sort(baseSort);
+              // Para 'mine' y filtros de estrellas, el orden por defecto será Hot Score
+              tempComments.sort(hotScoreSort);
               break;
         }
       }
