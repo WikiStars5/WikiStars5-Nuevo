@@ -133,23 +133,21 @@ export default function SearchBar({
     }
     clearSearch();
     // If a submit callback exists (e.g., to close a dialog), call it.
-    // We pass an empty figure object because a submit action doesn't select a specific figure.
     if (onResultClick) {
       onResultClick({} as Figure); 
     }
   };
   
   const handleResultClick = (figure: Figure) => {
-    // Always navigate to the figure's page
-    router.push(`/figures/${figure.id}`);
-    
-    // Clear search state
-    clearSearch();
-    
-    // If a callback is provided (like closing a dialog), execute it.
+    // If a specific onResultClick handler is provided, use it.
     if (onResultClick) {
       onResultClick(figure);
+    } else {
+      // Otherwise, perform the default action: navigate to the figure's page.
+      router.push(`/figures/${figure.id}`);
     }
+    // Always clear the search state after a selection.
+    clearSearch();
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
