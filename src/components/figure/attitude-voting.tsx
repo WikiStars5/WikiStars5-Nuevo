@@ -68,19 +68,37 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
       });
       return;
     }
-    if (!user) {
-      console.error("User not available for voting.");
-      toast({ title: 'Debes iniciar sesión para votar.', variant: 'destructive'});
-      return;
-    }
     if (isVoting || !firestore || !auth) return;
-    setIsVoting(vote);
 
+    let currentUser = user;
+    // If there's no user, create an anonymous one just-in-time
+    if (!currentUser) {
+        try {
+            const userCredential = await signInAnonymously(auth);
+            currentUser = userCredential.user;
+            toast({
+                title: "¡Bienvenido, Invitado!",
+                description: "Tu actividad ahora es anónima. Inicia sesión para guardarla."
+            });
+        } catch (error) {
+            console.error("Error signing in anonymously:", error);
+            toast({ title: 'Error de Autenticación', description: 'No se pudo iniciar la sesión anónima.', variant: 'destructive'});
+            return;
+        }
+    }
+
+    if (!currentUser) {
+        toast({ title: 'Error', description: 'No se pudo obtener la identidad del usuario.', variant: 'destructive'});
+        return;
+    }
+
+
+    setIsVoting(vote);
     let finalAttitude: AttitudeOption | null = null;
     
     try {
-      const publicVoteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, user.uid);
-      const privateVoteRef = doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
+      const publicVoteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, currentUser.uid);
+      const privateVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figure.id);
       const figureRef = doc(firestore, `figures/${figure.id}`);
 
       await runTransaction(firestore, async (transaction) => {
@@ -105,7 +123,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
         } else if (previousVote) {
           // --- CHANGING VOTE ---
-          const voteData = { userId: user.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
+          const voteData = { userId: currentUser!.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
           transaction.set(publicVoteRef, voteData, { merge: true });
           transaction.set(privateVoteRef, voteData, { merge: true });
           
@@ -117,7 +135,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
         } else {
           // --- FIRST VOTE ---
-          const voteData = { userId: user.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
+          const voteData = { userId: currentUser!.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
           transaction.set(publicVoteRef, voteData);
           transaction.set(privateVoteRef, voteData);
 
@@ -152,7 +170,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
   const isLoading = isUserLoading || (!!user && isVoteLoading);
   
-  if (isLoading && user) {
+  if (isLoading) {
     return <Skeleton className="h-48 w-full" />;
   }
 
@@ -188,7 +206,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
             isVoting === id ? 'cursor-not-allowed' : ''
             )}
             onClick={() => handleVote(id)}
-            disabled={!!isVoting || !user}
+            disabled={!!isVoting}
         >
             {isVoting === id ? (
             <Loader2 className="h-8 w-8 animate-spin" />

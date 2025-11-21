@@ -80,19 +80,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             await setPersistence(auth, browserLocalPersistence);
             const unsubscribe = onAuthStateChanged(
                 auth,
-                async (firebaseUser) => {
-                    if (firebaseUser) {
-                        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-                    } else {
-                        // User is signed out, sign them in anonymously.
-                        try {
-                            const userCredential = await signInAnonymously(auth);
-                            setUserAuthState({ user: userCredential.user, isUserLoading: false, userError: null });
-                        } catch (anonError) {
-                             console.error("FirebaseProvider: Anonymous sign-in failed:", anonError);
-                             setUserAuthState({ user: null, isUserLoading: false, userError: anonError as Error });
-                        }
-                    }
+                (firebaseUser) => {
+                    // This listener now simply reports the current user state,
+                    // without trying to create an anonymous user automatically.
+                    setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
                 },
                 (error) => {
                     console.error("FirebaseProvider: onAuthStateChanged error:", error);
@@ -136,6 +127,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     };
   }, [firebaseApp, firestore, auth, userAuthState, areServicesReady, reloadUser]);
 
+  // Keep showing loading state until Firebase has determined the initial auth state.
   if (userAuthState.isUserLoading) {
      return (
       <div className="flex h-screen w-full items-center justify-center">
