@@ -231,7 +231,9 @@ function ProfilePageContent() {
 
     if (user.isAnonymous) {
         return (
-            <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
+            <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12 space-y-6">
+                <UserActivity userId={user.uid} />
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Eres un Invitado</CardTitle>
@@ -244,10 +246,6 @@ function ProfilePageContent() {
                         </Button>
                     </CardContent>
                 </Card>
-
-                 <div className="mt-6">
-                    <UserActivity userId={user.uid} />
-                </div>
             </div>
         )
     }
