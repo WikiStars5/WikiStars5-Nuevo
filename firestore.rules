@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Global Helper Functions ---
+    // --- Global Helper Functions (Se mejoró el manejo de Nulos) ---
     
     function isSignedIn() {
       return request.auth != null;
@@ -20,34 +20,43 @@ service cloud.firestore {
     function isIncrement(field, count) {
       let nextValue = request.resource.data[field];
       let prevValue = resource.data[field];
+      // ✅ MEJORA: Maneja correctamente el caso inicial (prevValue es null)
       return nextValue == prevValue + count || (prevValue == null && nextValue == count); 
     }
 
-    // --- Figure Vote Helper Functions ---
+    // --- Figure Vote Helper Functions (¡Reforzadas contra null para evitar fallos!) ---
 
     function isVoteIncrement(voteType, voteField) {
         let nextVoteMap = request.resource.data[voteType];
-        let prevVoteMap = resource.data[voteType];
-        return nextVoteMap[voteField] == prevVoteMap[voteField] + 1 &&
+        // ✅ MEJORA: Maneja nulos en el mapa previo.
+        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {}; 
+        let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
+        
+        return nextVoteMap[voteField] == prevCount + 1 &&
                nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
     
     function isVoteDecrement(voteType, voteField) {
         let nextVoteMap = request.resource.data[voteType];
-        let prevVoteMap = resource.data[voteType];
-        return nextVoteMap[voteField] == prevVoteMap[voteField] - 1 &&
+        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+        let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
+        
+        return nextVoteMap[voteField] == prevCount - 1 &&
                nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
 
     function isChangingVote(voteType, oldVoteField, newVoteField) {
         let nextVoteMap = request.resource.data[voteType];
-        let prevVoteMap = resource.data[voteType];
-        return nextVoteMap[oldVoteField] == prevVoteMap[oldVoteField] - 1 &&
-               nextVoteMap[newVoteField] == prevVoteMap[newVoteField] + 1 &&
+        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+        let prevOldCount = prevVoteMap[oldVoteField] != null ? prevVoteMap[oldVoteField] : 0;
+        let prevNewCount = prevVoteMap[newVoteField] != null ? prevVoteMap[newVoteField] : 0;
+        
+        return nextVoteMap[oldVoteField] == prevOldCount - 1 &&
+               nextVoteMap[newVoteField] == prevNewCount + 1 &&
                nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
     }
     
-    // --- User Data Collections ---
+    // --- User Data Collections (Se mantuvo la lógica del usuario) ---
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
@@ -64,10 +73,11 @@ service cloud.firestore {
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); }
     }
 
-   
+    
     match /usernames/{username} {
       allow get: if true; 
       allow list: if false;
+      // Se mantuvo el `allow create: if isSignedIn();` según lo solicitado por tu lógica externa.
       allow create: if isSignedIn(); 
       allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
       allow update: if false;
@@ -82,55 +92,41 @@ service cloud.firestore {
       
       allow update: if isAdmin() || (
         isSignedIn() && (
-          // P1: Wiki field edits
+          // P1: Wiki field edits (Mantenido)
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
           
-          // P2: Attitude voting
+          // P2 y P3: Voting (Usando funciones robustas)
           (request.resource.data.__newVote != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) && (
             (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) ||
             (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) ||
             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('attitude', request.resource.data.__oldVote, request.resource.data.__newVote))
           )) ||
 
-          // P3: Emotion voting
           (request.resource.data.__newVote != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion', 'updatedAt', '__oldVote', '__newVote']) && (
             (request.resource.data.__oldVote == null && isVoteIncrement('emotion', request.resource.data.__newVote)) ||
             (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('emotion', request.resource.data.__oldVote)) ||
             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
           )) ||
           
-          // P4: Rating update (the core of the fix)
+          // P4: Rating update (Agregación)
           (
+            // ✅ CORRECCIÓN DE SEGURIDAD: Lógica robusta para Agregar/Remover rating (flujo Delete+Create).
             (
-                // Case A: Adding or removing a rating
-                request.resource.data.__ratingCount_delta == 1 || request.resource.data.__ratingCount_delta == -1
-            ) &&
-            request.resource.data.ratingCount == resource.data.ratingCount + request.resource.data.__ratingCount_delta &&
-            request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta &&
+                // Case A: Adding a new rating (desde un nuevo comentario)
+                request.resource.data.__ratingCount_delta == 1 &&
+                request.resource.data.ratingCount == resource.data.ratingCount + 1 &&
+                request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta &&
+                request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] == (resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] != null ? resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] : 0) + 1
+            ) ||
             (
-                (
-                    // Adding a rating
-                    request.resource.data.__ratingCount_delta == 1 &&
-                    request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] == resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] + 1
-                ) ||
-                (
-                    // Removing a rating
-                    request.resource.data.__ratingCount_delta == -1 &&
-                    request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] == resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] - 1
-                )
+                // Case C: Removing a rating (antes de volver a crear el comentario)
+                request.resource.data.__ratingCount_delta == -1 &&
+                request.resource.data.ratingCount == resource.data.ratingCount - 1 &&
+                request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta && // __totalRating_delta debe ser negativo (ej: -4)
+                request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] == (resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] != null ? resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] : 0) - 1
             )
-          ) ||
-          (
-            (
-                // Case B: Changing a rating
-                request.resource.data.__ratingCount_delta == 0 && request.resource.data.ratingCount == resource.data.ratingCount
-            ) &&
-            request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta &&
-            // This part is too complex to reliably verify in security rules without the __ratingUpdates map.
-            // We trust the client to send the correct breakdown increments and only verify the total.
-            // A more robust solution would involve a Cloud Function if this becomes a critical security concern.
-            request.resource.data.ratingsBreakdown.diff(resource.data.ratingsBreakdown).affectedKeys().size() == 2
           )
+          // ❌ ELIMINADO: Case B: Changing a rating (VULNERABLE). No es necesario con tu lógica de negocio.
         )
       );
       
@@ -139,6 +135,8 @@ service cloud.firestore {
       
       match /comments/{commentId} {
         allow get, list: if true;
+        
+        // Regla de creación original (Compatible con addDoc())
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
         
         allow update: if isSignedIn() && (
@@ -146,7 +144,7 @@ service cloud.firestore {
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (isIncrement('likes', 1) || isIncrement('likes', -1))) || // Like/unlike
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']) && (isIncrement('dislikes', 1) || isIncrement('dislikes', -1))) || // Dislike/undislike
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) && ((isIncrement('likes', -1) && isIncrement('dislikes', 1)) || (isIncrement('dislikes', -1) && isIncrement('likes', 1)))) || // Change vote
-            // This is the new rule to allow voiding an old rating
+            // Se mantuvo tu regla de "anulación" (rating = -1) por si la usas, aunque el flujo principal sea Delete+Create.
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'updatedAt']) && request.resource.data.rating == -1 && resource.data.userId == request.auth.uid)
         );
         
@@ -172,7 +170,7 @@ service cloud.firestore {
       match /achievements/{userAchievementId} { allow read, list: if true; allow create: if isSignedIn(); allow delete, update: if false; }
     }
     
-    // --- Other Root-Level Collections ---
+    // --- Other Root-Level Collections (Mantenidas) ---
 
     match /hashtags/{hashtagId} { allow get, list: if true; allow write: if isSignedIn(); }
     match /achievements/{achievementId} { allow get, list: if true; allow write: if isAdmin(); }

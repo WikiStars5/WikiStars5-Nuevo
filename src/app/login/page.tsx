@@ -148,8 +148,8 @@ export default function LoginPage() {
         </div>
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Iniciar Sesión / Registrarse</CardTitle>
-            <CardDescription>Crea una cuenta para guardar tu progreso, o inicia sesión si ya tienes una.</CardDescription>
+            <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
+            <CardDescription>Si ya tienes una cuenta, inicia sesión para acceder a tu perfil.</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
