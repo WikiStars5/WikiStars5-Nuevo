@@ -3,7 +3,7 @@
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
 import { doc, getDoc, collection } from 'firebase/firestore';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -117,6 +117,7 @@ const formatHeight = (cm?: number): string | null => {
 
 function FigureDetailContent({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [commentSortPreference, setCommentSortPreference] = useState<AttitudeOption | null>(null);
@@ -243,9 +244,11 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                                 <CardTitle>Información Detallada</CardTitle>
                                 <CardDescription className="text-muted-foreground">Datos biográficos y descriptivos de {figure.name}.</CardDescription>
                             </div>
-                            <Button variant="outline" onClick={() => setIsEditing(true)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Editar
-                            </Button>
+                            {user && !user.isAnonymous && (
+                              <Button variant="outline" onClick={() => setIsEditing(true)}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                              </Button>
+                            )}
                         </div>
                     </CardHeader>
                     <CardContent className="p-6">
