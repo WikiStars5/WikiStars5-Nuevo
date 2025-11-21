@@ -50,7 +50,7 @@ export function LoginPromptDialog({ open, onOpenChange, children }: LoginPromptD
               />
           <DialogTitle className="text-2xl">¡Únete a la Comunidad!</DialogTitle>
           <DialogDescription>
-            Para guardar tus rachas, logros y toda tu actividad, necesitas una cuenta. ¡Es gratis y rápido!
+            Para realizar esta acción, necesitas una cuenta. ¡Es gratis, rápido y guarda tu progreso!
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">

@@ -4,7 +4,7 @@ import { useState, useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, signInAnonymously } from 'firebase/firestore';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeText } from '@/lib/keywords';
 import { cn } from '@/lib/utils';
+import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 
 const createCommentSchema = (isRatingEnabled: boolean, needsIdentity: boolean) => z.object({
   rating: isRatingEnabled
@@ -52,9 +53,11 @@ const ratingSounds: { [key: number]: string } = {
 export default function CommentForm({ figureId, figureName }: CommentFormProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const auth = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
@@ -96,10 +99,25 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const textValue = form.watch('text', '');
 
   const onSubmit = async (data: CommentFormValues) => {
-    if (!firestore || !user) {
-        toast({ title: "Debes iniciar sesión para comentar.", variant: "destructive" });
+    let currentUser = user;
+    if (!currentUser && auth) {
+      try {
+        setIsSubmitting(true);
+        const userCredential = await signInAnonymously(auth);
+        currentUser = userCredential.user;
+      } catch (error) {
+        toast({ title: "Error de autenticación", description: "No se pudo crear una sesión de invitado.", variant: "destructive"});
+        setIsSubmitting(false);
+        return;
+      }
+    }
+    
+    if (!firestore || !currentUser) {
+        toast({ title: "No se pudo enviar el comentario.", variant: "destructive" });
+        setIsSubmitting(false);
         return;
     }
+    
     setIsSubmitting(true);
     let transactionError: string | null = null;
 
@@ -109,14 +127,14 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
         const newRating = isRatingEnabled ? data.rating : -1;
         
-        const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', user.uid), limit(1)));
+        const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser!.uid), limit(1)));
         if (!existingCommentSnap.empty) {
           transactionError = 'Ya has comentado en este perfil.';
           return; // Abort transaction
         }
 
         let userProfileData: any = {};
-        let displayName = userProfile?.username || user.displayName || `Invitado_${user.uid.substring(0,4)}`;
+        let displayName = userProfile?.username || currentUser?.displayName || `Invitado_${currentUser!.uid.substring(0,4)}`;
 
         if (needsIdentity && data.username) {
             const newUsername = data.username;
@@ -128,7 +146,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                 transactionError = 'El nombre de usuario ya está en uso.';
                 return; // Abort transaction
             }
-            transaction.set(newUsernameRef, { userId: user.uid });
+            transaction.set(newUsernameRef, { userId: currentUser!.uid });
             
             displayName = newUsername;
             userProfileData = {
@@ -136,7 +154,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                 usernameLower: newUsernameLower,
                 createdAt: serverTimestamp(),
             };
-            const userRef = doc(firestore, 'users', user.uid);
+            const userRef = doc(firestore, 'users', currentUser!.uid);
             transaction.set(userRef, userProfileData);
         } else if (userProfile) {
             userProfileData = userProfile;
@@ -158,12 +176,12 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         const newCommentPayload: Omit<Comment, 'id' | 'createdAt'> & { createdAt: any } = {
             threadId: newCommentRef.id,
             figureId: figureId,
-            userId: user!.uid,
+            userId: currentUser!.uid,
             text: data.text,
             rating: newRating,
             createdAt: serverTimestamp(),
             userDisplayName: displayName,
-            userPhotoURL: user.isAnonymous ? null : user.photoURL,
+            userPhotoURL: currentUser!.isAnonymous ? null : currentUser!.photoURL,
             userCountry: userProfileData.country || null,
             userGender: userProfileData.gender || null,
             likes: 0,
@@ -185,17 +203,17 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       }
 
       // Fetch the latest user profile data AFTER the transaction
-      const finalUserProfileSnap = await getDoc(userProfileRef);
+      const finalUserProfileSnap = await getDoc(doc(firestore, 'users', currentUser.uid));
       const finalUserProfileData = finalUserProfileSnap.exists() ? finalUserProfileSnap.data() : {};
 
       const streakResult = await updateStreak({
         firestore,
         figureId,
         figureName,
-        userId: user.uid,
-        userDisplayName: finalUserProfileData.username || user.displayName || 'Invitado',
-        userPhotoURL: user.isAnonymous ? null : user.photoURL,
-        isAnonymous: user.isAnonymous,
+        userId: currentUser.uid,
+        userDisplayName: finalUserProfileData.username || currentUser.displayName || 'Invitado',
+        userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
+        isAnonymous: currentUser.isAnonymous,
         userCountry: finalUserProfileData.country || null,
         userGender: finalUserProfileData.gender || null,
       });
