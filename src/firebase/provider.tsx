@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged, signInAnonymously, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { UserHookResult } from './auth/use-user';
 import { normalizeText } from '@/lib/keywords';
@@ -75,29 +76,48 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      async (firebaseUser) => {
-        if (firebaseUser) {
-          setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-        } else {
-          // If no user, sign in anonymously
-          try {
-            await signInAnonymously(auth);
-            // The onAuthStateChanged listener will be called again with the new anonymous user
-          } catch (error) {
-             console.error("FirebaseProvider: Anonymous sign-in failed:", error);
-             setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
-          }
+    const initializeAuth = async () => {
+        try {
+            await setPersistence(auth, browserLocalPersistence);
+            const unsubscribe = onAuthStateChanged(
+                auth,
+                async (firebaseUser) => {
+                    if (firebaseUser) {
+                        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+                    } else {
+                        // If no user, sign in anonymously
+                        try {
+                            await signInAnonymously(auth);
+                            // The onAuthStateChanged listener will be called again with the new anonymous user
+                        } catch (error) {
+                            console.error("FirebaseProvider: Anonymous sign-in failed:", error);
+                            setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
+                        }
+                    }
+                },
+                (error) => {
+                    console.error("FirebaseProvider: onAuthStateChanged error:", error);
+                    setUserAuthState({ user: null, isUserLoading: false, userError: error });
+                }
+            );
+            return unsubscribe;
+        } catch (error) {
+            console.error("FirebaseProvider: Failed to set persistence:", error);
+            setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
         }
-      },
-      (error) => {
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
-      }
-    );
-    return () => unsubscribe();
-  }, [auth, areServicesReady]);
+    };
+
+    const unsubscribePromise = initializeAuth();
+
+    return () => {
+        unsubscribePromise.then(unsubscribe => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        });
+    };
+}, [auth, areServicesReady]);
+
 
   const contextValue = useMemo((): FirebaseContextState => {
     return {
