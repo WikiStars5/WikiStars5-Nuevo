@@ -71,8 +71,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-  // A user needs to create an identity if they are anonymous AND don't have a user profile document yet.
-  const needsIdentity = !!user?.isAnonymous && !userProfile;
+  // A user needs to create an identity if they have no user session OR if they are anonymous AND don't have a profile doc.
+  const needsIdentity = !user || (!!user?.isAnonymous && !userProfile);
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
