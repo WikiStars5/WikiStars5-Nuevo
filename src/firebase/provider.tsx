@@ -85,22 +85,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                     if (firebaseUser) {
                         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
                     } else {
-                        // If no user, sign in anonymously
-                        try {
-                            await signInAnonymously(auth);
-                            // The onAuthStateChanged listener will be called again with the new anonymous user
-                        } catch (error) {
-                            console.error("FirebaseProvider: Anonymous sign-in failed:", error);
-                            setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
-                        }
+                        // User is signed out. Don't automatically sign in.
+                        setUserAuthState({ user: null, isUserLoading: false, userError: null });
                     }
                 },
                 (error) => {
                     console.error("FirebaseProvider: onAuthStateChanged error:", error);
                      if (error.code === 'auth/user-token-expired' && auth) {
                         console.warn("User token expired. Signing out to refresh session.");
-                        // Signing out will trigger onAuthStateChanged again, which will then
-                        // create a new anonymous session, effectively refreshing the user's state.
                         auth.signOut();
                     } else {
                         setUserAuthState({ user: null, isUserLoading: false, userError: error });
@@ -177,19 +169,29 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   };
 };
 
-export const useAuth = (): Auth => {
-  const { auth } = useFirebase();
-  return auth;
+export const useAuth = (): Auth | null => {
+  const context = useContext(FirebaseContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within a FirebaseProvider.');
+  }
+  return context.auth;
 };
 
-export const useFirestore = (): Firestore => {
-  const { firestore } = useFirebase();
-  return firestore;
+
+export const useFirestore = (): Firestore | null => {
+    const context = useContext(FirebaseContext);
+     if (context === undefined) {
+        throw new Error('useFirestore must be used within a FirebaseProvider.');
+    }
+    return context.firestore;
 };
 
-export const useFirebaseApp = (): FirebaseApp => {
-  const { firebaseApp } = useFirebase();
-  return firebaseApp;
+export const useFirebaseApp = (): FirebaseApp | null => {
+    const context = useContext(FirebaseContext);
+    if (context === undefined) {
+        throw new Error('useFirebaseApp must be used within a FirebaseProvider.');
+    }
+    return context.firebaseApp;
 };
 
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
