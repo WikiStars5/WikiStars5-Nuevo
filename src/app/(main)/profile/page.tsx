@@ -3,12 +3,12 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useAuth } from '@/firebase';
-import { doc, getDoc, setDoc, runTransaction, serverTimestamp, linkWithPopup, GoogleAuthProvider } from 'firebase/firestore';
+import { doc, getDoc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, linkWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -373,3 +373,5 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
+
+    
