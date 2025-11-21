@@ -185,7 +185,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       });
 
       if (transactionError) {
-        throw new Error(transactionError);
+        if (transactionError === 'El nombre de usuario ya está en uso.') {
+          form.setError('username', { type: 'manual', message: transactionError });
+        } else {
+          toast({ title: 'Error', description: transactionError, variant: 'destructive' });
+        }
+        setIsSubmitting(false);
+        return;
       }
 
       const streakResult = await updateStreak({
@@ -214,15 +220,11 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       form.reset({text: '', rating: null as any, username: '' });
     } catch (error: any) {
       console.error('Error al publicar comentario:', error);
-      if (error.message === 'El nombre de usuario ya está en uso.') {
-        form.setError('username', { type: 'manual', message: error.message });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error al Publicar',
-          description: error.message || 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
-        });
-      }
+      toast({
+        variant: 'destructive',
+        title: 'Error al Publicar',
+        description: error.message || 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -369,5 +371,3 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       </Card>
   );
 }
-
-    
