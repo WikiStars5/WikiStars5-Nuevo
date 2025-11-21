@@ -1,16 +1,23 @@
+
 'use client';
 
-import * as React from 'react';
-import { useAuth, useUser } from '@/firebase';
-import { GoogleAuthProvider, signInWithPopup, User } from 'firebase/auth';
-import { doc, getDoc, runTransaction, serverTimestamp, setDoc, collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
-import { normalizeText } from '@/lib/keywords';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { LogIn } from 'lucide-react';
+import Image from 'next/image';
 
+interface LoginPromptDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children?: React.ReactNode;
+}
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -21,138 +28,34 @@ const GoogleIcon = () => (
   </svg>
 );
 
-interface LoginPromptDialogProps {
-  children: React.ReactNode;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
 
-export function LoginPromptDialog({ children, open, onOpenChange }: LoginPromptDialogProps) {
-  const { reloadUser } = useUser();
-  const auth = useAuth();
-  const firestore = useFirestore();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+export function LoginPromptDialog({ open, onOpenChange, children }: LoginPromptDialogProps) {
+  const router = useRouter();
 
-  const afterSignIn = async (signedInUser: User) => {
-    if (!firestore) return;
-    const userRef = doc(firestore, 'users', signedInUser.uid);
-
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const userDoc = await transaction.get(userRef);
-            const dataToSave: any = { email: signedInUser.email };
-
-            if (!userDoc.exists()) {
-                // This is a new user
-                dataToSave.createdAt = serverTimestamp();
-                
-                let finalUsername = signedInUser.displayName || `user${signedInUser.uid.substring(0, 5)}`;
-                const usernameLower = normalizeText(finalUsername);
-                const usernameRef = doc(firestore, 'usernames', usernameLower);
-                
-                const usernameDoc = await transaction.get(usernameRef);
-                
-                if (usernameDoc.exists()) {
-                    // Username from Google is already taken, generate a unique one.
-                    finalUsername = `user${signedInUser.uid.substring(0, 8)}`;
-                    const uniqueUsernameLower = normalizeText(finalUsername);
-                    const uniqueUsernameRef = doc(firestore, 'usernames', uniqueUsernameLower);
-                    transaction.set(uniqueUsernameRef, { userId: signedInUser.uid });
-                     toast({
-                        title: 'Nombre de usuario en uso',
-                        description: `El nombre "${signedInUser.displayName}" ya está en uso. Se te ha asignado uno temporal. Puedes cambiarlo en tu perfil.`,
-                        variant: 'destructive',
-                    });
-                } else {
-                    // Username from Google is available.
-                    transaction.set(usernameRef, { userId: signedInUser.uid });
-                }
-
-                dataToSave.username = finalUsername;
-                dataToSave.usernameLower = normalizeText(finalUsername);
-
-                // --- Handle Referral ---
-                const referrerId = localStorage.getItem('referrerId');
-                const sourceFigureId = localStorage.getItem('sourceFigureId');
-                if (referrerId && referrerId !== signedInUser.uid) {
-                    const referralRef = doc(collection(firestore, 'users', referrerId, 'referrals'), signedInUser.uid);
-                    transaction.set(referralRef, {
-                        referredUserId: signedInUser.uid,
-                        createdAt: serverTimestamp(),
-                        sourceFigureId: sourceFigureId || null, // Store which profile the referral came from
-                        hasVoted: false, // Mark that the new user has not voted yet
-                    });
-                    // Clear local storage after processing
-                    localStorage.removeItem('referrerId');
-                    localStorage.removeItem('sourceFigureId');
-                }
-            }
-            
-            // Set user data (create or merge)
-            transaction.set(userRef, dataToSave, { merge: true });
-        });
-
-      await reloadUser();
-      toast({
-        title: "¡Sesión Iniciada!",
-        description: "Ahora puedes votar y comentar.",
-      });
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error during user profile creation/update:", error);
-      toast({
-        title: 'Error de Perfil',
-        description: 'No se pudo guardar tu información de perfil.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    if (!auth || !firestore) return;
-    
-    setIsSubmitting(true);
-    const provider = new GoogleAuthProvider();
-
-    try {
-      const result = await signInWithPopup(auth, provider);
-      await afterSignIn(result.user);
-    } catch (error: any) {
-      if (error.code !== 'auth/popup-closed-by-user') {
-        console.error("Error with Google Sign-In:", error);
-        toast({
-          title: "Error de Autenticación",
-          description: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  if (!open) {
+    return <>{children}</>;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children}
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Inicia Sesión para Continuar</DialogTitle>
+        <DialogHeader className="items-center text-center">
+            <Image
+                src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
+                alt="Racha"
+                width={80}
+                height={80}
+                unoptimized
+              />
+          <DialogTitle className="text-2xl">¡Únete a la Comunidad!</DialogTitle>
           <DialogDescription>
-            Para votar o comentar, necesitas una cuenta. Es rápido y fácil con Google.
+            Para guardar tus rachas, logros y toda tu actividad, necesitas una cuenta. ¡Es gratis y rápido!
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <Button
-            className="w-full"
-            onClick={handleGoogleSignIn}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <GoogleIcon />
-            )}
+          <Button className="w-full" onClick={() => router.push('/login')}>
+            <GoogleIcon />
             Continuar con Google
           </Button>
         </div>

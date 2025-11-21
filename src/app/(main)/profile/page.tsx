@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useAuth } from '@/firebase';
-import { doc, getDoc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, runTransaction, serverTimestamp, linkWithPopup, GoogleAuthProvider } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,14 +16,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, User as UserIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
+
+const GoogleIcon = () => (
+  <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.565-3.113-11.284-7.481l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
+    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C42.022,35.126,44,30.028,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+  </svg>
+);
 
 
 const profileSchema = z.object({
@@ -40,6 +51,7 @@ function ProfilePageContent() {
     const auth = useAuth();
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
+    const [isLinking, setIsLinking] = useState(false);
 
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
@@ -66,14 +78,13 @@ function ProfilePageContent() {
                     const data = userSnap.data();
                     setUserData(data);
                     profileForm.reset({
-                        username: data.username || user.displayName || '',
+                        username: data.username || (user.isAnonymous ? 'Anónimo' : user.displayName) || '',
                         country: data.country || '',
                         gender: data.gender || undefined,
                         description: data.description || '',
                     });
                 } else {
-                     // Pre-fill from auth if no DB profile exists
-                    profileForm.reset({ username: user.displayName || '' });
+                    profileForm.reset({ username: user.isAnonymous ? 'Anónimo' : user.displayName || '' });
                 }
                 setIsUserDataLoading(false);
             }
@@ -101,19 +112,17 @@ function ProfilePageContent() {
 
         try {
             await runTransaction(firestore, async (transaction) => {
-                if (usernameHasChanged) {
+                if (usernameHasChanged && !user.isAnonymous) {
                     const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
                     const usernameDoc = await transaction.get(newUsernameRef);
                     if (usernameDoc.exists() && usernameDoc.data()?.userId !== user.uid) {
                         throw new Error('El nombre de usuario ya está en uso.');
                     }
 
-                    // Delete the old username document if it exists and is different
                     if (oldUsernameLower && oldUsernameLower !== newUsernameLower) {
                         const oldUsernameRef = doc(firestore, 'usernames', oldUsernameLower);
                         transaction.delete(oldUsernameRef);
                     }
-                    // Set the new username document
                     transaction.set(newUsernameRef, { userId: user.uid });
                 }
                 
@@ -123,14 +132,13 @@ function ProfilePageContent() {
                     country: data.country || null,
                     gender: data.gender || null,
                     description: data.description || null,
-                    email: user.email,
+                    email: user.isAnonymous ? null : user.email,
                 };
 
                 transaction.set(userRef, dataToUpdate, { merge: true });
             });
 
-            // Update auth profile outside the transaction
-            if (auth.currentUser && auth.currentUser.displayName !== newUsername) {
+            if (auth?.currentUser && auth.currentUser.displayName !== newUsername && !user.isAnonymous) {
                 await updateProfile(auth.currentUser, { displayName: newUsername });
                 await reloadUser();
             }
@@ -158,6 +166,35 @@ function ProfilePageContent() {
         }
     };
     
+    const handleLinkAccount = async () => {
+        if (!auth?.currentUser || !auth.currentUser.isAnonymous) return;
+        setIsLinking(true);
+        const provider = new GoogleAuthProvider();
+        try {
+            const result = await linkWithPopup(auth.currentUser, provider);
+            // On success, Firebase automatically merges the user accounts.
+            // The onAuthStateChanged listener in the provider will trigger a state update.
+            await reloadUser();
+            toast({
+                title: "¡Cuenta Vinculada!",
+                description: "Has conectado tu cuenta de Google. Tu actividad se ha guardado.",
+            });
+        } catch (error: any) {
+            console.error("Error linking account:", error);
+            let description = "No se pudo vincular la cuenta. Inténtalo de nuevo.";
+            if (error.code === 'auth/credential-already-in-use') {
+                description = "Esta cuenta de Google ya está asociada con otro usuario de WikiStars5.";
+            }
+             toast({
+                title: "Error de Vinculación",
+                description,
+                variant: "destructive",
+            });
+        } finally {
+            setIsLinking(false);
+        }
+    }
+    
     if (isUserLoading || isUserDataLoading) {
       return (
          <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
@@ -182,13 +219,39 @@ function ProfilePageContent() {
              <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12 text-center">
                 <h1 className="text-2xl font-bold">Por favor, inicia sesión</h1>
                 <p className="text-muted-foreground">Necesitas haber iniciado sesión para ver tu perfil.</p>
+                <Button asChild className="mt-4"><Link href="/login">Ir a Iniciar Sesión</Link></Button>
             </div>
         )
     }
 
     const getAvatarFallback = () => {
+        if (user.isAnonymous) return <UserIcon />;
         return profileForm.getValues('username')?.charAt(0) || user?.email?.charAt(0) || 'U';
     }
+
+    if (user.isAnonymous) {
+        return (
+            <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Eres un Invitado</CardTitle>
+                        <CardDescription>Tu actividad es anónima. Para guardar tu progreso, rachas y logros, vincula tu cuenta.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <Button onClick={handleLinkAccount} disabled={isLinking} className="w-full">
+                            {isLinking ? <Loader2 className="animate-spin" /> : <GoogleIcon />}
+                            Vincular con Google y Guardar Progreso
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                 <div className="mt-6">
+                    <UserActivity userId={user.uid} />
+                </div>
+            </div>
+        )
+    }
+
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">

@@ -11,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Figure, EmotionVote, GlobalSettings } from '@/lib/types';
 import Image from 'next/image';
-import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
 
 
 type EmotionOption = 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
@@ -43,7 +42,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   const { toast } = useToast();
   
   const [isVoting, setIsVoting] = useState<EmotionOption | null>(null);
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   // Fetch global settings
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -68,8 +66,8 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
       return;
     }
     if (!user) {
-      setShowLoginDialog(true);
-      return;
+        toast({ title: "Debes iniciar sesión para votar.", variant: "destructive" });
+        return;
     }
     if (isVoting || !firestore || !auth) return;
     setIsVoting(vote);
@@ -155,7 +153,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   }
 
   return (
-    <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
       <div className="w-full">
         <div className="mb-4 text-left">
           <h3 className="text-xl font-bold font-headline">¿Qué emoción te genera?</h3>
@@ -200,6 +197,5 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
           Total de respuestas: {totalVotes.toLocaleString()}
         </p>
       </div>
-    </LoginPromptDialog>
   );
 }

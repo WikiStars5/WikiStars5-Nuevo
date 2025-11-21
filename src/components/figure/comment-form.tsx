@@ -17,7 +17,6 @@ import StarInput from './star-input';
 import { Comment, Streak, GlobalSettings, Figure } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
-import { LoginPromptDialog } from '@/components/shared/login-prompt-dialog';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,7 +50,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const auth = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
 
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -85,7 +83,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const onSubmit = async (data: CommentFormValues) => {
     if (!firestore || !user) {
-        setShowLoginDialog(true);
+        toast({ title: "Debes iniciar sesión para comentar.", variant: "destructive" });
         return;
     }
     setIsSubmitting(true);
@@ -93,7 +91,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     try {
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-      let displayName = user.displayName;
+      let displayName = user.isAnonymous ? 'Anónimo' : (user.displayName || 'Usuario');
       const newRating = isRatingEnabled ? data.rating : -1;
 
       // This is now redundant because the UI hides the form, but it's a good final security check.
@@ -104,17 +102,21 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       }
 
       await runTransaction(firestore, async (transaction) => {
-        const userProfileRef = doc(firestore, 'users', user!.uid);
+        let userProfileData = {};
+        if (!user.isAnonymous) {
+            const userProfileRef = doc(firestore, 'users', user.uid);
+            const userProfileSnap = await transaction.get(userProfileRef);
+            if (userProfileSnap.exists()) {
+                userProfileData = userProfileSnap.data();
+                displayName = (userProfileData as any).username || displayName;
+            }
+        }
         
-        const [figureDoc, userProfileSnap] = await Promise.all([
+        const [figureDoc] = await Promise.all([
           transaction.get(figureRef),
-          transaction.get(userProfileRef)
         ]);
         
         if (!figureDoc.exists()) throw new Error("Figure not found.");
-        
-        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
-        displayName = displayName || userProfileData.username || 'Usuario';
         
         const updates: { [key: string]: any } = { updatedAt: serverTimestamp() };
 
@@ -136,10 +138,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             text: data.text,
             rating: newRating,
             createdAt: serverTimestamp(),
-            userDisplayName: displayName!,
-            userPhotoURL: user!.photoURL,
-            userCountry: userProfileData.country || null,
-            userGender: userProfileData.gender || null,
+            userDisplayName: displayName,
+            userPhotoURL: user.isAnonymous ? null : user.photoURL,
+            userCountry: (userProfileData as any).country || null,
+            userGender: (userProfileData as any).gender || null,
             likes: 0,
             dislikes: 0,
             parentId: null,
@@ -153,8 +155,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         figureId,
         figureName,
         userId: user.uid,
-        userDisplayName: displayName!,
-        userPhotoURL: user.photoURL,
+        userDisplayName: displayName,
+        userPhotoURL: user.isAnonymous ? null : user.photoURL,
         userCountry: (await getDoc(doc(firestore, 'users', user.uid))).data()?.country || null,
         userGender: (await getDoc(doc(firestore, 'users', user.uid))).data()?.gender || null,
         isAnonymous: user.isAnonymous,
@@ -216,7 +218,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
 
   return (
-    <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
       <Card className="dark:bg-black">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -289,7 +290,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
           </Form>
         </CardContent>
       </Card>
-    </LoginPromptDialog>
   );
 }
 

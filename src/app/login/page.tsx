@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -13,7 +14,7 @@ import { useAuth, useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { GoogleAuthProvider, signInWithPopup, User } from 'firebase/auth';
-import { doc, runTransaction, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, runTransaction, serverTimestamp, collection, writeBatch, getDocs, query, where, getDoc } from 'firebase/firestore';
 import { normalizeText } from '@/lib/keywords';
 import { Loader2 } from 'lucide-react';
 
@@ -37,74 +38,64 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Redirect to profile if user is already logged in
-    if (!isUserLoading && user) {
+    // Redirect to profile if user is already logged in and not anonymous
+    if (!isUserLoading && user && !user.isAnonymous) {
       router.push('/profile');
     }
   }, [user, isUserLoading, router]);
 
-  const afterSignIn = async (signedInUser: User) => {
+ const afterSignIn = async (signedInUser: User, anonymousUid: string | null) => {
     if (!firestore) return;
-    const userRef = doc(firestore, 'users', signedInUser.uid);
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const userDoc = await transaction.get(userRef);
-            const dataToSave: any = { email: signedInUser.email };
+        const batch = writeBatch(firestore);
+        const newUserRef = doc(firestore, 'users', signedInUser.uid);
+        let finalUsername = signedInUser.displayName || `user${signedInUser.uid.substring(0, 5)}`;
+        let finalUsernameLower = normalizeText(finalUsername);
+        
+        // Ensure username is unique
+        const usernameRef = doc(firestore, 'usernames', finalUsernameLower);
+        const usernameDoc = await getDoc(usernameRef);
+        if (usernameDoc.exists() && usernameDoc.data()?.userId !== signedInUser.uid) {
+            finalUsername = `user${signedInUser.uid.substring(0, 8)}`;
+            finalUsernameLower = normalizeText(finalUsername);
+            toast({
+                title: 'Nombre de usuario en uso',
+                description: `El nombre "${signedInUser.displayName}" ya está en uso. Se te ha asignado uno temporal. Puedes cambiarlo en tu perfil.`,
+                variant: 'destructive',
+            });
+        }
+        batch.set(doc(firestore, 'usernames', finalUsernameLower), { userId: signedInUser.uid });
 
-            if (!userDoc.exists()) {
-                // This is a new user
-                dataToSave.createdAt = serverTimestamp();
-                
-                let finalUsername = signedInUser.displayName || `user${signedInUser.uid.substring(0, 5)}`;
-                const usernameLower = normalizeText(finalUsername);
-                const usernameRef = doc(firestore, 'usernames', usernameLower);
-                
-                const usernameDoc = await transaction.get(usernameRef);
-                
-                if (usernameDoc.exists()) {
-                    // Username from Google is already taken, generate a unique one.
-                    finalUsername = `user${signedInUser.uid.substring(0, 8)}`;
-                    const uniqueUsernameLower = normalizeText(finalUsername);
-                    const uniqueUsernameRef = doc(firestore, 'usernames', uniqueUsernameLower);
-                    transaction.set(uniqueUsernameRef, { userId: signedInUser.uid });
-                    toast({
-                        title: 'Nombre de usuario en uso',
-                        description: `El nombre "${signedInUser.displayName}" ya está en uso. Se te ha asignado uno temporal. Puedes cambiarlo en tu perfil.`,
-                        variant: 'destructive',
-                    });
-                } else {
-                    // Username from Google is available.
-                    transaction.set(usernameRef, { userId: signedInUser.uid });
-                }
+        // Set new user data
+        batch.set(newUserRef, {
+            username: finalUsername,
+            usernameLower: finalUsernameLower,
+            email: signedInUser.email,
+            createdAt: serverTimestamp(),
+            referralCount: 0
+        }, { merge: true });
 
-                dataToSave.username = finalUsername;
-                dataToSave.usernameLower = normalizeText(finalUsername);
+        // --- Handle Anonymous Data Migration ---
+        if (anonymousUid) {
+            // Here you would migrate data like comments, votes, etc. from anonymousUid to signedInUser.uid
+            // This is a complex operation and depends heavily on your data structure.
+            // For example, to migrate comment votes:
+            // const votesQuery = query(collectionGroup(firestore, 'votes'), where('userId', '==', anonymousUid));
+            // const votesSnapshot = await getDocs(votesQuery);
+            // votesSnapshot.forEach(voteDoc => {
+            //     batch.update(voteDoc.ref, { userId: signedInUser.uid });
+            // });
+            // After migration, delete the anonymous user's data record
+            batch.delete(doc(firestore, 'users', anonymousUid));
+        }
 
-                 // --- Handle Referral ---
-                const referrerId = localStorage.getItem('referrerId');
-                const sourceFigureId = localStorage.getItem('sourceFigureId');
-                if (referrerId && referrerId !== signedInUser.uid) {
-                    const referralRef = doc(collection(firestore, 'users', referrerId, 'referrals'), signedInUser.uid);
-                    transaction.set(referralRef, {
-                        referredUserId: signedInUser.uid,
-                        createdAt: serverTimestamp(),
-                        sourceFigureId: sourceFigureId || null,
-                        hasVoted: false, // Mark that the new user has not voted yet
-                    });
-                    // Clear local storage after processing
-                    localStorage.removeItem('referrerId');
-                    localStorage.removeItem('sourceFigureId');
-                }
-            }
-            
-            // Set user data (create or merge)
-            transaction.set(userRef, dataToSave, { merge: true });
-        });
-
+        await batch.commit();
         await reloadUser();
+
         toast({ title: "¡Sesión Iniciada!", description: "Bienvenido a WikiStars5." });
         router.push('/profile');
+
     } catch (error) {
         console.error("Error during user profile creation/update:", error);
         toast({ title: 'Error de Perfil', description: 'No se pudo guardar tu información de perfil.', variant: 'destructive' });
@@ -112,15 +103,17 @@ export default function LoginPage() {
 };
 
 
+
   const handleGoogleSignIn = async () => {
     if (!auth || !firestore) return;
     
     setIsSubmitting(true);
     const provider = new GoogleAuthProvider();
+    const anonymousUid = user?.isAnonymous ? user.uid : null;
 
     try {
       const result = await signInWithPopup(auth, provider);
-      await afterSignIn(result.user);
+      await afterSignIn(result.user, anonymousUid);
     } catch (error: any) {
       if (error.code !== 'auth/popup-closed-by-user') {
         console.error("Error with Google Sign-In:", error);
@@ -136,7 +129,7 @@ export default function LoginPage() {
   };
 
 
-  if (isUserLoading || user) {
+  if (isUserLoading || (user && !user.isAnonymous)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p>Cargando...</p>
@@ -155,8 +148,8 @@ export default function LoginPage() {
         </div>
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
-            <CardDescription>Accede a tu cuenta para continuar.</CardDescription>
+            <CardTitle className="text-2xl">Iniciar Sesión / Registrarse</CardTitle>
+            <CardDescription>Crea una cuenta para guardar tu progreso, o inicia sesión si ya tienes una.</CardDescription>
           </CardHeader>
           <CardContent>
             <Button

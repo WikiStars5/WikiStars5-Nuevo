@@ -4,7 +4,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { UserHookResult } from './auth/use-user';
 
@@ -76,12 +76,21 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       return;
     }
 
-    setUserAuthState({ user: null, isUserLoading: true, userError: null });
-
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+        if (firebaseUser) {
+          // User is signed in (either through Google or anonymously).
+          setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+        } else {
+          // No user is signed in, so we sign them in anonymously.
+          signInAnonymously(auth).catch((error) => {
+            console.error("FirebaseProvider: Anonymous sign-in failed:", error);
+            setUserAuthState({ user: null, isUserLoading: false, userError: error });
+          });
+          // The onAuthStateChanged listener will be triggered again by signInAnonymously,
+          // so we don't set state here immediately.
+        }
       },
       (error) => {
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
@@ -104,10 +113,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     };
   }, [firebaseApp, firestore, auth, userAuthState, areServicesReady, reloadUser]);
 
-  if (!areServicesReady) {
-    return (
+  if (userAuthState.isUserLoading) {
+     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <p>Initializing Firebase...</p>
+        <p>Conectando...</p>
       </div>
     );
   }
@@ -171,5 +180,3 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
 
   return memoized as T;
 }
-
-    
