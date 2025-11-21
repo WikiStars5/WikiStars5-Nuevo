@@ -16,6 +16,7 @@ import { ShareButton } from '../shared/ShareButton';
 import { usePathname } from 'next/navigation';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { signInAnonymously } from 'firebase/auth';
 
 
 const BATTLE_ID = 'messi-vs-ronaldo';
@@ -62,7 +63,6 @@ export default function GoatBattle() {
   const pathname = usePathname();
 
   const [isVoting, setIsVoting] = useState(false);
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   const [messiData, setMessiData] = useState<PlayerData | null>(null);
   const [ronaldoData, setRonaldoData] = useState<PlayerData | null>(null);
@@ -167,19 +167,38 @@ export default function GoatBattle() {
       return;
     }
     
-    if (!user) {
-      setShowLoginDialog(true);
-      return;
+    if (isVoting || !firestore || !auth || !isBattleActive) return;
+
+    let currentUser = user;
+    if (!currentUser) {
+        setIsVoting(true);
+        try {
+            const userCredential = await signInAnonymously(auth);
+            currentUser = userCredential.user;
+             toast({
+                title: "¡Bienvenido, Invitado!",
+                description: "Tu actividad ahora es anónima. Inicia sesión para guardarla."
+            });
+        } catch (error) {
+            console.error("Error signing in anonymously:", error);
+            toast({ title: 'Error de Autenticación', description: 'No se pudo iniciar la sesión anónima.', variant: 'destructive'});
+            setIsVoting(false);
+            return;
+        }
+    }
+    
+    if (!currentUser) {
+        toast({ title: 'Error', description: 'No se pudo obtener la identidad del usuario.', variant: 'destructive'});
+        return;
     }
 
-    if (isVoting || !firestore || !auth || !isBattleActive) return;
     setIsVoting(true);
     let isFirstVote = false;
 
     try {
         await runTransaction(firestore, async (transaction) => {
             const battleRef = doc(firestore, 'goat_battles', BATTLE_ID);
-            const userVoteRef = doc(firestore, `goat_battles/${BATTLE_ID}/votes`, user.uid);
+            const userVoteRef = doc(firestore, `goat_battles/${BATTLE_ID}/votes`, currentUser!.uid);
             
             const [battleDoc, userVoteDoc] = await Promise.all([
                 transaction.get(battleRef),
@@ -210,7 +229,7 @@ export default function GoatBattle() {
                 }
                 
                 transaction.set(userVoteRef, { 
-                    userId: user.uid, 
+                    userId: currentUser!.uid, 
                     vote: player, 
                     createdAt: serverTimestamp() 
                 });
@@ -301,7 +320,6 @@ export default function GoatBattle() {
   const figureIdForShare = pathname.split('/').pop() || (messiData ? messiData.id : 'lionel-messi');
 
   return (
-    <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
       <Card className="relative dark:bg-black">
         <CardHeader className="items-center text-center pt-12">
             <CardTitle className="flex items-center gap-2 text-3xl">
@@ -412,7 +430,6 @@ export default function GoatBattle() {
             )}
         </CardContent>
       </Card>
-    </LoginPromptDialog>
   );
 }
 
