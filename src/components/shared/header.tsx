@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -171,6 +170,12 @@ export default function Header() {
                     <>
                     <DropdownMenuLabel>Menú de Invitado</DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        <span>Mi Perfil</span>
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onSelect={handleLogin}>
                       <LogIn className="mr-2 h-4 w-4" />
                       <span>Iniciar Sesión / Registrarse</span>
