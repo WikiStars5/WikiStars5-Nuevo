@@ -3,10 +3,11 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { UserHookResult } from './auth/use-user';
+import { normalizeText } from '@/lib/keywords';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -44,6 +45,31 @@ export interface FirebaseServicesAndUser {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
+const createGuestProfileIfNeeded = async (firestore: Firestore, user: User) => {
+    if (!user.isAnonymous) return;
+
+    const userRef = doc(firestore, 'users', user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+        const guestUsername = `Invitado_${user.uid.substring(0, 5)}`;
+        const usernameLower = normalizeText(guestUsername);
+        
+        try {
+            await setDoc(userRef, {
+                username: guestUsername,
+                usernameLower: usernameLower,
+                createdAt: serverTimestamp(),
+                isAnonymous: true,
+            });
+            // We don't create a document in /usernames for guests to avoid conflicts
+            // and keep the collection clean. Username uniqueness for guests isn't critical.
+        } catch (error) {
+            console.error("Failed to create guest user profile:", error);
+        }
+    }
+}
+
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
   firebaseApp,
@@ -62,7 +88,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     if (auth?.currentUser) {
       try {
         await auth.currentUser.reload();
-        // The onAuthStateChanged listener will handle the state update automatically
       } catch (error) {
         console.error("Error reloading user:", error);
         setUserAuthState(prev => ({...prev, userError: error as Error}));
@@ -71,25 +96,24 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   }, [auth]);
 
   useEffect(() => {
-    if (!areServicesReady || !auth) {
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not available.") });
+    if (!areServicesReady || !auth || !firestore) {
+      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Firebase services not available.") });
       return;
     }
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      (firebaseUser) => {
+      async (firebaseUser) => {
         if (firebaseUser) {
-          // User is signed in (either through Google or anonymously).
+          await createGuestProfileIfNeeded(firestore, firebaseUser);
           setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
         } else {
-          // No user is signed in, so we sign them in anonymously.
-          signInAnonymously(auth).catch((error) => {
-            console.error("FirebaseProvider: Anonymous sign-in failed:", error);
-            setUserAuthState({ user: null, isUserLoading: false, userError: error });
-          });
-          // The onAuthStateChanged listener will be triggered again by signInAnonymously,
-          // so we don't set state here immediately.
+          try {
+            await signInAnonymously(auth);
+          } catch (error) {
+             console.error("FirebaseProvider: Anonymous sign-in failed:", error);
+             setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
+          }
         }
       },
       (error) => {
@@ -98,7 +122,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
     return () => unsubscribe();
-  }, [auth, areServicesReady]);
+  }, [auth, firestore, areServicesReady]);
 
   const contextValue = useMemo((): FirebaseContextState => {
     return {

@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle, User as UserIcon, MapPin, Users as UsersIcon, Star as StarIcon } from 'lucide-react';
+import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle } from 'lucide-react';
 import StarInput from './star-input';
 import { Comment, Streak, GlobalSettings, Figure } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
@@ -23,13 +23,10 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeText } from '@/lib/keywords';
 
-const createCommentSchema = (isRatingEnabled: boolean, isAnonymous: boolean) => z.object({
+const createCommentSchema = (isRatingEnabled: boolean) => z.object({
   rating: isRatingEnabled
     ? z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.')
     : z.number().optional().nullable(),
-  username: isAnonymous 
-    ? z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.')
-    : z.string().optional(),
   text: z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.'),
 });
 
@@ -52,7 +49,6 @@ const ratingSounds: { [key: number]: string } = {
 export default function CommentForm({ figureId, figureName }: CommentFormProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const auth = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
@@ -61,11 +57,9 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
   const isRatingEnabled = (globalSettings?.isRatingEnabled ?? true);
   
-  const isAnonymous = user?.isAnonymous ?? true;
-
   const form = useForm<CommentFormValues>({
-    resolver: zodResolver(createCommentSchema(isRatingEnabled, isAnonymous)),
-    defaultValues: { text: '', rating: null, username: '' },
+    resolver: zodResolver(createCommentSchema(isRatingEnabled)),
+    defaultValues: { text: '', rating: null },
   });
 
   const existingCommentQuery = useMemoFirebase(() => {
@@ -83,7 +77,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   useEffect(() => {
     form.reset(form.getValues());
-  }, [isRatingEnabled, isAnonymous, form]);
+  }, [isRatingEnabled, form]);
 
 
   const textValue = form.watch('text', '');
@@ -94,12 +88,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         return;
     }
     setIsSubmitting(true);
-    form.clearErrors('username');
     
     try {
       const figureRef = doc(firestore, 'figures', figureId);
       const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-      let displayName = user.isAnonymous ? (data.username || 'Anónimo') : (user.displayName || 'Usuario');
       const newRating = isRatingEnabled ? data.rating : -1;
 
       if (existingComment) {
@@ -109,37 +101,17 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       }
 
       await runTransaction(firestore, async (transaction) => {
-        let userProfileData: any = {};
         const userProfileRef = doc(firestore, 'users', user.uid);
-        
-        if (isAnonymous) {
-            const newUsernameLower = normalizeText(data.username!);
-            const usernameRef = doc(firestore, 'usernames', newUsernameLower);
-            const usernameDoc = await transaction.get(usernameRef);
-            if (usernameDoc.exists()) {
-                throw new Error('El nombre de usuario ya está en uso. Por favor, elige otro.');
-            }
-            transaction.set(usernameRef, { userId: user.uid });
-            
-            userProfileData = {
-                username: data.username,
-                usernameLower: newUsernameLower,
-            };
-            transaction.set(userProfileRef, userProfileData, { merge: true });
-        } else {
-            const userProfileSnap = await transaction.get(userProfileRef);
-            if (userProfileSnap.exists()) {
-                userProfileData = userProfileSnap.data();
-                displayName = userProfileData.username || displayName;
-            }
-        }
-        
-        const [figureDoc] = await Promise.all([
+        const [figureDoc, userProfileSnap] = await Promise.all([
           transaction.get(figureRef),
+          transaction.get(userProfileRef),
         ]);
         
         if (!figureDoc.exists()) throw new Error("Figure not found.");
         
+        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
+        const displayName = userProfileData.username || user.displayName || 'Usuario';
+
         const updates: { [key: string]: any } = { updatedAt: serverTimestamp() };
 
         if (isRatingEnabled && typeof newRating === 'number' && newRating >= 0) {
@@ -177,7 +149,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         figureId,
         figureName,
         userId: user.uid,
-        userDisplayName: displayName,
+        userDisplayName: user.displayName || 'Usuario',
         userPhotoURL: user.isAnonymous ? null : user.photoURL,
         isAnonymous: user.isAnonymous,
       });
@@ -195,18 +167,14 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         title: '¡Opinión Publicada!',
         description: 'Gracias por compartir tu comentario y calificación.',
       });
-      form.reset({text: '', rating: null as any, username: ''});
+      form.reset({text: '', rating: null as any });
     } catch (error: any) {
       console.error('Error al publicar comentario:', error);
-      if (error.message.includes('nombre de usuario')) {
-          form.setError('username', { type: 'manual', message: error.message });
-      } else {
-         toast({
-            variant: 'destructive',
-            title: 'Error al Publicar',
-            description: error.message || 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
-        });
-      }
+      toast({
+        variant: 'destructive',
+        title: 'Error al Publicar',
+        description: error.message || 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -280,27 +248,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                   ) : <p className='text-sm text-muted-foreground'>(Las calificaciones están deshabilitadas actualmente)</p>}
               </div>
 
-              {isAnonymous && (
-                 <div className='space-y-4'>
-                    <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-muted text-muted-foreground text-sm font-bold'>2</span>Crea tu identidad de opinador</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="username"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className='flex items-center gap-1.5'><UserIcon className='h-4 w-4'/>Nombre de usuario*</FormLabel>
-                                    <FormControl><Input {...field} placeholder='Tu nombre aquí...'/></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                </div>
-              )}
-
               <div className='space-y-4'>
-                <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-muted text-muted-foreground text-sm font-bold'>{isAnonymous ? 3: 2}</span>Escribe tu opinión*</h3>
+                <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-muted text-muted-foreground text-sm font-bold'>2</span>Escribe tu opinión*</h3>
                   <FormField
                     control={form.control}
                     name="text"
