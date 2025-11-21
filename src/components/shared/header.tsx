@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -30,7 +31,6 @@ import Image from 'next/image';
 import { collection, getDocs, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from './ThemeToggle';
-import { useTheme } from 'next-themes';
 import { InstallPwaButton } from '../layout/InstallPwaButton';
 
 
@@ -265,10 +265,12 @@ export default function Header() {
               </DropdownMenu>
             </>
           ) : (
-            <Button onClick={handleLogin}>
-              <LogIn className="mr-2 h-4 w-4" />
-              Iniciar Sesión
-            </Button>
+            pathname === '/' && (
+              <Button onClick={handleLogin}>
+                <LogIn className="mr-2 h-4 w-4" />
+                Iniciar Sesión
+              </Button>
+            )
           )}
         </div>
       </div>
