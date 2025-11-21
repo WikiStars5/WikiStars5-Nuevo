@@ -118,7 +118,7 @@ export default function Header() {
 
   const getAvatarFallback = () => {
     if (user?.isAnonymous) return <UserIcon className="h-5 w-5" />;
-    return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U';
+    return userProfile?.username?.charAt(0) || user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U';
   }
 
   const isLoading = isUserLoading || (user && isProfileLoading);
@@ -170,7 +170,7 @@ export default function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10 border-2 border-primary">
-                      <AvatarImage src={user.isAnonymous ? undefined : user?.photoURL || undefined} alt={user?.displayName || 'User'} />
+                      <AvatarImage src={user.isAnonymous ? undefined : user?.photoURL || undefined} alt={userProfile?.username || user?.displayName || 'User'} />
                       <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
                   </Button>
@@ -181,25 +181,25 @@ export default function Header() {
                     <>
                       <DropdownMenuLabel>Menú de Invitado</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {!userProfile ? (
-                         <DropdownMenuItem onSelect={handleLogin}>
-                          <LogIn className="mr-2 h-4 w-4" />
-                          <span>Iniciar Sesión</span>
-                        </DropdownMenuItem>
-                      ) : (
+                      {userProfile ? (
                          <DropdownMenuItem asChild>
                            <Link href="/profile">
                              <UserIcon className="mr-2 h-4 w-4" />
                              <span>Mi Perfil</span>
                            </Link>
                          </DropdownMenuItem>
+                      ) : (
+                         <DropdownMenuItem onSelect={handleLogin}>
+                          <LogIn className="mr-2 h-4 w-4" />
+                          <span>Iniciar Sesión</span>
+                        </DropdownMenuItem>
                       )}
                     </>
                   ) : (
                     <>
                       <DropdownMenuLabel className="font-normal">
                         <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">{user.displayName || user.email}</p>
+                          <p className="text-sm font-medium leading-none">{userProfile?.username || user.displayName || user.email}</p>
                           {user.email && (
                             <p className="text-xs leading-none text-muted-foreground">
                               {user.email}
