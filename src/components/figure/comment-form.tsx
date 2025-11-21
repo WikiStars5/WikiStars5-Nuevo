@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -102,6 +103,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     setIsSubmitting(true);
     form.clearErrors('username');
     
+    let transactionError: string | null = null;
+
     try {
       await runTransaction(firestore, async (transaction) => {
         const figureRef = doc(firestore, 'figures', figureId);
@@ -110,7 +113,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         
         const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', user.uid), limit(1)));
         if (!existingCommentSnap.empty) {
-          throw new Error('Ya has comentado en este perfil.');
+          transactionError = 'Ya has comentado en este perfil.';
+          return; // Abort transaction
         }
 
         let userProfileData: any = {};
@@ -123,7 +127,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             const usernameDoc = await transaction.get(newUsernameRef);
             
             if (usernameDoc.exists()) {
-                throw new Error('El nombre de usuario ya está en uso.');
+                transactionError = 'El nombre de usuario ya está en uso.';
+                return; // Abort transaction
             }
             transaction.set(newUsernameRef, { userId: user.uid });
             
@@ -178,6 +183,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         };
         transaction.set(newCommentRef, newCommentPayload);
       });
+
+      if (transactionError) {
+        throw new Error(transactionError);
+      }
 
       const streakResult = await updateStreak({
         firestore,
@@ -360,3 +369,5 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       </Card>
   );
 }
+
+    
