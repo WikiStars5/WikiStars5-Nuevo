@@ -97,7 +97,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                 },
                 (error) => {
                     console.error("FirebaseProvider: onAuthStateChanged error:", error);
-                    setUserAuthState({ user: null, isUserLoading: false, userError: error });
+                     if (error.code === 'auth/user-token-expired' && auth) {
+                        console.warn("User token expired. Signing out to refresh session.");
+                        // Signing out will trigger onAuthStateChanged again, which will then
+                        // create a new anonymous session, effectively refreshing the user's state.
+                        auth.signOut();
+                    } else {
+                        setUserAuthState({ user: null, isUserLoading: false, userError: error });
+                    }
                 }
             );
             return unsubscribe;
