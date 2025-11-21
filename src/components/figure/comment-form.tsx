@@ -21,6 +21,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeText } from '@/lib/keywords';
+import { cn } from '@/lib/utils';
 
 const createCommentSchema = (isRatingEnabled: boolean, needsIdentity: boolean) => z.object({
   rating: isRatingEnabled
@@ -288,7 +289,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
                {needsIdentity && (
                  <div className='space-y-4'>
-                    <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-muted text-muted-foreground text-sm font-bold'>2</span>Crea tu identidad de opinador</h3>
+                    <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>2</span>Crea tu identidad de opinador</h3>
                      <FormField
                         control={form.control}
                         name="username"
