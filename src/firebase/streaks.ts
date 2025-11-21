@@ -111,7 +111,10 @@ export async function updateStreak({
             figureId,
             currentStreak: newStreakCount,
             lastCommentDate: Timestamp.now(),
-            ...denormalizedUserData,
+            userDisplayName: denormalizedUserData.userDisplayName,
+            userPhotoURL: denormalizedUserData.userPhotoURL,
+            userCountry: denormalizedUserData.userCountry ?? null,
+            userGender: denormalizedUserData.userGender ?? null,
         };
 
         // Add both set/update operations to the batch.

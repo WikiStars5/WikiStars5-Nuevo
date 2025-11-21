@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle, User as UserIcon, MapPin, Users as UsersIcon, Star as StarIcon } from 'lucide-react';
@@ -22,7 +21,6 @@ import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CountrySelector } from './country-selector';
 import { normalizeText } from '@/lib/keywords';
 
 const createCommentSchema = (isRatingEnabled: boolean, isAnonymous: boolean) => z.object({
@@ -32,8 +30,6 @@ const createCommentSchema = (isRatingEnabled: boolean, isAnonymous: boolean) => 
   username: isAnonymous 
     ? z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.')
     : z.string().optional(),
-  country: z.string().optional(),
-  gender: z.enum(['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo']).optional(),
   text: z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.'),
 });
 
@@ -69,7 +65,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, isAnonymous)),
-    defaultValues: { text: '', rating: null, username: '', country: '', gender: undefined },
+    defaultValues: { text: '', rating: null, username: '' },
   });
 
   const existingCommentQuery = useMemoFirebase(() => {
@@ -128,8 +124,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             userProfileData = {
                 username: data.username,
                 usernameLower: newUsernameLower,
-                country: data.country || null,
-                gender: data.gender || null,
             };
             transaction.set(userProfileRef, userProfileData, { merge: true });
         } else {
@@ -185,8 +179,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         userId: user.uid,
         userDisplayName: displayName,
         userPhotoURL: user.isAnonymous ? null : user.photoURL,
-        userCountry: data.country || null,
-        userGender: data.gender || null,
         isAnonymous: user.isAnonymous,
       });
 
@@ -203,7 +195,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         title: '¡Opinión Publicada!',
         description: 'Gracias por compartir tu comentario y calificación.',
       });
-      form.reset({text: '', rating: null as any, username: '', country: '', gender: undefined});
+      form.reset({text: '', rating: null as any, username: ''});
     } catch (error: any) {
       console.error('Error al publicar comentario:', error);
       if (error.message.includes('nombre de usuario')) {
@@ -303,38 +295,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                                 </FormItem>
                             )}
                         />
-                         <FormField
-                            control={form.control}
-                            name="country"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                    <FormLabel className='flex items-center gap-1.5'><MapPin className='h-4 w-4'/>País (opcional)</FormLabel>
-                                    <CountrySelector value={field.value || ''} onChange={field.onChange} />
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="gender"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className='flex items-center gap-1.5'><UsersIcon className='h-4 w-4'/>Sexo (opcional)</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="Masculino">Masculino</SelectItem>
-                                            <SelectItem value="Femenino">Femenino</SelectItem>
-                                            <SelectItem value="Otro">Otro</SelectItem>
-                                            <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
                     </div>
                 </div>
               )}
@@ -382,5 +342,3 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       </Card>
   );
 }
-
-    

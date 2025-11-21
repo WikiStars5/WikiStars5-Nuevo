@@ -125,8 +125,8 @@ export interface Comment {
   // Denormalized user data for display
   userDisplayName: string;
   userPhotoURL: string | null;
-  userCountry?: string;
-  userGender?: 'Masculino' | 'Femenino' | 'Otro' | 'Prefiero no decirlo';
+  userCountry?: string | null;
+  userGender?: 'Masculino' | 'Femenino' | 'Otro' | 'Prefiero no decirlo' | null;
 }
 
 export interface CommentVote {

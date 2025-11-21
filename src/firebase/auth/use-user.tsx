@@ -15,5 +15,3 @@ export const useUser = (): UserHookResult => {
   const { user, isUserLoading, userError, reloadUser } = useFirebase();
   return { user, isUserLoading, userError, reloadUser };
 };
-
-    
