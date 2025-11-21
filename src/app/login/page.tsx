@@ -44,61 +44,59 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
- const afterSignIn = async (signedInUser: User, anonymousUid: string | null) => {
+ const afterSignIn = async (signedInUser: User) => {
     if (!firestore) return;
 
+    const newUserRef = doc(firestore, 'users', signedInUser.uid);
+    const userDoc = await getDoc(newUserRef);
+
+    // If the user document already exists, it means this user has either
+    // registered before or has linked their anonymous account. We do nothing.
+    if (userDoc.exists()) {
+        toast({ title: "¡Bienvenido de Nuevo!", description: "Has iniciado sesión correctamente." });
+        router.push('/profile');
+        return;
+    }
+    
+    // --- This part only runs for a brand new user who has never registered before ---
     try {
-        const batch = writeBatch(firestore);
-        const newUserRef = doc(firestore, 'users', signedInUser.uid);
         let finalUsername = signedInUser.displayName || `user${signedInUser.uid.substring(0, 5)}`;
         let finalUsernameLower = normalizeText(finalUsername);
         
-        // Ensure username is unique
-        const usernameRef = doc(firestore, 'usernames', finalUsernameLower);
-        const usernameDoc = await getDoc(usernameRef);
-        if (usernameDoc.exists() && usernameDoc.data()?.userId !== signedInUser.uid) {
-            finalUsername = `user${signedInUser.uid.substring(0, 8)}`;
-            finalUsernameLower = normalizeText(finalUsername);
-            toast({
-                title: 'Nombre de usuario en uso',
-                description: `El nombre "${signedInUser.displayName}" ya está en uso. Se te ha asignado uno temporal. Puedes cambiarlo en tu perfil.`,
-                variant: 'destructive',
-            });
-        }
-        batch.set(doc(firestore, 'usernames', finalUsernameLower), { userId: signedInUser.uid });
+        await runTransaction(firestore, async (transaction) => {
+            // Ensure username is unique before creating the profile
+            const usernameRef = doc(firestore, 'usernames', finalUsernameLower);
+            const usernameDoc = await transaction.get(usernameRef);
+            
+            if (usernameDoc.exists()) {
+                finalUsername = `user${signedInUser.uid.substring(0, 8)}`;
+                finalUsernameLower = normalizeText(finalUsername);
+                toast({
+                    title: 'Nombre de usuario en uso',
+                    description: `El nombre de Google "${signedInUser.displayName}" ya está en uso. Se te ha asignado uno temporal. Puedes cambiarlo en tu perfil.`,
+                    variant: 'destructive',
+                    duration: 7000,
+                });
+            }
+            transaction.set(doc(firestore, 'usernames', finalUsernameLower), { userId: signedInUser.uid });
 
-        // Set new user data
-        batch.set(newUserRef, {
-            username: finalUsername,
-            usernameLower: finalUsernameLower,
-            email: signedInUser.email,
-            createdAt: serverTimestamp(),
-            referralCount: 0
-        }, { merge: true });
+            // Set new user data
+            transaction.set(newUserRef, {
+                username: finalUsername,
+                usernameLower: finalUsernameLower,
+                email: signedInUser.email,
+                createdAt: serverTimestamp(),
+                referralCount: 0
+            }, { merge: true });
+        });
 
-        // --- Handle Anonymous Data Migration ---
-        if (anonymousUid) {
-            // Here you would migrate data like comments, votes, etc. from anonymousUid to signedInUser.uid
-            // This is a complex operation and depends heavily on your data structure.
-            // For example, to migrate comment votes:
-            // const votesQuery = query(collectionGroup(firestore, 'votes'), where('userId', '==', anonymousUid));
-            // const votesSnapshot = await getDocs(votesQuery);
-            // votesSnapshot.forEach(voteDoc => {
-            //     batch.update(voteDoc.ref, { userId: signedInUser.uid });
-            // });
-            // After migration, delete the anonymous user's data record
-            batch.delete(doc(firestore, 'users', anonymousUid));
-        }
-
-        await batch.commit();
         await reloadUser();
-
-        toast({ title: "¡Sesión Iniciada!", description: "Bienvenido a WikiStars5." });
+        toast({ title: "¡Bienvenido a WikiStars5!", description: "Tu cuenta ha sido creada." });
         router.push('/profile');
 
     } catch (error) {
-        console.error("Error during user profile creation/update:", error);
-        toast({ title: 'Error de Perfil', description: 'No se pudo guardar tu información de perfil.', variant: 'destructive' });
+        console.error("Error during new user profile creation:", error);
+        toast({ title: 'Error de Perfil', description: 'No se pudo crear tu perfil de usuario.', variant: 'destructive' });
     }
 };
 
@@ -109,11 +107,10 @@ export default function LoginPage() {
     
     setIsSubmitting(true);
     const provider = new GoogleAuthProvider();
-    const anonymousUid = user?.isAnonymous ? user.uid : null;
-
+    
     try {
       const result = await signInWithPopup(auth, provider);
-      await afterSignIn(result.user, anonymousUid);
+      await afterSignIn(result.user);
     } catch (error: any) {
       if (error.code !== 'auth/popup-closed-by-user') {
         console.error("Error with Google Sign-In:", error);
@@ -149,7 +146,7 @@ export default function LoginPage() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
-            <CardDescription>Si ya tienes una cuenta, inicia sesión para acceder a tu perfil.</CardDescription>
+            <CardDescription>Usa tu cuenta para acceder a tu perfil y continuar donde lo dejaste.</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
