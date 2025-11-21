@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -76,8 +75,6 @@ export default function Header() {
   const handleLogout = () => {
     if (auth) {
       auth.signOut().then(() => {
-        // After signing out, the onAuthStateChanged in the provider
-        // will automatically sign the user in anonymously.
         router.push('/');
       });
     }
@@ -267,7 +264,12 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
-          ) : null}
+          ) : (
+            <Button onClick={handleLogin}>
+              <LogIn className="mr-2 h-4 w-4" />
+              Iniciar Sesión
+            </Button>
+          )}
         </div>
       </div>
     </header>

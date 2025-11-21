@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
@@ -85,15 +84,21 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                     if (firebaseUser) {
                         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
                     } else {
-                        // User is signed out. Don't automatically sign in.
-                        setUserAuthState({ user: null, isUserLoading: false, userError: null });
+                        // User is signed out, sign them in anonymously.
+                        try {
+                            const userCredential = await signInAnonymously(auth);
+                            setUserAuthState({ user: userCredential.user, isUserLoading: false, userError: null });
+                        } catch (anonError) {
+                             console.error("FirebaseProvider: Anonymous sign-in failed:", anonError);
+                             setUserAuthState({ user: null, isUserLoading: false, userError: anonError as Error });
+                        }
                     }
                 },
                 (error) => {
                     console.error("FirebaseProvider: onAuthStateChanged error:", error);
                      if (error.code === 'auth/user-token-expired' && auth) {
                         console.warn("User token expired. Signing out to refresh session.");
-                        auth.signOut();
+                        auth.signOut(); // This will trigger a re-authentication cycle.
                     } else {
                         setUserAuthState({ user: null, isUserLoading: false, userError: error });
                     }

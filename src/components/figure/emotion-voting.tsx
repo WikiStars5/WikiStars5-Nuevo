@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -43,7 +42,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   const { toast } = useToast();
   
   const [isVoting, setIsVoting] = useState<EmotionOption | null>(null);
-  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   // Fetch global settings
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -68,8 +66,9 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
       return;
     }
     if (!user) {
-        setShowLoginDialog(true);
-        return;
+      console.error("User not available for voting.");
+      toast({ title: 'Debes iniciar sesión para votar.', variant: 'destructive'});
+      return;
     }
     if (isVoting || !firestore || !auth) return;
     setIsVoting(vote);
@@ -155,7 +154,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   }
 
   return (
-    <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
       <div className="w-full">
         <div className="mb-4 text-left">
           <h3 className="text-xl font-bold font-headline">¿Qué emoción te genera?</h3>
@@ -175,7 +173,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                 isVoting === id ? 'cursor-not-allowed' : ''
                 )}
                 onClick={() => handleVote(id)}
-                disabled={!!isVoting}
+                disabled={!!isVoting || !user}
               >
                 {isVoting === id ? (
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -200,6 +198,5 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
           Total de respuestas: {totalVotes.toLocaleString()}
         </p>
       </div>
-    </LoginPromptDialog>
   );
 }
