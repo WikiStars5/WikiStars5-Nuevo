@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
@@ -45,31 +44,6 @@ export interface FirebaseServicesAndUser {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-const createGuestProfileIfNeeded = async (firestore: Firestore, user: User) => {
-    if (!user.isAnonymous) return;
-
-    const userRef = doc(firestore, 'users', user.uid);
-    const userSnap = await getDoc(userRef);
-
-    if (!userSnap.exists()) {
-        const guestUsername = `Invitado_${user.uid.substring(0, 5)}`;
-        const usernameLower = normalizeText(guestUsername);
-        
-        try {
-            await setDoc(userRef, {
-                username: guestUsername,
-                usernameLower: usernameLower,
-                createdAt: serverTimestamp(),
-                isAnonymous: true,
-            });
-            // We don't create a document in /usernames for guests to avoid conflicts
-            // and keep the collection clean. Username uniqueness for guests isn't critical.
-        } catch (error) {
-            console.error("Failed to create guest user profile:", error);
-        }
-    }
-}
-
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
   firebaseApp,
@@ -96,7 +70,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   }, [auth]);
 
   useEffect(() => {
-    if (!areServicesReady || !auth || !firestore) {
+    if (!areServicesReady || !auth) {
       setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Firebase services not available.") });
       return;
     }
@@ -105,11 +79,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       auth,
       async (firebaseUser) => {
         if (firebaseUser) {
-          await createGuestProfileIfNeeded(firestore, firebaseUser);
           setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
         } else {
+          // If no user, sign in anonymously
           try {
             await signInAnonymously(auth);
+            // The onAuthStateChanged listener will be called again with the new anonymous user
           } catch (error) {
              console.error("FirebaseProvider: Anonymous sign-in failed:", error);
              setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
@@ -122,7 +97,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
     return () => unsubscribe();
-  }, [auth, firestore, areServicesReady]);
+  }, [auth, areServicesReady]);
 
   const contextValue = useMemo((): FirebaseContextState => {
     return {

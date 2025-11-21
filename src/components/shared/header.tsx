@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
-import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider } from '@/firebase';
+import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider, useDoc, useMemoFirebase } from '@/firebase';
 import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
@@ -27,7 +27,7 @@ import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog
 import SearchBar from './search-bar';
 import NotificationBell from './notification-bell';
 import Image from 'next/image';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from 'next-themes';
@@ -46,6 +46,13 @@ export default function Header() {
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
   const [isSearchDialogOpen, setIsSearchDialogOpen] = React.useState(false);
   const { setTheme, theme } = useTheme();
+
+  // New logic: Check if a user profile document exists for the current user
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
   
   React.useEffect(() => {
     // This effect runs only on the client after hydration
@@ -113,6 +120,8 @@ export default function Header() {
     return user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U';
   }
 
+  const isLoading = isUserLoading || (user && isProfileLoading);
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -142,7 +151,7 @@ export default function Header() {
                 <SearchBar onResultClick={() => setIsSearchDialogOpen(false)} />
             </DialogContent>
           </Dialog>
-          {isUserLoading ? (
+          {isLoading ? (
             <Skeleton className="h-10 w-20" />
           ) : user ? (
             <>
@@ -166,52 +175,55 @@ export default function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
+                  
                   {user.isAnonymous ? (
                     <>
-                    <DropdownMenuLabel>Menú de Invitado</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile">
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        <span>Mi Perfil</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={handleLogin}>
-                      <LogIn className="mr-2 h-4 w-4" />
-                      <span>Iniciar Sesión / Registrarse</span>
-                    </DropdownMenuItem>
+                      <DropdownMenuLabel>Menú de Invitado</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {userProfile && ( // Only show "Mi Perfil" if a profile document exists
+                         <DropdownMenuItem asChild>
+                           <Link href="/profile">
+                             <UserIcon className="mr-2 h-4 w-4" />
+                             <span>Mi Perfil</span>
+                           </Link>
+                         </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onSelect={handleLogin}>
+                        <LogIn className="mr-2 h-4 w-4" />
+                        <span>Iniciar Sesión / Registrarse</span>
+                      </DropdownMenuItem>
                     </>
                   ) : (
                     <>
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{user.displayName || user.email}</p>
-                        {user.email && (
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {user.email}
-                          </p>
-                        )}
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile">
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        <span>Mi Perfil</span>
-                      </Link>
-                    </DropdownMenuItem>
+                      <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium leading-none">{user.displayName || user.email}</p>
+                          {user.email && (
+                            <p className="text-xs leading-none text-muted-foreground">
+                              {user.email}
+                            </p>
+                          )}
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      
+                      <DropdownMenuItem asChild>
+                        <Link href="/profile">
+                          <UserIcon className="mr-2 h-4 w-4" />
+                          <span>Mi Perfil</span>
+                        </Link>
+                      </DropdownMenuItem>
 
-                    {isAdmin && (
-                        <>
-                        <DropdownMenuItem asChild>
-                            <Link href="/admin">
-                            <Gem className="mr-2 h-4 w-4" />
-                            <span>Panel de Administrador</span>
-                            </Link>
-                        </DropdownMenuItem>
-                        </>
-                    )}
+                      {isAdmin && (
+                          <>
+                          <DropdownMenuItem asChild>
+                              <Link href="/admin">
+                              <Gem className="mr-2 h-4 w-4" />
+                              <span>Panel de Administrador</span>
+                              </Link>
+                          </DropdownMenuItem>
+                          </>
+                      )}
                     </>
                   )}
                   
