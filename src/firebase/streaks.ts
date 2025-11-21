@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -58,11 +57,6 @@ export async function updateStreak({
     isAnonymous,
     ...denormalizedUserData
 }: UpdateStreakParams): Promise<StreakUpdateResult | null> {
-
-    // Anonymous users cannot have streaks.
-    if (isAnonymous) {
-        return null;
-    }
     
     // Path for the user's private copy of the streak
     const privateStreakRef = doc(firestore, `users/${userId}/streaks`, figureId);

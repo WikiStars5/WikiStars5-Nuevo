@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -68,6 +67,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
+  // A user needs to create an identity if they are anonymous AND don't have a user profile document yet.
   const needsIdentity = !!user?.isAnonymous && !userProfile;
 
   const form = useForm<CommentFormValues>({
@@ -101,8 +101,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         return;
     }
     setIsSubmitting(true);
-    form.clearErrors('username');
-    
     let transactionError: string | null = null;
 
     try {
@@ -118,7 +116,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         }
 
         let userProfileData: any = {};
-        let displayName = user.displayName || 'Invitado';
+        let displayName = userProfile?.username || user.displayName || `Invitado_${user.uid.substring(0,4)}`;
 
         if (needsIdentity && data.username) {
             const newUsername = data.username;
@@ -141,15 +139,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             const userRef = doc(firestore, 'users', user.uid);
             transaction.set(userRef, userProfileData);
         } else if (userProfile) {
-            displayName = userProfile.username;
             userProfileData = userProfile;
-        } else if (!user.isAnonymous) {
-            const userRef = doc(firestore, 'users', user.uid);
-            const userSnap = await transaction.get(userRef);
-            if (userSnap.exists()) {
-                displayName = userSnap.data().username;
-                userProfileData = userSnap.data();
-            }
         }
         
         const updates: { [key: string]: any } = { updatedAt: serverTimestamp() };
@@ -194,14 +184,20 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         return;
       }
 
+      // Fetch the latest user profile data AFTER the transaction
+      const finalUserProfileSnap = await getDoc(userProfileRef);
+      const finalUserProfileData = finalUserProfileSnap.exists() ? finalUserProfileSnap.data() : {};
+
       const streakResult = await updateStreak({
         firestore,
         figureId,
         figureName,
         userId: user.uid,
-        userDisplayName: data.username || userProfile?.username || user.displayName || 'Invitado',
+        userDisplayName: finalUserProfileData.username || user.displayName || 'Invitado',
         userPhotoURL: user.isAnonymous ? null : user.photoURL,
         isAnonymous: user.isAnonymous,
+        userCountry: finalUserProfileData.country || null,
+        userGender: finalUserProfileData.gender || null,
       });
 
       if (streakResult?.streakGained) {
@@ -223,7 +219,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       toast({
         variant: 'destructive',
         title: 'Error al Publicar',
-        description: error.message || 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
+        description: 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
       });
     } finally {
       setIsSubmitting(false);
