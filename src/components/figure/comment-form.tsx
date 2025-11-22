@@ -122,6 +122,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     
     setIsSubmitting(true);
     let transactionError: string | null = null;
+    let finalDisplayName = '';
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -134,9 +135,9 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
           transactionError = 'Ya has comentado en este perfil.';
           return; // Abort transaction
         }
-
+        
         let userProfileData: any = {};
-        let displayName = userProfile?.username || currentUser?.displayName || `Invitado_${currentUser!.uid.substring(0,4)}`;
+        finalDisplayName = userProfile?.username || currentUser?.displayName || `Invitado_${currentUser!.uid.substring(0,4)}`;
 
         if (needsIdentity && data.username) {
             const newUsername = data.username;
@@ -150,7 +151,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             }
             transaction.set(newUsernameRef, { userId: currentUser!.uid });
             
-            displayName = newUsername;
+            finalDisplayName = newUsername; // Set the final display name here
             userProfileData = {
                 username: newUsername,
                 usernameLower: newUsernameLower,
@@ -182,7 +183,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             text: data.text,
             rating: newRating,
             createdAt: serverTimestamp(),
-            userDisplayName: displayName,
+            userDisplayName: finalDisplayName, // Use finalDisplayName
             userPhotoURL: currentUser!.isAnonymous ? null : currentUser!.photoURL,
             userCountry: userProfileData.country || null,
             userGender: userProfileData.gender || null,
@@ -213,7 +214,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         figureId,
         figureName,
         userId: currentUser.uid,
-        userDisplayName: finalUserProfileData.username || currentUser.displayName || 'Invitado',
+        userDisplayName: finalUserProfileData.username || currentUser.displayName || 'Invitado', // Use the most up-to-date name
         userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
         isAnonymous: currentUser.isAnonymous,
         userCountry: finalUserProfileData.country || null,
@@ -386,5 +387,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       </Card>
   );
 }
+
+    
 
     
