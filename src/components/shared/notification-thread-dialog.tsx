@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -105,7 +106,7 @@ export default function NotificationThreadDialog({
     }, [comments, parentId]);
     
     useEffect(() => {
-        const fetchEssentialComments = async () => {
+        const fetchThread = async () => {
             if (!firestore) return;
             setIsLoading(true);
             setError(null);
@@ -115,7 +116,14 @@ export default function NotificationThreadDialog({
                 
                 // 1. Get the root comment
                 const rootDocRef = doc(firestore, 'figures', figureId, 'comments', parentId);
-                const rootDocSnap = await getDoc(rootDocRef);
+
+                // 2. Get all replies for that root comment
+                const repliesQuery = query(collection(rootDocRef, 'replies'), orderBy('createdAt', 'asc'));
+
+                const [rootDocSnap, repliesSnapshot] = await Promise.all([
+                    getDoc(rootDocRef),
+                    getDocs(repliesQuery)
+                ]);
 
                 if (!rootDocSnap.exists()) {
                     setError("El comentario original de esta conversación ha sido eliminado.");
@@ -125,18 +133,10 @@ export default function NotificationThreadDialog({
                 const rootCommentData = { id: rootDocSnap.id, ...rootDocSnap.data() } as Comment;
                 fetchedComments.set(rootCommentData.id, rootCommentData);
 
-                // 2. Get the specific reply that triggered the notification
-                if (replyId) {
-                    const replyDocRef = doc(firestore, `figures/${figureId}/comments/${parentId}/replies`, replyId);
-                    const replyDocSnap = await getDoc(replyDocRef);
-                    
-                    if (replyDocSnap.exists()) {
-                        const replyData = { id: replyDocSnap.id, ...replyDocSnap.data() } as Comment;
-                        fetchedComments.set(replyData.id, replyData);
-                    } else {
-                        setError("La respuesta que generó esta notificación ha sido eliminada.");
-                    }
-                }
+                repliesSnapshot.forEach(replyDoc => {
+                     const replyData = { id: replyDoc.id, ...replyDoc.data() } as Comment;
+                     fetchedComments.set(replyData.id, replyData);
+                });
                 
                 setComments(Array.from(fetchedComments.values()));
 
@@ -148,8 +148,8 @@ export default function NotificationThreadDialog({
             }
         };
 
-        fetchEssentialComments();
-    }, [firestore, figureId, parentId, replyId]);
+        fetchThread();
+    }, [firestore, figureId, parentId]);
 
 
     useEffect(() => {
@@ -169,8 +169,16 @@ export default function NotificationThreadDialog({
 
     const orderedComments = useMemo(() => {
         if (comments.length === 0) return [];
-        return comments.sort((a,b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
-    }, [comments]);
+        const root = comments.find(c => c.id === parentId);
+        const replies = comments.filter(c => c.id !== parentId);
+        
+        if (!root) return [];
+        
+        // Sort replies by creation date, root comment is always first
+        replies.sort((a,b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
+        
+        return [root, ...replies];
+    }, [comments, parentId]);
 
     return (
         <DialogContent className="sm:max-w-xl">
