@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -123,6 +122,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     setIsSubmitting(true);
     let transactionError: string | null = null;
     let finalDisplayName = '';
+    let finalUserProfileData: any = {};
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -136,8 +136,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
           return; // Abort transaction
         }
         
-        let userProfileData: any = {};
         finalDisplayName = userProfile?.username || currentUser?.displayName || `Invitado_${currentUser!.uid.substring(0,4)}`;
+        finalUserProfileData = userProfile || {};
 
         if (needsIdentity && data.username) {
             const newUsername = data.username;
@@ -152,15 +152,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             transaction.set(newUsernameRef, { userId: currentUser!.uid });
             
             finalDisplayName = newUsername; // Set the final display name here
-            userProfileData = {
+            finalUserProfileData = {
                 username: newUsername,
                 usernameLower: newUsernameLower,
                 createdAt: serverTimestamp(),
             };
             const userRef = doc(firestore, 'users', currentUser!.uid);
-            transaction.set(userRef, userProfileData);
-        } else if (userProfile) {
-            userProfileData = userProfile;
+            transaction.set(userRef, finalUserProfileData);
         }
         
         const updates: { [key: string]: any } = { updatedAt: serverTimestamp() };
@@ -185,8 +183,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             createdAt: serverTimestamp(),
             userDisplayName: finalDisplayName, // Use finalDisplayName
             userPhotoURL: currentUser!.isAnonymous ? null : currentUser!.photoURL,
-            userCountry: userProfileData.country || null,
-            userGender: userProfileData.gender || null,
+            userCountry: finalUserProfileData.country || null,
+            userGender: finalUserProfileData.gender || null,
             likes: 0,
             dislikes: 0,
             parentId: null,
@@ -205,16 +203,13 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         return;
       }
 
-      // Fetch the latest user profile data AFTER the transaction
-      const finalUserProfileSnap = await getDoc(doc(firestore, 'users', currentUser.uid));
-      const finalUserProfileData = finalUserProfileSnap.exists() ? finalUserProfileSnap.data() : {};
-
+      // Pass the correct, final user data directly to the streak function
       const streakResult = await updateStreak({
         firestore,
         figureId,
         figureName,
         userId: currentUser.uid,
-        userDisplayName: finalUserProfileData.username || currentUser.displayName || 'Invitado', // Use the most up-to-date name
+        userDisplayName: finalDisplayName, // Use the name confirmed in the transaction
         userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
         isAnonymous: currentUser.isAnonymous,
         userCountry: finalUserProfileData.country || null,
