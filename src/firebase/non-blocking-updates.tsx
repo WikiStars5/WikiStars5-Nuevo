@@ -1,4 +1,3 @@
-
 'use client';
     
 import {
@@ -89,4 +88,4 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
     });
 }
 
-    
+export { runTransaction } from 'firebase/firestore';

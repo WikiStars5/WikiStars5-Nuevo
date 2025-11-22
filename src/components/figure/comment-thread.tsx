@@ -277,7 +277,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 {!isEditing && (
                    <div className="mt-2 space-y-2 text-muted-foreground">
                         <div className="flex items-center gap-1">
-                           {user && !isReply && (
+                           {user && (
                                 <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
                                     <MessageSquare className="h-4 w-4" />
                                     <span>Responder</span>
@@ -394,8 +394,9 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
-    // For a single-level reply system, we always set the target to be the root comment.
-    setActiveReplyId(prevId => prevId === comment.id ? null : comment.id);
+    // If the reply button on a reply is clicked, we still target the root comment for the new reply.
+    const targetId = comment.id;
+    setActiveReplyId(prevId => prevId === targetId ? null : targetId);
   }
   
   const handleReplySuccess = useCallback(() => {
@@ -461,8 +462,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
                     figureId={figureId}
                     figureName={figureName}
                     isReply={true}
-                    // Since we have a single-level reply system, the "onReply" for a reply
-                    // should also trigger a reply to the main comment.
+                    // For a reply, the "onReply" should also trigger a reply to the main comment.
                     onReply={() => handleReplyClick(comment)}
                     isReplying={activeReplyId === reply.id} // This should be based on root comment
                     onReplySuccess={handleReplySuccess}
