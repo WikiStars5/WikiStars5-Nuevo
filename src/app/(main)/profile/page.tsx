@@ -37,7 +37,7 @@ const GoogleIcon = () => (
 
 
 const profileSchema = z.object({
-  username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
+  username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
   country: z.string().optional(),
   gender: z.enum(['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo']).optional(),
   description: z.string().max(160, 'La descripción no puede superar los 160 caracteres.').optional(),
@@ -447,3 +447,5 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
+
+    
