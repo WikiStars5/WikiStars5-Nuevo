@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -30,7 +31,7 @@ const createCommentSchema = (isRatingEnabled: boolean, needsIdentity: boolean) =
     ? z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.')
     : z.number().optional().nullable(),
   username: needsIdentity 
-    ? z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(30, 'El nombre de usuario no puede superar los 30 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.')
+    ? z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.')
     : z.string().optional(),
   text: z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.'),
 });
@@ -71,8 +72,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-  // A user needs to create an identity if they have no user session OR if they are anonymous AND don't have a profile doc.
-  const needsIdentity = !user || (!!user?.isAnonymous && !userProfile);
+  // A user needs to create an identity if they are anonymous AND don't have a profile doc yet.
+  const needsIdentity = !!user?.isAnonymous && !userProfile;
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
@@ -335,11 +336,11 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
               <div className='space-y-4'>
                 <h3 className={cn(
                   "font-semibold flex items-center gap-2",
-                  needsIdentity && "text-muted-foreground"
+                  !user && "text-muted-foreground"
                 )}>
                   <span className={cn(
                     'flex items-center justify-center h-6 w-6 rounded-full text-sm font-bold',
-                    needsIdentity ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground'
+                    !user ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground'
                   )}>
                     {needsIdentity ? 3 : 2}
                   </span>
