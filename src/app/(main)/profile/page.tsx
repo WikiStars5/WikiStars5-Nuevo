@@ -175,8 +175,13 @@ function ProfilePageContent() {
         const provider = new GoogleAuthProvider();
         try {
             const result = await linkWithPopup(auth.currentUser, provider);
-            // On success, Firebase automatically merges the user accounts.
-            // The onAuthStateChanged listener in the provider will trigger a state update.
+            
+            // After linking, explicitly save the email to the user's Firestore document
+            if (firestore && result.user) {
+                const userRef = doc(firestore, 'users', result.user.uid);
+                await setDoc(userRef, { email: result.user.email }, { merge: true });
+            }
+            
             await reloadUser();
             toast({
                 title: "¡Cuenta Vinculada!",
@@ -442,6 +447,3 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
-
-    
-    
