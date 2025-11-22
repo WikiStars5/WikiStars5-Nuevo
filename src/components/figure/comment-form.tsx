@@ -72,8 +72,8 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-  // A user needs to create an identity if they are anonymous AND don't have a profile doc yet.
-  const needsIdentity = !!user?.isAnonymous && !userProfile;
+  // A user needs to create an identity if they have no user session, OR if they are anonymous and don't have a profile doc yet.
+  const needsIdentity = !user || (user.isAnonymous && !userProfile);
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
@@ -335,12 +335,11 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
               <div className='space-y-4'>
                 <h3 className={cn(
-                  "font-semibold flex items-center gap-2",
-                  !user && "text-muted-foreground"
+                  "font-semibold flex items-center gap-2"
                 )}>
                   <span className={cn(
                     'flex items-center justify-center h-6 w-6 rounded-full text-sm font-bold',
-                    !user ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground'
+                     'bg-primary text-primary-foreground'
                   )}>
                     {needsIdentity ? 3 : 2}
                   </span>
@@ -387,3 +386,5 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       </Card>
   );
 }
+
+    
