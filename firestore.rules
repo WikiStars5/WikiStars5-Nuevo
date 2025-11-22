@@ -56,15 +56,17 @@ service cloud.firestore {
                nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
     }
     
-    // --- User Data Collections (Se mantuvo la lógica del usuario) ---
+    // --- User Data Collections ---
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
+      // Allow creation for any signed-in user, including anonymous, for their own profile
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
 
+      // Users can manage their own private votes, streaks, and notifications
       match /attitudeVotes/{figureId} { allow get, write, list: if isOwner(userId); }
       match /emotionVotes/{figureId} { allow get, write, list: if isOwner(userId); }
       match /streaks/{streakId} { allow get, list, write: if isOwner(userId); }
@@ -77,7 +79,7 @@ service cloud.firestore {
     match /usernames/{username} {
       allow get: if true; 
       allow list: if false;
-      // Se mantuvo el `allow create: if isSignedIn();` según lo solicitado por tu lógica externa.
+      // Allow any signed-in user (including anonymous) to create a username document
       allow create: if isSignedIn(); 
       allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
       allow update: if false;
@@ -87,15 +89,16 @@ service cloud.firestore {
 
     match /figures/{figureId} {
       allow get, list: if true;
+      // Allow any signed-in user (including anonymous) to create a figure profile
       allow create: if isSignedIn();
       allow delete: if isAdmin();
       
       allow update: if isAdmin() || (
         isSignedIn() && (
-          // P1: Wiki field edits (Mantenido)
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'tagsLower', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
+          // P1: Wiki field edits by any signed-in user
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
           
-          // P2 y P3: Voting (Usando funciones robustas)
+          // P2 & P3: Voting is allowed for any signed-in user (including anonymous)
           (request.resource.data.__newVote != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) && (
             (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) ||
             (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) ||
@@ -108,52 +111,51 @@ service cloud.firestore {
             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
           )) ||
           
-          // P4: Rating update (Agregación)
+          // P4: Rating update logic from comments
           (
-            // ✅ CORRECCIÓN DE SEGURIDAD: Lógica robusta para Agregar/Remover rating (flujo Delete+Create).
             (
-                // Case A: Adding a new rating (desde un nuevo comentario)
+                // Case A: Adding a new rating
                 request.resource.data.__ratingCount_delta == 1 &&
                 request.resource.data.ratingCount == resource.data.ratingCount + 1 &&
                 request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta &&
                 request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] == (resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] != null ? resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] : 0) + 1
             ) ||
             (
-                // Case C: Removing a rating (antes de volver a crear el comentario)
+                // Case C: Removing a rating
                 request.resource.data.__ratingCount_delta == -1 &&
                 request.resource.data.ratingCount == resource.data.ratingCount - 1 &&
-                request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta && // __totalRating_delta debe ser negativo (ej: -4)
+                request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta &&
                 request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] == (resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] != null ? resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] : 0) - 1
             )
           )
-          // ❌ ELIMINADO: Case B: Changing a rating (VULNERABLE). No es necesario con tu lógica de negocio.
         )
       );
       
+      // Allow any signed-in user to cast their vote
       match /attitudeVotes/{userId} { allow get, write: if isOwner(userId); }
       match /emotionVotes/{userId} { allow get, write: if isOwner(userId); }
       
       match /comments/{commentId} {
         allow get, list: if true;
         
-        // Regla de creación original (Compatible con addDoc())
+        // Allow any signed-in user (including anonymous) to create a comment if it's theirs
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
         
         allow update: if isSignedIn() && (
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) || // Text edit
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (isIncrement('likes', 1) || isIncrement('likes', -1))) || // Like/unlike
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']) && (isIncrement('dislikes', 1) || isIncrement('dislikes', -1))) || // Dislike/undislike
-            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) && ((isIncrement('likes', -1) && isIncrement('dislikes', 1)) || (isIncrement('dislikes', -1) && isIncrement('likes', 1)))) || // Change vote
-            // Se mantuvo tu regla de "anulación" (rating = -1) por si la usas, aunque el flujo principal sea Delete+Create.
-            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'updatedAt']) && request.resource.data.rating == -1 && resource.data.userId == request.auth.uid)
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) && ((isIncrement('likes', -1) && isIncrement('dislikes', 1)) || (isIncrement('dislikes', -1) && isIncrement('likes', 1)))) // Change vote
         );
         
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
+        // Allow any signed-in user to vote on comments
         match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
 
         match /replies/{replyId} {
           allow get, list: if true;
+          // Allow any signed-in user to reply if the content is theirs
           allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
           allow update: if isSignedIn() && (
               (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
@@ -162,23 +164,31 @@ service cloud.firestore {
               (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) && ((isIncrement('likes', -1) && isIncrement('dislikes', 1)) || (isIncrement('dislikes', -1) && isIncrement('likes', 1))))
           );
           allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
+          // Allow any signed-in user to vote on replies
           match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
         }
       }
 
+      // Public streaks are readable by all, writable only by the owner
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId); }
-      match /achievements/{userAchievementId} { allow read, list: if true; allow create: if isSignedIn(); allow delete, update: if false; }
     }
     
-    // --- Other Root-Level Collections (Mantenidas) ---
+    // --- Other Root-Level Collections ---
 
     match /hashtags/{hashtagId} { allow get, list: if true; allow write: if isSignedIn(); }
     match /achievements/{achievementId} { allow get, list: if true; allow write: if isAdmin(); }
-    match /related_figures/{relatedFigureId} { allow get, list: if true; allow create, delete: if isSignedIn(); allow update: if false; }
+    
+    // Only signed-in (non-anonymous) users can manage relations
+    match /related_figures/{relatedFigureId} { 
+      allow get, list: if true; 
+      allow create, delete: if isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      allow update: if false; 
+    }
 
     match /goat_battles/{battleId} {
         allow get, list: if true;
         allow create, delete: if isAdmin();
+        // Allow any signed-in user (including anonymous) to update vote counts
         allow update: if (
             isAdmin() || (
                 isSignedIn() && (
@@ -188,6 +198,7 @@ service cloud.firestore {
                 )
             )
         );
+        // Allow any signed-in user (including anonymous) to cast their personal vote
         match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
     }
     
