@@ -9,7 +9,7 @@ import type { Figure, RelatedFigure } from '@/lib/types';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import AddRelatedFigureDialog from './add-related-figure-dialog';
 import FigureCard from '../shared/figure-card';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
@@ -38,6 +38,7 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
     const [figureData, setFigureData] = useState<Figure | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
+    const { user } = useUser();
     
     const handleDelete = async () => {
         if (!firestore) return;
@@ -94,30 +95,32 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
     return (
         <div className="relative group">
             <FigureCard figure={figureData} />
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        disabled={isDeleting}
-                    >
-                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                           Esta acción eliminará la relación con {figureData.name}. No se puede deshacer.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            {user && !user.isAnonymous && (
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                               Esta acción eliminará la relación con {figureData.name}. No se puede deshacer.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            )}
         </div>
     );
 }
@@ -126,6 +129,7 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
 export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const firestore = useFirestore();
+    const { user } = useUser();
 
     // Query only for relationships where the current figure is the SOURCE.
     const relationsAsSourceQuery = useMemoFirebase(() => {
@@ -155,32 +159,34 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                         </CardTitle>
                         <CardDescription className="text-muted-foreground">Otros perfiles que podrían interesarte (Máx. 6).</CardDescription>
                     </div>
-                     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" disabled={isLimitReached}>
-                                            <PlusCircle className="mr-2" />
-                                            Añadir
-                                        </Button>
-                                    </DialogTrigger>
-                                </TooltipTrigger>
-                                {isLimitReached && (
-                                    <TooltipContent>
-                                        <p>Has alcanzado el límite de 6 perfiles relacionados.</p>
-                                    </TooltipContent>
-                                )}
-                            </Tooltip>
-                        </TooltipProvider>
+                     {user && !user.isAnonymous && (
+                         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" disabled={isLimitReached}>
+                                                <PlusCircle className="mr-2" />
+                                                Añadir
+                                            </Button>
+                                        </DialogTrigger>
+                                    </TooltipTrigger>
+                                    {isLimitReached && (
+                                        <TooltipContent>
+                                            <p>Has alcanzado el límite de 6 perfiles relacionados.</p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
+                            </TooltipProvider>
 
-                        {!isLimitReached && (
-                             <AddRelatedFigureDialog 
-                                sourceFigure={figure} 
-                                onDialogClose={() => setIsAddDialogOpen(false)} 
-                             />
-                        )}
-                     </Dialog>
+                            {!isLimitReached && (
+                                <AddRelatedFigureDialog 
+                                    sourceFigure={figure} 
+                                    onDialogClose={() => setIsAddDialogOpen(false)} 
+                                />
+                            )}
+                         </Dialog>
+                     )}
                 </div>
             </CardHeader>
             <CardContent>
