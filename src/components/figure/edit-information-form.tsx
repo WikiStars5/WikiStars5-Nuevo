@@ -16,13 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, X, Link as LinkIcon, Tag, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Save, X, Link as LinkIcon, Plus, Trash2 } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from './country-selector';
 import DateInput from './date-input';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '../ui/badge';
-import HashtagCombobox from './hashtag-combobox';
 import { generateKeywords, normalizeText } from '@/lib/keywords';
 
 interface EditInformationFormProps {
@@ -59,7 +58,6 @@ const editFormSchema = z.object({
         return acc;
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
-  tags: z.array(z.string()).optional(),
 });
 
 type EditFormValues = z.infer<typeof editFormSchema>;
@@ -95,7 +93,6 @@ const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
       maritalStatus: figure.maritalStatus || undefined,
       height: figure.height || undefined,
       socialLinks: defaultSocialLinks,
-      tags: figure.tags?.map(tag => normalizeText(tag)) || [],
     };
 };
 
@@ -111,37 +108,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
   
   const imageUrlWatcher = form.watch('imageUrl');
   const heightWatcher = form.watch('height');
-  const tagsWatcher = form.watch('tags') || [];
-
-  const [hashtagInput, setHashtagInput] = React.useState('');
-
-  const handleAddHashtag = (newTag?: string) => {
-    const tagToAdd = normalizeText(newTag || hashtagInput);
-    if (!tagToAdd) return;
-
-    if (tagsWatcher.length >= 10) {
-      toast({
-        title: 'Límite de Hashtags Alcanzado',
-        description: 'No puedes añadir más de 10 hashtags.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const currentTagsLower = tagsWatcher.map(t => normalizeText(t));
-    if (!currentTagsLower.includes(tagToAdd)) {
-        form.setValue('tags', [...tagsWatcher, tagToAdd]);
-    }
-    setHashtagInput('');
-  };
-
-  const handleRemoveHashtag = (tagToRemove: string) => {
-    form.setValue(
-        'tags',
-        tagsWatcher.filter(tag => normalizeText(tag) !== normalizeText(tagToRemove))
-    );
-  };
-
 
   const onSubmit = async (data: EditFormValues) => {
     if (!firestore) return;
@@ -156,7 +122,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       
       // Handle direct properties, converting undefined or empty strings to null
       Object.entries(data).forEach(([key, value]) => {
-          if (key !== 'socialLinks' && key !== 'tags') {
+          if (key !== 'socialLinks') {
             dataToSave[key] = value === '' || value === undefined ? null : value;
           }
       });
@@ -171,19 +137,8 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
         }
       }
       
-      // Handle hashtags
-      const finalTags = (data.tags || []).map(tag => normalizeText(tag)).filter(Boolean);
-      dataToSave.tags = finalTags;
-      
       // Generate keywords for the name
       dataToSave.nameKeywords = generateKeywords(data.name);
-
-      // Create/update hashtag documents in the /hashtags collection
-      finalTags.forEach(tag => {
-        const hashtagRef = doc(firestore, 'hashtags', tag);
-        batch.set(hashtagRef, { name: tag }, { merge: true });
-      });
-
 
       batch.update(figureRef, dataToSave);
       await batch.commit();

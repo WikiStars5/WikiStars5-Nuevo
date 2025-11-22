@@ -18,13 +18,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, X, Link as LinkIcon, Tag, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, X, Link as LinkIcon, Plus, Trash2, ArrowLeft } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from '@/components/figure/country-selector';
 import DateInput from '@/components/figure/date-input';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import HashtagCombobox from '@/components/figure/hashtag-combobox';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -60,7 +59,6 @@ const createFormSchema = z.object({
         return acc;
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
-  tags: z.array(z.string()).optional(),
 });
 
 type CreateFormValues = z.infer<typeof createFormSchema>;
@@ -95,43 +93,10 @@ export default function AdminNewFigurePage() {
       occupation: '',
       maritalStatus: undefined,
       height: undefined,
-      tags: [],
       socialLinks: {},
     },
   });
   
-  const imageUrlWatcher = form.watch('imageUrl');
-  const heightWatcher = form.watch('height');
-  const tagsWatcher = form.watch('tags') || [];
-  const [hashtagInput, setHashtagInput] = React.useState('');
-
-  const handleAddHashtag = (newTag?: string) => {
-    const tagToAdd = normalizeText(newTag || hashtagInput);
-    if (!tagToAdd) return;
-
-    if (tagsWatcher.length >= 10) {
-      toast({
-        title: 'Límite de Hashtags Alcanzado',
-        description: 'No puedes añadir más de 10 hashtags.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const currentTagsLower = tagsWatcher.map(t => normalizeText(t));
-    if (!currentTagsLower.includes(tagToAdd)) {
-        form.setValue('tags', [...tagsWatcher, tagToAdd]);
-    }
-    setHashtagInput('');
-  };
-
-  const handleRemoveHashtag = (tagToRemove: string) => {
-    form.setValue(
-        'tags',
-        tagsWatcher.filter(tag => normalizeText(tag) !== normalizeText(tagToRemove))
-    );
-  };
-
   const onSubmit = async (data: CreateFormValues) => {
     if (!firestore) return;
     setIsSaving(true);
@@ -167,7 +132,6 @@ export default function AdminNewFigurePage() {
         maritalStatus: data.maritalStatus || null,
         height: data.height || null,
         socialLinks: data.socialLinks || {},
-        tags: data.tags?.map(t => normalizeText(t)) || [],
         nameKeywords: keywords,
         approved: true, // Admin-created profiles are auto-approved
         createdAt: serverTimestamp(),
@@ -295,44 +259,6 @@ export default function AdminNewFigurePage() {
                                 </FormItem>
                             )}
                         />
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <h3 className="text-lg font-medium flex items-center">
-                        <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
-                            <Tag />
-                        </span>
-                        Categorización
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                             <Label>Hashtags (máx. 10)</Label>
-                            <div className="flex items-center gap-2">
-                                <HashtagCombobox
-                                    inputValue={hashtagInput}
-                                    onInputChange={setHashtagInput}
-                                    onTagSelect={handleAddHashtag}
-                                />
-                                <Button type="button" onClick={() => handleAddHashtag()} disabled={!hashtagInput.trim()}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            <div className="flex flex-wrap gap-2 pt-2 min-h-[24px]">
-                                {tagsWatcher.map((tag) => (
-                                    <Badge key={tag} variant="secondary" className="pl-3">
-                                    {tag}
-                                    <button
-                                        type="button"
-                                        className="ml-2 rounded-full p-0.5 hover:bg-destructive/20"
-                                        onClick={() => handleRemoveHashtag(tag)}
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 </div>
 

@@ -18,13 +18,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel, FormDescription } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, X, Link as LinkIcon, Tag, Plus, Trash2, ArrowLeft, ShieldCheck, Lock, Unlock } from 'lucide-react';
+import { Loader2, Save, X, Link as LinkIcon, Plus, Trash2, ArrowLeft, ShieldCheck, Lock, Unlock } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { CountrySelector } from '@/components/figure/country-selector';
 import DateInput from '@/components/figure/date-input';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import HashtagCombobox from '@/components/figure/hashtag-combobox';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -59,7 +58,6 @@ const editFormSchema = z.object({
         return acc;
     }, {} as Record<SocialPlatform, z.ZodTypeAny>)
   ).optional(),
-  tags: z.array(z.string()).optional(),
 });
 
 type EditFormValues = z.infer<typeof editFormSchema>;
@@ -95,7 +93,6 @@ const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
       maritalStatus: figure.maritalStatus || undefined,
       height: figure.height || undefined,
       socialLinks: defaultSocialLinks,
-      tags: figure.tags?.map(tag => normalizeText(tag)) || [],
     };
 };
 
@@ -122,7 +119,6 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
       maritalStatus: undefined,
       height: undefined,
       socialLinks: {},
-      tags: [],
     }
   });
 
@@ -131,29 +127,6 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
       form.reset(getSanitizedDefaultValues(figure));
     }
   }, [figure, form]);
-
-  const imageUrlWatcher = form.watch('imageUrl');
-  const heightWatcher = form.watch('height');
-  const tagsWatcher = form.watch('tags') || [];
-  const [hashtagInput, setHashtagInput] = React.useState('');
-
-  const handleAddHashtag = (newTag?: string) => {
-    const tagToAdd = normalizeText(newTag || hashtagInput);
-    if (!tagToAdd) return;
-    if (tagsWatcher.length >= 10) {
-      toast({ title: 'Límite de Hashtags Alcanzado', description: 'No puedes añadir más de 10 hashtags.', variant: 'destructive' });
-      return;
-    }
-    const currentTagsLower = tagsWatcher.map(t => normalizeText(t));
-    if (!currentTagsLower.includes(tagToAdd)) {
-        form.setValue('tags', [...tagsWatcher, tagToAdd]);
-    }
-    setHashtagInput('');
-  };
-
-  const handleRemoveHashtag = (tagToRemove: string) => {
-    form.setValue('tags', tagsWatcher.filter(tag => normalizeText(tag) !== normalizeText(tagToRemove)));
-  };
 
   const onSubmit = async (data: EditFormValues) => {
     if (!firestore) return;
@@ -164,7 +137,7 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
       const dataToSave: { [key: string]: any } = {};
       
       Object.entries(data).forEach(([key, value]) => {
-          if (key !== 'socialLinks' && key !== 'tags') {
+          if (key !== 'socialLinks') {
             dataToSave[key] = value === '' || value === undefined ? null : value;
           }
       });
@@ -178,14 +151,7 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
         }
       }
       
-      const finalTags = (data.tags || []).map(tag => normalizeText(tag)).filter(Boolean);
-      dataToSave.tags = finalTags;
       dataToSave.nameKeywords = generateKeywords(data.name);
-
-      finalTags.forEach(tag => {
-        const hashtagRef = doc(firestore, 'hashtags', tag);
-        batch.set(hashtagRef, { name: tag }, { merge: true });
-      });
 
       batch.update(figureRef, dataToSave);
       await batch.commit();
@@ -337,45 +303,6 @@ function EditFigurePageContent({ figureId }: { figureId: string }) {
                         />
                     </div>
                 </div>
-
-                <div className="space-y-4">
-                    <h3 className="text-lg font-medium flex items-center">
-                        <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
-                            <Tag />
-                        </span>
-                        Categorización
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                             <Label>Hashtags (máx. 10)</Label>
-                            <div className="flex items-center gap-2">
-                                <HashtagCombobox
-                                    inputValue={hashtagInput}
-                                    onInputChange={setHashtagInput}
-                                    onTagSelect={handleAddHashtag}
-                                />
-                                <Button type="button" onClick={() => handleAddHashtag()} disabled={!hashtagInput.trim()}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            <div className="flex flex-wrap gap-2 pt-2 min-h-[24px]">
-                                {tagsWatcher.map((tag) => (
-                                    <Badge key={tag} variant="secondary" className="pl-3">
-                                    {tag}
-                                    <button
-                                        type="button"
-                                        className="ml-2 rounded-full p-0.5 hover:bg-destructive/20"
-                                        onClick={() => handleRemoveHashtag(tag)}
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </CardContent>
             <CardFooter className="flex justify-end gap-2 p-6 border-t mt-6">
                 <Button variant="ghost" onClick={() => router.back()} type="button">
@@ -398,5 +325,3 @@ export default function EditFigurePage() {
 
     return <EditFigurePageContent figureId={figureId} />;
 }
-
-    

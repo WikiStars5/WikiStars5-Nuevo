@@ -116,13 +116,6 @@
             "type": "string"
           }
         },
-        "tags": {
-          "type": "array",
-          "description": "Tags associated with the public figure.",
-          "items": {
-            "type": "string"
-          }
-        },
         "nameKeywords": {
           "type": "array",
           "description": "An array of name prefixes for optimized search.",
@@ -229,9 +222,9 @@
           "type": "string",
           "description": "Reference to the parent comment, if this is a reply. Null if it's a top-level comment. (Relationship: Comment 1:N Comment)"
         },
-        "replyCount": {
+        "depth": {
           "type": "number",
-          "description": "The number of direct replies this comment has."
+          "description": "The nesting level of the comment. 0 for top-level."
         },
         "text": {
           "type": "string",
@@ -261,7 +254,7 @@
         "userId",
         "publicFigureId",
         "text",
-        "replyCount"
+        "depth"
       ]
     },
     "CommentVote": {

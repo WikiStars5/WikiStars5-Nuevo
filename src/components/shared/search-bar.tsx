@@ -71,44 +71,20 @@ export default function SearchBar({
       return [];
     }
 
-    const isHashtagSearch = searchTerm.startsWith('#');
-    const normalizedSearchTerm = normalizeText(isHashtagSearch ? searchTerm.substring(1) : searchTerm);
+    const normalizedSearchTerm = normalizeText(searchTerm);
 
     if (!normalizedSearchTerm) return [];
     
     let figures: Figure[] = [];
 
     try {
-        if (isHashtagSearch) {
-             const hashtagsQuery = firestoreQuery(
-                collection(firestore, 'hashtags'),
-                where('keywords', 'array-contains', normalizedSearchTerm),
-                limit(5)
-            );
-            const hashtagSnapshot = await getDocs(hashtagsQuery);
-            if (hashtagSnapshot.empty) return [];
-
-            const matchedTags = hashtagSnapshot.docs.map(doc => doc.data().name);
-
-            if (matchedTags.length > 0) {
-                 const figuresQuery = firestoreQuery(
-                    collection(firestore, 'figures'),
-                    where('tags', 'array-contains-any', matchedTags),
-                    limit(10)
-                );
-                const figuresSnapshot = await getDocs(figuresQuery);
-                figures = figuresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
-            }
-
-        } else {
-             const figuresQuery = firestoreQuery(
-                collection(firestore, 'figures'),
-                where('nameKeywords', 'array-contains', normalizedSearchTerm),
-                limit(10)
-            );
-            const figuresSnapshot = await getDocs(figuresQuery);
-            figures = figuresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
-        }
+        const figuresQuery = firestoreQuery(
+            collection(firestore, 'figures'),
+            where('nameKeywords', 'array-contains', normalizedSearchTerm),
+            limit(10)
+        );
+        const figuresSnapshot = await getDocs(figuresQuery);
+        figures = figuresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
 
        figures.sort((a, b) => a.name.localeCompare(b.name));
        return figures;
@@ -122,15 +98,7 @@ export default function SearchBar({
   const handleSearchSubmit = (searchTerm: string) => {
     const trimmedTerm = searchTerm.trim();
     if (!trimmedTerm) return;
-
-    if (trimmedTerm.startsWith('#')) {
-      const hashtag = trimmedTerm.substring(1);
-      if (hashtag) {
-        router.push(`/figures/hashtagged/${encodeURIComponent(hashtag)}`);
-      }
-    } else {
-      router.push(`/search?q=${encodeURIComponent(trimmedTerm)}`);
-    }
+    router.push(`/search?q=${encodeURIComponent(trimmedTerm)}`);
     clearSearch();
     // If a submit callback exists (e.g., to close a dialog), call it.
     if (onResultClick) {
@@ -296,9 +264,7 @@ export default function SearchBar({
                     </div>
                     <div className="flex-grow min-w-0">
                       <p className="font-medium text-xs text-foreground truncate">{figure.name}</p>
-                      {currentQuery.startsWith('#') 
-                        ? <p className="text-xs text-muted-foreground truncate">Coincidencia por hashtag</p>
-                        : figure.description && <p className="text-xs text-muted-foreground truncate">{figure.description}</p>
+                      {figure.description && <p className="text-xs text-muted-foreground truncate">{figure.description}</p>
                       }
                     </div>
                   </button>

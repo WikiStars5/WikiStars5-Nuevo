@@ -96,7 +96,7 @@ service cloud.firestore {
       allow update: if isAdmin() || (
         isSignedIn() && (
           // P1: Wiki field edits by any signed-in user
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'nationality', 'tags', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'nationality', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
           
           // P2 & P3: Voting is allowed for any signed-in user (including anonymous)
           (request.resource.data.__newVote != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) && (
@@ -175,7 +175,6 @@ service cloud.firestore {
     
     // --- Other Root-Level Collections ---
 
-    match /hashtags/{hashtagId} { allow get, list: if true; allow write: if isSignedIn(); }
     match /achievements/{achievementId} { allow get, list: if true; allow write: if isAdmin(); }
     
     // Only signed-in (non-anonymous) users can manage relations

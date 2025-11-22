@@ -20,9 +20,6 @@ export interface Figure {
   imageUrl: string;
   imageHint?: string;
   nationality: string;
-  tags?: string[];
-  tagsLower?: string[];
-  tagKeywords?: string[];
   nameKeywords: string[];
   approved: boolean;
   description?: string;
@@ -74,12 +71,6 @@ export interface Figure {
   __newVote?: string | null;
   __ratingCount_delta?: number;
   __totalRating_delta?: number;
-}
-
-export interface Hashtag {
-    id: string;
-    name: string;
-    figureCount: number;
 }
 
 export interface RelatedFigure {
