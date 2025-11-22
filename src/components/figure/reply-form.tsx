@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -65,6 +64,8 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
             const userProfileSnap = await transaction.get(userProfileRef);
             const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
             const displayName = userProfileData.username || user.displayName || 'Usuario';
+            
+            const newReplyRef = doc(repliesColRef); // Create a new doc ref to get its ID
 
             const newReplyData = {
                 figureId: figureId,
@@ -82,7 +83,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
             };
             
             // 1. Add the new reply
-            transaction.set(doc(repliesColRef), newReplyData);
+            transaction.set(newReplyRef, newReplyData);
             
             // 2. Increment the reply count on the parent comment
             transaction.update(parentCommentRef, { replyCount: increment(1) });
@@ -97,7 +98,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
                     message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
                     isRead: false,
                     createdAt: serverTimestamp(),
-                    link: `/figures/${figureId}?thread=${parentComment.id}`
+                    link: `/figures/${figureId}?thread=${parentComment.id}&reply=${newReplyRef.id}`
                 };
                 transaction.set(doc(notificationsColRef), notification);
             }

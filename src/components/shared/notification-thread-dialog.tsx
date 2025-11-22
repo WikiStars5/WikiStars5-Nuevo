@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -39,13 +38,13 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
     const getAvatarFallback = () => comment.userDisplayName?.charAt(0).toUpperCase() || 'U';
 
     const renderCommentText = () => {
-        const mentionMatch = comment.text.match(/^(@\S+)/);
+        const mentionMatch = comment.text.match(/^@\[(.*?)\]/);
         if (mentionMatch) {
             const mention = mentionMatch[1];
-            const restOfText = comment.text.substring(mention.length).trim();
+            const restOfText = comment.text.substring(mentionMatch[0].length).trim();
             return (
                 <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">
-                    <span className="text-primary font-semibold mr-1">{mention}</span>
+                    <span className="text-primary font-semibold mr-1">@{mention}</span>
                     {restOfText}
                 </p>
             );
@@ -127,14 +126,16 @@ export default function NotificationThreadDialog({
                 fetchedComments.set(rootCommentData.id, rootCommentData);
 
                 // 2. Get the specific reply that triggered the notification
-                const replyDocRef = doc(firestore, `figures/${figureId}/comments/${parentId}/replies`, replyId);
-                const replyDocSnap = await getDoc(replyDocRef);
-                
-                if (replyDocSnap.exists()) {
-                    const replyData = { id: replyDocSnap.id, ...replyDocSnap.data() } as Comment;
-                    fetchedComments.set(replyData.id, replyData);
-                } else {
-                     setError("La respuesta que generó esta notificación ha sido eliminada.");
+                if (replyId) {
+                    const replyDocRef = doc(firestore, `figures/${figureId}/comments/${parentId}/replies`, replyId);
+                    const replyDocSnap = await getDoc(replyDocRef);
+                    
+                    if (replyDocSnap.exists()) {
+                        const replyData = { id: replyDocSnap.id, ...replyDocSnap.data() } as Comment;
+                        fetchedComments.set(replyData.id, replyData);
+                    } else {
+                        setError("La respuesta que generó esta notificación ha sido eliminada.");
+                    }
                 }
                 
                 setComments(Array.from(fetchedComments.values()));
