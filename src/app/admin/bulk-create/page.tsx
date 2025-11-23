@@ -162,7 +162,6 @@ export default function BulkCreatePage() {
 
   return (
     <div className="space-y-6">
-        {result && <RecentlyCreatedCard figures={recentlyCreated} />}
         <Card>
             <CardHeader>
                 <div className="flex items-start justify-between">
@@ -216,6 +215,7 @@ export default function BulkCreatePage() {
                 </Button>
             </CardFooter>
         </Card>
+        {result && <RecentlyCreatedCard figures={recentlyCreated} />}
     </div>
   );
 }
