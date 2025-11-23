@@ -81,7 +81,7 @@ export default function AdminDashboard() {
     try {
         setDocumentNonBlocking(settingsDocRef, { isVotingEnabled: isEnabled }, { merge: true });
         toast({
-            title: `Votaciones ${isEnabled ? 'Habilitadas'_ : 'Deshabilitadas'}`,
+            title: `Votaciones ${isEnabled ? 'Habilitadas' : 'Deshabilitadas'}`,
             description: `Los usuarios ${isEnabled ? 'ahora pueden' : 'ya no pueden'} votar por actitud y emoción.`,
         });
     } catch (error) {
