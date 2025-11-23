@@ -13,10 +13,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import { collection, doc, getDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { generateKeywords } from '@/lib/keywords';
 import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { verifyWikipediaCharacter } from '@/ai/flows/verify-wikipedia-character';
 
 const MAX_NAMES = 50;
 
@@ -66,15 +67,23 @@ export default function BulkCreateDialog() {
         if (docSnap.exists()) {
           skippedCount++;
         } else {
-          const keywords = generateKeywords(name);
+          // Verify with Wikipedia to get a real image if possible
+          const wikiResult = await verifyWikipediaCharacter({ name });
+
+          const figureName = wikiResult.found && wikiResult.title ? wikiResult.title : name;
+          const imageUrl = wikiResult.found && wikiResult.imageUrl 
+            ? wikiResult.imageUrl 
+            : `https://placehold.co/600x400?text=${encodeURIComponent(name)}`;
+            
+          const keywords = generateKeywords(figureName);
           const figureData = {
             id: slug,
-            name: name,
-            imageUrl: `https://placehold.co/600x400?text=${encodeURIComponent(name)}`,
-            imageHint: `placeholder for ${name}`,
+            name: figureName,
+            imageUrl: imageUrl,
+            imageHint: wikiResult.found ? `portrait of ${figureName}` : `placeholder for ${figureName}`,
             nameKeywords: keywords,
             approved: true,
-            createdAt: new Date(),
+            createdAt: serverTimestamp(),
             attitude: { neutral: 0, fan: 0, simp: 0, hater: 0 },
             emotion: { alegria: 0, envidia: 0, tristeza: 0, miedo: 0, desagrado: 0, furia: 0 },
             ratingCount: 0,
@@ -115,7 +124,7 @@ export default function BulkCreateDialog() {
       <DialogHeader>
         <DialogTitle>Creación Rápida de Perfiles</DialogTitle>
         <DialogDescription>
-          Pega una lista de nombres (uno por línea) para crear múltiples perfiles a la vez. El sistema omitirá los duplicados.
+          Pega una lista de nombres (uno por línea). El sistema buscará una imagen en Wikipedia y omitirá los duplicados.
         </DialogDescription>
       </DialogHeader>
       <div className="py-4 space-y-4">
