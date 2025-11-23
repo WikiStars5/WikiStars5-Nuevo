@@ -1,10 +1,9 @@
-
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile } from 'lucide-react';
+import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,6 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import type { GlobalSettings } from '@/lib/types';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import BulkCreateDialog from '@/components/admin/bulk-create-dialog';
 
 
 const battleFormSchema = z.object({
@@ -80,7 +81,7 @@ export default function AdminDashboard() {
     try {
         setDocumentNonBlocking(settingsDocRef, { isVotingEnabled: isEnabled }, { merge: true });
         toast({
-            title: `Votaciones ${isEnabled ? 'Habilitadas' : 'Deshabilitadas'}`,
+            title: `Votaciones ${isEnabled ? 'Habilitadas'_ : 'Deshabilitadas'}`,
             description: `Los usuarios ${isEnabled ? 'ahora pueden' : 'ya no pueden'} votar por actitud y emoción.`,
         });
     } catch (error) {
@@ -292,12 +293,20 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle>Acciones Rápidas</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <Button asChild>
               <Link href="/admin/figures/new">
                 <PlusCircle className="mr-2 h-4 w-4" /> Añadir Nuevo Perfil
               </Link>
             </Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="secondary">
+                        <Sparkles className="mr-2 h-4 w-4" /> Creación Rápida
+                    </Button>
+                </DialogTrigger>
+                <BulkCreateDialog />
+            </Dialog>
             <Button asChild variant="secondary">
                <Link href="/admin/figures">
                 <List className="mr-2 h-4 w-4" /> Gestionar Perfiles
