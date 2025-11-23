@@ -22,11 +22,13 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { verifyWikipediaCharacter } from '@/ai/flows/verify-wikipedia-character';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Figure } from '@/lib/types';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 const MAX_NAMES = 50;
 
 function RecentlyCreatedCard({ figures }: { figures: Figure[] }) {
+    if (figures.length === 0) return null;
     return (
         <Card>
             <CardHeader>
@@ -34,25 +36,21 @@ function RecentlyCreatedCard({ figures }: { figures: Figure[] }) {
                 <CardDescription>Estos son los últimos perfiles que se han añadido.</CardDescription>
             </CardHeader>
             <CardContent>
-                {figures.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">Aún no se ha creado ningún perfil.</p>
-                ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {figures.map(figure => (
-                            <Link key={figure.id} href={`/figures/${figure.id}`} className="group space-y-2">
-                                <div className="aspect-[4/5] w-full bg-muted rounded-md overflow-hidden relative">
-                                    <Image
-                                        src={figure.imageUrl}
-                                        alt={figure.name}
-                                        fill
-                                        className="object-cover transition-transform group-hover:scale-105"
-                                    />
-                                </div>
-                                <p className="text-xs font-medium text-center truncate group-hover:underline">{figure.name}</p>
-                            </Link>
-                        ))}
-                    </div>
-                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {figures.map(figure => (
+                        <Link key={figure.id} href={`/figures/${figure.id}`} className="group space-y-2">
+                            <div className="aspect-[4/5] w-full bg-muted rounded-md overflow-hidden relative">
+                                <Image
+                                    src={figure.imageUrl}
+                                    alt={figure.name}
+                                    fill
+                                    className="object-cover transition-transform group-hover:scale-105"
+                                />
+                            </div>
+                            <p className="text-xs font-medium text-center truncate group-hover:underline">{figure.name}</p>
+                        </Link>
+                    ))}
+                </div>
             </CardContent>
         </Card>
     )
@@ -63,7 +61,7 @@ export default function BulkCreatePage() {
   const { toast } = useToast();
   const [names, setNames] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [result, setResult] = useState<{ created: number; skipped: number; errors: number } | null>(null);
+  const [result, setResult] = useState<{ created: number; skipped: number; errors: number; skippedNames: string[] } | null>(null);
   const [recentlyCreated, setRecentlyCreated] = useState<Figure[]>([]);
 
 
@@ -95,6 +93,7 @@ export default function BulkCreatePage() {
     let createdCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
+    const skippedNames: string[] = [];
     const createdFiguresForDisplay: Figure[] = [];
 
     for (const name of nameList) {
@@ -107,6 +106,7 @@ export default function BulkCreatePage() {
 
         if (docSnap.exists()) {
           skippedCount++;
+          skippedNames.push(name);
         } else {
           const wikiResult = await verifyWikipediaCharacter({ name });
 
@@ -143,7 +143,7 @@ export default function BulkCreatePage() {
     try {
       await batch.commit();
       setRecentlyCreated(createdFiguresForDisplay);
-      setResult({ created: createdCount, skipped: skippedCount, errors: errorCount });
+      setResult({ created: createdCount, skipped: skippedCount, errors: errorCount, skippedNames });
       toast({
         title: '¡Proceso Completado!',
         description: `Se crearon ${createdCount} perfiles y se omitieron ${skippedCount} duplicados.`,
@@ -151,7 +151,7 @@ export default function BulkCreatePage() {
     } catch (error) {
       console.error('Error committing batch:', error);
       toast({ title: 'Error Crítico', description: 'No se pudieron guardar los perfiles. Inténtalo de nuevo.', variant: 'destructive' });
-      setResult({ created: 0, skipped: nameList.length, errors: errorCount });
+      setResult({ created: 0, skipped: nameList.length, errors: errorCount, skippedNames: nameList });
     } finally {
       setIsCreating(false);
       setNames('');
@@ -193,12 +193,31 @@ export default function BulkCreatePage() {
                 {result && (
                 <Alert className="mt-4">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Resultados del Proceso Anterior</AlertTitle>
+                    <AlertTitle>Resultados del Proceso</AlertTitle>
                     <AlertDescription>
-                        <ul className="list-disc pl-5 text-sm">
+                        <ul className="list-disc pl-5 text-sm space-y-1">
                             <li><span className="font-bold">{result.created}</span> perfiles creados.</li>
-                            <li><span className="font-bold">{result.skipped}</span> perfiles omitidos (duplicados).</li>
-                            {result.errors > 0 && <li className="text-destructive"><span className="font-bold">{result.errors}</span> errores.</li>}
+                            {result.skipped > 0 ? (
+                                <li>
+                                    <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value="item-1" className="border-b-0">
+                                            <AccordionTrigger className="p-0 text-sm hover:no-underline">
+                                                 <span className="font-bold">{result.skipped}</span> perfiles omitidos (duplicados).
+                                            </AccordionTrigger>
+                                            <AccordionContent className="pt-2">
+                                                <ul className="list-disc pl-5 text-xs text-muted-foreground max-h-24 overflow-y-auto">
+                                                    {result.skippedNames.map((name, index) => (
+                                                        <li key={index}>{name}</li>
+                                                    ))}
+                                                </ul>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                </li>
+                            ) : (
+                                <li><span className="font-bold">0</span> perfiles omitidos (duplicados).</li>
+                            )}
+                            {result.errors > 0 && <li className="text-destructive"><span className="font-bold">{result.errors}</span> errores durante el proceso.</li>}
                         </ul>
                     </AlertDescription>
                 </Alert>
@@ -215,7 +234,8 @@ export default function BulkCreatePage() {
                 </Button>
             </CardFooter>
         </Card>
-        {result && <RecentlyCreatedCard figures={recentlyCreated} />}
+        
+        <RecentlyCreatedCard figures={recentlyCreated} />
     </div>
   );
 }
