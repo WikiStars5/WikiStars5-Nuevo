@@ -17,9 +17,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import type { GlobalSettings } from '@/lib/types';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
-import BulkCreateDialog from '@/components/admin/bulk-create-dialog';
-
 
 const battleFormSchema = z.object({
   duration: z.coerce.number().int().positive('La duración debe ser un número positivo.'),
@@ -299,14 +296,11 @@ export default function AdminDashboard() {
                 <PlusCircle className="mr-2 h-4 w-4" /> Añadir Nuevo Perfil
               </Link>
             </Button>
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button variant="secondary">
-                        <Sparkles className="mr-2 h-4 w-4" /> Creación Rápida
-                    </Button>
-                </DialogTrigger>
-                <BulkCreateDialog />
-            </Dialog>
+            <Button asChild variant="secondary">
+              <Link href="/admin/bulk-create">
+                <Sparkles className="mr-2 h-4 w-4" /> Creación Rápida
+              </Link>
+            </Button>
             <Button asChild variant="secondary">
                <Link href="/admin/figures">
                 <List className="mr-2 h-4 w-4" /> Gestionar Perfiles
