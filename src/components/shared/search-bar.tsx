@@ -110,11 +110,9 @@ export default function SearchBar({
     // If a specific onResultClick handler is provided, use it.
     if (onResultClick) {
       onResultClick(figure);
-    } else {
-      // Otherwise, perform the default action: navigate to the figure's page.
-      router.push(`/figures/${figure.id}`);
-    }
-    // Always clear the search state after a selection.
+    } 
+    // The navigation is now handled by the Link component.
+    // This function just clears the search state.
     clearSearch();
   };
 
@@ -242,7 +240,8 @@ export default function SearchBar({
             <ul className="divide-y divide-border">
               {figureResults.map((figure) => (
                 <li key={figure.id}>
-                  <button
+                  <Link
+                    href={`/figures/${figure.id}`}
                     onClick={() => handleResultClick(figure)}
                     className="w-full flex items-center p-2 hover:bg-muted transition-colors duration-150 ease-in-out text-left"
                   >
@@ -267,7 +266,7 @@ export default function SearchBar({
                       {figure.description && <p className="text-xs text-muted-foreground truncate">{figure.description}</p>
                       }
                     </div>
-                  </button>
+                  </Link>
                 </li>
               ))}
             </ul>
