@@ -23,8 +23,8 @@ export async function generateMetadata({ params, searchParams }: FigurePageProps
   let title = `Perfil de ${figureName} - WikiStars5`;
   let description = `Explora el perfil, las opiniones y las calificaciones de ${figureName} en WikiStars5.`;
   
-  // Use WikiStars5 logo for all sharing purposes.
-  const imageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6';
+  // Use WikiStars5 logo by default for all sharing purposes.
+  let imageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6';
   let imageAlt = 'Logo de WikiStars5';
 
   if (isGoatShare) {
@@ -38,6 +38,8 @@ export async function generateMetadata({ params, searchParams }: FigurePageProps
           title = 'Batalla del GOAT: Messi vs Ronaldo';
           description = 'Vota y decide quién es el mejor de todos los tiempos en WikiStars5.';
       }
+      // Use the specific GOAT battle image
+      imageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAR%20CUADRADO.png?alt=media&token=3a3bed2f-672a-4a9d-88ef-36a7bb867034';
       imageAlt = 'Batalla del GOAT: Messi vs Ronaldo';
   }
 
