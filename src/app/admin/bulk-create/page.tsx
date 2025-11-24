@@ -23,12 +23,15 @@ import { verifyWikipediaCharacter } from '@/ai/flows/verify-wikipedia-character'
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Figure } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import EditImageDialog from '@/components/admin/EditImageDialog';
 
 
 const MAX_NAMES = 50;
 
-function RecentlyCreatedCard({ figures }: { figures: Figure[] }) {
+function RecentlyCreatedCard({ figures, onFigureUpdate }: { figures: Figure[], onFigureUpdate: (figureId: string, newImageUrl: string) => void }) {
     if (figures.length === 0) return null;
+
     return (
         <Card>
             <CardHeader>
@@ -51,11 +54,14 @@ function RecentlyCreatedCard({ figures }: { figures: Figure[] }) {
                             </Link>
                             <div className="text-center">
                                 <p className="text-xs font-medium truncate">{figure.name}</p>
-                                <Button variant="link" size="sm" asChild className="text-xs h-auto p-0">
-                                    <Link href={`/admin/figures/${figure.id}/edit`}>
-                                        <Pencil className="mr-1 h-3 w-3" /> Editar
-                                    </Link>
-                                </Button>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="link" size="sm" className="text-xs h-auto p-0">
+                                            <Pencil className="mr-1 h-3 w-3" /> Editar
+                                        </Button>
+                                    </DialogTrigger>
+                                    <EditImageDialog figure={figure} onImageUpdate={onFigureUpdate} />
+                                </Dialog>
                             </div>
                         </div>
                     ))}
@@ -168,6 +174,14 @@ export default function BulkCreatePage() {
   };
   
   const lineCount = names.split('\n').filter(Boolean).length;
+  
+  const handleFigureUpdate = (figureId: string, newImageUrl: string) => {
+    setRecentlyCreated(prevFigures => 
+        prevFigures.map(fig => 
+            fig.id === figureId ? { ...fig, imageUrl: newImageUrl } : fig
+        )
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -244,7 +258,7 @@ export default function BulkCreatePage() {
             </CardFooter>
         </Card>
         
-        <RecentlyCreatedCard figures={recentlyCreated} />
+        <RecentlyCreatedCard figures={recentlyCreated} onFigureUpdate={handleFigureUpdate} />
     </div>
   );
 }
