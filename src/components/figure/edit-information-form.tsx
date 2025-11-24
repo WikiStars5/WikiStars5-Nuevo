@@ -22,7 +22,6 @@ import { CountrySelector } from './country-selector';
 import DateInput from './date-input';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '../ui/badge';
-import { generateKeywords, normalizeText } from '@/lib/keywords';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -44,7 +43,6 @@ type SocialPlatform = keyof typeof SOCIAL_MEDIA_CONFIG;
 
 const editFormSchema = z.object({
   imageUrl: z.string().optional(),
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
   gender: z.enum(['Femenino', 'Masculino']).optional(),
   birthDate: z.string().optional(),
   deathDate: z.string().optional(),
@@ -73,7 +71,7 @@ const isValidImageUrl = (url: string | undefined | null): boolean => {
     }
 };
 
-const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
+const getSanitizedDefaultValues = (figure: Figure): Omit<EditFormValues, 'name'> => {
     const defaultSocialLinks: { [key in SocialPlatform]?: string } = {};
 
     for (const key in SOCIAL_MEDIA_CONFIG) {
@@ -84,7 +82,6 @@ const getSanitizedDefaultValues = (figure: Figure): EditFormValues => {
 
     return {
       imageUrl: figure.imageUrl || '',
-      name: figure.name || '',
       gender: figure.gender || undefined,
       birthDate: figure.birthDate || '',
       deathDate: figure.deathDate || '',
@@ -136,16 +133,13 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
           dataToSave.socialLinks[key] = (link && link.trim()) ? link.trim() : null;
         }
       }
-      
-      // Generate keywords for the name
-      dataToSave.nameKeywords = generateKeywords(data.name);
 
       batch.update(figureRef, dataToSave);
       await batch.commit();
 
       toast({
         title: '¡Perfil Actualizado!',
-        description: `La información de ${data.name} ha sido guardada.`,
+        description: `La información de ${figure.name} ha sido guardada.`,
       });
       onFormClose();
     } catch (error) {
@@ -230,19 +224,6 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         Información Personal
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Nombre Completo</FormLabel>
-                                <FormControl>
-                                    <Input {...field} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
                         <FormField
                             control={form.control}
                             name="gender"
@@ -428,3 +409,4 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     
 
     
+
