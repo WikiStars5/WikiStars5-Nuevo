@@ -76,6 +76,16 @@ export default function GoatBattle() {
     return doc(firestore, 'goat_battles', BATTLE_ID);
   }, [firestore]);
   const { data: battleData, isLoading: isBattleLoading } = useDoc<GoatBattle>(battleDocRef);
+  
+  // Local state for optimistic updates
+  const [optimisticBattleData, setOptimisticBattleData] = useState<GoatBattle | null>(null);
+
+  useEffect(() => {
+    if (battleData) {
+      setOptimisticBattleData(battleData);
+    }
+  }, [battleData]);
+
 
   // Get user's personal vote
   const userVoteDocRef = useMemoFirebase(() => {
@@ -191,9 +201,28 @@ export default function GoatBattle() {
         toast({ title: 'Error', description: 'No se pudo obtener la identidad del usuario.', variant: 'destructive'});
         return;
     }
+    
+    const previousOptimisticData = { ...optimisticBattleData };
+    const currentVote = userVote?.vote;
+
+    // --- Optimistic UI Update ---
+    setOptimisticBattleData(prev => {
+        if (!prev) return null;
+        const newVotes = { ...prev };
+        const otherPlayer = player === 'messi' ? 'ronaldo' : 'messi';
+
+        if (currentVote === player) { // Retracting vote
+            newVotes[`${player}Votes`]--;
+        } else if (currentVote) { // Changing vote
+            newVotes[`${player}Votes`]++;
+            newVotes[`${otherPlayer}Votes`]--;
+        } else { // First vote
+            newVotes[`${player}Votes`]++;
+        }
+        return newVotes as GoatBattle;
+    });
 
     setIsVoting(true);
-    let isFirstVote = false;
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -209,23 +238,19 @@ export default function GoatBattle() {
                 throw new Error("La batalla no está activa.");
             }
 
-            const currentVote = userVoteDoc.exists() ? userVoteDoc.data().vote : null;
+            const dbVote = userVoteDoc.exists() ? userVoteDoc.data().vote : null;
             const updates: { [key: string]: any } = {};
             
-            if (currentVote === player) {
-                // User is retracting their vote
+            if (dbVote === player) {
                 updates[`${player}Votes`] = increment(-1);
                 transaction.delete(userVoteRef);
                 toast({ title: "Voto cancelado" });
 
             } else {
-                // User is casting a new vote or changing their vote
                 updates[`${player}Votes`] = increment(1);
-                if (currentVote) {
+                if (dbVote) {
                     const otherPlayer = player === 'messi' ? 'ronaldo' : 'messi';
                     updates[`${otherPlayer}Votes`] = increment(-1);
-                } else {
-                    isFirstVote = true; // This is the user's first vote in the battle
                 }
                 
                 transaction.set(userVoteRef, { 
@@ -241,6 +266,8 @@ export default function GoatBattle() {
 
     } catch (error: any) {
         console.error("Error casting vote:", error);
+        // --- Revert Optimistic UI on error ---
+        setOptimisticBattleData(previousOptimisticData as GoatBattle);
         toast({
             title: "Error al Votar",
             description: error.message || "No se pudo registrar tu voto.",
@@ -251,8 +278,8 @@ export default function GoatBattle() {
     }
   };
 
-  const messiVotes = battleData?.messiVotes ?? 0;
-  const ronaldoVotes = battleData?.ronaldoVotes ?? 0;
+  const messiVotes = optimisticBattleData?.messiVotes ?? 0;
+  const ronaldoVotes = optimisticBattleData?.ronaldoVotes ?? 0;
   const totalVotes = messiVotes + ronaldoVotes;
 
   const messiPercentage = totalVotes > 0 ? (messiVotes / totalVotes) * 100 : 50;
