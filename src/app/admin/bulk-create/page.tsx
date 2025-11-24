@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection, doc, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { generateKeywords } from '@/lib/keywords';
-import { Loader2, Sparkles, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Loader2, Sparkles, AlertCircle, ArrowLeft, Pencil } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { verifyWikipediaCharacter } from '@/ai/flows/verify-wikipedia-character';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,17 +38,26 @@ function RecentlyCreatedCard({ figures }: { figures: Figure[] }) {
             <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {figures.map(figure => (
-                        <Link key={figure.id} href={`/figures/${figure.id}`} className="group space-y-2">
-                            <div className="aspect-[4/5] w-full bg-muted rounded-md overflow-hidden relative">
-                                <Image
-                                    src={figure.imageUrl}
-                                    alt={figure.name}
-                                    fill
-                                    className="object-cover transition-transform group-hover:scale-105"
-                                />
+                        <div key={figure.id} className="group space-y-2">
+                            <Link href={`/figures/${figure.id}`} className="block">
+                                <div className="aspect-[4/5] w-full bg-muted rounded-md overflow-hidden relative">
+                                    <Image
+                                        src={figure.imageUrl}
+                                        alt={figure.name}
+                                        fill
+                                        className="object-cover transition-transform group-hover:scale-105"
+                                    />
+                                </div>
+                            </Link>
+                            <div className="text-center">
+                                <p className="text-xs font-medium truncate">{figure.name}</p>
+                                <Button variant="link" size="sm" asChild className="text-xs h-auto p-0">
+                                    <Link href={`/admin/figures/${figure.id}/edit`}>
+                                        <Pencil className="mr-1 h-3 w-3" /> Editar
+                                    </Link>
+                                </Button>
                             </div>
-                            <p className="text-xs font-medium text-center truncate group-hover:underline">{figure.name}</p>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             </CardContent>
