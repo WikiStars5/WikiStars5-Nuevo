@@ -100,19 +100,15 @@ export default function SearchBar({
     if (!trimmedTerm) return;
     router.push(`/search?q=${encodeURIComponent(trimmedTerm)}`);
     clearSearch();
-    // If a submit callback exists (e.g., to close a dialog), call it.
     if (onResultClick) {
       onResultClick({} as Figure); 
     }
   };
   
   const handleResultClick = (figure: Figure) => {
-    // If a specific onResultClick handler is provided, use it.
     if (onResultClick) {
       onResultClick(figure);
-    } 
-    // The navigation is now handled by the Link component.
-    // This function just clears the search state.
+    }
     clearSearch();
   };
 
@@ -192,6 +188,55 @@ export default function SearchBar({
 
   const hasNoResults = !isLoading && currentQuery.trim().length >= 1 && figureResults.length === 0;
 
+  const renderResultItem = (figure: Figure) => {
+    const itemContent = (
+      <>
+        <div className="flex-shrink-0 mr-2">
+          {figure.imageUrl ? (
+            <Image
+              src={correctMalformedUrl(figure.imageUrl)}
+              alt={figure.name}
+              width={32}
+              height={40}
+              className="rounded-sm object-cover aspect-[4/5]"
+              data-ai-hint="thumbnail person"
+            />
+          ) : (
+            <div className="w-8 h-10 bg-muted rounded-sm flex items-center justify-center" data-ai-hint="placeholder icon">
+              <ImageOff className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+        <div className="flex-grow min-w-0">
+          <p className="font-medium text-xs text-foreground truncate">{figure.name}</p>
+          {figure.description && <p className="text-xs text-muted-foreground truncate">{figure.description}</p>}
+        </div>
+      </>
+    );
+
+    if (onResultClick) {
+      return (
+        <button
+          type="button"
+          onClick={() => handleResultClick(figure)}
+          className="w-full flex items-center p-2 hover:bg-muted transition-colors duration-150 ease-in-out text-left"
+        >
+          {itemContent}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        href={`/figures/${figure.id}`}
+        onClick={() => handleResultClick(figure)}
+        className="w-full flex items-center p-2 hover:bg-muted transition-colors duration-150 ease-in-out text-left"
+      >
+        {itemContent}
+      </Link>
+    );
+  };
+
   return (
     <div className={cn("relative w-full max-w-lg mx-auto", className)} ref={searchContainerRef}>
       <div className="relative flex items-center">
@@ -240,33 +285,7 @@ export default function SearchBar({
             <ul className="divide-y divide-border">
               {figureResults.map((figure) => (
                 <li key={figure.id}>
-                  <Link
-                    href={`/figures/${figure.id}`}
-                    onClick={() => handleResultClick(figure)}
-                    className="w-full flex items-center p-2 hover:bg-muted transition-colors duration-150 ease-in-out text-left"
-                  >
-                    <div className="flex-shrink-0 mr-2">
-                      {figure.imageUrl ? (
-                        <Image
-                          src={correctMalformedUrl(figure.imageUrl)}
-                          alt={figure.name}
-                          width={32}
-                          height={40}
-                          className="rounded-sm object-cover aspect-[4/5]"
-                          data-ai-hint="thumbnail person"
-                        />
-                      ) : (
-                        <div className="w-8 h-10 bg-muted rounded-sm flex items-center justify-center" data-ai-hint="placeholder icon">
-                          <ImageOff className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-grow min-w-0">
-                      <p className="font-medium text-xs text-foreground truncate">{figure.name}</p>
-                      {figure.description && <p className="text-xs text-muted-foreground truncate">{figure.description}</p>
-                      }
-                    </div>
-                  </Link>
+                  {renderResultItem(figure)}
                 </li>
               ))}
             </ul>

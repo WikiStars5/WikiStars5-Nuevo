@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -112,4 +111,3 @@ export default function AddRelatedFigureDialog({ sourceFigure, onDialogClose }: 
         </DialogContent>
     );
 }
-
