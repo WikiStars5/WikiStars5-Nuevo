@@ -4,6 +4,7 @@
 import { useMemo } from 'react';
 import { doc } from 'firebase/firestore';
 import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { ADMIN_UIDS } from '@/lib/admins';
 
 export interface UseAdminResult {
   isAdmin: boolean;
@@ -21,28 +22,36 @@ export const useAdmin = (): UseAdminResult => {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
+  // Client-side check: Is the user's UID in our hardcoded admin list?
+  const isPotentialAdmin = useMemo(() => {
+    if (!user) return false;
+    return ADMIN_UIDS.includes(user.uid);
+  }, [user]);
+
   const adminRoleDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    // Only prepare the reference if the user is a potential admin.
+    if (!firestore || !user || !isPotentialAdmin) return null;
     return doc(firestore, 'roles_admin', user.uid);
-  }, [firestore, user]);
+  }, [firestore, user, isPotentialAdmin]);
 
   const { data: adminDoc, isLoading: isAdminDocLoading } = useDoc(adminRoleDocRef, {
-    // This hook is only enabled when we have a user.
-    enabled: !!user,
+    // IMPORTANT: The hook is only enabled if the user is in the client-side admin list.
+    enabled: isPotentialAdmin,
   });
   
-  // The overall loading state is true if auth is loading, or if we have a user but are still fetching their admin status.
-  const isAdminLoading = isAuthLoading || (!!user && isAdminDocLoading);
+  // The overall loading state is true if auth is loading, or if the user is a potential admin
+  // and we are still fetching their specific admin doc.
+  const isAdminLoading = isAuthLoading || (isPotentialAdmin && isAdminDocLoading);
 
   const isAdmin = useMemo(() => {
-    // Not an admin if there's no user or if we're still loading.
-    if (!user || isAdminLoading) {
+    // Not an admin if there's no user, we are still loading, or they are not even a potential admin.
+    if (!user || isAdminLoading || !isPotentialAdmin) {
       return false;
     }
     
-    // The user is an admin if their role document exists.
+    // For a potential admin, their final status depends on the existence of the role document.
     return !!adminDoc;
-  }, [user, adminDoc, isAdminLoading]);
+  }, [user, adminDoc, isAdminLoading, isPotentialAdmin]);
 
   return { isAdmin, isAdminLoading };
 };
