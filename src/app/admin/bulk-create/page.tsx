@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { collection, doc, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
@@ -20,7 +21,7 @@ import { generateKeywords } from '@/lib/keywords';
 import { Loader2, Sparkles, AlertCircle, ArrowLeft, Pencil } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { verifyWikipediaCharacter } from '@/ai/flows/verify-wikipedia-character';
-import { Skeleton } from '@/components/ui/skeleton';
+import { verifyFandomCharacter } from '@/ai/flows/verify-fandom-character';
 import type { Figure } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -74,26 +75,36 @@ function RecentlyCreatedCard({ figures, onFigureUpdate }: { figures: Figure[], o
 export default function BulkCreatePage() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [names, setNames] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+  const [wikiNames, setWikiNames] = useState('');
+  const [fandomNames, setFandomNames] = useState('');
+  const [fandomDomain, setFandomDomain] = useState('');
+
+  const [isCreating, setIsCreating] = useState<false | 'wiki' | 'fandom'>(false);
   const [result, setResult] = useState<{ created: number; skipped: number; errors: number; skippedNames: string[] } | null>(null);
   const [recentlyCreated, setRecentlyCreated] = useState<Figure[]>([]);
 
 
-  const handleCreate = async () => {
+  const handleCreate = async (source: 'wiki' | 'fandom') => {
     if (!firestore) {
       toast({ title: 'Error de conexión', description: 'No se pudo conectar a la base de datos.', variant: 'destructive' });
       return;
     }
     
-    setIsCreating(true);
+    setIsCreating(source);
     setResult(null);
     setRecentlyCreated([]);
-
-    const nameList = names.split('\n').map(name => name.trim()).filter(Boolean);
+    
+    const isFandom = source === 'fandom';
+    const nameList = (isFandom ? fandomNames : wikiNames).split('\n').map(name => name.trim()).filter(Boolean);
 
     if (nameList.length === 0) {
       toast({ title: 'Lista vacía', description: 'Por favor, introduce al menos un nombre.', variant: 'destructive' });
+      setIsCreating(false);
+      return;
+    }
+
+    if (isFandom && !fandomDomain) {
+      toast({ title: 'Dominio Faltante', description: 'Por favor, introduce el dominio del wiki de Fandom (ej: onepiece.fandom.com).', variant: 'destructive' });
       setIsCreating(false);
       return;
     }
@@ -123,31 +134,37 @@ export default function BulkCreatePage() {
           skippedCount++;
           skippedNames.push(name);
         } else {
-          const wikiResult = await verifyWikipediaCharacter({ name });
-
-          const figureName = wikiResult.found && wikiResult.title ? wikiResult.title : name;
-          const imageUrl = wikiResult.found && wikiResult.imageUrl 
-            ? wikiResult.imageUrl 
-            : `https://placehold.co/600x400?text=${encodeURIComponent(name)}`;
+            let verificationResult;
+            if (isFandom) {
+                const fullDomain = fandomDomain.startsWith('http') ? fandomDomain : `https://${fandomDomain}`;
+                verificationResult = await verifyFandomCharacter({ name, fandomDomain: fullDomain });
+            } else {
+                verificationResult = await verifyWikipediaCharacter({ name });
+            }
             
-          const keywords = generateKeywords(figureName);
-          const figureData = {
-            id: slug,
-            name: figureName,
-            imageUrl: imageUrl,
-            imageHint: wikiResult.found ? `portrait of ${figureName}` : `placeholder for ${figureName}`,
-            nameKeywords: keywords,
-            approved: true,
-            createdAt: serverTimestamp(),
-            attitude: { neutral: 0, fan: 0, simp: 0, hater: 0 },
-            emotion: { alegria: 0, envidia: 0, tristeza: 0, miedo: 0, desagrado: 0, furia: 0 },
-            ratingCount: 0,
-            totalRating: 0,
-            ratingsBreakdown: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
-          };
-          batch.set(figureRef, figureData);
-          createdFiguresForDisplay.push(figureData as Figure);
-          createdCount++;
+            const figureName = verificationResult.found && verificationResult.title ? verificationResult.title : name;
+            const imageUrl = verificationResult.found && verificationResult.imageUrl 
+                ? verificationResult.imageUrl 
+                : `https://placehold.co/600x400?text=${encodeURIComponent(name)}`;
+                
+            const keywords = generateKeywords(figureName);
+            const figureData = {
+                id: slug,
+                name: figureName,
+                imageUrl: imageUrl,
+                imageHint: verificationResult.found ? `portrait of ${figureName}` : `placeholder for ${figureName}`,
+                nameKeywords: keywords,
+                approved: true,
+                createdAt: serverTimestamp(),
+                attitude: { neutral: 0, fan: 0, simp: 0, hater: 0 },
+                emotion: { alegria: 0, envidia: 0, tristeza: 0, miedo: 0, desagrado: 0, furia: 0 },
+                ratingCount: 0,
+                totalRating: 0,
+                ratingsBreakdown: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
+            };
+            batch.set(figureRef, figureData);
+            createdFiguresForDisplay.push(figureData as Figure);
+            createdCount++;
         }
       } catch (error) {
         console.error(`Error processing name "${name}":`, error);
@@ -169,11 +186,12 @@ export default function BulkCreatePage() {
       setResult({ created: 0, skipped: nameList.length, errors: errorCount, skippedNames: nameList });
     } finally {
       setIsCreating(false);
-      setNames('');
+      if (isFandom) setFandomNames(''); else setWikiNames('');
     }
   };
   
-  const lineCount = names.split('\n').filter(Boolean).length;
+  const wikiLineCount = wikiNames.split('\n').filter(Boolean).length;
+  const fandomLineCount = fandomNames.split('\n').filter(Boolean).length;
   
   const handleFigureUpdate = (figureId: string, newImageUrl: string) => {
     setRecentlyCreated(prevFigures => 
@@ -185,38 +203,41 @@ export default function BulkCreatePage() {
 
   return (
     <div className="space-y-6">
+        <div className="flex items-start justify-between">
+            <div className="space-y-1">
+                <h1 className="text-2xl font-bold">Creación Rápida de Perfiles</h1>
+                <p className="text-muted-foreground">Herramientas para añadir múltiples perfiles desde fuentes externas.</p>
+            </div>
+             <Button variant="outline" asChild>
+                <Link href="/admin"><ArrowLeft className="mr-2 h-4 w-4" /> Volver al panel</Link>
+            </Button>
+        </div>
+
         <Card>
             <CardHeader>
-                <div className="flex items-start justify-between">
-                    <div>
-                        <CardTitle>Creación Rápida de Perfiles</CardTitle>
-                        <CardDescription>
-                        Pega una lista de nombres (uno por línea). El sistema buscará una imagen en Wikipedia y omitirá los duplicados.
-                        </CardDescription>
-                    </div>
-                     <Button variant="outline" asChild>
-                        <Link href="/admin"><ArrowLeft className="mr-2 h-4 w-4" /> Volver al panel</Link>
-                    </Button>
-                </div>
+                <CardTitle>Desde Wikipedia</CardTitle>
+                <CardDescription>
+                Pega una lista de nombres (uno por línea). El sistema buscará una imagen en Wikipedia y omitirá los duplicados.
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid w-full gap-2">
                     <Textarea
                         placeholder="Lionel Messi\nCristiano Ronaldo\n..."
-                        value={names}
-                        onChange={(e) => setNames(e.target.value)}
+                        value={wikiNames}
+                        onChange={(e) => setWikiNames(e.target.value)}
                         rows={10}
-                        disabled={isCreating}
+                        disabled={!!isCreating}
                     />
                     <p className="text-sm text-muted-foreground">
-                        Líneas: <span className="font-bold">{lineCount}</span> / {MAX_NAMES}
+                        Líneas: <span className="font-bold">{wikiLineCount}</span> / {MAX_NAMES}
                     </p>
                 </div>
 
-                {result && (
+                {isCreating === false && result && (
                 <Alert className="mt-4">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Resultados del Proceso</AlertTitle>
+                    <AlertTitle>Resultados del Proceso Anterior</AlertTitle>
                     <AlertDescription>
                         <ul className="list-disc pl-5 text-sm space-y-1">
                             <li><span className="font-bold">{result.created}</span> perfiles creados.</li>
@@ -238,7 +259,7 @@ export default function BulkCreatePage() {
                                     </Accordion>
                                 </li>
                             ) : (
-                                <li><span className="font-bold">0</span> perfiles omitidos (duplicados).</li>
+                                <li><span className="font-bold">0</span> perfiles omitidos.</li>
                             )}
                             {result.errors > 0 && <li className="text-destructive"><span className="font-bold">{result.errors}</span> errores durante el proceso.</li>}
                         </ul>
@@ -247,18 +268,61 @@ export default function BulkCreatePage() {
                 )}
             </CardContent>
             <CardFooter>
-                 <Button onClick={handleCreate} disabled={isCreating || lineCount === 0 || lineCount > MAX_NAMES}>
-                    {isCreating ? (
+                 <Button onClick={() => handleCreate('wiki')} disabled={!!isCreating || wikiLineCount === 0 || wikiLineCount > MAX_NAMES}>
+                    {isCreating === 'wiki' ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                         <Sparkles className="mr-2 h-4 w-4" />
                     )}
-                    Crear {lineCount > 0 ? lineCount : ''} Perfiles
+                    Crear {wikiLineCount > 0 ? wikiLineCount : ''} Perfiles
+                </Button>
+            </CardFooter>
+        </Card>
+
+         <Card>
+            <CardHeader>
+                <CardTitle>Desde Fandom</CardTitle>
+                <CardDescription>
+                Pega una lista de nombres y especifica el dominio del wiki de Fandom (ej: `onepiece.fandom.com`).
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="space-y-2">
+                    <label htmlFor="fandom-domain" className="text-sm font-medium">Dominio del Wiki de Fandom*</label>
+                    <Input
+                        id="fandom-domain"
+                        placeholder="onepiece.fandom.com"
+                        value={fandomDomain}
+                        onChange={(e) => setFandomDomain(e.target.value)}
+                        disabled={!!isCreating}
+                    />
+                </div>
+                <div className="grid w-full gap-2">
+                    <Textarea
+                        placeholder="Monkey D. Luffy\nRoronoa Zoro\n..."
+                        value={fandomNames}
+                        onChange={(e) => setFandomNames(e.target.value)}
+                        rows={10}
+                        disabled={!!isCreating}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                        Líneas: <span className="font-bold">{fandomLineCount}</span> / {MAX_NAMES}
+                    </p>
+                </div>
+            </CardContent>
+            <CardFooter>
+                 <Button onClick={() => handleCreate('fandom')} disabled={!!isCreating || fandomLineCount === 0 || fandomLineCount > MAX_NAMES}>
+                    {isCreating === 'fandom' ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <Sparkles className="mr-2 h-4 w-4" />
+                    )}
+                    Crear {fandomLineCount > 0 ? fandomLineCount : ''} Perfiles
                 </Button>
             </CardFooter>
         </Card>
         
-        <RecentlyCreatedCard figures={recentlyCreated} onFigureUpdate={handleFigureUpdate} />
+        {recentlyCreated.length > 0 && <RecentlyCreatedCard figures={recentlyCreated} onFigureUpdate={handleFigureUpdate} />}
     </div>
   );
 }
