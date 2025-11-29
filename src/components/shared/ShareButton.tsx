@@ -2,6 +2,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { doc, updateDoc, increment } from "firebase/firestore";
+import { useFirestore } from '@/firebase';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Share2, Link as LinkIcon, Facebook, Twitter, Linkedin, MessageCircle, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from '@/firebase';
 
 
 // Simple inline SVG component for Reddit Icon
@@ -71,9 +72,9 @@ export function ShareButton({
     className,
 }: ShareButtonProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [currentUrl, setCurrentUrl] = useState('');
   const [isWebShareSupported, setIsWebShareSupported] = useState(false);
-  const { user } = useUser();
 
 
   useEffect(() => {
@@ -88,6 +89,31 @@ export function ShareButton({
   }, [figureId]);
 
   const buttonSize = showText ? "default" : "icon";
+  
+  const getShareCategory = (): keyof Figure['shareCounts'] | 'profile' => {
+      if (isGoatShare) return 'goat';
+      if (isAttitudeShare) return 'attitude';
+      if (isEmotionShare) return 'emotion';
+      if (isRatingShare) return 'rating';
+      return 'profile';
+  }
+
+  const trackShare = async () => {
+    if (!firestore) return;
+
+    const category = getShareCategory();
+    const figureRef = doc(firestore, "figures", figureId);
+    
+    try {
+        await updateDoc(figureRef, {
+            [`shareCounts.${category}`]: increment(1)
+        });
+    } catch (error) {
+        // This is a background task, so we don't need to bother the user if it fails.
+        // We can log it for debugging purposes.
+        console.error("Failed to increment share count:", error);
+    }
+  };
 
 
   if (!currentUrl) {
@@ -141,6 +167,7 @@ export function ShareButton({
 
   // If Web Share API is supported, show a direct share button.
   const handleNativeShare = async () => {
+    trackShare(); // Track the share action
     if (navigator.share) {
       try {
         await navigator.share({
@@ -217,6 +244,7 @@ export function ShareButton({
   ];
 
   const handleShareOptionClick = async (option: SocialShareOption) => {
+    trackShare(); // Track the share action
     if (option.url === "#copy") {
       try {
         await navigator.clipboard.writeText(currentUrl);

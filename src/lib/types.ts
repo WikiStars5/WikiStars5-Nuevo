@@ -66,6 +66,13 @@ export interface Figure {
     '4': number;
     '5': number;
   };
+  shareCounts?: {
+    profile: number;
+    goat: number;
+    attitude: number;
+    emotion: number;
+    rating: number;
+  };
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
   // Temporary fields for security rules, not stored in DB.

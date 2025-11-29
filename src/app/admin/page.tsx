@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessageCircle } from 'lucide-react';
+import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessageCircle, Share2 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -357,7 +357,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle>Acciones Rápidas</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <Button asChild>
               <Link href="/admin/figures/new">
                 <PlusCircle className="mr-2 h-4 w-4" /> Añadir Nuevo Perfil
@@ -368,14 +368,9 @@ export default function AdminDashboard() {
                 <Sparkles className="mr-2 h-4 w-4" /> Creación Rápida
               </Link>
             </Button>
-            <Button asChild variant="secondary">
-               <Link href="/admin/figures">
-                <List className="mr-2 h-4 w-4" /> Gestionar Perfiles
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-               <Link href="/admin/users">
-                <Users className="mr-2 h-4 w-4" /> Gestionar Usuarios
+             <Button asChild variant="secondary">
+               <Link href="/admin/shares">
+                <Share2 className="mr-2 h-4 w-4" /> Ver Compartidos
               </Link>
             </Button>
           </CardContent>

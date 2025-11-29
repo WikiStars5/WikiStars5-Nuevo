@@ -192,6 +192,17 @@
               "type": "number"
             }
           }
+        },
+        "shareCounts": {
+            "type": "object",
+            "description": "Aggregated share counts for the public figure's profile.",
+            "properties": {
+                "profile": { "type": "number" },
+                "goat": { "type": "number" },
+                "attitude": { "type": "number" },
+                "emotion": { "type": "number" },
+                "rating": { "type": "number" }
+            }
         }
       },
       "required": [
