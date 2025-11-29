@@ -213,7 +213,7 @@ export function ShareButton({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size={buttonSize} aria-label={`Compartir perfil de ${figureName}`} className="h-8 w-8">
+        <Button variant="ghost" size={buttonSize} aria-label={`Compartir perfil de ${figureName}`} className={!showText ? 'h-8 w-8' : ''}>
           <Share2 className="h-4 w-4" />
           {showText && <span className="ml-2">Compartir</span>}
         </Button>
