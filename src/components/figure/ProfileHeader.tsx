@@ -48,6 +48,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
             figureId={figureId} 
             figureName={figure.name}
             isGoatShare={isGoatTab}
+            showText={false}
           />
         </div>
         <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
