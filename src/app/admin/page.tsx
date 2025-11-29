@@ -1,9 +1,10 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles } from 'lucide-react';
+import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessageCircle } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -83,6 +84,40 @@ export default function AdminDashboard() {
         });
     } catch (error) {
         console.error("Error toggling voting:", error);
+        toast({
+            title: 'Error al cambiar la configuración',
+            variant: 'destructive',
+        });
+    }
+  };
+
+  const handleToggleCommenting = async (isEnabled: boolean) => {
+    if (!settingsDocRef) return;
+    try {
+        setDocumentNonBlocking(settingsDocRef, { isCommentingEnabled: isEnabled }, { merge: true });
+        toast({
+            title: `Comentarios ${isEnabled ? 'Habilitados' : 'Deshabilitados'}`,
+            description: `Los usuarios ${isEnabled ? 'ahora pueden' : 'ya no pueden'} crear nuevos comentarios.`,
+        });
+    } catch (error) {
+        console.error("Error toggling commenting:", error);
+        toast({
+            title: 'Error al cambiar la configuración',
+            variant: 'destructive',
+        });
+    }
+  };
+
+  const handleToggleReplies = async (isEnabled: boolean) => {
+    if (!settingsDocRef) return;
+    try {
+        setDocumentNonBlocking(settingsDocRef, { isReplyEnabled: isEnabled }, { merge: true });
+        toast({
+            title: `Respuestas ${isEnabled ? 'Habilitadas' : 'Deshabilitadas'}`,
+            description: `Los usuarios ${isEnabled ? 'ahora pueden' : 'ya no pueden'} responder a comentarios.`,
+        });
+    } catch (error) {
+        console.error("Error toggling replies:", error);
         toast({
             title: 'Error al cambiar la configuración',
             variant: 'destructive',
@@ -253,37 +288,69 @@ export default function AdminDashboard() {
                     </form>
                 </Form>
 
-                <div className="rounded-lg border p-4 flex items-center justify-between">
-                    <div>
-                        <h3 className="font-semibold flex items-center gap-2"><StarOff /> Calificaciones con Estrellas</h3>
-                        <p className="text-sm text-muted-foreground">Activa o desactiva la capacidad de los usuarios para calificar perfiles.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-lg border p-4 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold flex items-center gap-2"><StarOff /> Calificaciones</h3>
+                            <p className="text-sm text-muted-foreground">Permitir calificar perfiles.</p>
+                        </div>
+                        {isLoadingSettings ? (
+                            <Skeleton className="h-6 w-12" />
+                        ) : (
+                            <Switch
+                                checked={globalSettings?.isRatingEnabled ?? true}
+                                onCheckedChange={handleToggleRatings}
+                                aria-label="Toggle star ratings"
+                            />
+                        )}
                     </div>
-                    {isLoadingSettings ? (
-                        <Skeleton className="h-6 w-12" />
-                    ) : (
-                        <Switch
-                            checked={globalSettings?.isRatingEnabled ?? true}
-                            onCheckedChange={handleToggleRatings}
-                            aria-label="Toggle star ratings"
-                        />
-                    )}
+                    <div className="rounded-lg border p-4 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold flex items-center gap-2"><Smile /> Votaciones</h3>
+                            <p className="text-sm text-muted-foreground">Permitir votar por actitud y emoción.</p>
+                        </div>
+                        {isLoadingSettings ? (
+                            <Skeleton className="h-6 w-12" />
+                        ) : (
+                            <Switch
+                                checked={globalSettings?.isVotingEnabled ?? true}
+                                onCheckedChange={handleToggleVoting}
+                                aria-label="Toggle attitude and emotion voting"
+                            />
+                        )}
+                    </div>
+                     <div className="rounded-lg border p-4 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold flex items-center gap-2"><MessageSquare /> Comentarios</h3>
+                            <p className="text-sm text-muted-foreground">Permitir crear nuevos comentarios.</p>
+                        </div>
+                        {isLoadingSettings ? (
+                            <Skeleton className="h-6 w-12" />
+                        ) : (
+                            <Switch
+                                checked={globalSettings?.isCommentingEnabled ?? true}
+                                onCheckedChange={handleToggleCommenting}
+                                aria-label="Toggle main comments"
+                            />
+                        )}
+                    </div>
+                     <div className="rounded-lg border p-4 flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold flex items-center gap-2"><MessageCircle /> Respuestas</h3>
+                            <p className="text-sm text-muted-foreground">Permitir responder a comentarios.</p>
+                        </div>
+                        {isLoadingSettings ? (
+                            <Skeleton className="h-6 w-12" />
+                        ) : (
+                            <Switch
+                                checked={globalSettings?.isReplyEnabled ?? true}
+                                onCheckedChange={handleToggleReplies}
+                                aria-label="Toggle comment replies"
+                            />
+                        )}
+                    </div>
                 </div>
 
-                <div className="rounded-lg border p-4 flex items-center justify-between">
-                    <div>
-                        <h3 className="font-semibold flex items-center gap-2"><Smile /> Votaciones de Actitud y Emoción</h3>
-                        <p className="text-sm text-muted-foreground">Activa o desactiva la capacidad de los usuarios para votar.</p>
-                    </div>
-                    {isLoadingSettings ? (
-                        <Skeleton className="h-6 w-12" />
-                    ) : (
-                        <Switch
-                            checked={globalSettings?.isVotingEnabled ?? true}
-                            onCheckedChange={handleToggleVoting}
-                            aria-label="Toggle attitude and emotion voting"
-                        />
-                    )}
-                </div>
             </CardContent>
         </Card>
         <Card>

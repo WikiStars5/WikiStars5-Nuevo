@@ -1,12 +1,13 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking } from '@/firebase';
-import type { Comment as CommentType, CommentVote } from '@/lib/types';
+import type { Comment as CommentType, CommentVote, GlobalSettings } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp, Share2, Lock } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -37,9 +38,10 @@ interface CommentItemProps {
   onReply: (parent: CommentType) => void;
   isReplying: boolean;
   onReplySuccess: () => void;
+  areRepliesEnabled: boolean;
 }
 
-function CommentItem({ comment, figureId, figureName, isReply = false, onReply, isReplying, onReplySuccess }: CommentItemProps) {
+function CommentItem({ comment, figureId, figureName, isReply = false, onReply, isReplying, onReplySuccess, areRepliesEnabled }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -278,7 +280,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 {!isEditing && (
                    <div className="mt-2 space-y-2 text-muted-foreground">
                         <div className="flex items-center gap-1">
-                           {user && (
+                           {user && areRepliesEnabled && (
                                 <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
                                     <MessageSquare className="h-4 w-4" />
                                     <span>Responder</span>
@@ -379,6 +381,11 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
 
+  const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
+  const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
+  const areRepliesEnabled = (globalSettings?.isReplyEnabled ?? true);
+
+
   const repliesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     // New: Query the subcollection for replies
@@ -400,6 +407,9 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
   const hasMoreReplies = threadReplies && threadReplies.length > visibleRepliesCount;
 
   const handleReplyClick = (targetComment: CommentType) => {
+    if (!areRepliesEnabled) {
+      return;
+    }
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
@@ -436,6 +446,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
         onReply={() => handleReplyClick(comment)}
         isReplying={activeReplyId === comment.id}
         onReplySuccess={handleReplySuccess}
+        areRepliesEnabled={areRepliesEnabled}
       />
       {hasReplies && (
         <Button
@@ -457,7 +468,14 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
         </Button>
       )}
 
-      {repliesVisible && (
+      {!areRepliesEnabled && hasReplies && (
+          <div className="ml-14 flex items-center gap-2 text-sm text-muted-foreground">
+              <Lock className="h-4 w-4" />
+              <span>Las respuestas están desactivadas temporalmente.</span>
+          </div>
+      )}
+
+      {repliesVisible && areRepliesEnabled && (
         <div className="ml-8 space-y-4 border-l-2 pl-4">
           {areRepliesLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -475,6 +493,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
                     onReply={() => handleReplyClick(comment)}
                     isReplying={activeReplyId === reply.id} // This should be based on root comment
                     onReplySuccess={handleReplySuccess}
+                    areRepliesEnabled={areRepliesEnabled}
                 />
             ))
           )}

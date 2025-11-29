@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -63,6 +64,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
   const isRatingEnabled = (globalSettings?.isRatingEnabled ?? true);
+  const isCommentingEnabled = (globalSettings?.isCommentingEnabled ?? true);
   
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -251,6 +253,18 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       </Card>
     )
   }
+
+  if (!isCommentingEnabled) {
+    return (
+      <Card className="dark:bg-black">
+        <CardContent className="p-6 flex flex-col items-center justify-center text-center">
+            <Lock className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="font-semibold text-lg">Comentarios Deshabilitados</h3>
+            <p className="text-sm text-muted-foreground">El administrador ha desactivado temporalmente la creación de nuevos comentarios.</p>
+        </CardContent>
+      </Card>
+    )
+  }
   
   if (existingComment) {
     return (
@@ -386,3 +400,4 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     
 
     
+

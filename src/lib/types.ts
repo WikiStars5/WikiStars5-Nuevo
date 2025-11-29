@@ -12,6 +12,8 @@ export interface User {
 export interface GlobalSettings {
   isRatingEnabled: boolean;
   isVotingEnabled?: boolean;
+  isCommentingEnabled?: boolean;
+  isReplyEnabled?: boolean;
 }
 
 export interface Figure {

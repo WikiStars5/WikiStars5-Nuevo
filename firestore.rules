@@ -24,6 +24,19 @@ service cloud.firestore {
       // ✅ MEJORA: Maneja correctamente el caso inicial (prevValue es null)
       return nextValue == prevValue + count || (prevValue == null && nextValue == count); 
     }
+    
+    function getGlobalSettings() {
+      return get(/databases/$(database)/documents/settings/global).data;
+    }
+
+    function areCommentsEnabled() {
+      return getGlobalSettings().isCommentingEnabled == true;
+    }
+
+    function areRepliesEnabled() {
+      return getGlobalSettings().isReplyEnabled == true;
+    }
+
 
     // --- Figure Vote Helper Functions (¡Reforzadas contra null para evitar fallos!) ---
 
@@ -140,7 +153,7 @@ service cloud.firestore {
         allow get, list: if true;
         
         // Allow any signed-in user (including anonymous) to create a comment if it's theirs
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
+        allow create: if isSignedIn() && areCommentsEnabled() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
         
         allow update: if isSignedIn() && (
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) || // Text edit
@@ -157,7 +170,7 @@ service cloud.firestore {
         match /replies/{replyId} {
           allow get, list: if true;
           // Allow any signed-in user to reply if the content is theirs
-          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
+          allow create: if isSignedIn() && areRepliesEnabled() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
           allow update: if isSignedIn() && (
               (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
               (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (isIncrement('likes', 1) || isIncrement('likes', -1))) ||
