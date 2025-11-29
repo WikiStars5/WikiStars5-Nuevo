@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, User as UserIcon } from "lucide-react";
+import { Loader2, Save, User as UserIcon, Image as ImageIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
@@ -38,6 +38,8 @@ const GoogleIcon = () => (
 
 const profileSchema = z.object({
   username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
+  profilePhotoUrl: z.string().url('Por favor, introduce una URL válida.').optional().or(z.literal('')),
+  coverPhotoUrl: z.string().url('Por favor, introduce una URL válida.').optional().or(z.literal('')),
   country: z.string().optional(),
   gender: z.enum(['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo']).optional(),
   description: z.string().max(160, 'La descripción no puede superar los 160 caracteres.').optional(),
@@ -60,6 +62,8 @@ function ProfilePageContent() {
         resolver: zodResolver(profileSchema),
         defaultValues: {
             username: '',
+            profilePhotoUrl: '',
+            coverPhotoUrl: '',
             country: '',
             gender: undefined,
             description: '',
@@ -79,6 +83,8 @@ function ProfilePageContent() {
                     setUserData(data);
                     profileForm.reset({
                         username: data.username || (user.isAnonymous ? `Invitado_${user.uid.substring(0,4)}` : user.displayName) || '',
+                        profilePhotoUrl: data.profilePhotoUrl || user.photoURL || '',
+                        coverPhotoUrl: data.coverPhotoUrl || '',
                         country: data.country || '',
                         gender: data.gender || undefined,
                         description: data.description || '',
@@ -129,6 +135,8 @@ function ProfilePageContent() {
                 const dataToUpdate: any = {
                     username: newUsername,
                     usernameLower: newUsernameLower,
+                    profilePhotoUrl: data.profilePhotoUrl || null,
+                    coverPhotoUrl: data.coverPhotoUrl || null,
                     country: data.country || null,
                     gender: data.gender || null,
                     description: data.description || null,
@@ -141,8 +149,8 @@ function ProfilePageContent() {
                 transaction.set(userRef, dataToUpdate, { merge: true });
             });
 
-            if (auth?.currentUser && auth.currentUser.displayName !== newUsername && !user.isAnonymous) {
-                await updateProfile(auth.currentUser, { displayName: newUsername });
+            if (auth?.currentUser && (auth.currentUser.displayName !== newUsername || auth.currentUser.photoURL !== data.profilePhotoUrl) && !user.isAnonymous) {
+                await updateProfile(auth.currentUser, { displayName: newUsername, photoURL: data.profilePhotoUrl });
                 await reloadUser();
             }
 
@@ -176,10 +184,12 @@ function ProfilePageContent() {
         try {
             const result = await linkWithPopup(auth.currentUser, provider);
             
-            // After linking, explicitly save the email to the user's Firestore document
             if (firestore && result.user) {
                 const userRef = doc(firestore, 'users', result.user.uid);
-                await setDoc(userRef, { email: result.user.email }, { merge: true });
+                await setDoc(userRef, { 
+                  email: result.user.email,
+                  profilePhotoUrl: result.user.photoURL 
+                }, { merge: true });
             }
             
             await reloadUser();
@@ -340,16 +350,45 @@ function ProfilePageContent() {
                 <ProfileEditor>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Información del Perfil</CardTitle>
-                            <CardDescription>Aquí puedes editar tus datos personales.</CardDescription>
+                            <CardTitle>Apariencia del Perfil</CardTitle>
+                            <CardDescription>Personaliza cómo te ven los demás.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField
+                                control={profileForm.control}
+                                name="profilePhotoUrl"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>URL de Foto de Perfil</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} placeholder="https://..." value={field.value || ''} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={profileForm.control}
+                                name="coverPhotoUrl"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>URL de Foto de Portada</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} placeholder="https://..." value={field.value || ''} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Información Personal</CardTitle>
+                            <CardDescription>Aquí puedes editar tus datos públicos.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="flex items-center gap-4">
-                                <Avatar className="h-20 w-20">
-                                    <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'User Avatar'} />
-                                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                </Avatar>
-                            </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                                     control={profileForm.control}

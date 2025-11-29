@@ -48,6 +48,8 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
         country: userData.country || null,
         gender: userData.gender || null,
         description: userData.description || null,
+        profilePhotoUrl: userData.profilePhotoUrl || null,
+        coverPhotoUrl: userData.coverPhotoUrl || null,
         // CRITICAL: DO NOT pass email or other private fields
     };
 

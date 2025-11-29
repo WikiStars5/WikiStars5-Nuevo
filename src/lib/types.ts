@@ -5,6 +5,8 @@ export interface User {
   id: string;
   username: string;
   email: string | null;
+  profilePhotoUrl?: string;
+  coverPhotoUrl?: string;
   fcmTokens?: string[]; // For Push Notifications
   referralCount?: number;
 }
@@ -27,6 +29,7 @@ export interface Figure {
   description?: string;
   photoUrl?: string;
   gender?: 'Femenino' | 'Masculino';
+  profileType?: 'figure' | 'page';
   birthDate?: string;
   deathDate?: string;
   occupation?: string;
@@ -180,3 +183,5 @@ export interface Referral {
     sourceFigureId?: string | null;
     hasVoted?: boolean;
 }
+
+    
