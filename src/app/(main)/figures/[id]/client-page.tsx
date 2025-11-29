@@ -25,6 +25,7 @@ import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
 import { countries } from '@/lib/countries';
+import { cleanFandomImageUrl } from '@/lib/utils';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -133,6 +134,15 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
     setCommentSortPreference(attitude);
   }, []);
 
+  const getDefaultTab = () => {
+    const shareType = searchParams.get('shareType');
+    if (shareType === 'emotion') return 'emocion';
+    if (shareType === 'attitude') return 'actitud';
+    if (shareType === 'rating') return 'comentarios'; // Or whatever tab contains the comments/ratings
+    if (searchParams.get('tab') === 'goat') return 'goat';
+    return 'actitud';
+  }
+
   const isGoatCandidate = figure?.name === 'Lionel Messi' || figure?.name === 'Cristiano Ronaldo';
 
   if (isLoading || !figure) {
@@ -194,7 +204,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
       <ProfileHeader figure={figure} figureId={figure.id} />
 
       <div className="mt-6">
-        <Tabs defaultValue="actitud" className="w-full">
+        <Tabs defaultValue={getDefaultTab()} className="w-full">
           <ScrollArea className="w-full whitespace-nowrap">
             <TabsList className="inline-flex h-auto">
               <TabsTrigger value="informacion">

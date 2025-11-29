@@ -79,14 +79,30 @@ export function ShareButton({
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const baseUrl = `${window.location.origin}/figures/${figureId}`;
-      setCurrentUrl(baseUrl);
+      let url = new URL(`${window.location.origin}/figures/${figureId}`);
+      if (isGoatShare && goatVote) {
+        url.searchParams.set('tab', 'goat');
+        url.searchParams.set('vote', goatVote);
+      }
+      if (isEmotionShare && emotion) {
+        url.searchParams.set('shareType', 'emotion');
+        url.searchParams.set('emotion', emotion);
+      }
+      if (isAttitudeShare && attitude) {
+        url.searchParams.set('shareType', 'attitude');
+        url.searchParams.set('attitude', attitude);
+      }
+      if (isRatingShare && rating !== undefined) {
+        url.searchParams.set('shareType', 'rating');
+        url.searchParams.set('rating', String(rating));
+      }
+      setCurrentUrl(url.toString());
 
       if (navigator.share) {
         setIsWebShareSupported(true);
       }
     }
-  }, [figureId]);
+  }, [figureId, isGoatShare, goatVote, isEmotionShare, emotion, isAttitudeShare, attitude, isRatingShare, rating]);
 
   const buttonSize = showText ? "default" : "icon";
   

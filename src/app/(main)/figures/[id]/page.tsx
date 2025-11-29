@@ -12,6 +12,10 @@ type FigurePageProps = {
 // Generate dynamic metadata for SEO and social sharing
 export async function generateMetadata({ params, searchParams }: FigurePageProps): Promise<Metadata> {
   const { id } = params;
+  const shareType = searchParams.shareType as string | undefined;
+  const emotion = searchParams.emotion as string | undefined;
+  const attitude = searchParams.attitude as string | undefined;
+  const rating = searchParams.rating as string | undefined;
   const isGoatShare = searchParams.tab === 'goat';
   const vote = searchParams.vote as 'messi' | 'ronaldo' | undefined;
   
@@ -41,6 +45,17 @@ export async function generateMetadata({ params, searchParams }: FigurePageProps
       // Use the specific GOAT battle image
       imageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAR%20CUADRADO.png?alt=media&token=3a3bed2f-672a-4a9d-88ef-36a7bb867034';
       imageAlt = 'Batalla del GOAT: Messi vs Ronaldo';
+  } else if (shareType === 'emotion' && emotion) {
+      const emotionText = emotion.charAt(0).toUpperCase() + emotion.slice(1);
+      title = `${figureName} me genera ${emotionText}. ¿Y a ti?`;
+      description = `Descubre qué emociones genera ${figureName} en los demás. Entra, vota y comenta en WikiStars5.`;
+  } else if (shareType === 'attitude' && attitude) {
+      const attitudeText = attitude.charAt(0).toUpperCase() + attitude.slice(1);
+      title = `Soy ${attitudeText} de ${figureName}. ¿Cuál es tu actitud?`;
+      description = `Define tu actitud hacia ${figureName} y ve lo que piensa la comunidad. ¡Vota ahora en WikiStars5!`;
+  } else if (shareType === 'rating' && rating) {
+      title = `¡Califiqué a ${figureName} con ${rating} ${parseInt(rating) > 1 ? 'estrellas' : 'estrella'}!`;
+      description = `¿Estás de acuerdo con mi calificación? Entra a WikiStars5, deja tu propia reseña y únete al debate.`;
   }
 
 
