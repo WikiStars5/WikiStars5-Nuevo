@@ -24,6 +24,8 @@ import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import Image from 'next/image';
 
 
 export const dynamic = 'force-dynamic';
@@ -251,10 +253,29 @@ function ProfilePageContent() {
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
              <div className="flex flex-col items-center text-center">
-                <Avatar className="h-32 w-32 text-5xl mb-4 border-4 border-primary/50 shadow-lg">
-                    <AvatarImage src={profilePhotoUrlValue || undefined} />
-                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                </Avatar>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Avatar className="h-32 w-32 text-5xl mb-4 border-4 border-primary/50 shadow-lg cursor-pointer">
+                        <AvatarImage src={profilePhotoUrlValue || undefined} />
+                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                    </Avatar>
+                  </DialogTrigger>
+                  <DialogContent className="p-2 bg-transparent border-0 max-w-4xl h-screen flex items-center justify-center">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Imagen de perfil de {displayName}</DialogTitle>
+                        <DialogDescription>Una vista ampliada de la imagen de perfil.</DialogDescription>
+                    </DialogHeader>
+                    <div className="relative w-full h-full max-h-[90vh]">
+                        <Image
+                            src={profilePhotoUrlValue || `https://placehold.co/800x800?text=${encodeURIComponent(displayName.charAt(0))}`}
+                            alt={displayName}
+                            fill
+                            className="rounded-lg object-contain"
+                        />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <h1 className="text-4xl font-bold tracking-tight font-headline">{displayName}</h1>
                 <p className="text-muted-foreground mt-2">{userData?.description || (user.isAnonymous ? 'Usuario invitado' : user.email)}</p>
             </div>
