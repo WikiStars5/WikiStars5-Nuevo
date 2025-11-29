@@ -42,6 +42,9 @@ interface ShareButtonProps {
   goatVote?: 'messi' | 'ronaldo';
   isRatingShare?: boolean;
   rating?: number;
+  isAttitudeShare?: boolean;
+  attitude?: string;
+  className?: string;
 }
 
 interface SocialShareOption {
@@ -59,6 +62,9 @@ export function ShareButton({
     goatVote,
     isRatingShare = false,
     rating,
+    isAttitudeShare = false,
+    attitude,
+    className,
 }: ShareButtonProps) {
   const { toast } = useToast();
   const [currentUrl, setCurrentUrl] = useState('');
@@ -91,6 +97,10 @@ export function ShareButton({
   }
 
   const getShareText = () => {
+    if (isAttitudeShare && attitude) {
+      const attitudeText = attitude.charAt(0).toUpperCase() + attitude.slice(1);
+      return `Soy ${attitudeText} de ${figureName}. Y ahora quiero saber tu actitud hacia él/ella, ¡vota ahora!`;
+    }
     if (isRatingShare && rating !== undefined) {
       return `¡Califiqué a ${figureName} con ${rating} ${rating > 1 ? 'estrellas' : 'estrella'}! Ahora te reto a dar tu calificación.`;
     }
@@ -105,6 +115,9 @@ export function ShareButton({
   };
 
   const getShareTitle = () => {
+    if (isAttitudeShare) {
+        return `Mi Actitud hacia ${figureName} en WikiStars5`;
+    }
     if (isRatingShare) {
       return `Mi calificación para ${figureName} en WikiStars5`;
     }
@@ -138,7 +151,7 @@ export function ShareButton({
         size={buttonSize}
         onClick={handleNativeShare}
         aria-label={`Compartir perfil de ${figureName}`}
-        className="h-8 w-8"
+        className={className || (showText ? '' : 'h-8 w-8')}
       >
         <Share2 className="h-4 w-4" />
         {showText && <span className="ml-2">Compartir</span>}
@@ -213,7 +226,7 @@ export function ShareButton({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size={buttonSize} aria-label={`Compartir perfil de ${figureName}`} className={!showText ? 'h-8 w-8' : ''}>
+        <Button variant="ghost" size={buttonSize} aria-label={`Compartir perfil de ${figureName}`} className={className || (!showText ? 'h-8 w-8' : '')}>
           <Share2 className="h-4 w-4" />
           {showText && <span className="ml-2">Compartir</span>}
         </Button>

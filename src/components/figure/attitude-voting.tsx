@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote, GlobalSettings } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
+import { ShareButton } from '../shared/ShareButton';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -226,9 +228,22 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         </Button>
         )})}
     </div>
-    <p className="mt-4 text-center text-sm text-muted-foreground">
-        Total de respuestas: {totalVotes.toLocaleString()}
-    </p>
+    <div className="mt-4 text-center">
+        <p className="text-sm text-muted-foreground">
+            Total de respuestas: {totalVotes.toLocaleString()}
+        </p>
+        {userVote?.vote && (
+            <ShareButton
+                figureId={figure.id}
+                figureName={figure.name}
+                isAttitudeShare={true}
+                attitude={userVote.vote}
+                className="mt-4"
+            >
+                Compartir mi Actitud
+            </ShareButton>
+        )}
+    </div>
     </div>
   );
 }
