@@ -82,19 +82,23 @@ export default function RootLayout({
             </StreakAnimationProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
-         {/* <Script id="service-worker-registration" strategy="afterInteractive">
+         <Script id="service-worker-unregister" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
-              window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').then(registration => {
-                  console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                  console.log('ServiceWorker registration failed: ', err);
-                });
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                  console.log('🛑 Service Worker encontrado. Desregistrando...', registration);
+                  registration.unregister();
+                }
+                if(registrations.length > 0) {
+                   console.log('✅ Service Workers eliminados. Recargando página para limpiar caché...');
+                   // Opcional: forzar recarga si detecta que había uno
+                   // window.location.reload(); 
+                }
               });
             }
           `}
-        </Script> */}
+        </Script>
       </body>
     </html>
   );
