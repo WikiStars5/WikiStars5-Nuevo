@@ -174,7 +174,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
       <div className="w-full">
         <div className="mb-4 text-left">
           <h3 className="text-xl font-bold font-headline">¿Qué emoción te genera?</h3>
-          <p className="text-muted-foreground">Elige la emoción principal que {figure.name} te provoca.</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {emotionOptions.map(({ id, label, gifUrl, colorClass, selectedClass, textColorClass }) => {
