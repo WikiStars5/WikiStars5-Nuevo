@@ -85,35 +85,6 @@ export default function Header() {
     router.push('/login');
   }
 
-  const handleRandomProfile = async () => {
-    if (!firestore) return;
-    toast({ title: 'Buscando un perfil aleatorio...' });
-    try {
-        const figuresCollection = collection(firestore, 'figures');
-        const figuresSnapshot = await getDocs(figuresCollection);
-        const figureIds = figuresSnapshot.docs.map(doc => doc.id);
-
-        if (figureIds.length > 0) {
-            const randomIndex = Math.floor(Math.random() * figureIds.length);
-            const randomFigureId = figureIds[randomIndex];
-            router.push(`/figures/${randomFigureId}`);
-        } else {
-            toast({
-                title: 'No se encontraron perfiles',
-                description: 'Aún no hay perfiles para mostrar.',
-                variant: 'destructive',
-            });
-        }
-    } catch (error) {
-        console.error("Error fetching random profile:", error);
-        toast({
-            title: 'Error',
-            description: 'No se pudo obtener un perfil aleatorio.',
-            variant: 'destructive',
-        });
-    }
-  };
-
   const getAvatarFallback = () => {
     if (user?.isAnonymous) return <UserIcon className="h-5 w-5" />;
     return userProfile?.username?.charAt(0) || user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U';
@@ -229,11 +200,6 @@ export default function Header() {
                   
                   <DropdownMenuSeparator />
 
-                  <DropdownMenuItem onSelect={handleRandomProfile}>
-                    <Ghost className="mr-2 h-4 w-4" />
-                    <span>Perfil Aleatorio</span>
-                  </DropdownMenuItem>
-                  
                   <DropdownMenuItem onSelect={() => setIsCharacterDialogOpen(true)}>
                       <UserPlus className="mr-2 h-4 w-4" />
                       <span>Crear Perfil de Personaje</span>
