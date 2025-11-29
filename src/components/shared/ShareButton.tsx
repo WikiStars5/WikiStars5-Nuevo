@@ -44,6 +44,8 @@ interface ShareButtonProps {
   rating?: number;
   isAttitudeShare?: boolean;
   attitude?: string;
+  isEmotionShare?: boolean;
+  emotion?: string;
   className?: string;
 }
 
@@ -64,6 +66,8 @@ export function ShareButton({
     rating,
     isAttitudeShare = false,
     attitude,
+    isEmotionShare = false,
+    emotion,
     className,
 }: ShareButtonProps) {
   const { toast } = useToast();
@@ -97,6 +101,10 @@ export function ShareButton({
   }
 
   const getShareText = () => {
+    if (isEmotionShare && emotion) {
+        const emotionText = emotion.charAt(0).toUpperCase() + emotion.slice(1);
+        return `${figureName} me genera ${emotionText}. ¿Y a ti?`;
+    }
     if (isAttitudeShare && attitude) {
       const attitudeText = attitude.charAt(0).toUpperCase() + attitude.slice(1);
       return `Soy ${attitudeText} de ${figureName}. Y ahora quiero saber tu actitud hacia él/ella, ¡vota ahora!`;
@@ -115,6 +123,9 @@ export function ShareButton({
   };
 
   const getShareTitle = () => {
+    if (isEmotionShare) {
+        return `Mi Emoción sobre ${figureName} en WikiStars5`;
+    }
     if (isAttitudeShare) {
         return `Mi Actitud hacia ${figureName} en WikiStars5`;
     }

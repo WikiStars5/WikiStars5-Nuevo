@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import type { Figure, EmotionVote, GlobalSettings } from '@/lib/types';
 import Image from 'next/image';
 import { signInAnonymously } from 'firebase/auth';
+import { ShareButton } from '../shared/ShareButton';
 
 
 type EmotionOption = 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
@@ -210,9 +211,22 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             );
           })}
         </div>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Total de respuestas: {totalVotes.toLocaleString()}
-        </p>
+        <div className="mt-4 text-center">
+            <p className="text-sm text-muted-foreground">
+            Total de respuestas: {totalVotes.toLocaleString()}
+            </p>
+             {userVote?.vote && (
+                <ShareButton
+                    figureId={figure.id}
+                    figureName={figure.name}
+                    isEmotionShare={true}
+                    emotion={userVote.vote}
+                    className="mt-4"
+                >
+                    Compartir mi Emoción
+                </ShareButton>
+            )}
+        </div>
       </div>
   );
 }
