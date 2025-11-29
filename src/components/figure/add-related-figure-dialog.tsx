@@ -9,7 +9,7 @@ import { useFirestore } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import type { Figure, RelatedFigure } from '@/lib/types';
-import SearchBar from '../shared/search-bar';
+import FigureSearchInput from './figure-search-input';
 import Image from 'next/image';
 
 interface AddRelatedFigureDialogProps {
@@ -78,8 +78,8 @@ export default function AddRelatedFigureDialog({ sourceFigure, onDialogClose }: 
             </DialogHeader>
             <div className="py-4 space-y-4">
                 {!selectedFigure ? (
-                    <SearchBar 
-                        onResultClick={handleSelectFigure}
+                    <FigureSearchInput 
+                        onFigureSelect={handleSelectFigure}
                     />
                 ) : (
                     <div className="flex items-center justify-between rounded-lg border p-3">

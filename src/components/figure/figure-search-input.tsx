@@ -1,18 +1,16 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { Search, Loader2, ImageOff, XCircle } from 'lucide-react';
-import Link from 'next/link';
 import Image from 'next/image';
 import type { Figure } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
 import { collection, query as firestoreQuery, where, getDocs, limit } from 'firebase/firestore';
 import { normalizeText } from '@/lib/keywords';
 
-// Debounce function
 function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
   let timeout: NodeJS.Timeout;
   return (...args: Parameters<F>): Promise<ReturnType<F>> =>
@@ -23,43 +21,28 @@ function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
 }
 
 function correctMalformedUrl(url: string | undefined | null): string {
-  if (!url) {
-    return '';
-  }
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  if (url.startsWith('//')) {
-    return `https:${url}`;
-  }
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('//')) return `https:${url}`;
   return `https://${url}`;
 }
 
-interface SearchBarProps {
-  initialQuery?: string;
+interface FigureSearchInputProps {
+  onFigureSelect: (figure: Figure) => void;
   className?: string;
-  onResultClick?: () => void;
 }
 
-
-export default function SearchBar({ 
-  initialQuery = '', 
-  className,
-  onResultClick,
-}: SearchBarProps) {
-  const [currentQuery, setCurrentQuery] = useState(initialQuery);
+export default function FigureSearchInput({ onFigureSelect, className }: FigureSearchInputProps) {
+  const [currentQuery, setCurrentQuery] = useState('');
   const [figureResults, setFigureResults] = useState<Figure[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
   const firestore = useFirestore();
 
   const searchFigures = async (searchTerm: string): Promise<Figure[]> => {
-    if (searchTerm.trim().length < 1 || !firestore) {
-      return [];
-    }
+    if (searchTerm.trim().length < 1 || !firestore) return [];
     const normalizedSearchTerm = normalizeText(searchTerm);
     if (!normalizedSearchTerm) return [];
     
@@ -79,25 +62,9 @@ export default function SearchBar({
     }
   }
 
-  const handleSearchSubmit = (searchTerm: string) => {
-    const trimmedTerm = searchTerm.trim();
-    if (!trimmedTerm) return;
-    router.push(`/search?q=${encodeURIComponent(trimmedTerm)}`);
+  const handleResultClick = (figure: Figure) => {
+    onFigureSelect(figure);
     clearSearch();
-  };
-  
-  const handleResultClick = () => {
-    if (onResultClick) {
-      onResultClick();
-    }
-    clearSearch();
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      handleSearchSubmit(currentQuery);
-    }
   };
 
   const debouncedSearch = useCallback(
@@ -160,16 +127,15 @@ export default function SearchBar({
   const hasNoResults = !isLoading && currentQuery.trim().length >= 1 && figureResults.length === 0;
 
   return (
-    <div className={cn("relative w-full max-w-lg mx-auto", className)} ref={searchContainerRef}>
+    <div className={cn("relative w-full", className)} ref={searchContainerRef}>
       <div className="relative flex items-center">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Buscar perfiles"
+          placeholder="Buscar perfiles para relacionar..."
           value={currentQuery}
           onChange={(e) => setCurrentQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
           onFocus={() => { 
             if (currentQuery.trim().length > 0) setIsDropdownOpen(true);
           }}
@@ -196,16 +162,16 @@ export default function SearchBar({
             <div className="p-3 text-xs text-center text-muted-foreground">Buscando...</div>
           )}
           {hasNoResults && (
-            <div className="p-3 text-xs text-center text-muted-foreground">No se encontraron resultados para "{currentQuery}".</div>
+            <div className="p-3 text-xs text-center text-muted-foreground">No se encontraron resultados.</div>
           )}
           
           {figureResults.length > 0 && (
             <ul className="divide-y divide-border">
               {figureResults.map((figure) => (
                 <li key={figure.id}>
-                   <Link
-                        href={`/figures/${figure.id}`}
-                        onClick={handleResultClick}
+                   <button
+                        type="button"
+                        onClick={() => handleResultClick(figure)}
                         className="w-full flex items-center p-2 hover:bg-muted transition-colors duration-150 ease-in-out text-left"
                     >
                         <div className="flex-shrink-0 mr-2">
@@ -216,19 +182,18 @@ export default function SearchBar({
                             width={32}
                             height={40}
                             className="rounded-sm object-cover aspect-[4/5]"
-                            data-ai-hint="thumbnail person"
                             />
                         ) : (
-                            <div className="w-8 h-10 bg-muted rounded-sm flex items-center justify-center" data-ai-hint="placeholder icon">
+                            <div className="w-8 h-10 bg-muted rounded-sm flex items-center justify-center">
                             <ImageOff className="h-4 w-4 text-muted-foreground" />
                             </div>
                         )}
                         </div>
                         <div className="flex-grow min-w-0">
-                        <p className="font-medium text-xs text-foreground truncate">{figure.name}</p>
-                        {figure.description && <p className="text-xs text-muted-foreground truncate">{figure.description}</p>}
+                            <p className="font-medium text-xs text-foreground truncate">{figure.name}</p>
+                            {figure.description && <p className="text-xs text-muted-foreground truncate">{figure.description}</p>}
                         </div>
-                   </Link>
+                   </button>
                 </li>
               ))}
             </ul>
