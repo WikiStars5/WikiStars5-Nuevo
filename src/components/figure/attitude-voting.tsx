@@ -192,7 +192,6 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     <div className="w-full">
     <div className="mb-4 text-left">
         <h3 className="text-xl font-bold font-headline">¿Qué te consideras?</h3>
-        <p className="text-muted-foreground">Define tu actitud hacia {figure.name}. Tu voto es anónimo.</p>
     </div>
     <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
         {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
