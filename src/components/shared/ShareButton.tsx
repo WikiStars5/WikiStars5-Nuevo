@@ -40,6 +40,8 @@ interface ShareButtonProps {
   showText?: boolean;
   isGoatShare?: boolean;
   goatVote?: 'messi' | 'ronaldo';
+  isRatingShare?: boolean;
+  rating?: number;
 }
 
 interface SocialShareOption {
@@ -49,7 +51,15 @@ interface SocialShareOption {
   isMailto?: boolean;
 }
 
-export function ShareButton({ figureName, figureId, showText = false, isGoatShare = false, goatVote }: ShareButtonProps) {
+export function ShareButton({ 
+    figureName,
+    figureId,
+    showText = true,
+    isGoatShare = false,
+    goatVote,
+    isRatingShare = false,
+    rating,
+}: ShareButtonProps) {
   const { toast } = useToast();
   const [currentUrl, setCurrentUrl] = useState('');
   const [isWebShareSupported, setIsWebShareSupported] = useState(false);
@@ -80,27 +90,38 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
     );
   }
 
+  const getShareText = () => {
+    if (isRatingShare && rating !== undefined) {
+      return `¡Califiqué a ${figureName} con ${rating} ${rating > 1 ? 'estrellas' : 'estrella'}! Ahora te reto a dar tu calificación.`;
+    }
+    if (isGoatShare) {
+      if (goatVote) {
+        const votedFor = goatVote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
+        return `¡Ya voté por ${votedFor} en la Batalla del GOAT! Demostré mi lealtad, ahora te toca a ti.`;
+      }
+      return `Batalla del GOAT: Messi vs Ronaldo. Vota y decide.`;
+    }
+    return `¡Únete a la conversación sobre ${figureName} en WikiStars5! Vota, comenta y mira lo que otros piensan.`;
+  };
+
+  const getShareTitle = () => {
+    if (isRatingShare) {
+      return `Mi calificación para ${figureName} en WikiStars5`;
+    }
+    if (isGoatShare) {
+      return `Batalla del GOAT: Messi vs Ronaldo`;
+    }
+    return `¡Echa un vistazo a ${figureName} en WikiStars5!`;
+  };
+
+
   // If Web Share API is supported, show a direct share button.
   const handleNativeShare = async () => {
     if (navigator.share) {
-      let shareTitle = `¡Echa un vistazo a ${figureName} en WikiStars5!`;
-      let shareText = `¡Únete a la conversación sobre ${figureName} en WikiStars5! Vota, comenta y mira lo que otros piensan.`;
-
-      if (isGoatShare) {
-          if (goatVote) {
-            const votedFor = goatVote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
-            shareTitle = `¡Ya voté por ${votedFor} en la Batalla del GOAT!`;
-            shareText = `Demostré mi lealtad al verdadero GOAT. Ahora te toca a ti decidir. ¡Entra y vota!`;
-          } else {
-             shareTitle = `Batalla del GOAT: Messi vs Ronaldo`;
-             shareText = `Vota y decide quién es el mejor de todos los tiempos en WikiStars5.`;
-          }
-      }
-
       try {
         await navigator.share({
-          title: shareTitle,
-          text: shareText,
+          title: getShareTitle(),
+          text: getShareText(),
           url: currentUrl,
         });
       } catch (error) {
@@ -113,31 +134,23 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
   if (isWebShareSupported) {
     return (
       <Button
-        variant="outline"
+        variant="ghost"
         size={buttonSize}
         onClick={handleNativeShare}
         aria-label={`Compartir perfil de ${figureName}`}
+        className="h-8 w-8"
       >
-        <Share2 className="h-5 w-5" />
+        <Share2 className="h-4 w-4" />
         {showText && <span className="ml-2">Compartir</span>}
       </Button>
     );
   }
 
   // --- Fallback for browsers that don't support Web Share API (e.g., desktop) ---
-  let shareTitle = `¡Echa un vistazo a ${figureName} en WikiStars5!`;
-  if (isGoatShare) {
-      if (goatVote) {
-          const votedFor = goatVote === 'messi' ? 'Messi' : 'Cristiano Ronaldo';
-          shareTitle = `¡Ya voté por ${votedFor} en la Batalla del GOAT! Demostré mi lealtad, ahora te toca a ti.`;
-      } else {
-          shareTitle = `Batalla del GOAT: Messi vs Ronaldo. Vota y decide.`;
-      }
-  }
   const encodedUrl = encodeURIComponent(currentUrl);
-  const encodedTitle = encodeURIComponent(shareTitle);
-  const emailSubject = encodeURIComponent(`Perfil de ${figureName} en WikiStars5`);
-  const emailBody = encodeURIComponent(`Hola,\n\nEcha un vistazo al perfil de ${figureName} en WikiStars5:\n`);
+  const encodedTitle = encodeURIComponent(getShareText());
+  const emailSubject = encodeURIComponent(getShareTitle());
+  const emailBody = encodeURIComponent(`${getShareText()}\n\n`);
 
 
   const socialOptions: SocialShareOption[] = [
@@ -183,7 +196,7 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
     if (option.url === "#copy") {
       try {
         await navigator.clipboard.writeText(currentUrl);
-        toast({ title: "¡Enlace Copiado!", description: "Enlace del perfil copiado al portapapeles." });
+        toast({ title: "¡Enlace Copiado!", description: "Enlace copiado al portapapeles." });
       } catch (error) {
         console.error("Error copying to clipboard:", error);
         toast({ title: "No se pudo copiar el enlace", variant: "destructive" });
@@ -200,13 +213,13 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size={buttonSize} aria-label={`Compartir perfil de ${figureName}`}>
-          <Share2 className="h-5 w-5" />
+        <Button variant="ghost" size={buttonSize} aria-label={`Compartir perfil de ${figureName}`} className="h-8 w-8">
+          <Share2 className="h-4 w-4" />
           {showText && <span className="ml-2">Compartir</span>}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Compartir Perfil</DropdownMenuLabel>
+        <DropdownMenuLabel>Compartir</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {socialOptions.map((option) => (
           <DropdownMenuItem key={option.name} onClick={() => handleShareOptionClick(option)} className="cursor-pointer">

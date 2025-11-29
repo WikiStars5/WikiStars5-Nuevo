@@ -6,7 +6,7 @@ import type { Comment as CommentType, CommentVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp, Share2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +27,7 @@ import { StarRating } from '../shared/star-rating';
 import { countries } from '@/lib/countries';
 import Image from 'next/image';
 import Link from 'next/link';
+import { ShareButton } from '../shared/ShareButton';
 
 interface CommentItemProps {
   comment: CommentType, 
@@ -311,7 +312,15 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-                            
+                                {comment.rating > 0 && (
+                                    <ShareButton
+                                        figureId={figureId}
+                                        figureName={figureName}
+                                        isRatingShare={true}
+                                        rating={comment.rating}
+                                        showText={false}
+                                    />
+                                )}
                                 </>
                             )}
                         </div>
