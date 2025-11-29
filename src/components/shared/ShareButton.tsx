@@ -58,32 +58,14 @@ export function ShareButton({ figureName, figureId, showText = false, isGoatShar
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      
-      if (user) {
-        urlParams.set('ref', user.uid);
-      }
-
-      if (isGoatShare) {
-        urlParams.set('tab', 'goat');
-        if (goatVote) {
-          urlParams.set('vote', goatVote);
-        }
-      } else {
-         urlParams.delete('tab');
-         urlParams.delete('vote');
-      }
-
       const baseUrl = `${window.location.origin}/figures/${figureId}`;
-      const finalUrl = `${baseUrl}?${urlParams.toString()}`.replace(/\?$/, '');
-      
-      setCurrentUrl(finalUrl);
+      setCurrentUrl(baseUrl);
 
       if (navigator.share) {
         setIsWebShareSupported(true);
       }
     }
-  }, [figureId, figureName, user, isGoatShare, goatVote]);
+  }, [figureId]);
 
   const buttonSize = showText ? "default" : "icon";
 
