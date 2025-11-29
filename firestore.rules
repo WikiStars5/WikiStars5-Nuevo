@@ -77,7 +77,7 @@ service cloud.firestore {
     // --- User Data Collections ---
 
     match /users/{userId} {
-      allow get: if request.auth.uid == userId || isAdmin();
+      allow get: if (isSignedIn() && isOwner(userId)) || isAdmin();
       allow list: if isAdmin();
       // Allow creation for any signed-in user, including anonymous, for their own profile
       allow create: if isOwner(userId);
