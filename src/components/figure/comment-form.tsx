@@ -26,14 +26,16 @@ import { normalizeText } from '@/lib/keywords';
 import { cn } from '@/lib/utils';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 
-const createCommentSchema = (isRatingEnabled: boolean, needsIdentity: boolean) => z.object({
+const createCommentSchema = (isRatingEnabled: boolean, isCommentingEnabled: boolean, needsIdentity: boolean) => z.object({
   rating: isRatingEnabled
     ? z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.')
     : z.number().optional().nullable(),
   username: needsIdentity 
     ? z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.')
     : z.string().optional(),
-  text: z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.'),
+  text: isCommentingEnabled
+    ? z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.')
+    : z.string().optional(),
 });
 
 type CommentFormValues = z.infer<ReturnType<typeof createCommentSchema>>;
@@ -73,11 +75,10 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-  // A user needs to create an identity if they have no user session, OR if they are anonymous and don't have a profile doc yet.
   const needsIdentity = !user || (user.isAnonymous && !userProfile);
 
   const form = useForm<CommentFormValues>({
-    resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
+    resolver: zodResolver(createCommentSchema(isRatingEnabled, isCommentingEnabled, needsIdentity)),
     defaultValues: { text: '', rating: null, username: '' },
   });
 
@@ -96,7 +97,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
   useEffect(() => {
     form.reset(form.getValues());
-  }, [isRatingEnabled, needsIdentity, form]);
+  }, [isRatingEnabled, isCommentingEnabled, needsIdentity, form]);
 
 
   const textValue = form.watch('text', '');
@@ -116,7 +117,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     }
     
     if (!firestore || !currentUser) {
-        toast({ title: "No se pudo enviar el comentario.", variant: "destructive" });
+        toast({ title: "No se pudo enviar la opinión.", variant: "destructive" });
         setIsSubmitting(false);
         return;
     }
@@ -180,7 +181,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             threadId: newCommentRef.id,
             figureId: figureId,
             userId: currentUser!.uid,
-            text: data.text,
+            text: data.text || '', // Ensure text is at least an empty string
             rating: newRating,
             createdAt: serverTimestamp(),
             userDisplayName: finalDisplayName, // Use finalDisplayName
@@ -229,7 +230,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
 
       toast({
         title: '¡Opinión Publicada!',
-        description: 'Gracias por compartir tu comentario y calificación.',
+        description: 'Gracias por compartir tu opinión.',
       });
       form.reset({text: '', rating: null as any, username: '' });
     } catch (error: any) {
@@ -237,7 +238,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       toast({
         variant: 'destructive',
         title: 'Error al Publicar',
-        description: 'No se pudo enviar tu comentario. Inténtalo de nuevo.',
+        description: 'No se pudo enviar tu opinión. Inténtalo de nuevo.',
       });
     } finally {
       setIsSubmitting(false);
@@ -249,18 +250,6 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       <Card>
         <CardContent className="p-6">
             <Skeleton className="h-48 w-full" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (!isCommentingEnabled) {
-    return (
-      <Card className="dark:bg-black">
-        <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-            <Lock className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg">Comentarios Deshabilitados</h3>
-            <p className="text-sm text-muted-foreground">El administrador ha desactivado temporalmente la creación de nuevos comentarios.</p>
         </CardContent>
       </Card>
     )
@@ -284,6 +273,19 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     )
   }
 
+  // If both ratings and comments are disabled, show a locked message.
+  if (!isRatingEnabled && !isCommentingEnabled) {
+      return (
+        <Card className="dark:bg-black">
+            <CardContent className="p-6 flex flex-col items-center justify-center text-center">
+                <Lock className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="font-semibold text-lg">Opiniones Deshabilitadas</h3>
+                <p className="text-sm text-muted-foreground">El administrador ha desactivado temporalmente las calificaciones y comentarios.</p>
+            </CardContent>
+        </Card>
+      )
+  }
+
 
   return (
       <Card className="dark:bg-black">
@@ -296,37 +298,37 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                 height={28}
                 unoptimized
               />
-              ¡Califica, Comenta y Gana Rachas!
+              ¡Opina y Gana Rachas!
           </CardTitle>
           <CardDescription>Conviértete en un opinador completando los siguientes pasos.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <div className='space-y-4'>
-                <h3 className="font-semibold flex items-center gap-2 text-primary"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>1</span> Califica este perfil*</h3>
-                 {isRatingEnabled ? (
+              {isRatingEnabled && (
+                <div className='space-y-4'>
+                    <h3 className="font-semibold flex items-center gap-2 text-primary"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>1</span> Califica este perfil*</h3>
                     <FormField
-                      control={form.control}
-                      name="rating"
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormControl>
-                              <StarInput 
-                                  value={field.value}
-                                  onChange={field.onChange}
-                              />
-                          </FormControl>
-                          <FormMessage />
-                          </FormItem>
-                      )}
+                        control={form.control}
+                        name="rating"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormControl>
+                                <StarInput 
+                                    value={field.value}
+                                    onChange={field.onChange}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
                     />
-                  ) : <p className='text-sm text-muted-foreground'>(Las calificaciones están deshabilitadas actualmente)</p>}
-              </div>
+                </div>
+              )}
 
                {needsIdentity && (
                  <div className='space-y-4'>
-                    <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>2</span>Crea tu identidad de opinador</h3>
+                    <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>{isRatingEnabled ? 2 : 1}</span>Crea tu identidad de opinador</h3>
                      <FormField
                         control={form.control}
                         name="username"
@@ -343,42 +345,44 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
                  </div>
                )}
 
-              <div className='space-y-4'>
-                <h3 className={cn(
-                  "font-semibold flex items-center gap-2"
-                )}>
-                  <span className={cn(
-                    'flex items-center justify-center h-6 w-6 rounded-full text-sm font-bold',
-                     'bg-primary text-primary-foreground'
-                  )}>
-                    {needsIdentity ? 3 : 2}
-                  </span>
-                  Escribe tu opinión*
-                </h3>
-                  <FormField
-                    control={form.control}
-                    name="text"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormControl>
-                            <Textarea
-                            placeholder={`¿Qué opinas de ${figureName}?`}
-                            className="resize-none"
-                            rows={4}
-                            maxLength={500}
-                            {...field}
-                            />
-                        </FormControl>
-                        <div className="flex justify-between items-center pt-1">
-                            <FormMessage />
-                            <div className="text-xs text-muted-foreground ml-auto">
-                            {textValue.length} / 500
+              {isCommentingEnabled && (
+                <div className='space-y-4'>
+                    <h3 className={cn(
+                    "font-semibold flex items-center gap-2"
+                    )}>
+                    <span className={cn(
+                        'flex items-center justify-center h-6 w-6 rounded-full text-sm font-bold',
+                        'bg-primary text-primary-foreground'
+                    )}>
+                        {isRatingEnabled ? (needsIdentity ? 3 : 2) : (needsIdentity ? 2 : 1)}
+                    </span>
+                    Escribe tu opinión (opcional)
+                    </h3>
+                    <FormField
+                        control={form.control}
+                        name="text"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormControl>
+                                <Textarea
+                                placeholder={`¿Qué opinas de ${figureName}?`}
+                                className="resize-none"
+                                rows={4}
+                                maxLength={500}
+                                {...field}
+                                />
+                            </FormControl>
+                            <div className="flex justify-between items-center pt-1">
+                                <FormMessage />
+                                <div className="text-xs text-muted-foreground ml-auto">
+                                {textValue.length} / 500
+                                </div>
                             </div>
-                        </div>
-                        </FormItem>
-                    )}
-                  />
-              </div>
+                            </FormItem>
+                        )}
+                    />
+                </div>
+              )}
 
               <div className="flex justify-end">
               <Button type="submit" disabled={isSubmitting}>
@@ -396,8 +400,3 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
       </Card>
   );
 }
-
-    
-
-    
-
