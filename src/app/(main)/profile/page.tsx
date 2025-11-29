@@ -16,13 +16,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, User as UserIcon, Image as ImageIcon } from "lucide-react";
+import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -243,123 +245,36 @@ function ProfilePageContent() {
         if (user.isAnonymous) return <UserIcon />;
         return profileForm.getValues('username')?.charAt(0) || user?.email?.charAt(0) || 'U';
     }
-
-    const ProfileEditor = ({ children }: { children: React.ReactNode }) => (
-       <Form {...profileForm}>
-          <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
-              {children}
-          </form>
-      </Form>
-    );
-
-    if (user.isAnonymous) {
-        return (
-            <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12 space-y-6">
-                <ProfileEditor>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Tu Perfil de Invitado</CardTitle>
-                            <CardDescription>Puedes cambiar tu nombre de usuario y otros datos mientras navegas de forma anónima.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                             <FormField
-                                control={profileForm.control}
-                                name="username"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Nombre de Usuario</FormLabel>
-                                        <FormControl><Input {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <FormField
-                                    control={profileForm.control}
-                                    name="country"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>País (Opcional)</FormLabel>
-                                            <CountrySelector value={field.value || ''} onChange={field.onChange} />
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={profileForm.control}
-                                    name="gender"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Sexo (Opcional)</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
-                                                <FormControl>
-                                                    <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Masculino">Masculino</SelectItem>
-                                                    <SelectItem value="Femenino">Femenino</SelectItem>
-                                                    <SelectItem value="Otro">Otro</SelectItem>
-                                                    <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                             <Button type="submit" disabled={isSaving}>
-                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                Guardar Cambios
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </ProfileEditor>
-                
-                <UserActivity userId={user.uid} />
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>¿Listo para Guardar tu Progreso?</CardTitle>
-                        <CardDescription>Tu actividad es anónima. Para guardar tus rachas y logros de forma permanente, vincula tu cuenta con Google.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <Button onClick={handleLinkAccount} disabled={isLinking} className="w-full">
-                            {isLinking ? <Loader2 className="animate-spin" /> : <GoogleIcon />}
-                            Vincular con Google y Guardar Progreso
-                        </Button>
-                    </CardContent>
-                </Card>
-            </div>
-        )
-    }
-
+    
+    const displayName = userData?.username || user.displayName || 'Invitado';
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
-             <header className="mb-8">
-                <h1 className="text-4xl font-bold tracking-tight font-headline">Mi Perfil</h1>
-                <p className="text-muted-foreground mt-2">Gestiona tu información personal y visualiza tu actividad.</p>
-            </header>
+             <div className="flex flex-col items-center text-center">
+                <Avatar className="h-32 w-32 text-5xl mb-4 border-4 border-primary/50 shadow-lg">
+                    <AvatarImage src={profilePhotoUrlValue || undefined} />
+                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                </Avatar>
+                <h1 className="text-4xl font-bold tracking-tight font-headline">{displayName}</h1>
+                <p className="text-muted-foreground mt-2">{userData?.description || (user.isAnonymous ? 'Usuario invitado' : user.email)}</p>
+            </div>
             
-            <div className="space-y-6">
-                <ProfileEditor>
-                    <Card>
+            <div className="mt-8">
+                 <Tabs defaultValue="info" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>Información</TabsTrigger>
+                        <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>Actividad</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="info" className="mt-4">
+                      <Card>
                         <CardHeader>
-                            <CardTitle>Información del Perfil</CardTitle>
+                            <CardTitle>Editar Perfil</CardTitle>
                             <CardDescription>Aquí puedes editar tus datos públicos.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                             <div className="flex flex-col sm:flex-row items-center gap-6">
-                                <div className="flex-shrink-0">
-                                    <Avatar className="h-24 w-24 text-4xl">
-                                        <AvatarImage src={profilePhotoUrlValue || undefined} />
-                                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
-                                    </Avatar>
-                                </div>
-                                <div className="w-full space-y-2">
-                                     <FormField
+                        <Form {...profileForm}>
+                            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
+                                <CardContent className="space-y-6">
+                                    <FormField
                                         control={profileForm.control}
                                         name="profilePhotoUrl"
                                         render={({ field }) => (
@@ -372,96 +287,109 @@ function ProfilePageContent() {
                                             </FormItem>
                                         )}
                                     />
-                                    <p className="text-xs text-muted-foreground">Pega una URL de una imagen para tu foto de perfil.</p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormField
-                                    control={profileForm.control}
-                                    name="username"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Nombre de Usuario</FormLabel>
-                                            <FormControl><Input {...field} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="space-y-2">
-                                    <FormLabel>Correo Electrónico</FormLabel>
-                                    <Input type="email" value={user?.email || ''} disabled />
-                                </div>
-                            </div>
-                            <div>
-                                <FormField
-                                    control={profileForm.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Descripción</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    placeholder="Una breve descripción sobre ti."
-                                                    className="resize-none"
-                                                    maxLength={160}
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <div className="flex justify-between items-center pt-1">
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="username"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Nombre de Usuario</FormLabel>
+                                                <FormControl><Input {...field} /></FormControl>
                                                 <FormMessage />
-                                                <div className="text-xs text-muted-foreground ml-auto">
-                                                    {descriptionValue.length} / 160
-                                                </div>
-                                            </div>
-                                        </FormItem>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    {!user.isAnonymous && (
+                                        <div className="space-y-2">
+                                            <FormLabel>Correo Electrónico</FormLabel>
+                                            <Input type="email" value={user?.email || ''} disabled />
+                                        </div>
                                     )}
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <FormField
-                                    control={profileForm.control}
-                                    name="country"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>País</FormLabel>
-                                            <CountrySelector value={field.value || ''} onChange={field.onChange} />
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={profileForm.control}
-                                    name="gender"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Sexo</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="description"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Descripción</FormLabel>
                                                 <FormControl>
-                                                    <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
+                                                    <Textarea
+                                                        placeholder="Una breve descripción sobre ti."
+                                                        className="resize-none"
+                                                        maxLength={160}
+                                                        {...field}
+                                                    />
                                                 </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Masculino">Masculino</SelectItem>
-                                                    <SelectItem value="Femenino">Femenino</SelectItem>
-                                                    <SelectItem value="Otro">Otro</SelectItem>
-                                                    <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button type="submit" disabled={isSaving}>
-                                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                Guardar Cambios
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </ProfileEditor>
-
-                <UserActivity userId={user.uid} />
+                                                <div className="flex justify-between items-center pt-1">
+                                                    <FormMessage />
+                                                    <div className="text-xs text-muted-foreground ml-auto">
+                                                        {descriptionValue.length} / 160
+                                                    </div>
+                                                </div>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="country"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-col">
+                                                    <FormLabel>País</FormLabel>
+                                                    <CountrySelector value={field.value || ''} onChange={field.onChange} />
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="gender"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Sexo</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                                        <FormControl>
+                                                            <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Masculino">Masculino</SelectItem>
+                                                            <SelectItem value="Femenino">Femenino</SelectItem>
+                                                            <SelectItem value="Otro">Otro</SelectItem>
+                                                            <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button type="submit" disabled={isSaving}>
+                                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                        Guardar Cambios
+                                    </Button>
+                                </CardFooter>
+                            </form>
+                        </Form>
+                      </Card>
+                       {user.isAnonymous && (
+                        <Card className="mt-6">
+                            <CardHeader>
+                                <CardTitle>¿Listo para Guardar tu Progreso?</CardTitle>
+                                <CardDescription>Tu actividad es anónima. Para guardar tus rachas y logros de forma permanente, vincula tu cuenta con Google.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Button onClick={handleLinkAccount} disabled={isLinking} className="w-full">
+                                    {isLinking ? <Loader2 className="animate-spin" /> : <GoogleIcon />}
+                                    Vincular con Google y Guardar Progreso
+                                </Button>
+                            </CardContent>
+                        </Card>
+                       )}
+                    </TabsContent>
+                    <TabsContent value="activity" className="mt-4">
+                        <UserActivity userId={user.uid} />
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     )
@@ -472,3 +400,5 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
+
+    
