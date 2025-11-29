@@ -37,6 +37,10 @@ service cloud.firestore {
       return getGlobalSettings().isReplyEnabled == true;
     }
 
+    function areRatingsEnabled() {
+      return getGlobalSettings().isRatingEnabled == true;
+    }
+
 
     // --- Figure Vote Helper Functions (¡Reforzadas contra null para evitar fallos!) ---
 
@@ -152,8 +156,12 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow get, list: if true;
         
-        // Allow any signed-in user (including anonymous) to create a comment if it's theirs
-        allow create: if isSignedIn() && areCommentsEnabled() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && (
+            // A) Si los comentarios de texto están habilitados, el texto no puede estar vacío.
+            (areCommentsEnabled() && request.resource.data.text is string && request.resource.data.text.size() > 0) ||
+            // B) Si solo las calificaciones están habilitadas (y los comentarios no), permite crear si hay una calificación válida.
+            (!areCommentsEnabled() && areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5)
+        );
         
         allow update: if isSignedIn() && (
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) || // Text edit

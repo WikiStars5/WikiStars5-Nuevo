@@ -182,7 +182,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
             figureId: figureId,
             userId: currentUser!.uid,
             text: data.text || '', // Ensure text is at least an empty string
-            rating: newRating,
+            rating: (isRatingEnabled && typeof data.rating === 'number') ? data.rating : -1,
             createdAt: serverTimestamp(),
             userDisplayName: finalDisplayName, // Use finalDisplayName
             userPhotoURL: currentUser!.isAnonymous ? null : currentUser!.photoURL,
