@@ -69,6 +69,7 @@ function ProfilePageContent() {
     });
 
     const descriptionValue = profileForm.watch('description') || '';
+    const profilePhotoUrlValue = profileForm.watch('profilePhotoUrl');
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -350,19 +351,30 @@ function ProfilePageContent() {
                             <CardDescription>Aquí puedes editar tus datos públicos.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <FormField
-                                control={profileForm.control}
-                                name="profilePhotoUrl"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>URL de Foto de Perfil</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} placeholder="https://..." value={field.value || ''} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                             <div className="flex flex-col sm:flex-row items-center gap-6">
+                                <div className="flex-shrink-0">
+                                    <Avatar className="h-24 w-24 text-4xl">
+                                        <AvatarImage src={profilePhotoUrlValue || undefined} />
+                                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
+                                    </Avatar>
+                                </div>
+                                <div className="w-full space-y-2">
+                                     <FormField
+                                        control={profileForm.control}
+                                        name="profilePhotoUrl"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>URL de Foto de Perfil</FormLabel>
+                                                <FormControl>
+                                                    <Input {...field} placeholder="https://..." value={field.value || ''} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Pega una URL de una imagen para tu foto de perfil.</p>
+                                </div>
+                            </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                                     control={profileForm.control}
@@ -460,5 +472,3 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
-
-    
