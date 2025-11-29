@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -201,7 +202,14 @@ service cloud.firestore {
         match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
     }
     
-    match /roles_admin/{userId} { allow get: if isSignedIn(); allow write: if isAdmin(); allow list: if false; }
+    match /roles_admin/{userId} {
+      // Only the user themselves can check if they are an admin
+      allow get: if isSignedIn() && isOwner(userId);
+      // Only admins can grant admin roles
+      allow write: if isAdmin();
+      // Listing admin roles is not allowed for security reasons
+      allow list: if false;
+    }
     match /settings/{settingId} { allow get: if true; allow write: if isAdmin(); }
   }
 }

@@ -82,7 +82,7 @@ export default function RootLayout({
             </StreakAnimationProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
-         <Script id="service-worker-registration" strategy="afterInteractive">
+         {/* <Script id="service-worker-registration" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', () => {
@@ -94,7 +94,7 @@ export default function RootLayout({
               });
             }
           `}
-        </Script>
+        </Script> */}
       </body>
     </html>
   );
