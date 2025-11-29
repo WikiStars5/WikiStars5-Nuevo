@@ -49,7 +49,7 @@ const editFormSchema = z.object({
   gender: z.enum(['Femenino', 'Masculino']).optional(),
   birthDate: z.string().optional(),
   deathDate: z.string().optional(),
-  occupation: z.string().optional(),
+  occupation: z.string().max(20, 'La ocupación no puede superar los 20 caracteres.').optional(),
   maritalStatus: z.enum(['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Separado/Ex-Conviviente']).optional(),
   height: z.number().min(100).max(250).optional(),
   socialLinks: z.object(

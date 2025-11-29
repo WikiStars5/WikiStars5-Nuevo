@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -47,7 +46,7 @@ const editFormSchema = z.object({
   birthDate: z.string().optional(),
   deathDate: z.string().optional(),
   nationality: z.string().optional(),
-  occupation: z.string().optional(),
+  occupation: z.string().max(20, 'La ocupación no puede superar los 20 caracteres.').optional(),
   maritalStatus: z.enum(['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Separado/Ex-Conviviente']).optional(),
   height: z.number().min(100).max(250).optional(),
   socialLinks: z.object(
@@ -298,7 +297,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 <FormItem>
                                 <FormLabel>Ocupación</FormLabel>
                                 <FormControl>
-                                    <Input {...field} placeholder="Ej: Futbolista, Cantante" value={field.value || ''} />
+                                    <Input {...field} placeholder="Ej: Futbolista, Cantante" value={field.value || ''} maxLength={20} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -409,4 +408,3 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     
 
     
-
