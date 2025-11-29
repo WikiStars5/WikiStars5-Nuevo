@@ -28,10 +28,6 @@
           "type": "string",
           "description": "URL for the user's profile picture."
         },
-        "coverPhotoUrl": {
-            "type": "string",
-            "description": "URL for the user's cover photo."
-        },
         "country": {
           "type": "string",
           "description": "User's country of origin."

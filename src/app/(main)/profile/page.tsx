@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -38,7 +39,6 @@ const GoogleIcon = () => (
 const profileSchema = z.object({
   username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
   profilePhotoUrl: z.string().url('Por favor, introduce una URL válida.').optional().or(z.literal('')),
-  coverPhotoUrl: z.string().url('Por favor, introduce una URL válida.').optional().or(z.literal('')),
   country: z.string().optional(),
   gender: z.enum(['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo']).optional(),
   description: z.string().max(160, 'La descripción no puede superar los 160 caracteres.').optional(),
@@ -62,7 +62,6 @@ function ProfilePageContent() {
         defaultValues: {
             username: '',
             profilePhotoUrl: '',
-            coverPhotoUrl: '',
             country: '',
             gender: undefined,
             description: '',
@@ -83,7 +82,6 @@ function ProfilePageContent() {
                     profileForm.reset({
                         username: data.username || (user.isAnonymous ? `Invitado_${user.uid.substring(0,4)}` : user.displayName) || '',
                         profilePhotoUrl: data.profilePhotoUrl || user.photoURL || '',
-                        coverPhotoUrl: data.coverPhotoUrl || '',
                         country: data.country || '',
                         gender: data.gender || undefined,
                         description: data.description || '',
@@ -135,7 +133,6 @@ function ProfilePageContent() {
                     username: newUsername,
                     usernameLower: newUsernameLower,
                     profilePhotoUrl: data.profilePhotoUrl || null,
-                    coverPhotoUrl: data.coverPhotoUrl || null,
                     country: data.country || null,
                     gender: data.gender || null,
                     description: data.description || null,
@@ -349,10 +346,10 @@ function ProfilePageContent() {
                 <ProfileEditor>
                     <Card>
                         <CardHeader>
-                            <CardTitle>Apariencia del Perfil</CardTitle>
-                            <CardDescription>Personaliza cómo te ven los demás.</CardDescription>
+                            <CardTitle>Información del Perfil</CardTitle>
+                            <CardDescription>Aquí puedes editar tus datos públicos.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-6">
                             <FormField
                                 control={profileForm.control}
                                 name="profilePhotoUrl"
@@ -366,28 +363,6 @@ function ProfilePageContent() {
                                     </FormItem>
                                 )}
                             />
-                             <FormField
-                                control={profileForm.control}
-                                name="coverPhotoUrl"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>URL de Foto de Portada</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} placeholder="https://..." value={field.value || ''} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Información Personal</CardTitle>
-                            <CardDescription>Aquí puedes editar tus datos públicos.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <FormField
                                     control={profileForm.control}
@@ -485,3 +460,5 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
+
+    
