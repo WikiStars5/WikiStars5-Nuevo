@@ -259,6 +259,10 @@ export default function GoatBattle() {
                     createdAt: serverTimestamp() 
                 });
                 toast({ title: `¡Has votado por ${player === 'messi' ? 'Messi' : 'Ronaldo'}!` });
+                if (player === 'ronaldo') {
+                    const audio = new Audio('https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/sonido%20goat%2Fsiuuu%20(1).mp3?alt=media&token=46407682-9c42-4226-98c7-7486db802039');
+                    audio.play();
+                }
             }
 
             transaction.update(battleRef, updates);
@@ -459,5 +463,7 @@ export default function GoatBattle() {
       </Card>
   );
 }
+
+    
 
     
