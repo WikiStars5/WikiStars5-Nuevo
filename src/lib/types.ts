@@ -100,8 +100,10 @@ export interface AttitudeVote {
     userId: string;
     figureId: string;
     vote: 'neutral' | 'fan' | 'simp' | 'hater';
-    initialVote?: 'neutral' | 'fan' | 'simp' | 'hater'; // The first vote ever cast
     createdAt: any; // Firestore Timestamp
+    // Denormalized data
+    figureName: string;
+    figureImageUrl: string;
 }
 
 export interface EmotionVote {
@@ -110,6 +112,9 @@ export interface EmotionVote {
     figureId: string;
     vote: 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
     createdAt: any; // Firestore Timestamp
+    // Denormalized data
+    figureName: string;
+    figureImageUrl: string;
 }
 
 export interface Comment {
@@ -158,8 +163,11 @@ export interface Streak {
   lastCommentDate: Timestamp;
   userDisplayName: string;
   userPhotoURL?: string | null;
-  userCountry?: string;
-  userGender?: string;
+  userCountry?: string | null;
+  userGender?: string | null;
+  // Denormalized figure data
+  figureName?: string;
+  figureImageUrl?: string;
 }
 
 export interface GoatBattle {
@@ -183,5 +191,3 @@ export interface Referral {
     sourceFigureId?: string | null;
     hasVoted?: boolean;
 }
-
-    

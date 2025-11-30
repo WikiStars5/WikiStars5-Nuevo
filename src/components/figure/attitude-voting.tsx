@@ -113,6 +113,12 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
           __oldVote: previousVote,
           __newVote: isRetracting ? previousVote : vote, 
         };
+        
+        // Data for denormalization, to be stored in the user's private vote doc
+        const denormalizedData = {
+            figureName: figure.name,
+            figureImageUrl: figure.imageUrl,
+        };
 
         if (isRetracting) {
           // --- RETRACTING VOTE ---
@@ -122,27 +128,34 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
           finalAttitude = null;
           toast({ title: 'Voto eliminado' });
 
-        } else if (previousVote) {
-          // --- CHANGING VOTE ---
-          const voteData = { userId: currentUser!.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
-          transaction.set(publicVoteRef, voteData, { merge: true });
-          transaction.set(privateVoteRef, voteData, { merge: true });
-          
-          updates[`attitude.${previousVote}`] = increment(-1);
-          updates[`attitude.${vote}`] = increment(1);
-          
-          finalAttitude = vote;
-          toast({ title: '¡Voto actualizado!' });
-
         } else {
-          // --- FIRST VOTE ---
-          const voteData = { userId: currentUser!.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
-          transaction.set(publicVoteRef, voteData);
-          transaction.set(privateVoteRef, voteData);
+            const voteData: Omit<AttitudeVote, 'id'> & { createdAt: any } = {
+                userId: currentUser!.uid,
+                figureId: figure.id,
+                vote: vote,
+                createdAt: serverTimestamp(),
+                ...denormalizedData, // Add denormalized data here
+            };
 
-          updates[`attitude.${vote}`] = increment(1);
-          finalAttitude = vote;
-          toast({ title: '¡Voto registrado!' });
+            if (previousVote) {
+                // --- CHANGING VOTE ---
+                transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() }, { merge: true });
+                transaction.set(privateVoteRef, voteData, { merge: true });
+                
+                updates[`attitude.${previousVote}`] = increment(-1);
+                updates[`attitude.${vote}`] = increment(1);
+                
+                finalAttitude = vote;
+                toast({ title: '¡Voto actualizado!' });
+            } else {
+                // --- FIRST VOTE ---
+                transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() });
+                transaction.set(privateVoteRef, voteData);
+
+                updates[`attitude.${vote}`] = increment(1);
+                finalAttitude = vote;
+                toast({ title: '¡Voto registrado!' });
+            }
         }
         
         // Add timestamp to the final update for security rules

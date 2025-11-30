@@ -23,6 +23,7 @@ interface UpdateStreakParams {
     isAnonymous: boolean;
     userCountry?: string | null;
     userGender?: string | null;
+    figureImageUrl?: string | null;
 }
 
 interface StreakUpdateResult {
@@ -55,6 +56,7 @@ export async function updateStreak({
     figureName,
     userId,
     isAnonymous,
+    figureImageUrl,
     ...denormalizedUserData
 }: UpdateStreakParams): Promise<StreakUpdateResult | null> {
     
@@ -109,6 +111,8 @@ export async function updateStreak({
             userPhotoURL: denormalizedUserData.userPhotoURL,
             userCountry: denormalizedUserData.userCountry ?? null,
             userGender: denormalizedUserData.userGender ?? null,
+            figureName: figureName,
+            figureImageUrl: figureImageUrl ?? null,
         };
 
         // Add both set/update operations to the batch.

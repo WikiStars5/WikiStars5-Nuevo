@@ -1,39 +1,27 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, query, where, getDocs, doc, getDoc, orderBy, collectionGroup } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Figure, AttitudeVote, EmotionVote, Streak, UserAchievement } from '@/lib/types';
+import { Figure, AttitudeVote, EmotionVote, Streak } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isDateActive } from '@/lib/streaks';
 import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart, Trophy, Award } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
-
-interface FetchedVote {
-  figureId: string;
-  vote: string;
+// The fetched votes will now contain the denormalized data
+interface FetchedVote extends AttitudeVote {
+  figureName?: string;
+  figureImageUrl?: string;
 }
 
 interface FetchedStreak extends Streak {
   figureData?: Figure;
-}
-
-interface FetchedAchievement extends UserAchievement {
-    figureData?: Figure;
-}
-
-interface GroupedAchievements {
-    [figureId: string]: {
-        figureData?: Figure; // Optional if global
-        achievements: UserAchievement[];
-    }
 }
 
 interface UserActivityProps {
@@ -56,37 +44,28 @@ const emotionOptions = [
   { id: 'furia', label: 'Furia', icon: Angry },
 ];
 
-const fetchFigureData = async (firestore: any, figureIds: string[]): Promise<Map<string, Figure>> => {
-    const figureMap = new Map<string, Figure>();
-    // Firestore 'in' queries are limited to 30 items. We batch them.
-    for (let i = 0; i < figureIds.length; i += 30) {
-        const batchIds = figureIds.slice(i, i + 30);
-        if (batchIds.length > 0) {
-            const figuresQuery = query(collection(firestore, 'figures'), where('__name__', 'in', batchIds));
-            const snapshot = await getDocs(figuresQuery);
-            snapshot.docs.forEach(doc => {
-                figureMap.set(doc.id, { id: doc.id, ...doc.data() } as Figure);
-            });
-        }
-    }
-    return figureMap;
-};
+// No longer needed as we denormalize data
+// const fetchFigureData...
 
-
-function ActivityDisplay({ votes, figures, category }: { votes: FetchedVote[], figures: Map<string, Figure>, category: string }) {
+function ActivityDisplay({ votes, category }: { votes: FetchedVote[], category: string }) {
     if (!votes || votes.length === 0) {
         return <p className="text-sm text-muted-foreground text-center py-8">No has votado como '{category}' por ningún perfil.</p>;
     }
     
     return (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 py-4">
-            {votes.map(({ figureId }) => {
-                const figure = figures.get(figureId);
-                if (!figure) return null;
+            {votes.map((vote) => {
+                if (!vote.figureName) return null; // Skip if denormalized data is missing
                 return (
-                    <Link key={figure.id} href={`/figures/${figure.id}`} className="flex flex-col items-center gap-2 text-center group">
-                        <Image src={figure.imageUrl} alt={figure.name} width={64} height={64} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
-                        <span className="text-xs font-medium group-hover:text-primary transition-colors">{figure.name}</span>
+                    <Link key={vote.figureId} href={`/figures/${vote.figureId}`} className="flex flex-col items-center gap-2 text-center group">
+                        <Image 
+                          src={vote.figureImageUrl || 'https://placehold.co/64x64'} 
+                          alt={vote.figureName} 
+                          width={64} 
+                          height={64} 
+                          className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" 
+                        />
+                        <span className="text-xs font-medium group-hover:text-primary transition-colors">{vote.figureName}</span>
                     </Link>
                 );
             })}
@@ -110,12 +89,11 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 py-4">
       {streaks.map((streak) => {
-        const figure = streak.figureData;
-        if (!figure) return null;
+        if (!streak.figureName) return null;
         return (
-          <Link key={figure.id} href={`/figures/${figure.id}`} className="flex flex-col items-center gap-2 text-center group relative">
-            <Image src={figure.imageUrl} alt={figure.name} width={64} height={64} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
-            <span className="text-xs font-medium group-hover:text-primary transition-colors">{figure.name}</span>
+          <Link key={streak.figureId} href={`/figures/${streak.figureId}`} className="flex flex-col items-center gap-2 text-center group relative">
+            <Image src={streak.figureImageUrl || 'https://placehold.co/64x64'} alt={streak.figureName} width={64} height={64} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
+            <span className="text-xs font-medium group-hover:text-primary transition-colors">{streak.figureName}</span>
             <div className="absolute top-0 right-0 flex items-center gap-1 rounded-full bg-card border px-2 py-0.5 text-xs font-bold text-orange-500">
                 <span>{streak.currentStreak}</span>
                 <Flame className="w-3 h-3" />
@@ -130,66 +108,31 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
 
 export default function UserActivity({ userId }: UserActivityProps) {
   const firestore = useFirestore();
-  const [isLoading, setIsLoading] = useState(true);
-  const [attitudeVotes, setAttitudeVotes] = useState<FetchedVote[]>([]);
-  const [emotionVotes, setEmotionVotes] = useState<FetchedVote[]>([]);
-  const [streaks, setStreaks] = useState<FetchedStreak[]>([]);
-  const [figures, setFigures] = useState<Map<string, Figure>>(new Map());
 
-  useEffect(() => {
-    const fetchData = async () => {
-        if (!firestore || !userId) return;
-        setIsLoading(true);
-        
-        try {
-            // Fetch all data types from user's private subcollections in parallel
-            const attitudeQuery = query(collection(firestore, 'users', userId, 'attitudeVotes'));
-            const emotionQuery = query(collection(firestore, 'users', userId, 'emotionVotes'));
-            const streaksQuery = query(collection(firestore, 'users', userId, 'streaks'), orderBy('currentStreak', 'desc'));
+  const attitudeQuery = useMemoFirebase(() => {
+    if (!firestore || !userId) return null;
+    return query(collection(firestore, 'users', userId, 'attitudeVotes'));
+  }, [firestore, userId]);
+  const { data: attitudeVotes, isLoading: isLoadingAttitudes } = useCollection<FetchedVote>(attitudeQuery);
 
-            const [
-                attitudeSnapshot, 
-                emotionSnapshot, 
-                streaksSnapshot,
-            ] = await Promise.all([
-                getDocs(attitudeQuery),
-                getDocs(emotionQuery),
-                getDocs(streaksQuery),
-            ]);
+  const emotionQuery = useMemoFirebase(() => {
+    if (!firestore || !userId) return null;
+    return query(collection(firestore, 'users', userId, 'emotionVotes'));
+  }, [firestore, userId]);
+  const { data: emotionVotes, isLoading: isLoadingEmotions } = useCollection<FetchedVote>(emotionQuery);
+  
+  const streaksQuery = useMemoFirebase(() => {
+    if (!firestore || !userId) return null;
+    return query(collection(firestore, 'users', userId, 'streaks'), orderBy('currentStreak', 'desc'));
+  }, [firestore, userId]);
+  const { data: allStreaks, isLoading: isLoadingStreaks } = useCollection<FetchedStreak>(streaksQuery);
+  
+  const activeStreaks = useMemo(() => {
+    if (!allStreaks) return [];
+    return allStreaks.filter(s => s.lastCommentDate && isDateActive(s.lastCommentDate));
+  }, [allStreaks]);
 
-            const attitudes = attitudeSnapshot.docs.map(d => d.data() as AttitudeVote);
-            const emotions = emotionSnapshot.docs.map(d => d.data() as EmotionVote);
-            const allStreaks = streaksSnapshot.docs.map(d => ({ ...d.data(), id: d.id } as Streak));
-
-            const activeStreaks = allStreaks.filter(s => s.lastCommentDate && isDateActive(s.lastCommentDate));
-            
-            setAttitudeVotes(attitudes);
-            setEmotionVotes(emotions);
-            
-            const figureIds = new Set<string>();
-            attitudes.forEach(v => figureIds.add(v.figureId));
-            emotions.forEach(v => figureIds.add(v.figureId));
-            activeStreaks.forEach(s => figureIds.add(s.figureId));
-            
-            const figureDataMap = await fetchFigureData(firestore, Array.from(figureIds));
-            setFigures(figureDataMap);
-
-            const streaksWithData = activeStreaks.map(streak => ({
-                ...streak,
-                figureData: figureDataMap.get(streak.figureId),
-            }));
-            setStreaks(streaksWithData);
-
-
-        } catch (error) {
-            console.error("Failed to fetch user activity:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    fetchData();
-  }, [userId, firestore]);
+  const isLoading = isLoadingAttitudes || isLoadingEmotions || isLoadingStreaks;
 
   if (isLoading) {
     return (
@@ -229,8 +172,7 @@ export default function UserActivity({ userId }: UserActivityProps) {
                 {attitudeOptions.map(opt => (
                     <TabsContent key={opt.id} value={opt.id}>
                         <ActivityDisplay
-                            votes={attitudeVotes.filter(v => v.vote === opt.id)}
-                            figures={figures}
+                            votes={attitudeVotes?.filter(v => v.vote === opt.id) || []}
                             category={opt.label}
                         />
                     </TabsContent>
@@ -248,8 +190,7 @@ export default function UserActivity({ userId }: UserActivityProps) {
                  {emotionOptions.map(opt => (
                     <TabsContent key={opt.id} value={opt.id}>
                         <ActivityDisplay
-                            votes={emotionVotes.filter(v => v.vote === opt.id)}
-                            figures={figures}
+                            votes={emotionVotes?.filter(v => v.vote === opt.id) || []}
                             category={opt.label}
                         />
                     </TabsContent>
@@ -258,7 +199,7 @@ export default function UserActivity({ userId }: UserActivityProps) {
           </TabsContent>
 
            <TabsContent value="streaks" className="mt-4">
-             <StreaksDisplay streaks={streaks} />
+             <StreaksDisplay streaks={activeStreaks} />
           </TabsContent>
 
         </Tabs>
@@ -266,5 +207,3 @@ export default function UserActivity({ userId }: UserActivityProps) {
     </Card>
   );
 }
-
-    

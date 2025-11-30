@@ -106,6 +106,12 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
           __oldVote: previousVote,
           __newVote: isRetracting ? previousVote : vote,
         };
+        
+        // Data for denormalization
+        const denormalizedData = {
+            figureName: figure.name,
+            figureImageUrl: figure.imageUrl,
+        };
 
         if (isRetracting) {
           // --- RETRACTING VOTE ---
@@ -114,24 +120,32 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
           updates[`emotion.${vote}`] = increment(-1);
           toast({ title: 'Voto eliminado' });
         
-        } else if (previousVote) {
-          // --- CHANGING VOTE ---
-          const voteData = { userId: currentUser!.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
-          transaction.set(publicVoteRef, voteData, { merge: true });
-          transaction.set(privateVoteRef, voteData, { merge: true });
-
-          updates[`emotion.${previousVote}`] = increment(-1);
-          updates[`emotion.${vote}`] = increment(1);
-          toast({ title: '¡Voto actualizado!' });
-        
         } else {
-          // --- FIRST VOTE ---
-          const voteData = { userId: currentUser!.uid, figureId: figure.id, vote: vote, createdAt: serverTimestamp() };
-          transaction.set(publicVoteRef, voteData);
-          transaction.set(privateVoteRef, voteData);
-          
-          updates[`emotion.${vote}`] = increment(1);
-          toast({ title: '¡Voto registrado!' });
+            const voteData: Omit<EmotionVote, 'id'> & { createdAt: any } = {
+                userId: currentUser!.uid,
+                figureId: figure.id,
+                vote: vote,
+                createdAt: serverTimestamp(),
+                ...denormalizedData,
+            };
+
+            if (previousVote) {
+                // --- CHANGING VOTE ---
+                transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() }, { merge: true });
+                transaction.set(privateVoteRef, voteData, { merge: true });
+
+                updates[`emotion.${previousVote}`] = increment(-1);
+                updates[`emotion.${vote}`] = increment(1);
+                toast({ title: '¡Voto actualizado!' });
+            
+            } else {
+                // --- FIRST VOTE ---
+                transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() });
+                transaction.set(privateVoteRef, voteData);
+                
+                updates[`emotion.${vote}`] = increment(1);
+                toast({ title: '¡Voto registrado!' });
+            }
         }
 
         updates.updatedAt = serverTimestamp();
