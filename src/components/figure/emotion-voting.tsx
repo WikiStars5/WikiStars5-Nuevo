@@ -172,7 +172,18 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   }
 
   return (
-      <div className="w-full">
+      <div className="w-full relative">
+        {userVote?.vote && (
+            <div className="absolute top-0 right-0 z-10">
+                <ShareButton
+                    figureId={figure.id}
+                    figureName={figure.name}
+                    isEmotionShare={true}
+                    emotion={userVote.vote}
+                    showText={false}
+                />
+            </div>
+        )}
         <div className="mb-4 text-left">
           <h3 className="text-xl font-bold font-headline">¿Qué emoción te genera?</h3>
         </div>
@@ -215,17 +226,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             <p className="text-sm text-muted-foreground">
             Total de respuestas: {totalVotes.toLocaleString()}
             </p>
-             {userVote?.vote && (
-                <ShareButton
-                    figureId={figure.id}
-                    figureName={figure.name}
-                    isEmotionShare={true}
-                    emotion={userVote.vote}
-                    className="mt-4"
-                >
-                    Compartir mi Emoción
-                </ShareButton>
-            )}
         </div>
       </div>
   );

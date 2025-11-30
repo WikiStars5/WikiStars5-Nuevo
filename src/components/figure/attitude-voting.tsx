@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -189,60 +188,60 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
   }
 
   return (
-    <div className="w-full">
-    <div className="mb-4 text-left">
-        <h3 className="text-xl font-bold font-headline">¿Qué te consideras?</h3>
-    </div>
-    <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
-        {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
-        const isSelected = userVote?.vote === id;
-        return (
-        <Button
-            key={id}
-            variant="outline"
-            className={cn(
-            'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
-            'dark:bg-black',
-            isSelected ? `scale-105 ${selectedClass}` : `${colorClass}`,
-            isVoting === id ? 'cursor-not-allowed' : ''
-            )}
-            onClick={() => handleVote(id)}
-            disabled={!!isVoting}
-        >
-            {isVoting === id ? (
-            <Loader2 className="h-8 w-8 animate-spin" />
-            ) : (
-                <div className="flex h-full flex-col items-center justify-center text-center">
-                    <div className="flex-1 flex items-center justify-center">
-                        <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
-                    </div>
-                    <div>
-                        <span className="font-semibold text-sm">{label}</span>
-                        <span className="block text-lg font-bold">
-                        {(figure.attitude?.[id] ?? 0).toLocaleString()}
-                        </span>
-                    </div>
-                </div>
-            )}
-        </Button>
-        )})}
-    </div>
-    <div className="mt-4 text-center">
-        <p className="text-sm text-muted-foreground">
-            Total de respuestas: {totalVotes.toLocaleString()}
-        </p>
-        {userVote?.vote && (
-            <ShareButton
-                figureId={figure.id}
-                figureName={figure.name}
-                isAttitudeShare={true}
-                attitude={userVote.vote}
-                className="mt-4"
-            >
-                Compartir mi Actitud
-            </ShareButton>
-        )}
-    </div>
+    <div className="w-full relative">
+      {userVote?.vote && (
+        <div className="absolute top-0 right-0 z-10">
+          <ShareButton
+              figureId={figure.id}
+              figureName={figure.name}
+              isAttitudeShare={true}
+              attitude={userVote.vote}
+              showText={false}
+          />
+        </div>
+      )}
+      <div className="mb-4 text-left">
+          <h3 className="text-xl font-bold font-headline">¿Qué te consideras?</h3>
+      </div>
+      <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
+          {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
+          const isSelected = userVote?.vote === id;
+          return (
+          <Button
+              key={id}
+              variant="outline"
+              className={cn(
+              'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
+              'dark:bg-black',
+              isSelected ? `scale-105 ${selectedClass}` : `${colorClass}`,
+              isVoting === id ? 'cursor-not-allowed' : ''
+              )}
+              onClick={() => handleVote(id)}
+              disabled={!!isVoting}
+          >
+              {isVoting === id ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+              ) : (
+                  <div className="flex h-full flex-col items-center justify-center text-center">
+                      <div className="flex-1 flex items-center justify-center">
+                          <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
+                      </div>
+                      <div>
+                          <span className="font-semibold text-sm">{label}</span>
+                          <span className="block text-lg font-bold">
+                          {(figure.attitude?.[id] ?? 0).toLocaleString()}
+                          </span>
+                      </div>
+                  </div>
+              )}
+          </Button>
+          )})}
+      </div>
+      <div className="mt-4 text-center">
+          <p className="text-sm text-muted-foreground">
+              Total de respuestas: {totalVotes.toLocaleString()}
+          </p>
+      </div>
     </div>
   );
 }
