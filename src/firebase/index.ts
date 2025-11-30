@@ -10,7 +10,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, FirestoreSettings } from 'firebase/firestore';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -23,11 +23,11 @@ export function initializeFirebase() {
   return getSdks(getApp());
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
+export function getSdks(firebaseApp: FirebaseApp, firestoreSettings?: FirestoreSettings) {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp),
+    firestore: getFirestore(firebaseApp, firestoreSettings),
   };
 }
 
@@ -53,5 +53,3 @@ export * from './error-emitter';
 export * from './auth/use-admin';
 export * from './auth/use-user';
 export { GoogleAuthProvider, signInWithPopup };
-
-    

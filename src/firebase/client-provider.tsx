@@ -4,7 +4,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import { enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -14,19 +14,16 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   // `useMemo` ensures `initializeFirebase` is called only once on the client.
   const { firebaseApp, auth, firestore } = useMemo(() => {
     try {
-      const { firebaseApp, auth, firestore } = initializeFirebase();
-
-      // Enable multi-tab persistence to allow offline capabilities across tabs.
-      // This MUST be done after getting the firestore instance and before any other operations.
-      enableMultiTabIndexedDbPersistence(firestore).catch((err) => {
-        if (err.code === 'failed-precondition') {
-          // This error means persistence is already enabled in another tab.
-          // This is a normal scenario and can be ignored.
-        } else {
-          console.error("Firebase: Could not enable multi-tab persistence.", err);
-        }
-      });
+      // Initialize Firebase App and Auth as before
+      const { firebaseApp, auth } = initializeFirebase();
       
+      // Initialize Firestore with the modern multi-tab persistence settings
+      const firestore = initializeFirestore(firebaseApp, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager()
+        })
+      });
+
       return { firebaseApp, auth, firestore };
     } catch (e) {
       console.error("Failed to initialize Firebase on client", e);
@@ -45,5 +42,3 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     </FirebaseProvider>
   );
 }
-
-    
