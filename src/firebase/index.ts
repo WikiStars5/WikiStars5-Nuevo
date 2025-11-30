@@ -10,19 +10,44 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
-import { getFirestore, FirestoreSettings } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore, FirestoreSettings } from 'firebase/firestore';
+
+
+// --- Singleton Pattern for Firebase Initialization ---
+
+// 1. Initialize the App
+const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
+// 2. Initialize Auth
+const auth: Auth = getAuth(app);
+
+// 3. Initialize Firestore with Modern Cache (Singleton)
+let firestore: Firestore;
+
+try {
+  // Try to initialize with multi-tab persistence
+  firestore = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  });
+} catch (error: any) {
+  // This error means it's already initialized, so we can just grab the existing instance
+  if (error.code === 'failed-precondition') {
+     console.warn(
+      "Firebase (Firestore): Firestore has already been initialized. This is normal in development with Hot-Reload."
+    );
+  }
+  firestore = getFirestore(app);
+}
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  if (!getApps().length) {
-    const firebaseApp = initializeApp(firebaseConfig);
-    return getSdks(firebaseApp);
-  }
-
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
+  // This function now simply returns the singleton instances.
+  return { firebaseApp: app, auth, firestore };
 }
 
+// Deprecated, but kept for compatibility with any old code.
 export function getSdks(firebaseApp: FirebaseApp, firestoreSettings?: FirestoreSettings) {
   return {
     firebaseApp,
