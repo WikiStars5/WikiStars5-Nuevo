@@ -14,7 +14,7 @@ import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy, Lock } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy, Lock, ArrowDown } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -347,6 +347,13 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
             <TopStreaks figureId={figureId} />
           </TabsContent>
         </Tabs>
+      </div>
+
+      <div className="flex flex-col items-center justify-center my-6 text-center text-muted-foreground">
+        <p className="text-sm font-semibold">
+          {isGoatCandidate ? '¡Ahora participa en la batalla!' : '¡Ahora califica este perfil!'}
+        </p>
+        <ArrowDown className="h-6 w-6 animate-bounce" />
       </div>
       
        {isGoatCandidate && (
