@@ -43,6 +43,7 @@ type CommentFormValues = z.infer<ReturnType<typeof createCommentSchema>>;
 interface CommentFormProps {
   figureId: string;
   figureName: string;
+  onCommentPosted: () => void; // Callback to refetch comments
 }
 
 const ratingSounds: { [key: number]: string } = {
@@ -54,7 +55,7 @@ const ratingSounds: { [key: number]: string } = {
 };
 
 
-export default function CommentForm({ figureId, figureName }: CommentFormProps) {
+export default function CommentForm({ figureId, figureName, onCommentPosted }: CommentFormProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -91,7 +92,7 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
     );
   }, [firestore, user, figureId]);
 
-  const { data: existingComments, isLoading: isCheckingComment } = useCollection<Comment>(existingCommentQuery);
+  const { data: existingComments, isLoading: isCheckingComment, refetch: refetchExistingComment } = useCollection<Comment>(existingCommentQuery);
   
   const existingComment = existingComments && existingComments.length > 0 ? existingComments[0] : null;
 
@@ -206,13 +207,12 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         return;
       }
 
-      // Pass the correct, final user data directly to the streak function
       const streakResult = await updateStreak({
         firestore,
         figureId,
         figureName,
         userId: currentUser.uid,
-        userDisplayName: finalDisplayName, // Use the name confirmed in the transaction
+        userDisplayName: finalDisplayName,
         userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
         isAnonymous: currentUser.isAnonymous,
         userCountry: finalUserProfileData.country || null,
@@ -232,7 +232,11 @@ export default function CommentForm({ figureId, figureName }: CommentFormProps) 
         title: '¡Opinión Publicada!',
         description: 'Gracias por compartir tu opinión.',
       });
+      
       form.reset({text: '', rating: null as any, username: '' });
+      onCommentPosted(); // Call the refetch callback
+      refetchExistingComment(); // Refetch the check for existing comments
+
     } catch (error: any) {
       console.error('Error al publicar comentario:', error);
       toast({

@@ -39,9 +39,10 @@ interface CommentItemProps {
   isReplying: boolean;
   onReplySuccess: () => void;
   areRepliesEnabled: boolean;
+  refetchReplies?: () => void; // Add refetch function for replies
 }
 
-function CommentItem({ comment, figureId, figureName, isReply = false, onReply, isReplying, onReplySuccess, areRepliesEnabled }: CommentItemProps) {
+function CommentItem({ comment, figureId, figureName, isReply = false, onReply, isReplying, onReplySuccess, areRepliesEnabled, refetchReplies }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -64,7 +65,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
     }, [firestore, user, votePath]);
 
 
-    const { data: userVote, isLoading: isVoteLoading } = useDoc<CommentVote>(userVoteRef);
+    const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef);
 
     const country = countries.find(c => c.name === comment.userCountry);
 
@@ -103,6 +104,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 
                 transaction.update(commentRef, updates);
             });
+            refetchVote();
+            refetchReplies?.();
         } catch (error: any) {
             console.error("Error al votar:", error);
             toast({
@@ -162,6 +165,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 title: "Comentario Eliminado",
                 description: "El comentario ha sido eliminado con éxito."
             });
+            refetchReplies?.(); // Refetch the list after deletion
         } catch (error: any) {
             console.error("Error al eliminar comentario:", error);
             toast({
@@ -179,8 +183,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         setIsSavingEdit(true);
 
          const commentPath = isReply
-            ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
-            : `figures/${figureId}/comments/${comment.id}`;
+            ? `figures/${figureId}/comments-v2/${comment.parentId}/replies/${comment.id}`
+            : `figures/${figureId}/comments-v2/${comment.id}`;
         const commentRef = doc(firestore, commentPath);
 
         try {
@@ -192,6 +196,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 title: "Comentario Actualizado",
             });
             setIsEditing(false);
+            refetchReplies?.(); // Refetch after edit
         } catch (error) {
             console.error("updating comment:", error);
             toast({
@@ -388,14 +393,13 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
 
   const repliesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // New: Query the subcollection for replies
     return query(
         collection(firestore, 'figures', figureId, 'comments', comment.id, 'replies'),
         orderBy('createdAt', 'asc')
     );
   }, [firestore, figureId, comment.id]);
 
-  const { data: threadReplies, isLoading: areRepliesLoading } = useCollection<CommentType>(repliesQuery);
+  const { data: threadReplies, isLoading: areRepliesLoading, refetch: refetchReplies } = useCollection<CommentType>(repliesQuery);
 
   const visibleReplies = useMemo(() => {
       if (!threadReplies) return [];
@@ -413,27 +417,24 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
-    // If the reply button on a reply is clicked, we still target the root comment for the new reply.
     const targetId = comment.id;
     setActiveReplyId(prevId => prevId === targetId ? null : targetId);
   }
   
   const handleReplySuccess = useCallback(() => {
     setActiveReplyId(null);
+    refetchReplies(); // Refetch replies to show the new one
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
-    if (threadReplies && threadReplies.length + 1 > visibleRepliesCount) {
-        setVisibleRepliesCount(threadReplies.length + 1);
-    }
-  }, [repliesVisible, threadReplies, visibleRepliesCount]);
+  }, [refetchReplies, repliesVisible]);
   
   const toggleReplies = () => {
     const nextRepliesVisible = !repliesVisible;
     setRepliesVisible(nextRepliesVisible);
     if (!nextRepliesVisible) {
         setActiveReplyId(null);
-        setVisibleRepliesCount(INITIAL_REPLIES_LIMIT); // Reset count when hiding
+        setVisibleRepliesCount(INITIAL_REPLIES_LIMIT);
     }
   }
 
@@ -447,6 +448,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
         isReplying={activeReplyId === comment.id}
         onReplySuccess={handleReplySuccess}
         areRepliesEnabled={areRepliesEnabled}
+        refetchReplies={refetchReplies}
       />
       {hasReplies && (
         <Button
@@ -489,11 +491,11 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
                     figureId={figureId}
                     figureName={figureName}
                     isReply={true}
-                    // For a reply, the "onReply" should also trigger a reply to the main comment.
                     onReply={() => handleReplyClick(comment)}
-                    isReplying={activeReplyId === reply.id} // This should be based on root comment
+                    isReplying={activeReplyId === reply.id}
                     onReplySuccess={handleReplySuccess}
                     areRepliesEnabled={areRepliesEnabled}
+                    refetchReplies={refetchReplies}
                 />
             ))
           )}

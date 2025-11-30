@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Query,
-  onSnapshot,
+  getDocs,
   DocumentData,
   FirestoreError,
   QuerySnapshot,
@@ -24,6 +24,7 @@ export interface UseCollectionResult<T> {
   data: WithId<T>[] | null; // Document data with ID, or null.
   isLoading: boolean;       // True if loading.
   error: FirestoreError | Error | null; // Error object, or null.
+  refetch: () => void; // Function to manually refetch data
 }
 
 /* Internal implementation of Query:
@@ -43,10 +44,9 @@ interface UseCollectionOptions {
 }
 
 /**
- * React hook to subscribe to a Firestore collection or query in real-time.
+ * React hook to fetch a Firestore collection or query once.
  * Handles nullable references/queries.
  * 
- *
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
  * use useMemoFirebase to memoize it per React guidence.  Also make sure that it's dependencies are stable
  * references
@@ -67,9 +67,7 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(true); 
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  useEffect(() => {
-    // If the ref is null or undefined, we're not ready yet.
-    // Set loading to true (or keep it true) and wait.
+  const fetchData = useCallback(async () => {
     if (!memoizedTargetRefOrQuery) {
       setIsLoading(true);
       setData(null);
@@ -84,43 +82,38 @@ export function useCollection<T = any>(
     setIsLoading(true);
     setError(null);
 
-    const unsubscribe = onSnapshot(
-      memoizedTargetRefOrQuery,
-      (snapshot: QuerySnapshot<DocumentData>) => {
-        const results: ResultItemType[] = snapshot.docs.map(doc => ({ ...(doc.data() as T), id: doc.id }));
-        setData(results);
-        setError(null);
-        setIsLoading(false);
-        options.onNewData?.(snapshot);
-      },
-      (error: FirestoreError) => {
-        let path = 'unknown';
-        try {
-          // This attempts to get the path, but might fail if the object structure is unexpected.
-          path = memoizedTargetRefOrQuery.type === 'collection'
-            ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
-        } catch (e) {
-          console.warn("Could not determine path for useCollection permission error.");
-        }
-
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path: path,
-        });
-
-        setError(contextualError);
-        setData(null);
-        setIsLoading(false);
-
-        // Crucially, emit the error so the global listener can catch it.
-        errorEmitter.emit('permission-error', contextualError);
+    try {
+      const snapshot = await getDocs(memoizedTargetRefOrQuery);
+      const results: ResultItemType[] = snapshot.docs.map(doc => ({ ...(doc.data() as T), id: doc.id }));
+      setData(results);
+      options.onNewData?.(snapshot);
+    } catch (err: any) {
+      let path = 'unknown';
+      try {
+        path = memoizedTargetRefOrQuery.type === 'collection'
+          ? (memoizedTargetRefOrQuery as CollectionReference).path
+          : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+      } catch (e) {
+        console.warn("Could not determine path for useCollection permission error.");
       }
-    );
 
-    return () => unsubscribe();
+      const contextualError = new FirestorePermissionError({
+        operation: 'list',
+        path: path,
+      });
+
+      setError(contextualError);
+      setData(null);
+      errorEmitter.emit('permission-error', contextualError);
+    } finally {
+      setIsLoading(false);
+    }
   }, [memoizedTargetRefOrQuery, options.onNewData]);
-  
-  return { data, isLoading, error };
-}
 
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+  
+  return { data, isLoading, error, refetch: fetchData };
+}

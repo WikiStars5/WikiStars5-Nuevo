@@ -1,10 +1,10 @@
 
 'use client';
     
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   DocumentReference,
-  onSnapshot,
+  getDoc,
   DocumentData,
   FirestoreError,
   DocumentSnapshot,
@@ -23,6 +23,7 @@ export interface UseDocResult<T> {
   data: WithId<T> | null; // Document data with ID, or null.
   isLoading: boolean;       // True if loading.
   error: FirestoreError | Error | null; // Error object, or null.
+  refetch: () => void; // Function to manually refetch data.
 }
 
 /** Hook options. */
@@ -31,13 +32,12 @@ interface UseDocOptions {
 }
 
 /**
- * React hook to subscribe to a single Firestore document in real-time.
+ * React hook to fetch a single Firestore document once.
  * Handles nullable references.
  * 
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
  * use useMemo to memoize it per React guidence.  Also make sure that it's dependencies are stable
  * references
- *
  *
  * @template T Optional type for document data. Defaults to any.
  * @param {DocumentReference<DocumentData> | null | undefined} docRef -
@@ -54,8 +54,7 @@ export function useDoc<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(options.enabled);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  useEffect(() => {
-    // If the hook is disabled, set to a non-loading, empty state.
+  const fetchData = useCallback(async () => {
     if (!options.enabled) {
       setIsLoading(false);
       setData(null);
@@ -63,14 +62,13 @@ export function useDoc<T = any>(
       return;
     }
 
-    // If the ref is null or undefined, we're not ready yet.
     if (!memoizedDocRef) {
       setIsLoading(true);
       setData(null);
       setError(null);
       return;
     }
-
+    
     if (!memoizedDocRef.__memo) {
       console.warn('The query passed to useDoc was not properly memoized using useMemoFirebase. This can cause infinite loops and unexpected behavior.');
     }
@@ -78,35 +76,30 @@ export function useDoc<T = any>(
     setIsLoading(true);
     setError(null);
 
-    const unsubscribe = onSnapshot(
-      memoizedDocRef,
-      (snapshot: DocumentSnapshot<DocumentData>) => {
-        if (snapshot.exists()) {
-          setData({ ...(snapshot.data() as T), id: snapshot.id });
-        } else {
-          setData(null);
-        }
-        setError(null);
-        setIsLoading(false);
-      },
-      (error: FirestoreError) => {
+    try {
+      const snapshot = await getDoc(memoizedDocRef);
+      if (snapshot.exists()) {
+        setData({ ...(snapshot.data() as T), id: snapshot.id });
+      } else {
+        setData(null);
+      }
+    } catch (err: any) {
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
-        })
+        });
 
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
-
+        setError(contextualError);
+        setData(null);
         errorEmitter.emit('permission-error', contextualError);
-      }
-    );
-
-    return () => unsubscribe();
+    } finally {
+        setIsLoading(false);
+    }
   }, [memoizedDocRef, options.enabled]);
 
-  return { data, isLoading, error };
-}
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    
+  return { data, isLoading, error, refetch: fetchData };
+}
