@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import CommentForm from './comment-form';
 import CommentList from './comment-list';
 import { Separator } from '../ui/separator';
