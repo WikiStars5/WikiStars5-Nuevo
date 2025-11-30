@@ -51,8 +51,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   auth,
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: null,
-    isUserLoading: true,
+    user: auth?.currentUser || null,
+    isUserLoading: !auth?.currentUser,
     userError: null,
   });
 
@@ -62,6 +62,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     if (auth?.currentUser) {
       try {
         await auth.currentUser.reload();
+        // Manually update state after reload if needed, though onAuthStateChanged should catch it.
+        setUserAuthState(prev => ({...prev, user: auth.currentUser}));
       } catch (error) {
         console.error("Error reloading user:", error);
         setUserAuthState(prev => ({...prev, userError: error as Error}));
@@ -75,43 +77,24 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       return;
     }
 
-    const initializeAuth = async () => {
-        try {
-            await setPersistence(auth, browserLocalPersistence);
-            const unsubscribe = onAuthStateChanged(
-                auth,
-                (firebaseUser) => {
-                    // This listener now simply reports the current user state,
-                    // without trying to create an anonymous user automatically.
-                    setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-                },
-                (error) => {
-                    console.error("FirebaseProvider: onAuthStateChanged error:", error);
-                     if (error.code === 'auth/user-token-expired' && auth) {
-                        console.warn("User token expired. Signing out to refresh session.");
-                        auth.signOut(); // This will trigger a re-authentication cycle.
-                    } else {
-                        setUserAuthState({ user: null, isUserLoading: false, userError: error });
-                    }
-                }
-            );
-            return unsubscribe;
-        } catch (error) {
-            console.error("FirebaseProvider: Failed to set persistence:", error);
-            setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
-        }
-    };
-
-    const unsubscribePromise = initializeAuth();
-
-    return () => {
-        unsubscribePromise.then(unsubscribe => {
-            if (unsubscribe) {
-                unsubscribe();
+    const unsubscribe = onAuthStateChanged(
+        auth,
+        (firebaseUser) => {
+            setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+        },
+        (error) => {
+            console.error("FirebaseProvider: onAuthStateChanged error:", error);
+            if (error.code === 'auth/user-token-expired' && auth) {
+                console.warn("User token expired. Signing out to refresh session.");
+                auth.signOut();
+            } else {
+                setUserAuthState({ user: null, isUserLoading: false, userError: error });
             }
-        });
-    };
-}, [auth, areServicesReady]);
+        }
+    );
+
+    return () => unsubscribe();
+  }, [auth, areServicesReady]);
 
 
   const contextValue = useMemo((): FirebaseContextState => {
@@ -126,15 +109,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       reloadUser,
     };
   }, [firebaseApp, firestore, auth, userAuthState, areServicesReady, reloadUser]);
-
-  // Keep showing loading state until Firebase has determined the initial auth state.
-  if (userAuthState.isUserLoading) {
-     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <p>Conectando...</p>
-      </div>
-    );
-  }
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -152,7 +126,11 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   }
 
   if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth) {
-    throw new Error('Firebase core services not available. This is an unexpected error.');
+    // This case should ideally not be hit if the provider handles loading state correctly.
+    // However, it's a safeguard.
+    // In a server component context, or before hydration, this might be expected.
+    // We throw an error to make it clear that services are not ready.
+    throw new Error('Firebase core services not available. This might be due to accessing the context before Firebase is initialized.');
   }
 
   return {
@@ -168,8 +146,9 @@ export const useFirebase = (): FirebaseServicesAndUser => {
 
 export const useAuth = (): Auth | null => {
   const context = useContext(FirebaseContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within a FirebaseProvider.');
+   if (context === undefined) {
+    // During SSR or initial render, context can be undefined. Return null.
+    return null;
   }
   return context.auth;
 };
@@ -178,7 +157,7 @@ export const useAuth = (): Auth | null => {
 export const useFirestore = (): Firestore | null => {
     const context = useContext(FirebaseContext);
      if (context === undefined) {
-        throw new Error('useFirestore must be used within a FirebaseProvider.');
+        return null;
     }
     return context.firestore;
 };
@@ -186,7 +165,7 @@ export const useFirestore = (): Firestore | null => {
 export const useFirebaseApp = (): FirebaseApp | null => {
     const context = useContext(FirebaseContext);
     if (context === undefined) {
-        throw new Error('useFirebaseApp must be used within a FirebaseProvider.');
+        return null;
     }
     return context.firebaseApp;
 };
