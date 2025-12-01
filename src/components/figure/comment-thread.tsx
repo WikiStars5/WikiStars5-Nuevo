@@ -29,6 +29,7 @@ import { countries } from '@/lib/countries';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShareButton } from '../shared/ShareButton';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface CommentItemProps {
   comment: CommentType, 
@@ -46,11 +47,11 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const { t } = useLanguage();
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(comment.text);
-    const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     const isOwner = user && user.uid === comment.userId;
     
@@ -162,14 +163,14 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
 
 
             toast({
-                title: "Comentario Eliminado",
-                description: "El comentario ha sido eliminado con éxito."
+                title: t('CommentThread.toast.deleteSuccess'),
+                description: t('CommentThread.toast.deleteSuccessDescription')
             });
             refetchReplies?.(); // Refetch the list after deletion
         } catch (error: any) {
             console.error("Error al eliminar comentario:", error);
             toast({
-                title: "Error al Eliminar",
+                title: t('CommentThread.toast.deleteError'),
                 description: error.message || "No se pudo eliminar el comentario.",
                 variant: "destructive",
             });
@@ -193,15 +194,15 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 updatedAt: serverTimestamp() 
             });
             toast({
-                title: "Comentario Actualizado",
+                title: t('CommentThread.toast.updateSuccess'),
             });
             setIsEditing(false);
             refetchReplies?.(); // Refetch after edit
         } catch (error) {
             console.error("updating comment:", error);
             toast({
-                title: "Error al Actualizar",
-                description: "No se pudo guardar tu comentario.",
+                title: t('CommentThread.toast.updateError'),
+                description: t('CommentThread.toast.updateErrorDescription'),
                 variant: "destructive",
             });
         } finally {
@@ -253,7 +254,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                         />
                     )}
                     {comment.updatedAt && (
-                         <p className="text-xs text-italic text-muted-foreground">(editado)</p>
+                         <p className="text-xs text-italic text-muted-foreground">{t('CommentThread.edited')}</p>
                     )}
                 </div>
 
@@ -288,7 +289,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                            {user && areRepliesEnabled && (
                                 <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
                                     <MessageSquare className="h-4 w-4" />
-                                    <span>Responder</span>
+                                    <span>{t('CommentThread.replyButton')}</span>
                                 </Button>
                             )}
 
@@ -296,26 +297,25 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                                 <>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
                                     <FilePenLine className="h-4 w-4" />
-                                    <span className="sr-only">Editar comentario</span>
+                                    <span className="sr-only">{t('CommentThread.editButton')}</span>
                                 </Button>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" disabled={isDeleting}>
                                             {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                            <span className="sr-only">Eliminar comentario</span>
+                                            <span className="sr-only">{t('CommentThread.deleteButton')}</span>
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                        <AlertDialogTitle>{t('CommentThread.confirmDelete.title')}</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Esta acción no se puede deshacer. Esto eliminará permanentemente
-                                            tu comentario y todas sus respuestas.
+                                            {t('CommentThread.confirmDelete.description')}
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+                                        <AlertDialogAction onClick={handleDelete}>{t('CommentThread.confirmDelete.continue')}</AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
@@ -382,6 +382,7 @@ const REPLIES_INCREMENT = 3;
 
 export default function CommentThread({ comment, figureId, figureName }: CommentThreadProps) {
   const firestore = useFirestore();
+  const { t } = useLanguage();
   const [repliesVisible, setRepliesVisible] = useState(false);
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
@@ -459,12 +460,12 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
             {repliesVisible ? (
                 <>
                  <ChevronUp className="mr-1 h-4 w-4" />
-                 Ocultar respuestas
+                 {t('CommentThread.hideReplies')}
                 </>
             ) : (
                 <>
                 <ChevronDown className="mr-1 h-4 w-4" />
-                Ver {threadReplies!.length} {threadReplies!.length > 1 ? 'respuestas' : 'respuesta'}
+                {t('CommentList.buttons.seeMore').replace('{count}', threadReplies!.length.toString()).replace('{reply, plural, one {respuesta} other {respuestas}}', threadReplies!.length > 1 ? 'respuestas' : 'respuesta')}
                 </>
             )}
         </Button>
@@ -473,7 +474,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
       {!areRepliesEnabled && hasReplies && (
           <div className="ml-14 flex items-center gap-2 text-sm text-muted-foreground">
               <Lock className="h-4 w-4" />
-              <span>Las respuestas están desactivadas temporalmente.</span>
+              <span>{t('CommentThread.repliesLocked')}</span>
           </div>
       )}
 
@@ -481,7 +482,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
         <div className="ml-8 space-y-4 border-l-2 pl-4">
           {areRepliesLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                <Loader2 className="h-4 w-4 animate-spin"/> Cargando respuestas...
+                <Loader2 className="h-4 w-4 animate-spin"/> {t('CommentList.loading')}
             </div>
           ) : (
             visibleReplies.map(reply => (
@@ -505,7 +506,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
                     size="sm" 
                     onClick={() => setVisibleRepliesCount(prev => prev + REPLIES_INCREMENT)}
                 >
-                    Ver más respuestas
+                    {t('CommentList.buttons.seeMore')}
                 </Button>
             )}
         </div>
@@ -513,3 +514,5 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
+
+    
