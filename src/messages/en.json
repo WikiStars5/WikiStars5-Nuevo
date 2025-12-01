@@ -620,6 +620,7 @@
     "noStreaksDescription": "Earn streaks by leaving a comment or replying to one on any profile on consecutive days."
   },
   "countries": {
+    "all": "All countries",
     "afghanistan": "Afghanistan",
     "aland_islands": "Åland Islands",
     "albania": "Albania",

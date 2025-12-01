@@ -1,0 +1,873 @@
+{
+  "Footer": {
+    "rules": "Regole",
+    "privacy": "Privacy",
+    "disclaimer": "Disclaimer",
+    "language": "Lingua"
+  },
+  "HomePage": {
+    "welcome": {
+      "title": {
+        "part1": "Benvenuti in",
+        "part2": "WikiStars5"
+      },
+      "searchHint": "Digita un nome e premi invio o clicca su cerca."
+    },
+    "howItWorks": {
+      "title": "Come funziona WikiStars5"
+    },
+    "features": {
+      "discover": {
+        "title": "Scopri Personaggi",
+        "description": "Cerca o naviga tra i profili di personaggi pubblici di vari settori."
+      },
+      "express": {
+        "title": "Esprimi la tua Percezione",
+        "description": "Vota per l'emozione che un personaggio ti suscita e vedi i risultati globali."
+      },
+      "discuss": {
+        "title": "Partecipa alle Discussioni",
+        "description": "Condividi le tue opinioni nelle sezioni dei commenti e reagisci agli altri."
+      },
+      "share": {
+        "title": "Condividi Profili",
+        "description": "Condividi facilmente i profili con i tuoi amici sui social media."
+      }
+    },
+    "betaAlert": {
+      "title": "Versione Beta",
+      "description": "La nostra piattaforma è attualmente in fase di sviluppo attivo. Apprezziamo la vostra pazienza e il vostro feedback mentre lavoriamo per migliorare l'esperienza."
+    }
+  },
+  "Header": {
+    "guestMenuTitle": "Menu Ospite",
+    "myProfile": "Il mio Profilo",
+    "adminPanel": "Pannello di Amministrazione",
+    "createCharacterProfile": "Crea Profilo Personaggio",
+    "createWebProfile": "Crea Profilo Web",
+    "changeToLightMode": "Passa alla modalità chiara",
+    "changeToDarkMode": "Passa alla modalità scura",
+    "logout": "Esci",
+    "login": "Accedi"
+  },
+  "ProfilePage": {
+    "loading": "Caricamento...",
+    "pleaseLoginTitle": "Per favore, accedi",
+    "pleaseLoginDescription": "Devi aver effettuato l'accesso per visualizzare il tuo profilo.",
+    "goToLoginButton": "Vai al Login",
+    "guestUser": "Ospite",
+    "anonymousUser": "Utente anonimo",
+    "editProfileTitle": "Modifica Profilo",
+    "editProfileDescription": "Qui puoi modificare le tue informazioni pubbliche.",
+    "profilePhotoUrlLabel": "URL Foto Profilo",
+    "profilePhotoUrlPlaceholder": "https://...",
+    "usernameLabel": "Nome utente",
+    "emailLabel": "Email",
+    "descriptionLabel": "Descrizione",
+    "descriptionPlaceholder": "Una breve descrizione su di te.",
+    "countryLabel": "Paese",
+    "genderLabel": "Sesso",
+    "genderPlaceholder": "Seleziona il tuo sesso",
+    "genderMale": "Maschio",
+    "genderFemale": "Femmina",
+    "genderOther": "Altro",
+    "genderPreferNotToSay": "Preferisco non dirlo",
+    "saveChangesButton": "Salva Modifiche",
+    "saveProgressTitle": "Pronto a Salvare i tuoi Progressi?",
+    "saveProgressDescription": "La tua attività è anonima. Per salvare permanentemente le tue serie e i tuoi traguardi, collega il tuo account a Google.",
+    "linkWithGoogleButton": "Collega con Google e Salva Progressi",
+    "infoTab": "Informazioni",
+    "activityTab": "Attività",
+    "toast": {
+      "profileUpdatedTitle": "Profilo Aggiornato!",
+      "profileUpdatedDescription": "Le tue informazioni sono state salvate con successo.",
+      "errorSavingTitle": "Errore nel Salvataggio",
+      "errorSavingDescription": "Impossibile aggiornare il tuo profilo. Riprova.",
+      "usernameInUse": "Nome utente già in uso.",
+      "accountLinkedTitle": "Account Collegato!",
+      "accountLinkedDescription": "Hai collegato il tuo account Google. La tua attività è stata salvata.",
+      "linkErrorTitle": "Errore di Collegamento",
+      "linkErrorDescription": "Impossibile collegare l'account. Riprova.",
+      "linkErrorInUse": "Questo account Google è già associato a un altro utente WikiStars5."
+    },
+    "validation": {
+      "usernameMin": "Il nome utente deve contenere almeno 3 caratteri.",
+      "usernameMax": "Il nome utente non può superare i 10 caratteri.",
+      "usernameRegex": "Sono ammessi solo lettere, numeri e trattini bassi.",
+      "profilePhotoUrl": "Inserisci un URL valido.",
+      "descriptionMax": "La descrizione non può superare i 160 caratteri."
+    }
+  },
+  "LoginPage": {
+    "loading": "Caricamento...",
+    "title": "Accedi",
+    "description": "Usa il tuo account per accedere al tuo profilo e riprendere da dove hai lasciato.",
+    "continueButton": "Continua con Google",
+    "toast": {
+      "welcomeBackTitle": "Bentornato!",
+      "welcomeBackDescription": "Hai effettuato l'accesso con successo.",
+      "usernameInUseTitle": "Nome utente in uso",
+      "usernameInUseDescription": "Il nome Google \"{displayName}\" è già in uso. Ti è stato assegnato un nome temporaneo. Puoi cambiarlo nel tuo profilo.",
+      "welcomeTitle": "Benvenuto in WikiStars5!",
+      "welcomeDescription": "Il tuo account è stato creato.",
+      "profileErrorTitle": "Errore Profilo",
+      "profileErrorDescription": "Impossibile creare il tuo profilo utente.",
+      "authErrorTitle": "Errore di Autenticazione",
+      "authErrorDescription": "Impossibile accedere con Google. Riprova."
+    }
+  },
+  "Notifications": {
+    "title": "Notifiche",
+    "viewNotifications": "Visualizza notifiche",
+    "noNotifications": "Non hai notifiche.",
+    "seeAll": "Vedi tutte",
+    "threadDialogTitle": "Thread di Commenti",
+    "threadDialogDescription": "Rispondendo sul profilo di",
+    "originalCommentDeleted": "Il commento originale in questa discussione è stato eliminato.",
+    "errorLoadingConversation": "Si è verificato un errore durante il caricamento della conversazione.",
+    "replyMessage": "{user} ha risposto al tuo commento sul profilo di {figure}.",
+    "defaultMessage": "Hai una nuova notifica.",
+    "someone": "Qualcuno",
+    "aProfile": "un profilo"
+  },
+  "ReplyForm": {
+    "placeholder": "Rispondendo a",
+    "cancelButton": "Annulla",
+    "replyButton": "Rispondi",
+    "toast": {
+      "replyPosted": "Risposta Pubblicata!",
+      "errorPostingTitle": "Errore nella Pubblicazione",
+      "errorPostingDescription": "Impossibile inviare la tua risposta. Riprova."
+    },
+    "validation": {
+      "notEmpty": "La risposta non può essere vuota.",
+      "maxLength": "La risposta non può superare i 1000 caratteri."
+    }
+  },
+  "SearchBar": {
+    "placeholder": "Cerca profili"
+  },
+  "FigurePage": {
+    "tabs": {
+      "info": "Informazioni",
+      "attitude": "Atteggiamento",
+      "emotion": "Emozione",
+      "streaks": "Serie"
+    },
+    "detailedInfo": {
+      "title": "Informazioni Dettagliate",
+      "description": "Dati biografici e descrittivi per {name}.",
+      "editButton": "Modifica",
+      "nameLabel": "Nome Completo",
+      "genderLabel": "Sesso",
+      "birthDateLabel": "Data di nascita",
+      "deathDateLabel": "Data di morte",
+      "occupationLabel": "Occupazione",
+      "countryLabel": "Paese di origine",
+      "maritalStatusLabel": "Stato civile",
+      "heightLabel": "Altezza",
+      "noInfo": "Nessuna informazione dettagliata disponibile. Clicca su 'Modifica' per aggiungerla!",
+      "socialMediaTitle": "Social Media e Wiki"
+    },
+    "callToAction": {
+      "goat": "Ora partecipa alla battaglia!",
+      "rate": "Ora valuta questo profilo!"
+    },
+    "relatedFigures": {
+      "title": "Profili Correlati",
+      "description": "Altri profili che potrebbero interessarti (Max. 6).",
+      "addButton": "Aggiungi",
+      "limitReached": "Hai raggiunto il limite di 6 profili correlati.",
+      "deleteConfirmTitle": "Sei sicuro?",
+      "deleteConfirmDescription": "Questa azione rimuoverà la relazione con {name}. Non può essere annullata.",
+      "deleteConfirmContinue": "Continua",
+      "deleteToastTitle": "Relazione Eliminata",
+      "deleteToastDescription": "Il profilo correlato è stato rimosso.",
+      "errorDeleteToastTitle": "Errore nell'Eliminazione",
+      "errorDeleteToastDescription": "Impossibile rimuovere la relazione.",
+      "noRelated": "Nessun profilo correlato è stato ancora aggiunto.",
+      "addDialog": {
+        "title": "Aggiungi Profilo Correlato",
+        "description": "Cerca e seleziona un profilo da correlare a {name}.",
+        "selfRelationError": "Non puoi correlare un profilo a se stesso.",
+        "addSuccessTitle": "Relazione Aggiunta",
+        "addSuccessDescription": "{sourceName} e {targetName} sono ora correlati.",
+        "addErrorTitle": "Errore nell'Aggiunta",
+        "addErrorDescription": "Impossibile salvare la relazione. Riprova.",
+        "cancelButton": "Annulla",
+        "confirmButton": "Conferma Relazione",
+        "searchInputPlaceholder": "Cerca profili da correlare..."
+      }
+    }
+  },
+  "AttitudeVoting": {
+    "title": "Come li vedi?",
+    "totalVotes": "Risposte totali: {count}",
+    "voteToast": {
+      "removed": "Voto rimosso",
+      "updated": "Voto aggiornato!",
+      "registered": "Voto registrato!"
+    },
+    "errorToast": {
+      "title": "Errore di Votazione",
+      "description": "Si è verificato un problema durante la registrazione del tuo voto. Le regole di sicurezza potrebbero averlo impedito."
+    },
+    "disabledToast": {
+      "title": "Votazione disabilitata",
+      "description": "L'amministratore ha temporaneamente disabilitato la votazione."
+    },
+    "anonymousToast": {
+      "title": "Benvenuto, Ospite!",
+      "description": "La tua attività è ora anonima. Accedi per salvarla."
+    },
+    "authErrorToast": {
+      "title": "Errore di Autenticazione",
+      "description": "Impossibile avviare una sessione anonima."
+    },
+    "userErrorToast": {
+      "title": "Errore",
+      "description": "Impossibile ottenere l'identità dell'utente."
+    },
+    "locked": {
+      "title": "Votazione Disabilitata",
+      "description": "L'amministratore ha temporaneamente disabilitato la votazione di atteggiamento."
+    },
+    "labels": {
+      "neutral": "Neutrale",
+      "fan": "Fan",
+      "simp": "Simp",
+      "hater": "Hater"
+    }
+  },
+  "EmotionVoting": {
+    "title": "Quale emozione suscitano in te?",
+    "totalVotes": "Risposte totali: {count}",
+    "locked": {
+      "title": "Votazione Disabilitata",
+      "description": "L'amministratore ha temporaneamente disabilitato la votazione di emozione."
+    },
+    "labels": {
+      "alegria": "Gioia",
+      "envidia": "Invidia",
+      "tristeza": "Tristezza",
+      "miedo": "Paura",
+      "desagrado": "Disgusto",
+      "furia": "Furia"
+    }
+  },
+  "GoatBattle": {
+    "title": "SCEGLIAMO IL VERO GOAT",
+    "description": "Chi è il più grande di tutti i tempi? Il vincitore ottiene questa icona sul suo profilo.",
+    "countdownFinished": "La votazione è terminata!",
+    "paused": "BATTAGLIA IN PAUSA",
+    "votesLabel": "voti",
+    "callToAction": "Esprimi il tuo voto per il migliore. Cosa ne pensi?",
+    "messiButton": "Vota per Messi",
+    "ronaldoButton": "Vota per Ronaldo",
+    "winnerMessage": "Il vincitore è {winner}!",
+    "tieMessage": "È un pareggio!",
+    "calculating": "Calcolo del vincitore...",
+    "notStarted": "L'evento non è iniziato. Torna più tardi.",
+    "adminNotStarted": "L'amministratore non ha ancora iniziato la battaglia.",
+    "shareAlert": {
+      "messi": "Voterai e basta? La battaglia si vince con i numeri. I veri fan portano rinforzi.",
+      "ronaldo": "Voterai e basta? La battaglia si vince con i numeri. I veri fan portano rinforzi."
+    },
+    "toast": {
+      "voted": "Hai votato per {player}!"
+    }
+  },
+  "CommunityRatings": {
+    "title": "Valutazioni della Comunità",
+    "rating": "valutazione",
+    "ratings": "valutazioni"
+  },
+  "CommentForm": {
+    "title": "Condividi la tua opinione e Guadagna Serie!",
+    "description": "Diventa un recensore completando i seguenti passaggi.",
+    "step1": "1",
+    "step2": "2",
+    "step3": "3",
+    "rateLabel": "Valuta questo profilo*",
+    "identityLabel": "Crea la tua identità di recensore",
+    "usernameLabel": "Nome utente*",
+    "usernamePlaceholder": "Scegli un nome univoco",
+    "opinionLabel": "Scrivi la tua opinione (opzionale)",
+    "opinionPlaceholder": "Cosa ne pensi di {name}?",
+    "submitButton": "Pubblica Opinione",
+    "loginDialog": {
+      "title": "Unisciti alla Comunità!",
+      "description": "Per eseguire questa azione, è necessario un account. È gratuito, veloce e salva i tuoi progressi!",
+      "continueButton": "Continua con Google"
+    },
+    "toast": {
+      "alreadyCommented": "Hai già commentato questo profilo.",
+      "usernameInUse": "Nome utente già in uso.",
+      "opinionPosted": "Opinione Pubblicata!",
+      "thanks": "Grazie per aver condiviso la tua opinione.",
+      "errorPostingTitle": "Errore nella Pubblicazione",
+      "errorPostingDescription": "Impossibile inviare la tua opinione. Riprova."
+    },
+    "existingComment": {
+      "title": "Hai già lasciato la tua opinione",
+      "description": "È consentita una sola recensione per profilo. Per lasciare una nuova valutazione, elimina il tuo commento precedente.",
+      "goToComment": "Vai alla mia opinione"
+    },
+    "locked": {
+      "title": "Opinioni Disabilitate",
+      "description": "L'amministratore ha temporaneamente disabilitato valutazioni e commenti."
+    }
+  },
+  "CommentList": {
+    "filters": {
+      "featured": "In primo piano",
+      "popular": "Più Popolari",
+      "myOpinion": "La mia Opinione",
+      "byStars": "Filtra per stelle"
+    },
+    "stars": "Stelle",
+    "noComments": {
+      "title": "Nessuna opinione trovata",
+      "description": "Nessun commento corrisponde al filtro selezionato."
+    },
+    "beTheFirst": {
+      "title": "Sii il primo a rompere il ghiaccio",
+      "description": "Non ci sono ancora commenti per questo profilo. Condividi la tua opinione!"
+    },
+    "buttons": {
+      "seeMore": "Vedi altri commenti",
+      "showLess": "Mostra meno"
+    },
+    "loading": "Caricamento risposte..."
+  },
+  "CommentThread": {
+    "edited": "(modificato)",
+    "replyButton": "Rispondi",
+    "editButton": "Modifica commento",
+    "deleteButton": "Elimina commento",
+    "confirmDelete": {
+      "title": "Sei sicuro?",
+      "description": "Questa azione non può essere annullata. Eliminerà permanentemente il tuo commento e tutte le sue risposte.",
+      "continue": "Continua"
+    },
+    "toast": {
+      "deleteSuccess": "Commento Eliminato",
+      "deleteSuccessDescription": "Il commento è stato eliminato con successo.",
+      "deleteError": "Errore nell'Eliminazione",
+      "deleteErrorDescription": "Impossibile eliminare il commento.",
+      "updateSuccess": "Commento Aggiornato",
+      "updateError": "Errore nell'Aggiornamento",
+      "updateErrorDescription": "Impossibile salvare il tuo commento."
+    },
+    "seeReplies": "Vedi {count} {reply, plural, one {risposta} other {risposte}}",
+    "hideReplies": "Nascondi risposte",
+    "repliesLocked": "Le risposte sono temporaneamente disabilitate."
+  },
+  "TopStreaks": {
+    "title": "Migliori Serie Attive",
+    "description": "Utenti con le serie di commenti più lunghe per questo profilo.",
+    "noStreaks": "Nessuna serie attiva ancora. Sii il primo a commentare per più giorni consecutivi!"
+  },
+  "EditFigure": {
+    "title": "Modifica Informazioni",
+    "description": "Modifica i dati biografici di {name}.",
+    "profileImage": {
+      "title": "Immagine Profilo",
+      "urlLabel": "URL Immagine",
+      "urlHint": "Sono consentiti solo URL da `upload.wikimedia.org` e `i.pinimg.com`.",
+      "removeLink": "Rimuovi link",
+      "preview": "Anteprima"
+    },
+    "personalInfo": {
+      "title": "Informazioni Personali",
+      "genderLabel": "Sesso",
+      "selectGender": "Seleziona un sesso",
+      "genderMale": "Maschio",
+      "genderFemale": "Femmina",
+      "birthDateLabel": "Data di nascita",
+      "deathDateLabel": "Data di morte",
+      "countryLabel": "Paese di origine",
+      "occupationLabel": "Occupazione",
+      "occupationPlaceholder": "Es: Calciatore, Cantante",
+      "maritalStatusLabel": "Stato civile",
+      "selectMaritalStatus": "Seleziona uno stato civile",
+      "statusSingle": "Single",
+      "statusMarried": "Sposato/a",
+      "statusDivorced": "Divorziato/a",
+      "statusWidowed": "Vedovo/a",
+      "statusSeparated": "Separato/a",
+      "heightLabel": "Altezza",
+      "heightUnit": "cm"
+    },
+    "socialMedia": {
+      "title": "Social Media e Wiki",
+      "websiteLabel": "Sito Web",
+      "instagramLabel": "Instagram",
+      "twitterLabel": "X (Twitter)",
+      "youtubeLabel": "YouTube",
+      "facebookLabel": "Facebook",
+      "tiktokLabel": "TikTok",
+      "linkedinLabel": "LinkedIn",
+      "discordLabel": "Discord",
+      "wikipediaLabel": "Wikipedia",
+      "fandomLabel": "Fandom"
+    },
+    "dateInput": {
+      "eraAD": "d.C.",
+      "eraBC": "a.C.",
+      "day": "Giorno",
+      "month": "Mese",
+      "year": "Anno",
+      "months": {
+        "january": "Gennaio",
+        "february": "Febbraio",
+        "march": "Marzo",
+        "april": "Aprile",
+        "may": "Maggio",
+        "june": "Giugno",
+        "july": "Luglio",
+        "august": "Agosto",
+        "september": "Settembre",
+        "october": "Ottobre",
+        "november": "Novembre",
+        "december": "Dicembre"
+      }
+    },
+    "countrySelector": {
+      "placeholder": "Seleziona un paese...",
+      "searchPlaceholder": "Cerca paese...",
+      "noResults": "Paese non trovato."
+    },
+    "buttons": {
+      "cancel": "Annulla",
+      "save": "Salva Modifiche"
+    },
+    "toast": {
+      "successTitle": "Profilo Aggiornato!",
+      "successDescription": "Le informazioni di {name} sono state salvate.",
+      "errorTitle": "Errore nel Salvataggio",
+      "errorDescription": "Impossibile aggiornare il profilo. Riprova."
+    }
+  },
+  "CreateProfile": {
+    "title": "Crea Profilo dal Web",
+    "description": "Verifica un personaggio su Wikipedia o Famous Birthdays per completare automaticamente il suo profilo.",
+    "Wikipedia": {
+      "placeholder": "Es: Lionel Messi",
+      "verifyButton": "Verifica",
+      "toast": {
+        "notFoundTitle": "Non Trovato su Wikipedia",
+        "planBDescription": "Piano B attivato. Prova con un link da Famous Birthdays.",
+        "verifyError": "Si è verificato un errore durante la verifica su Wikipedia. Riprova."
+      }
+    },
+    "FamousBirthdays": {
+      "planBTitle": "Piano B: Verifica Manuale",
+      "planBDescription": "Non trovato su Wikipedia. Incolla il link del suo profilo da en.famousbirthdays.com per verificarlo manualmente.",
+      "urlLabel": "URL di FamousBirthdays.com",
+      "placeholder": "https://www.famousbirthdays.com/people/...",
+      "verifyButton": "Verifica con URL",
+      "toast": {
+        "noNameError": "Per favore, inserisci prima un nome nel campo di Wikipedia.",
+        "invalidUrlError": "Impossibile verificare l'URL. Assicurati che sia corretto.",
+        "verifyError": "Si è verificato un errore durante la verifica su Famous Birthdays. Riprova."
+      }
+    },
+    "Web": {
+      "title": "Crea Profilo Web",
+      "verifyDescription": "Verifica un dominio per creare un profilo web di base.",
+      "confirmDescription": "Conferma la creazione del profilo per il dominio verificato.",
+      "placeholder": "example.com o https://example.com",
+      "verifyButton": "Verifica",
+      "verificationFailedTitle": "Verifica Fallita",
+      "verifiedTitle": "Dominio Verificato",
+      "confirmCreationDescription": "Vuoi creare un profilo per il seguente dominio?",
+      "cancelButton": "Annulla",
+      "confirmAndCreateButton": "Conferma e Crea",
+      "validation": {
+        "invalidDomain": "Inserisci un dominio valido."
+      },
+      "toast": {
+        "validDomainTitle": "Dominio Valido",
+        "validDomainDescription": "Il dominio {domain} è accessibile.",
+        "verificationFailed": "Impossibile verificare il dominio.",
+        "unexpectedError": "Si è verificato un errore imprevisto durante la verifica del dominio."
+      }
+    },
+    "Result": {
+      "foundTitle": "Personaggio Trovato",
+      "foundDescription": "Abbiamo verificato le seguenti informazioni. Conferma per creare il profilo.",
+      "cancelButton": "Annulla",
+      "createButton": "Crea Profilo"
+    },
+    "toast": {
+      "blockedTitle": "Creazione Profilo Bloccata",
+      "blockedDescription": "La creazione di profili per questo personaggio è limitata.",
+      "duplicateTitle": "Profilo Duplicato",
+      "duplicateDescription": "Esiste già un profilo per \"{name}\".",
+      "duplicateDescriptionRedirect": "Esiste già un profilo per {name}. Reindirizzamento...",
+      "createSuccessTitle": "Profilo Creato!",
+      "createSuccessDescription": "Il profilo per {name} è stato aggiunto.",
+      "createErrorTitle": "Errore nella Creazione",
+      "createErrorDescription": "Impossibile creare il profilo. Riprova."
+    }
+  },
+  "DisclaimerPage": {
+    "title": "Disclaimer",
+    "paragraphs": {
+      "1_strong": "Natura del Sito:",
+      "1": " WikiStars5 è una piattaforma di opinione e intrattenimento. Crediamo fermamente nella libertà di espressione, e il nostro scopo è permettere agli utenti di esprimere e discutere liberamente le loro percezioni sui personaggi pubblici. Il contenuto di questo sito, incluse valutazioni, voti e commenti, rappresenta le opinioni soggettive dei nostri utenti e non deve essere interpretato come una dichiarazione di fatto.",
+      "2_strong": "Riflesso della Percezione Pubblica:",
+      "2": " Le percezioni, sia di ammirazione che di odio, riflesse su questa piattaforma sono il risultato delle azioni e della reputazione dei personaggi pubblici stessi. WikiStars5 non crea né controlla queste opinioni; agisce semplicemente come un forum per la loro espressione. La responsabilità dell'immagine pubblica ricade interamente sul personaggio pubblico, non sulla piattaforma che consente la discussione su di esso. In breve: non è colpa nostra se ti fai amare od odiare; tale responsabilità è interamente tua e non sotto il nostro controllo.",
+      "3_strong": "Nessuna Affiliazione o Approvazione:",
+      "3": " Questo sito web non è affiliato, associato, autorizzato, approvato da, o in alcun modo ufficialmente collegato a nessuno dei personaggi pubblici menzionati, né a nessuna delle loro sussidiarie o affiliate.",
+      "4": "I nomi, così come qualsiasi immagine, marchio e diritto d'autore correlato, sono di proprietà dei rispettivi proprietari. L'uso di questi nomi e immagini è a scopo di identificazione, commento e critica, nel quadro del diritto alla libertà di espressione.",
+      "5_strong": "Contenuto Generato dagli Utenti:",
+      "5": " Tutto il contenuto generato dagli utenti, come commenti e voti, è di esclusiva responsabilità della persona che lo pubblica. WikiStars5 non è responsabile dell'accuratezza, veridicità o legalità di tale contenuto. Ci riserviamo il diritto di moderare o rimuovere i contenuti che violano le nostre politiche, ma non siamo obbligati a farlo.",
+      "6_strong": "Nessun Profitto Diretto dall'Immagine:",
+      "6": " La piattaforma non utilizza l'immagine o il nome dei personaggi pubblici per la vendita diretta di prodotti o servizi. Lo scopo è promuovere la discussione e il dibattito pubblico."
+    }
+  },
+  "PrivacyPolicyPage": {
+    "title": "Informativa sulla Privacy",
+    "sections": {
+      "1": {
+        "title": "1. Introduzione",
+        "content": "Benvenuti in WikiStars5. La vostra privacy è di massima importanza per noi. Questa Informativa sulla Privacy spiega quali dati raccogliamo, perché li raccogliamo e come potete visualizzare e gestire le vostre informazioni."
+      },
+      "2": {
+        "title": "2. Quali Informazioni Raccogliamo",
+        "intro": "Raccogliamo informazioni per fornire e migliorare i nostri servizi. Questo include:",
+        "points": [
+          {
+            "strong": "Informazioni che ci fornite:",
+            "text": " Quando vi registrate con Google, ci fornite il vostro nome, indirizzo email e foto del profilo. Potete anche aggiungere volontariamente un nome utente, un paese, un sesso e una breve descrizione al vostro profilo."
+          },
+          {
+            "strong": "Contenuti che generate:",
+            "text": " Raccogliamo i contenuti che create sulla nostra piattaforma, come i commenti che pubblicate, i voti di atteggiamento ed emozione che esprimete e le serie che generate. Queste informazioni sono di natura pubblica."
+          },
+          {
+            "strong": "Informazioni sull'attività:",
+            "text": " Raccogliamo informazioni sulla vostra attività sul nostro servizio, come il vostro stato online/offline, per migliorare l'esperienza della comunità."
+          }
+        ]
+      },
+      "3": {
+        "title": "3. Perché Raccogliamo i Dati",
+        "intro": "Utilizziamo le informazioni che raccogliamo per i seguenti scopi:",
+        "points": [
+          "Per fornire i nostri servizi: Per operare le funzioni principali di WikiStars5, come la visualizzazione del vostro profilo pubblico, commenti, voti e serie.",
+          "Per mantenere e migliorare i nostri servizi: Per capire come viene utilizzata la nostra piattaforma in modo da poterla migliorare.",
+          "Per comunicare con voi: Per inviarvi notifiche importanti, come risposte ai vostri commenti.",
+          "Per proteggere la nostra piattaforma e i nostri utenti: Utilizziamo le informazioni per contribuire a migliorare la sicurezza e l'affidabilità dei nostri servizi."
+        ]
+      },
+      "4": {
+        "title": "4. Condivisione delle Vostre Informazioni",
+        "intro": "Non condividiamo le vostre informazioni personali con aziende, organizzazioni o individui al di fuori di WikiStars5, tranne nei seguenti casi:",
+        "points": [
+          {
+            "strong": "Contenuti pubblici:",
+            "text": " Il vostro nome utente, la vostra foto del profilo (se ne avete una) e tutti i contenuti che generate (commenti, voti, ecc.) sono visibili pubblicamente agli altri utenti della piattaforma."
+          },
+          {
+            "strong": "Fornitori di servizi:",
+            "text": " Utilizziamo Google Firebase per l'autenticazione, il database e l'hosting. Google ha le proprie informative sulla privacy che regolano il modo in cui trattano i dati."
+          },
+          {
+            "strong": "Per motivi legali:",
+            "text": " Condivideremo le informazioni personali se riterremo in buona fede che l'accesso, l'uso, la conservazione o la divulgazione delle informazioni siano ragionevolmente necessari per conformarsi a leggi, regolamenti, procedimenti legali o richieste governative applicabili."
+          }
+        ]
+      },
+      "5": {
+        "title": "5. I Vostri Controlli sulla Privacy",
+        "intro": "Avete il controllo sulle informazioni che fornite e sulla vostra attività. Dalla vostra pagina del profilo, potete:",
+        "points": [
+          "Visualizzare e modificare le informazioni del vostro profilo, come nome utente, paese, sesso e descrizione.",
+          "Visualizzare un riepilogo della vostra attività, inclusi i vostri voti e le vostre serie."
+        ],
+        "outro": "Se desiderate eliminare il vostro account e tutte le informazioni associate, vi preghiamo di contattarci."
+      }
+    }
+  },
+  "RulesPage": {
+    "title": "Regole della Comunità",
+    "description": "Per mantenere un ambiente costruttivo e rispettoso, tutti i membri devono seguire queste regole.",
+    "rules": [
+      "Sii rispettoso. Attacchi personali, molestie, incitamento all'odio o minacce non saranno tollerati.",
+      "Mantieni la discussione incentrata sul personaggio pubblico. Le discussioni dovrebbero riguardare le loro azioni, carriera e percezione pubblica, non altri utenti.",
+      "Non pubblicare informazioni private (doxing) di nessuna persona, che si tratti di un personaggio pubblico o di un utente.",
+      "Evita lo spam e l'autopromozione. I commenti dovrebbero aggiungere valore alla discussione.",
+      "Non manipolare i voti. L'uso di bot, script o account multipli per alterare i risultati non è consentito.",
+      "Contenuti sessualmente espliciti, violenti o illegali sono severamente vietati.",
+      "Rispetta i diritti d'autore. Non pubblicare contenuti che non ti appartengono senza un'adeguata attribuzione."
+    ],
+    "conclusion": "Il mancato rispetto di queste regole può comportare la rimozione dei commenti, la sospensione temporanea o l'espulsione permanente dalla piattaforma. Ci riserviamo il diritto di moderare i contenuti per garantire la sicurezza e il benessere della nostra comunità."
+  },
+  "UserActivity": {
+    "title": "Attività Utente",
+    "description": "Un riepilogo delle interazioni dell'utente sulla piattaforma.",
+    "tabs": {
+      "attitudes": "Atteggiamento",
+      "emotions": "Emozioni",
+      "streaks": "Serie"
+    },
+    "noVotes": "Non hai votato come '{category}' per nessun profilo.",
+    "noStreaksTitle": "Non hai ancora serie attive",
+    "noStreaksDescription": "Guadagna serie lasciando un commento o rispondendo a uno su qualsiasi profilo in giorni consecutivi."
+  },
+  "countries": {
+    "all": "Tutti i paesi",
+    "afghanistan": "Afghanistan",
+    "aland_islands": "Isole Åland",
+    "albania": "Albania",
+    "germany": "Germania",
+    "andorra": "Andorra",
+    "angola": "Angola",
+    "anguilla": "Anguilla",
+    "antarctica": "Antartide",
+    "antigua_and_barbuda": "Antigua e Barbuda",
+    "saudi_arabia": "Arabia Saudita",
+    "algeria": "Algeria",
+    "argentina": "Argentina",
+    "armenia": "Armenia",
+    "aruba": "Aruba",
+    "australia": "Australia",
+    "austria": "Austria",
+    "azerbaijan": "Azerbaigian",
+    "bahamas": "Bahamas",
+    "bangladesh": "Bangladesh",
+    "barbados": "Barbados",
+    "bahrain": "Bahrein",
+    "belgium": "Belgio",
+    "belize": "Belize",
+    "benin": "Benin",
+    "bermuda": "Bermuda",
+    "belarus": "Bielorussia",
+    "bolivia": "Bolivia",
+    "bonaire_sint_eustatius_and_saba": "Bonaire, Sint Eustatius e Saba",
+    "bosnia_and_herzegovina": "Bosnia ed Erzegovina",
+    "botswana": "Botswana",
+    "brazil": "Brasile",
+    "brunei": "Brunei",
+    "bulgaria": "Bulgaria",
+    "burkina_faso": "Burkina Faso",
+    "burundi": "Burundi",
+    "bhutan": "Bhutan",
+    "cape_verde": "Capo Verde",
+    "cambodia": "Cambogia",
+    "cameroon": "Camerun",
+    "canada": "Canada",
+    "qatar": "Qatar",
+    "chad": "Ciad",
+    "czechia": "Cechia",
+    "chile": "Cile",
+    "china": "Cina",
+    "cyprus": "Cipro",
+    "colombia": "Colombia",
+    "comoros": "Comore",
+    "north_korea": "Corea del Nord",
+    "south_korea": "Corea del Sud",
+    "ivory_coast": "Costa d'Avorio",
+    "costa_rica": "Costa Rica",
+    "croatia": "Croazia",
+    "cuba": "Cuba",
+    "curacao": "Curaçao",
+    "denmark": "Danimarca",
+    "dominica": "Dominica",
+    "ecuador": "Ecuador",
+    "egypt": "Egitto",
+    "el_salvador": "El Salvador",
+    "united_arab_emirates": "Emirati Arabi Uniti",
+    "eritrea": "Eritrea",
+    "slovakia": "Slovacchia",
+    "slovenia": "Slovenia",
+    "spain": "Spagna",
+    "united_states": "Stati Uniti",
+    "estonia": "Estonia",
+    "eswatini": "Eswatini",
+    "ethiopia": "Etiopia",
+    "philippines": "Filippine",
+    "finland": "Finlandia",
+    "fiji": "Fiji",
+    "france": "Francia",
+    "gabon": "Gabon",
+    "gambia": "Gambia",
+    "georgia": "Georgia",
+    "ghana": "Ghana",
+    "gibraltar": "Gibilterra",
+    "grenada": "Grenada",
+    "greece": "Grecia",
+    "greenland": "Groenlandia",
+    "guadeloupe": "Guadalupa",
+    "guam": "Guam",
+    "guatemala": "Guatemala",
+    "french_guiana": "Guyana francese",
+    "guernsey": "Guernsey",
+    "guinea": "Guinea",
+    "guinea_bissau": "Guinea-Bissau",
+    "equatorial_guinea": "Guinea Equatoriale",
+    "guyana": "Guyana",
+    "haiti": "Haiti",
+    "honduras": "Honduras",
+    "hong_kong": "Hong Kong",
+    "hungary": "Ungheria",
+    "india": "India",
+    "indonesia": "Indonesia",
+    "iraq": "Iraq",
+    "iran": "Iran",
+    "ireland": "Irlanda",
+    "bouvet_island": "Isola Bouvet",
+    "isle_of_man": "Isola di Man",
+    "christmas_island": "Isola di Natale",
+    "norfolk_island": "Isola Norfolk",
+    "iceland": "Islanda",
+    "cayman_islands": "Isole Cayman",
+    "cocos_islands": "Isole Cocos (Keeling)",
+    "cook_islands": "Isole Cook",
+    "faroe_islands": "Isole Fær Øer",
+    "south_georgia_and_south_sandwich_islands": "Georgia del Sud e Isole Sandwich Australi",
+    "heard_island_and_mcdonald_islands": "Isola Heard e Isole McDonald",
+    "falkland_islands": "Isole Falkland",
+    "northern_mariana_islands": "Isole Marianne Settentrionali",
+    "marshall_islands": "Isole Marshall",
+    "pitcairn_islands": "Isole Pitcairn",
+    "solomon_islands": "Isole Salomone",
+    "turks_and_caicos_islands": "Isole Turks e Caicos",
+    "united_states_minor_outlying_islands": "Isole minori esterne degli Stati Uniti",
+    "british_virgin_islands": "Isole Vergini Britanniche",
+    "us_virgin_islands": "Isole Vergini Americane",
+    "israel": "Israele",
+    "italy": "Italia",
+    "jamaica": "Giamaica",
+    "japan": "Giappone",
+    "jersey": "Jersey",
+    "jordan": "Giordania",
+    "kazakhstan": "Kazakistan",
+    "kenya": "Kenya",
+    "kyrgyzstan": "Kirghizistan",
+    "kiribati": "Kiribati",
+    "kuwait": "Kuwait",
+    "laos": "Laos",
+    "lesotho": "Lesotho",
+    "latvia": "Lettonia",
+    "lebanon": "Libano",
+    "liberia": "Liberia",
+    "libya": "Libia",
+    "liechtenstein": "Liechtenstein",
+    "lithuania": "Lituania",
+    "luxembourg": "Lussemburgo",
+    "macao": "Macao",
+    "north_macedonia": "Macedonia del Nord",
+    "madagascar": "Madagascar",
+    "malaysia": "Malesia",
+    "malawi": "Malawi",
+    "maldives": "Maldive",
+    "mali": "Mali",
+    "malta": "Malta",
+    "morocco": "Marocco",
+    "martinique": "Martinica",
+    "mauritius": "Mauritius",
+    "mauritania": "Mauritania",
+    "mayotte": "Mayotte",
+    "mexico": "Messico",
+    "micronesia": "Micronesia",
+    "moldova": "Moldavia",
+    "monaco": "Monaco",
+    "mongolia": "Mongolia",
+    "montenegro": "Montenegro",
+    "montserrat": "Montserrat",
+    "mozambique": "Mozambico",
+    "myanmar": "Myanmar",
+    "namibia": "Namibia",
+    "nauru": "Nauru",
+    "nepal": "Nepal",
+    "nicaragua": "Nicaragua",
+    "niger": "Niger",
+    "nigeria": "Nigeria",
+    "niue": "Niue",
+    "norway": "Norvegia",
+    "new_caledonia": "Nuova Caledonia",
+    "new_zealand": "Nuova Zelanda",
+    "oman": "Oman",
+    "netherlands": "Paesi Bassi",
+    "pakistan": "Pakistan",
+    "palau": "Palau",
+    "palestine": "Palestina",
+    "panama": "Panama",
+    "papua_new_guinea": "Papua Nuova Guinea",
+    "paraguay": "Paraguay",
+    "peru": "Perù",
+    "french_polynesia": "Polinesia francese",
+    "poland": "Polonia",
+    "portugal": "Portogallo",
+    "puerto_rico": "Porto Rico",
+    "united_kingdom": "Regno Unito",
+    "central_african_republic": "Repubblica Centrafricana",
+    "republic_of_the_congo": "Repubblica del Congo",
+    "democratic_republic_of_the_congo": "Repubblica Democratica del Congo",
+    "dominican_republic": "Repubblica Dominicana",
+    "reunion": "Réunion",
+    "rwanda": "Ruanda",
+    "romania": "Romania",
+    "russia": "Russia",
+    "western_sahara": "Sahara Occidentale",
+    "samoa": "Samoa",
+    "american_samoa": "Samoa Americane",
+    "saint_barthelemy": "Saint Barthélemy",
+    "saint_kitts_and_nevis": "Saint Kitts e Nevis",
+    "san_marino": "San Marino",
+    "saint_martin": "Saint Martin",
+    "saint_pierre_and_miquelon": "Saint-Pierre e Miquelon",
+    "saint_vincent_and_the_grenadines": "Saint Vincent e Grenadine",
+    "saint_helena_ascension_and_tristan_da_cunha": "Sant'Elena, Ascensione e Tristan da Cunha",
+    "saint_lucia": "Santa Lucia",
+    "sao_tome_and_principe": "São Tomé e Príncipe",
+    "senegal": "Senegal",
+    "serbia": "Serbia",
+    "seychelles": "Seychelles",
+    "sierra_leone": "Sierra Leone",
+    "singapore": "Singapore",
+    "sint_maarten": "Sint Maarten",
+    "syria": "Siria",
+    "somalia": "Somalia",
+    "sri_lanka": "Sri Lanka",
+    "south_africa": "Sudafrica",
+    "sudan": "Sudan",
+    "south_sudan": "Sudan del Sud",
+    "sweden": "Svezia",
+    "switzerland": "Svizzera",
+    "suriname": "Suriname",
+    "svalbard_and_jan_mayen": "Svalbard e Jan Mayen",
+    "thailand": "Thailandia",
+    "taiwan": "Taiwan",
+    "tanzania": "Tanzania",
+    "tajikistan": "Tagikistan",
+    "british_indian_ocean_territory": "Territorio britannico dell'Oceano Indiano",
+    "french_southern_territories": "Terre australi e antartiche francesi",
+    "timor_leste": "Timor Est",
+    "togo": "Togo",
+    "tokelau": "Tokelau",
+    "tonga": "Tonga",
+    "trinidad_and_tobago": "Trinidad e Tobago",
+    "tunisia": "Tunisia",
+    "turkmenistan": "Turkmenistan",
+    "turkey": "Turchia",
+    "tuvalu": "Tuvalu",
+    "ukraine": "Ucraina",
+    "uganda": "Uganda",
+    "uruguay": "Uruguay",
+    "uzbekistan": "Uzbekistan",
+    "vanuatu": "Vanuatu",
+    "vatican_city": "Città del Vaticano",
+    "venezuela": "Venezuela",
+    "vietnam": "Vietnam",
+    "wallis_and_futuna": "Wallis e Futuna",
+    "yemen": "Yemen",
+    "djibouti": "Gibuti",
+    "zambia": "Zambia",
+    "zimbabwe": "Zimbabwe"
+  }
+}

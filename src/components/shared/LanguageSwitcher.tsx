@@ -82,6 +82,20 @@ export default function LanguageSwitcher() {
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem 
+          onSelect={() => setLanguage('it')}
+          className={cn(language === 'it' && 'bg-accent/50')}
+        >
+          <div className="flex items-center gap-2">
+            <Image
+              src="https://flagcdn.com/w20/it.png"
+              alt="Bandiera d'Italia"
+              width={20}
+              height={15}
+            />
+            <span>Italiano</span>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem 
           onSelect={() => setLanguage('zh')}
           className={cn(language === 'zh' && 'bg-accent/50')}
         >

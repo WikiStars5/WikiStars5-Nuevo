@@ -8,8 +8,9 @@ import enMessages from '@/messages/en.json';
 import ptMessages from '@/messages/pt.json';
 import zhMessages from '@/messages/zh.json';
 import frMessages from '@/messages/fr.json';
+import itMessages from '@/messages/it.json';
 
-type Language = 'es' | 'en' | 'pt' | 'zh' | 'fr';
+type Language = 'es' | 'en' | 'pt' | 'zh' | 'fr' | 'it';
 
 interface LanguageContextType {
   language: Language;
@@ -26,6 +27,7 @@ const messages: Record<Language, any> = {
   pt: ptMessages,
   zh: zhMessages,
   fr: frMessages,
+  it: itMessages,
 };
 
 function getNestedValue(obj: any, key: string): string | undefined {
@@ -39,7 +41,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     // This effect runs on the client side
     const savedLanguage = localStorage.getItem('wikistars5-lang') as Language;
-    if (savedLanguage && (savedLanguage === 'es' || savedLanguage === 'en' || savedLanguage === 'pt' || savedLanguage === 'zh' || savedLanguage === 'fr')) {
+    if (savedLanguage && (savedLanguage === 'es' || savedLanguage === 'en' || savedLanguage === 'pt' || savedLanguage === 'zh' || savedLanguage === 'fr' || savedLanguage === 'it')) {
       setLanguageState(savedLanguage);
     }
   }, []);
