@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,32 +6,35 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface DateInputProps {
   value?: string;
   onChange: (value: string) => void;
 }
 
-const months = [
-  { value: '01', label: 'Enero' },
-  { value: '02', label: 'Febrero' },
-  { value: '03', label: 'Marzo' },
-  { value: '04', label: 'Abril' },
-  { value: '05', label: 'Mayo' },
-  { value: '06', label: 'Junio' },
-  { value: '07', label: 'Julio' },
-  { value: '08', label: 'Agosto' },
-  { value: '09', label: 'Septiembre' },
-  { value: '10', label: 'Octubre' },
-  { value: '11', label: 'Noviembre' },
-  { value: '12', label: 'Diciembre' },
-];
-
 export default function DateInput({ value, onChange }: DateInputProps) {
+  const { t } = useLanguage();
   const [day, setDay] = React.useState('');
   const [month, setMonth] = React.useState('');
   const [year, setYear] = React.useState('');
   const [era, setEra] = React.useState<'DC' | 'AC'>('DC');
+
+  const months = React.useMemo(() => [
+    { value: '01', label: t('EditFigure.dateInput.months.january') },
+    { value: '02', label: t('EditFigure.dateInput.months.february') },
+    { value: '03', label: t('EditFigure.dateInput.months.march') },
+    { value: '04', label: t('EditFigure.dateInput.months.april') },
+    { value: '05', label: t('EditFigure.dateInput.months.may') },
+    { value: '06', label: t('EditFigure.dateInput.months.june') },
+    { value: '07', label: t('EditFigure.dateInput.months.july') },
+    { value: '08', label: t('EditFigure.dateInput.months.august') },
+    { value: '09', label: t('EditFigure.dateInput.months.september') },
+    { value: '10', label: t('EditFigure.dateInput.months.october') },
+    { value: '11', label: t('EditFigure.dateInput.months.november') },
+    { value: '12', label: t('EditFigure.dateInput.months.december') },
+  ], [t]);
+
 
   React.useEffect(() => {
     if (value) {
@@ -103,11 +107,11 @@ export default function DateInput({ value, onChange }: DateInputProps) {
         >
             <div className="flex items-center space-x-2">
                 <RadioGroupItem value="DC" id="dc" />
-                <Label htmlFor="dc">d. C.</Label>
+                <Label htmlFor="dc">{t('EditFigure.dateInput.eraAD')}</Label>
             </div>
             <div className="flex items-center space-x-2">
                 <RadioGroupItem value="AC" id="ac" />
-                <Label htmlFor="ac">a. C.</Label>
+                <Label htmlFor="ac">{t('EditFigure.dateInput.eraBC')}</Label>
             </div>
         </RadioGroup>
 
@@ -116,7 +120,7 @@ export default function DateInput({ value, onChange }: DateInputProps) {
                 <>
                 <Select value={day} onValueChange={handleDayChange}>
                     <SelectTrigger>
-                    <SelectValue placeholder="Día" />
+                    <SelectValue placeholder={t('EditFigure.dateInput.day')} />
                     </SelectTrigger>
                     <SelectContent>
                     {Array.from({ length: 31 }, (_, i) => (
@@ -129,7 +133,7 @@ export default function DateInput({ value, onChange }: DateInputProps) {
 
                 <Select value={month} onValueChange={handleMonthChange}>
                     <SelectTrigger>
-                    <SelectValue placeholder="Mes" />
+                    <SelectValue placeholder={t('EditFigure.dateInput.month')} />
                     </SelectTrigger>
                     <SelectContent>
                     {months.map(m => (
@@ -146,7 +150,7 @@ export default function DateInput({ value, onChange }: DateInputProps) {
 
             <Input
                 type="text"
-                placeholder="Año"
+                placeholder={t('EditFigure.dateInput.year')}
                 value={year}
                 onChange={handleYearChange}
                 pattern="[0-9]*"

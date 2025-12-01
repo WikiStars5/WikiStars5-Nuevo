@@ -22,6 +22,7 @@ import { CountrySelector } from './country-selector';
 import DateInput from './date-input';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '../ui/badge';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface EditInformationFormProps {
   figure: Figure;
@@ -29,23 +30,23 @@ interface EditInformationFormProps {
 }
 
 const SOCIAL_MEDIA_CONFIG = {
-    website: { label: 'Página Web', placeholder: 'https://...' },
-    instagram: { label: 'Instagram', placeholder: 'https://instagram.com/...' },
-    twitter: { label: 'X (Twitter)', placeholder: 'https://x.com/...' },
-    youtube: { label: 'YouTube', placeholder: 'https://youtube.com/...' },
-    facebook: { label: 'Facebook', placeholder: 'https://facebook.com/...' },
-    tiktok: { label: 'TikTok', placeholder: 'https://tiktok.com/@...' },
-    linkedin: { label: 'LinkedIn', placeholder: 'https://linkedin.com/in/...' },
-    discord: { label: 'Discord', placeholder: 'https://discord.gg/...' },
-    wikipedia: { label: 'Wikipedia', placeholder: 'https://es.wikipedia.org/wiki/...' },
-    fandom: { label: 'Fandom', placeholder: 'https://comunidad.fandom.com/wiki/...' },
+    website: { label: 'socialMedia.websiteLabel', placeholder: 'https://...' },
+    instagram: { label: 'socialMedia.instagramLabel', placeholder: 'https://instagram.com/...' },
+    twitter: { label: 'socialMedia.twitterLabel', placeholder: 'https://x.com/...' },
+    youtube: { label: 'socialMedia.youtubeLabel', placeholder: 'https://youtube.com/...' },
+    facebook: { label: 'socialMedia.facebookLabel', placeholder: 'https://facebook.com/...' },
+    tiktok: { label: 'socialMedia.tiktokLabel', placeholder: 'https://tiktok.com/@...' },
+    linkedin: { label: 'socialMedia.linkedinLabel', placeholder: 'https://linkedin.com/in/...' },
+    discord: { label: 'socialMedia.discordLabel', placeholder: 'https://discord.gg/...' },
+    wikipedia: { label: 'socialMedia.wikipediaLabel', placeholder: 'https://es.wikipedia.org/wiki/...' },
+    fandom: { label: 'socialMedia.fandomLabel', placeholder: 'https://comunidad.fandom.com/wiki/...' },
 } as const;
 
 type SocialPlatform = keyof typeof SOCIAL_MEDIA_CONFIG;
 
-const urlSchema = (domain: string) => z.string().url("URL inválida.").optional().or(z.literal('')).refine(
+const urlSchema = (domain: string, message: string) => z.string().url("URL inválida.").optional().or(z.literal('')).refine(
     (url) => !url || url.includes(domain),
-    { message: `La URL debe ser de ${domain}.` }
+    { message }
 );
 
 const editFormSchema = z.object({
@@ -59,7 +60,7 @@ const editFormSchema = z.object({
   height: z.number().min(100).max(250).optional(),
   socialLinks: z.object({
     website: z.string().url("URL inválida.").optional().or(z.literal('')),
-    instagram: urlSchema('instagram.com'),
+    instagram: urlSchema('instagram.com', 'La URL debe ser de instagram.com.'),
     twitter: z.string().url("URL inválida.").optional().or(z.literal('')).refine(
         (url) => !url || url.includes('x.com') || url.includes('twitter.com'),
         { message: 'La URL debe ser de x.com o twitter.com.' }
@@ -68,12 +69,12 @@ const editFormSchema = z.object({
         (url) => !url || url.includes('youtube.com') || url.includes('youtu.be'),
         { message: 'La URL debe ser de youtube.com o youtu.be.' }
     ),
-    facebook: urlSchema('facebook.com'),
-    tiktok: urlSchema('tiktok.com'),
-    linkedin: urlSchema('linkedin.com'),
-    discord: urlSchema('discord.gg'),
-    wikipedia: urlSchema('wikipedia.org'),
-    fandom: urlSchema('fandom.com'),
+    facebook: urlSchema('facebook.com', 'La URL debe ser de facebook.com'),
+    tiktok: urlSchema('tiktok.com', 'La URL debe ser de tiktok.com'),
+    linkedin: urlSchema('linkedin.com', 'La URL debe ser de linkedin.com'),
+    discord: urlSchema('discord.gg', 'La URL debe ser de discord.gg'),
+    wikipedia: urlSchema('wikipedia.org', 'La URL debe ser de wikipedia.org'),
+    fandom: urlSchema('fandom.com', 'La URL debe ser de fandom.com'),
   }).optional(),
 });
 
@@ -116,6 +117,7 @@ const getSanitizedDefaultValues = (figure: Figure): Omit<EditFormValues, 'name'>
 export default function EditInformationForm({ figure, onFormClose }: EditInformationFormProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [isSaving, setIsSaving] = React.useState(false);
   
   const form = useForm<EditFormValues>({
@@ -158,16 +160,16 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
       await batch.commit();
 
       toast({
-        title: '¡Perfil Actualizado!',
-        description: `La información de ${figure.name} ha sido guardada.`,
+        title: t('EditFigure.toast.successTitle'),
+        description: t('EditFigure.toast.successDescription').replace('{name}', figure.name),
       });
       onFormClose();
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
         variant: 'destructive',
-        title: 'Error al Guardar',
-        description: 'No se pudo actualizar el perfil. Por favor, inténtalo de nuevo.',
+        title: t('EditFigure.toast.errorTitle'),
+        description: t('EditFigure.toast.errorDescription'),
       });
     } finally {
       setIsSaving(false);
@@ -179,8 +181,8 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardHeader>
-                <CardTitle>Editar Información</CardTitle>
-                <CardDescription>Modifica los datos biográficos de ${figure.name}.</CardDescription>
+                <CardTitle>{t('EditFigure.title')}</CardTitle>
+                <CardDescription>{t('EditFigure.description').replace('{name}', figure.name)}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 pt-6">
                 <div className="space-y-4">
@@ -188,7 +190,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20.4 14.5c0-1.6-1.3-3-3-3s-3 1.3-3 3c0 .8.3 1.5.8 2.1l-2.7 2.7c-.4.4-.4 1 0 1.4.2.2.5.3.7.3s.5-.1.7-.3l2.7-2.7c.6.5 1.3.8 2.1.8 1.7 0 3-1.4 3-3Z"/></svg>
                         </span>
-                        Imagen de Perfil
+                        {t('EditFigure.profileImage.title')}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                         <div className="md:col-span-2 space-y-2">
@@ -197,13 +199,13 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 name="imageUrl"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>URL de la Imagen</FormLabel>
+                                        <FormLabel>{t('EditFigure.profileImage.urlLabel')}</FormLabel>
                                         <FormControl>
                                             <Input placeholder="https://upload.wikimedia.org/..." {...field} value={field.value || ''}/>
                                         </FormControl>
                                         <div className="flex items-center justify-between pt-1">
                                             <p className="text-xs text-muted-foreground">
-                                                Solo se permiten URLs de `upload.wikimedia.org` y `i.pinimg.com`.
+                                                {t('EditFigure.profileImage.urlHint')}
                                             </p>
                                             {field.value && (
                                                 <Button
@@ -214,7 +216,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                                     onClick={() => form.setValue('imageUrl', '')}
                                                 >
                                                     <Trash2 className="mr-1 h-3 w-3" />
-                                                    Eliminar enlace
+                                                    {t('EditFigure.profileImage.removeLink')}
                                                 </Button>
                                             )}
                                         </div>
@@ -224,7 +226,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 />
                         </div>
                         <div className="space-y-2">
-                             <Label>Vista Previa</Label>
+                             <Label>{t('EditFigure.profileImage.preview')}</Label>
                              <div className="aspect-square relative w-full max-w-[150px] rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
                                 {isValidImageUrl(imageUrlWatcher) ? (
                                     <Image src={imageUrlWatcher!} alt="Vista previa" fill objectFit="cover" />
@@ -241,7 +243,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         </span>
-                        Información Personal
+                        {t('EditFigure.personalInfo.title')}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField
@@ -249,16 +251,16 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             name="gender"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Sexo</FormLabel>
+                                <FormLabel>{t('EditFigure.personalInfo.genderLabel')}</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value || ''}>
                                     <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona un sexo" />
+                                        <SelectValue placeholder={t('EditFigure.personalInfo.selectGender')} />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="Femenino">Femenino</SelectItem>
-                                        <SelectItem value="Masculino">Masculino</SelectItem>
+                                        <SelectItem value="Femenino">{t('EditFigure.personalInfo.genderFemale')}</SelectItem>
+                                        <SelectItem value="Masculino">{t('EditFigure.personalInfo.genderMale')}</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -270,7 +272,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             name="birthDate"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                    <FormLabel>Fecha de Nacimiento</FormLabel>
+                                    <FormLabel>{t('EditFigure.personalInfo.birthDateLabel')}</FormLabel>
                                     <FormControl>
                                         <DateInput
                                             value={field.value || ''}
@@ -286,7 +288,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             name="deathDate"
                             render={({ field }) => (
                                <FormItem className="flex flex-col">
-                                    <FormLabel>Fecha de Fallecimiento</FormLabel>
+                                    <FormLabel>{t('EditFigure.personalInfo.deathDateLabel')}</FormLabel>
                                     <FormControl>
                                         <DateInput
                                             value={field.value || ''}
@@ -302,7 +304,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             name="nationality"
                             render={({ field }) => (
                                 <FormItem className="flex flex-col">
-                                <FormLabel>País de origen</FormLabel>
+                                <FormLabel>{t('EditFigure.personalInfo.countryLabel')}</FormLabel>
                                  <CountrySelector
                                     value={field.value || ''}
                                     onChange={field.onChange}
@@ -316,9 +318,9 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             name="occupation"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Ocupación</FormLabel>
+                                <FormLabel>{t('EditFigure.personalInfo.occupationLabel')}</FormLabel>
                                 <FormControl>
-                                    <Input {...field} placeholder="Ej: Futbolista, Cantante" value={field.value || ''} maxLength={20} />
+                                    <Input {...field} placeholder={t('EditFigure.personalInfo.occupationPlaceholder')} value={field.value || ''} maxLength={20} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -329,19 +331,19 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             name="maritalStatus"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Estado Civil</FormLabel>
+                                <FormLabel>{t('EditFigure.personalInfo.maritalStatusLabel')}</FormLabel>
                                 <Select onValueChange={field.onChange} value={field.value || ''}>
                                     <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Selecciona un estado civil" />
+                                        <SelectValue placeholder={t('EditFigure.personalInfo.selectMaritalStatus')} />
                                     </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="Soltero/a">Soltero/a</SelectItem>
-                                        <SelectItem value="Casado/a">Casado/a</SelectItem>
-                                        <SelectItem value="Divorciado/a">Divorciado/a</SelectItem>
-                                        <SelectItem value="Viudo/a">Viudo/a</SelectItem>
-                                        <SelectItem value="Separado/Ex-Conviviente">Separado/Ex-Conviviente</SelectItem>
+                                        <SelectItem value="Soltero/a">{t('EditFigure.personalInfo.statusSingle')}</SelectItem>
+                                        <SelectItem value="Casado/a">{t('EditFigure.personalInfo.statusMarried')}</SelectItem>
+                                        <SelectItem value="Divorciado/a">{t('EditFigure.personalInfo.statusDivorced')}</SelectItem>
+                                        <SelectItem value="Viudo/a">{t('EditFigure.personalInfo.statusWidowed')}</SelectItem>
+                                        <SelectItem value="Separado/Ex-Conviviente">{t('EditFigure.personalInfo.statusSeparated')}</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -353,7 +355,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                             name="height"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Altura</FormLabel>
+                                    <FormLabel>{t('EditFigure.personalInfo.heightLabel')}</FormLabel>
                                     <div className="flex items-center gap-4">
                                         <FormControl>
                                             <Slider
@@ -366,7 +368,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                             />
                                         </FormControl>
                                         <span className="w-[20%] text-center text-sm font-medium text-muted-foreground">
-                                            {heightWatcher ? `${heightWatcher} cm` : 'N/A'}
+                                            {heightWatcher ? `${heightWatcher} ${t('EditFigure.personalInfo.heightUnit')}` : 'N/A'}
                                         </span>
                                     </div>
                                     <FormMessage />
@@ -381,7 +383,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
                             <LinkIcon />
                         </span>
-                        Redes Sociales y Wikis
+                        {t('EditFigure.socialMedia.title')}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                         {(Object.keys(SOCIAL_MEDIA_CONFIG) as SocialPlatform[]).map((platform) => (
@@ -391,7 +393,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 name={`socialLinks.${platform}`}
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{SOCIAL_MEDIA_CONFIG[platform].label}</FormLabel>
+                                        <FormLabel>{t(`EditFigure.${SOCIAL_MEDIA_CONFIG[platform].label}`)}</FormLabel>
                                         <div className="relative">
                                             <FormControl>
                                                 <Input 
@@ -425,11 +427,11 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
             <CardFooter className="flex justify-end gap-2 p-6 border-t mt-6">
                 <Button variant="ghost" onClick={onFormClose} type="button">
                     <X className="mr-2 h-4 w-4" />
-                    Cancelar
+                    {t('EditFigure.buttons.cancel')}
                 </Button>
                 <Button type="submit" disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Guardar Cambios
+                    {t('EditFigure.buttons.save')}
                 </Button>
             </CardFooter>
         </form>
@@ -437,5 +439,3 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
-
-    

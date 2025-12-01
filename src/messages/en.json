@@ -1,4 +1,3 @@
-
 {
   "Footer": {
     "rules": "Rules",
@@ -350,7 +349,84 @@
     "title": "Top Active Streaks",
     "description": "Users with the longest comment streaks for this profile.",
     "noStreaks": "No active streaks yet. Be the first to comment on consecutive days!"
+  },
+  "EditFigure": {
+    "title": "Edit Information",
+    "description": "Modify the biographical data of {name}.",
+    "profileImage": {
+      "title": "Profile Image",
+      "urlLabel": "Image URL",
+      "urlHint": "Only URLs from `upload.wikimedia.org` and `i.pinimg.com` are allowed.",
+      "removeLink": "Remove link",
+      "preview": "Preview"
+    },
+    "personalInfo": {
+      "title": "Personal Information",
+      "genderLabel": "Gender",
+      "selectGender": "Select a gender",
+      "genderMale": "Male",
+      "genderFemale": "Female",
+      "birthDateLabel": "Date of Birth",
+      "deathDateLabel": "Date of Death",
+      "countryLabel": "Country of origin",
+      "occupationLabel": "Occupation",
+      "occupationPlaceholder": "e.g., Footballer, Singer",
+      "maritalStatusLabel": "Marital Status",
+      "selectMaritalStatus": "Select a marital status",
+      "statusSingle": "Single",
+      "statusMarried": "Married",
+      "statusDivorced": "Divorced",
+      "statusWidowed": "Widowed",
+      "statusSeparated": "Separated"
+    },
+    "socialMedia": {
+      "title": "Social Media and Wikis",
+      "websiteLabel": "Website",
+      "instagramLabel": "Instagram",
+      "twitterLabel": "X (Twitter)",
+      "youtubeLabel": "YouTube",
+      "facebookLabel": "Facebook",
+      "tiktokLabel": "TikTok",
+      "linkedinLabel": "LinkedIn",
+      "discordLabel": "Discord",
+      "wikipediaLabel": "Wikipedia",
+      "fandomLabel": "Fandom"
+    },
+    "dateInput": {
+      "eraAD": "AD",
+      "eraBC": "BC",
+      "day": "Day",
+      "month": "Month",
+      "year": "Year",
+      "months": {
+        "january": "January",
+        "february": "February",
+        "march": "March",
+        "april": "April",
+        "may": "May",
+        "june": "June",
+        "july": "July",
+        "august": "August",
+        "september": "September",
+        "october": "October",
+        "november": "November",
+        "december": "December"
+      }
+    },
+    "countrySelector": {
+      "placeholder": "Select a country...",
+      "searchPlaceholder": "Search country...",
+      "noResults": "Country not found."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "save": "Save Changes"
+    },
+    "toast": {
+      "successTitle": "Profile Updated!",
+      "successDescription": "The information for {name} has been saved.",
+      "errorTitle": "Error Saving",
+      "errorDescription": "Could not update the profile. Please try again."
+    }
   }
 }
-
-    

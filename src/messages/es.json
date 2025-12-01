@@ -1,4 +1,3 @@
-
 {
   "Footer": {
     "rules": "Reglas",
@@ -350,7 +349,86 @@
     "title": "Top Rachas Activas",
     "description": "Los usuarios con las rachas de comentarios más largas para este perfil.",
     "noStreaks": "Aún no hay rachas activas. ¡Sé el primero en comentar varios días seguidos!"
+  },
+  "EditFigure": {
+    "title": "Editar Información",
+    "description": "Modifica los datos biográficos de {name}.",
+    "profileImage": {
+      "title": "Imagen de Perfil",
+      "urlLabel": "URL de la Imagen",
+      "urlHint": "Solo se permiten URLs de `upload.wikimedia.org` y `i.pinimg.com`.",
+      "removeLink": "Eliminar enlace",
+      "preview": "Vista Previa"
+    },
+    "personalInfo": {
+      "title": "Información Personal",
+      "genderLabel": "Sexo",
+      "selectGender": "Selecciona un sexo",
+      "genderMale": "Masculino",
+      "genderFemale": "Femenino",
+      "birthDateLabel": "Fecha de Nacimiento",
+      "deathDateLabel": "Fecha de Fallecimiento",
+      "countryLabel": "País de origen",
+      "occupationLabel": "Ocupación",
+      "occupationPlaceholder": "Ej: Futbolista, Cantante",
+      "maritalStatusLabel": "Estado Civil",
+      "selectMaritalStatus": "Selecciona un estado civil",
+      "statusSingle": "Soltero/a",
+      "statusMarried": "Casado/a",
+      "statusDivorced": "Divorciado/a",
+      "statusWidowed": "Viudo/a",
+      "statusSeparated": "Separado/Ex-Conviviente",
+      "heightLabel": "Altura",
+      "heightUnit": "cm"
+    },
+    "socialMedia": {
+      "title": "Redes Sociales y Wikis",
+      "websiteLabel": "Página Web",
+      "instagramLabel": "Instagram",
+      "twitterLabel": "X (Twitter)",
+      "youtubeLabel": "YouTube",
+      "facebookLabel": "Facebook",
+      "tiktokLabel": "TikTok",
+      "linkedinLabel": "LinkedIn",
+      "discordLabel": "Discord",
+      "wikipediaLabel": "Wikipedia",
+      "fandomLabel": "Fandom"
+    },
+    "dateInput": {
+      "eraAD": "d. C.",
+      "eraBC": "a. C.",
+      "day": "Día",
+      "month": "Mes",
+      "year": "Año",
+      "months": {
+        "january": "Enero",
+        "february": "Febrero",
+        "march": "Marzo",
+        "april": "Abril",
+        "may": "Mayo",
+        "june": "Junio",
+        "july": "Julio",
+        "august": "Agosto",
+        "september": "Septiembre",
+        "october": "Octubre",
+        "november": "Noviembre",
+        "december": "Diciembre"
+      }
+    },
+    "countrySelector": {
+      "placeholder": "Selecciona un país...",
+      "searchPlaceholder": "Buscar país...",
+      "noResults": "No se encontró el país."
+    },
+    "buttons": {
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios"
+    },
+    "toast": {
+      "successTitle": "¡Perfil Actualizado!",
+      "successDescription": "La información de {name} ha sido guardada.",
+      "errorTitle": "Error al Guardar",
+      "errorDescription": "No se pudo actualizar el perfil. Por favor, inténtalo de nuevo."
+    }
   }
 }
-
-    

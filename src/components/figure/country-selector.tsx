@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -20,6 +21,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { countries } from '@/lib/countries';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface CountrySelectorProps {
   value?: string;
@@ -28,6 +30,7 @@ interface CountrySelectorProps {
 
 export function CountrySelector({ value, onChange }: CountrySelectorProps) {
   const [open, setOpen] = React.useState(false);
+  const { t } = useLanguage();
 
   // Find the full country object from the saved value (which is just the name)
   const selectedCountry = countries.find(
@@ -55,16 +58,16 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
               <span className="truncate">{selectedCountry.name}</span>
             </div>
           ) : (
-            'Selecciona un país...'
+            t('EditFigure.countrySelector.placeholder')
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
         <Command>
-          <CommandInput placeholder="Buscar país..." />
+          <CommandInput placeholder={t('EditFigure.countrySelector.searchPlaceholder')} />
           <CommandList>
-            <CommandEmpty>No se encontró el país.</CommandEmpty>
+            <CommandEmpty>{t('EditFigure.countrySelector.noResults')}</CommandEmpty>
             <CommandGroup>
               {countries.map((country) => (
                 <CommandItem
