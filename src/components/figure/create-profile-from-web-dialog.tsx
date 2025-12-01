@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -25,6 +24,7 @@ import { AlertCircle, CheckCircle2, Globe, Loader2, ArrowRight } from 'lucide-re
 import { verifyDomain } from '@/ai/flows/verify-domain';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
+import { useLanguage } from '@/context/LanguageContext';
 
 const domainSchema = z.object({
   domain: z
@@ -37,26 +37,17 @@ interface CreateProfileFromWebDialogProps {
   onProfileCreated: () => void;
 }
 
-/**
- * Extracts and cleans the root domain from a given string.
- * "https://www.example.co.uk/path" -> "example.co.uk"
- * "https://es.famousbirthdays.com" -> "famousbirthdays.com"
- */
 function cleanDomain(input: string): string {
     let domain = input;
-    // Remove protocol
     domain = domain.replace(/^(https?:\/\/)?/, '');
-    // Remove path
     domain = domain.split('/')[0];
     
     const parts = domain.split('.');
     
-    // Handle cases like .co.uk, .com.au, etc.
     if (parts.length > 2 && (parts[parts.length-2] === 'co' || parts[parts.length-2] === 'com')) {
         return parts.slice(-3).join('.');
     }
     
-    // Handle standard domains like example.com or sub.example.com
     if (parts.length > 2) {
         return parts.slice(-2).join('.');
     }
@@ -69,6 +60,7 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -88,7 +80,7 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
     const domainToVerify = cleanDomain(data.domain);
 
     if (!domainToVerify) {
-        setVerificationError('Por favor, introduce un dominio válido.');
+        setVerificationError(t('CreateProfile.Web.validation.invalidDomain'));
         setIsVerifying(false);
         return;
     }
@@ -97,17 +89,17 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
       const result = await verifyDomain({ domain: domainToVerify });
       if (result.isValid) {
         toast({
-          title: 'Dominio Válido',
-          description: `El dominio ${domainToVerify} es accesible.`,
+          title: t('CreateProfile.Web.toast.validDomainTitle'),
+          description: t('CreateProfile.Web.toast.validDomainDescription').replace('{domain}', domainToVerify),
         });
         setVerifiedDomain(domainToVerify);
         setCurrentStep('confirm');
       } else {
-        setVerificationError(result.error || 'No se pudo verificar el dominio.');
+        setVerificationError(result.error || t('CreateProfile.Web.toast.verificationFailed'));
       }
     } catch (error) {
       console.error('Error verifying domain:', error);
-      setVerificationError('Ocurrió un error inesperado al verificar el dominio.');
+      setVerificationError(t('CreateProfile.Web.toast.unexpectedError'));
     } finally {
       setIsVerifying(false);
     }
@@ -125,8 +117,8 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
       if (docSnap.exists()) {
         toast({
           variant: 'destructive',
-          title: 'Perfil Duplicado',
-          description: `Ya existe un perfil para ${verifiedDomain}. Redirigiendo...`,
+          title: t('CreateProfile.toast.duplicateTitle'),
+          description: t('CreateProfile.toast.duplicateDescriptionRedirect').replace('{name}', verifiedDomain),
         });
         router.push(`/figures/${slug}`);
         onProfileCreated();
@@ -145,14 +137,14 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
         isFeatured: false,
         nameKeywords: keywords,
         createdAt: serverTimestamp(),
-        approved: true, // Web profiles are auto-approved
+        approved: true,
       };
 
       setDocumentNonBlocking(figureRef, figureData, { merge: false });
 
       toast({
-        title: '¡Perfil Creado!',
-        description: `El perfil para ${verifiedDomain} ha sido añadido.`,
+        title: t('CreateProfile.toast.createSuccessTitle'),
+        description: t('CreateProfile.toast.createSuccessDescription').replace('{name}', verifiedDomain),
       });
       
       router.push(`/figures/${slug}`);
@@ -162,8 +154,8 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
       console.error('Error creating profile:', error);
       toast({
         variant: 'destructive',
-        title: 'Error al Crear',
-        description: 'No se pudo crear el perfil. Inténtalo de nuevo.',
+        title: t('CreateProfile.toast.createErrorTitle'),
+        description: t('CreateProfile.toast.createErrorDescription'),
       });
     } finally {
       setIsCreating(false);
@@ -180,11 +172,11 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
   return (
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Crear Perfil Web</DialogTitle>
+        <DialogTitle>{t('CreateProfile.Web.title')}</DialogTitle>
         <DialogDescription>
           {currentStep === 'verify'
-            ? 'Verifica un dominio para crear un perfil web básico.'
-            : 'Confirma la creación del perfil para el dominio verificado.'}
+            ? t('CreateProfile.Web.verifyDescription')
+            : t('CreateProfile.Web.confirmDescription')}
         </DialogDescription>
       </DialogHeader>
 
@@ -198,14 +190,14 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
                 render={({ field }) => (
                   <FormItem className="flex-1">
                     <FormControl>
-                      <Input placeholder="ejemplo.com o https://ejemplo.com" {...field} disabled={isVerifying} />
+                      <Input placeholder={t('CreateProfile.Web.placeholder')} {...field} disabled={isVerifying} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <Button type="submit" disabled={isVerifying} className="w-[180px]">
-                {isVerifying ? <Loader2 className="animate-spin" /> : <><Globe className="mr-2" /> Verificar</>}
+                {isVerifying ? <Loader2 className="animate-spin" /> : <><Globe className="mr-2" /> {t('CreateProfile.Web.verifyButton')}</>}
               </Button>
             </form>
           </Form>
@@ -213,7 +205,7 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
           {verificationError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Verificación Fallida</AlertTitle>
+              <AlertTitle>{t('CreateProfile.Web.verificationFailedTitle')}</AlertTitle>
               <AlertDescription>{verificationError}</AlertDescription>
             </Alert>
           )}
@@ -225,10 +217,10 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="text-green-500" /> Dominio Verificado
+                <CheckCircle2 className="text-green-500" /> {t('CreateProfile.Web.verifiedTitle')}
               </CardTitle>
               <CardDescription>
-                ¿Deseas crear un perfil para el siguiente dominio?
+                {t('CreateProfile.Web.confirmCreationDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -236,10 +228,10 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
             </CardContent>
             <CardFooter className="justify-end gap-2">
               <Button variant="ghost" onClick={resetFlow} disabled={isCreating}>
-                Cancelar
+                {t('CreateProfile.Web.cancelButton')}
               </Button>
               <Button onClick={handleCreateProfile} disabled={isCreating}>
-                {isCreating ? <Loader2 className="animate-spin" /> : <>Confirmar y Crear <ArrowRight className="ml-2" /></>}
+                {isCreating ? <Loader2 className="animate-spin" /> : <>{t('CreateProfile.Web.confirmAndCreateButton')} <ArrowRight className="ml-2" /></>}
               </Button>
             </CardFooter>
           </Card>

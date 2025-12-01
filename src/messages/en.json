@@ -377,7 +377,9 @@
       "statusMarried": "Married",
       "statusDivorced": "Divorced",
       "statusWidowed": "Widowed",
-      "statusSeparated": "Separated"
+      "statusSeparated": "Separated",
+      "heightLabel": "Height",
+      "heightUnit": "cm"
     },
     "socialMedia": {
       "title": "Social Media and Wikis",
@@ -427,6 +429,69 @@
       "successDescription": "The information for {name} has been saved.",
       "errorTitle": "Error Saving",
       "errorDescription": "Could not update the profile. Please try again."
+    }
+  },
+  "CreateProfile": {
+    "title": "Create Profile from Web",
+    "description": "Verify a character on Wikipedia or Famous Birthdays to autocomplete their profile.",
+    "Wikipedia": {
+      "placeholder": "e.g., Lionel Messi",
+      "verifyButton": "Verify",
+      "toast": {
+        "notFoundTitle": "Not Found on Wikipedia",
+        "planBDescription": "Plan B activated. Try with a link from Famous Birthdays.",
+        "verifyError": "An error occurred while verifying on Wikipedia. Please try again."
+      }
+    },
+    "FamousBirthdays": {
+      "planBTitle": "Plan B: Manual Verification",
+      "planBDescription": "Not found on Wikipedia. Paste their profile link from en.famousbirthdays.com to verify manually.",
+      "urlLabel": "FamousBirthdays.com URL",
+      "placeholder": "https://www.famousbirthdays.com/people/...",
+      "verifyButton": "Verify with URL",
+      "toast": {
+        "noNameError": "Please enter a name in the Wikipedia field first.",
+        "invalidUrlError": "Could not verify the URL. Make sure it is correct.",
+        "verifyError": "An error occurred while verifying on Famous Birthdays. Please try again."
+      }
+    },
+    "Web": {
+      "title": "Create Web Profile",
+      "verifyDescription": "Verify a domain to create a basic web profile.",
+      "confirmDescription": "Confirm the creation of the profile for the verified domain.",
+      "placeholder": "example.com or https://example.com",
+      "verifyButton": "Verify",
+      "verificationFailedTitle": "Verification Failed",
+      "verifiedTitle": "Domain Verified",
+      "confirmCreationDescription": "Do you want to create a profile for the following domain?",
+      "cancelButton": "Cancel",
+      "confirmAndCreateButton": "Confirm and Create",
+      "validation": {
+        "invalidDomain": "Please enter a valid domain."
+      },
+      "toast": {
+        "validDomainTitle": "Valid Domain",
+        "validDomainDescription": "The domain {domain} is accessible.",
+        "verificationFailed": "Could not verify the domain.",
+        "unexpectedError": "An unexpected error occurred while verifying the domain."
+      }
+    },
+    "Result": {
+      "foundTitle": "Character Found",
+      "foundDescription": "We have verified the following information. Confirm to create the profile.",
+      "cancelButton": "Cancel",
+      "createButton": "Create Profile"
+    },
+    "toast": {
+      "blockedTitle": "Profile Creation Blocked",
+      "blockedDescription": "Creation of profiles for this figure is restricted.",
+      "duplicateTitle": "Duplicate Profile",
+      "duplicateDescription": "A profile for \"{name}\" already exists.",
+      "duplicateDescriptionRedirect": "A profile for {name} already exists. Redirecting...",
+      "createSuccessTitle": "Profile Created!",
+      "createSuccessDescription": "The profile for {name} has been added.",
+      "createErrorTitle": "Error Creating",
+      "createErrorDescription": "Could not create the profile. Please try again."
     }
   }
 }

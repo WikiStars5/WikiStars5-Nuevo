@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -43,6 +42,7 @@ import Image from 'next/image';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Label } from '../ui/label';
+import { useLanguage } from '@/context/LanguageContext';
 
 const wikipediaSchema = z.object({
   name: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
@@ -62,6 +62,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [isVerifying, setIsVerifying] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -96,15 +97,15 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         setShowPlanB(true);
         setVerificationError(result.verificationError);
         toast({
-            title: "No Encontrado en Wikipedia",
-            description: "Se activó el Plan B. Inténtalo con un enlace de Famous Birthdays.",
+            title: t('CreateProfile.Wikipedia.toast.notFoundTitle'),
+            description: t('CreateProfile.Wikipedia.toast.planBDescription'),
             variant: "destructive"
         })
       }
     } catch (error) {
       console.error('Error verifying Wikipedia:', error);
       setShowPlanB(true);
-      setVerificationError('Ocurrió un error al verificar en Wikipedia. Inténtalo de nuevo.');
+      setVerificationError(t('CreateProfile.Wikipedia.toast.verifyError'));
     } finally {
       setIsVerifying(false);
     }
@@ -115,10 +116,9 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
     setVerificationError(null);
     setVerificationResult(null);
 
-    // We need the name from the wikipedia form to pass to the famous birthdays flow
     const wikipediaName = wikipediaForm.getValues('name');
     if (!wikipediaName) {
-        setVerificationError('Por favor, introduce un nombre en el campo de Wikipedia primero.');
+        setVerificationError(t('CreateProfile.FamousBirthdays.toast.noNameError'));
         setIsVerifying(false);
         return;
     }
@@ -130,11 +130,11 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         setVerificationResult(result);
         setShowPlanB(false);
       } else {
-        setVerificationError(result.verificationError || 'No se pudo verificar la URL. Asegúrate de que sea correcta.');
+        setVerificationError(result.verificationError || t('CreateProfile.FamousBirthdays.toast.invalidUrlError'));
       }
     } catch (error) {
       console.error('Error verifying Famous Birthdays:', error);
-      setVerificationError('Ocurrió un error al verificar en Famous Birthdays. Inténtalo de nuevo.');
+      setVerificationError(t('CreateProfile.FamousBirthdays.toast.verifyError'));
     } finally {
       setIsVerifying(false);
     }
@@ -143,12 +143,11 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
   const handleCreate = async () => {
     if (!firestore || !verificationResult?.title) return;
 
-    // --- CENSORSHIP CHECK ---
     const normalizedTitle = normalizeText(verificationResult.title);
     if (BLOCKED_NAMES.includes(normalizedTitle)) {
         toast({
-            title: 'Creación de Perfil Bloqueada',
-            description: 'La creación de perfiles para esta figura está restringida.',
+            title: t('CreateProfile.toast.blockedTitle'),
+            description: t('CreateProfile.toast.blockedDescription'),
             variant: 'destructive',
         });
         return;
@@ -160,13 +159,12 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
     const figureRef = doc(firestore, 'figures', slug);
 
     try {
-        // First, just check if the document exists outside of a transaction.
         const docSnap = await getDoc(figureRef);
         if (docSnap.exists()) {
             toast({
                 variant: 'destructive',
-                title: 'Perfil Duplicado',
-                description: `Ya existe un perfil para "${verificationResult.title}". Redirigiendo...`,
+                title: t('CreateProfile.toast.duplicateTitle'),
+                description: t('CreateProfile.toast.duplicateDescription').replace('{name}', verificationResult.title),
             });
             router.push(`/figures/${slug}`);
             onProfileCreated();
@@ -174,7 +172,6 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
             return;
         }
         
-        // If it does not exist, then proceed with the creation transaction.
         await runTransaction(firestore, async (transaction) => {
             const keywords = generateKeywords(verificationResult.title!);
 
@@ -200,8 +197,8 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         });
         
         toast({
-            title: '¡Perfil Creado!',
-            description: `El perfil para ${verificationResult.title} ha sido añadido.`,
+            title: t('CreateProfile.toast.createSuccessTitle'),
+            description: t('CreateProfile.toast.createSuccessDescription').replace('{name}', verificationResult.title),
         });
         router.push(`/figures/${slug}`);
         onProfileCreated();
@@ -210,8 +207,8 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         console.error('Error creating profile:', error);
         toast({
             variant: 'destructive',
-            title: 'Error al Crear',
-            description: error.message || 'No se pudo crear el perfil. Inténtalo de nuevo.',
+            title: t('CreateProfile.toast.createErrorTitle'),
+            description: error.message || t('CreateProfile.toast.createErrorDescription'),
         });
     } finally {
         setIsCreating(false);
@@ -229,9 +226,9 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
   return (
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Crear Perfil desde la Web</DialogTitle>
+        <DialogTitle>{t('CreateProfile.title')}</DialogTitle>
         <DialogDescription>
-          Verifica un personaje en Wikipedia o Famous Birthdays para autocompletar su perfil.
+          {t('CreateProfile.description')}
         </DialogDescription>
       </DialogHeader>
 
@@ -245,7 +242,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                 render={({ field }) => (
                   <FormItem className="flex-1">
                     <FormControl>
-                      <Input placeholder="Ej: Lionel Messi" {...field} disabled={isVerifying} />
+                      <Input placeholder={t('CreateProfile.Wikipedia.placeholder')} {...field} disabled={isVerifying} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -256,7 +253,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                   <Loader2 className="animate-spin" />
                 ) : (
                   <>
-                    <Search className="mr-2" /> Verificar
+                    <Search className="mr-2" /> {t('CreateProfile.Wikipedia.verifyButton')}
                   </>
                 )}
               </Button>
@@ -265,11 +262,11 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
 
           {showPlanB && (
              <div className="space-y-4 pt-4">
-              <Alert variant="destructive" className="bg-yellow-900/20 border-yellow-700/50 text-yellow-200 [&gt;svg]:text-yellow-400">
+              <Alert variant="destructive" className="bg-yellow-900/20 border-yellow-700/50 text-yellow-200 [&>svg]:text-yellow-400">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle className="font-bold text-yellow-300">Plan B: Verificación Manual</AlertTitle>
+                <AlertTitle className="font-bold text-yellow-300">{t('CreateProfile.FamousBirthdays.planBTitle')}</AlertTitle>
                 <AlertDescription className="text-yellow-300/90">
-                  {verificationError || "No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manually."}
+                  {verificationError || t('CreateProfile.FamousBirthdays.planBDescription')}
                 </AlertDescription>
               </Alert>
               
@@ -279,7 +276,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                   className="space-y-3"
                 >
                  <div className="space-y-2">
-                    <Label htmlFor="url" className="text-sm font-medium">URL de FamousBirthdays.com</Label>
+                    <Label htmlFor="url" className="text-sm font-medium">{t('CreateProfile.FamousBirthdays.urlLabel')}</Label>
                     <FormField
                         control={famousBirthdaysForm.control}
                         name="url"
@@ -288,7 +285,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                             <FormControl>
                             <Input
                                 id="url"
-                                placeholder="https://es.famousbirthdays.com/people/..."
+                                placeholder={t('CreateProfile.FamousBirthdays.placeholder')}
                                 {...field}
                                 disabled={isVerifying}
                             />
@@ -302,7 +299,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
                     {isVerifying && famousBirthdaysForm.formState.isSubmitting ? <Loader2 className="animate-spin" /> : 
                     (
                         <>
-                        <Check className="mr-2 h-4 w-4" /> Verificar con URL
+                        <Check className="mr-2 h-4 w-4" /> {t('CreateProfile.FamousBirthdays.verifyButton')}
                         </>
                     )}
                   </Button>
@@ -318,10 +315,10 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="text-green-500" /> Personaje Encontrado
+                <CheckCircle2 className="text-green-500" /> {t('CreateProfile.Result.foundTitle')}
               </CardTitle>
               <CardDescription>
-                Hemos verificado la siguiente información. Confirma para crear el perfil.
+                {t('CreateProfile.Result.foundDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
@@ -342,14 +339,14 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
             </CardContent>
             <CardFooter className="justify-end gap-2">
               <Button variant="ghost" onClick={resetVerification} disabled={isCreating}>
-                Cancelar
+                {t('CreateProfile.Result.cancelButton')}
               </Button>
               <Button onClick={handleCreate} disabled={isCreating}>
                 {isCreating ? (
                   <Loader2 className="animate-spin" />
                 ) : (
                   <>
-                    Crear Perfil <ArrowRight className="ml-2" />
+                    {t('CreateProfile.Result.createButton')} <ArrowRight className="ml-2" />
                   </>
                 )}
               </Button>

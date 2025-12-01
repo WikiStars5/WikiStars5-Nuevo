@@ -134,7 +134,7 @@
       "info": "Información",
       "attitude": "Actitud",
       "emotion": "Emoción",
-      "streaks": "Rachas"
+      "rachas": "Rachas"
     },
     "detailedInfo": {
       "title": "Información Detallada",
@@ -429,6 +429,69 @@
       "successDescription": "La información de {name} ha sido guardada.",
       "errorTitle": "Error al Guardar",
       "errorDescription": "No se pudo actualizar el perfil. Por favor, inténtalo de nuevo."
+    }
+  },
+  "CreateProfile": {
+    "title": "Crear Perfil desde la Web",
+    "description": "Verifica un personaje en Wikipedia o Famous Birthdays para autocompletar su perfil.",
+    "Wikipedia": {
+      "placeholder": "Ej: Lionel Messi",
+      "verifyButton": "Verificar",
+      "toast": {
+        "notFoundTitle": "No Encontrado en Wikipedia",
+        "planBDescription": "Se activó el Plan B. Inténtalo con un enlace de Famous Birthdays.",
+        "verifyError": "Ocurrió un error al verificar en Wikipedia. Inténtalo de nuevo."
+      }
+    },
+    "FamousBirthdays": {
+      "planBTitle": "Plan B: Verificación Manual",
+      "planBDescription": "No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manualmente.",
+      "urlLabel": "URL de FamousBirthdays.com",
+      "placeholder": "https://es.famousbirthdays.com/people/...",
+      "verifyButton": "Verificar con URL",
+      "toast": {
+        "noNameError": "Por favor, introduce un nombre en el campo de Wikipedia primero.",
+        "invalidUrlError": "No se pudo verificar la URL. Asegúrate de que sea correcta.",
+        "verifyError": "Ocurrió un error al verificar en Famous Birthdays. Inténtalo de nuevo."
+      }
+    },
+    "Web": {
+      "title": "Crear Perfil Web",
+      "verifyDescription": "Verifica un dominio para crear un perfil web básico.",
+      "confirmDescription": "Confirma la creación del perfil para el dominio verificado.",
+      "placeholder": "ejemplo.com o https://ejemplo.com",
+      "verifyButton": "Verificar",
+      "verificationFailedTitle": "Verificación Fallida",
+      "verifiedTitle": "Dominio Verificado",
+      "confirmCreationDescription": "¿Deseas crear un perfil para el siguiente dominio?",
+      "cancelButton": "Cancelar",
+      "confirmAndCreateButton": "Confirmar y Crear",
+      "validation": {
+        "invalidDomain": "Por favor, introduce un dominio válido."
+      },
+      "toast": {
+        "validDomainTitle": "Dominio Válido",
+        "validDomainDescription": "El dominio {domain} es accesible.",
+        "verificationFailed": "No se pudo verificar el dominio.",
+        "unexpectedError": "Ocurrió un error inesperado al verificar el dominio."
+      }
+    },
+    "Result": {
+      "foundTitle": "Personaje Encontrado",
+      "foundDescription": "Hemos verificado la siguiente información. Confirma para crear el perfil.",
+      "cancelButton": "Cancelar",
+      "createButton": "Crear Perfil"
+    },
+    "toast": {
+      "blockedTitle": "Creación de Perfil Bloqueada",
+      "blockedDescription": "La creación de perfiles para esta figura está restringida.",
+      "duplicateTitle": "Perfil Duplicado",
+      "duplicateDescription": "Ya existe un perfil para \"{name}\".",
+      "duplicateDescriptionRedirect": "Ya existe un perfil para {name}. Redirigiendo...",
+      "createSuccessTitle": "¡Perfil Creado!",
+      "createSuccessDescription": "El perfil para {name} ha sido añadido.",
+      "createErrorTitle": "Error al Crear",
+      "createErrorDescription": "No se pudo crear el perfil. Inténtalo de nuevo."
     }
   }
 }
