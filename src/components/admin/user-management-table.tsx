@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { UserCog } from 'lucide-react';
+import { UserCog, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -34,9 +34,12 @@ interface EnrichedUser extends User {
     ratingsCount: number;
 }
 
+const ITEMS_PER_PAGE = 10;
 
 export default function UserManagementTable() {
     const firestore = useFirestore();
+    const [currentPage, setCurrentPage] = React.useState(1);
+
     const usersCollection = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
 
@@ -50,17 +53,10 @@ export default function UserManagementTable() {
             setIsLoadingDetails(true);
             const enrichedData = await Promise.all(
                 users.map(async (user) => {
-                    // Get attitude votes count
                     const attitudeVotesSnap = await getDocs(collection(firestore, `users/${user.id}/attitudeVotes`));
-                    
-                    // Get emotion votes count
                     const emotionVotesSnap = await getDocs(collection(firestore, `users/${user.id}/emotionVotes`));
-
-                    // Get GOAT vote
                     const goatVoteDoc = await getDoc(doc(firestore, `goat_battles/messi-vs-ronaldo/votes/${user.id}`));
                     const goatVote = goatVoteDoc.exists() ? goatVoteDoc.data().vote : null;
-
-                    // Get ratings count
                     const commentsQuery = query(
                         collectionGroup(firestore, 'comments'), 
                         where('userId', '==', user.id),
@@ -82,9 +78,14 @@ export default function UserManagementTable() {
         };
 
         fetchDetails();
-
     }, [users, firestore]);
 
+    const totalPages = Math.ceil(enrichedUsers.length / ITEMS_PER_PAGE);
+    const paginatedUsers = React.useMemo(() => {
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        return enrichedUsers.slice(startIndex, endIndex);
+    }, [enrichedUsers, currentPage]);
 
     const getAvatarFallback = (name: string | null) => {
         return name ? name.charAt(0).toUpperCase() : 'U';
@@ -112,7 +113,7 @@ export default function UserManagementTable() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoading && Array.from({length: 3}).map((_, i) => (
+                        {isLoading && Array.from({length: 5}).map((_, i) => (
                              <TableRow key={`skel-${i}`}>
                                 <TableCell>
                                     <div className="flex items-center gap-3">
@@ -126,7 +127,7 @@ export default function UserManagementTable() {
                                 <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
                              </TableRow>
                         ))}
-                        {!isLoading && enrichedUsers.map(user => (
+                        {!isLoading && paginatedUsers.map(user => (
                             <TableRow key={user.id}>
                                 <TableCell>
                                     <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
@@ -151,7 +152,7 @@ export default function UserManagementTable() {
                                 </TableCell>
                             </TableRow>
                         ))}
-                         {!isLoading && enrichedUsers.length === 0 && (
+                         {!isLoading && paginatedUsers.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-24 text-center">
                                 No se encontraron usuarios.
@@ -163,8 +164,31 @@ export default function UserManagementTable() {
             </CardContent>
             <CardFooter>
                  <div className="text-xs text-muted-foreground">
-                    Mostrando <strong>{enrichedUsers.length}</strong> de <strong>{enrichedUsers.length}</strong> usuarios.
+                    Mostrando <strong>{paginatedUsers.length}</strong> de <strong>{enrichedUsers.length}</strong> usuarios.
                  </div>
+                 <div className="ml-auto flex items-center gap-2">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                        Anterior
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                    >
+                        Siguiente
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
             </CardFooter>
         </Card>
     )

@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -24,11 +23,15 @@ import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import type { User } from '@/lib/types';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '../ui/button';
 
+const ITEMS_PER_PAGE = 10;
 
 export default function UserVisitTable() {
     const firestore = useFirestore();
+    const [currentPage, setCurrentPage] = React.useState(1);
+
     const usersQuery = useMemoFirebase(() => 
         firestore 
             ? query(
@@ -39,6 +42,14 @@ export default function UserVisitTable() {
         [firestore]
     );
     const { data: users, isLoading } = useCollection<User>(usersQuery);
+
+    const totalPages = users ? Math.ceil(users.length / ITEMS_PER_PAGE) : 1;
+    const paginatedUsers = React.useMemo(() => {
+        if (!users) return [];
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        return users.slice(startIndex, endIndex);
+    }, [users, currentPage]);
 
     const getAvatarFallback = (name: string | null | undefined) => {
         return name ? name.charAt(0).toUpperCase() : 'U';
@@ -61,7 +72,7 @@ export default function UserVisitTable() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {isLoading && Array.from({length: 3}).map((_, i) => (
+                        {isLoading && Array.from({length: 5}).map((_, i) => (
                              <TableRow key={`skel-visit-${i}`}>
                                 <TableCell>
                                     <div className="flex items-center gap-3">
@@ -72,7 +83,7 @@ export default function UserVisitTable() {
                                 <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
                              </TableRow>
                         ))}
-                        {!isLoading && users?.map(user => (
+                        {!isLoading && paginatedUsers.map(user => (
                             <TableRow key={user.id}>
                                 <TableCell>
                                     <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
@@ -88,7 +99,7 @@ export default function UserVisitTable() {
                                 </TableCell>
                             </TableRow>
                         ))}
-                         {!isLoading && (!users || users.length === 0) && (
+                         {!isLoading && (!paginatedUsers || paginatedUsers.length === 0) && (
                             <TableRow>
                                 <TableCell colSpan={2} className="h-24 text-center">
                                     No se encontraron datos de visitas de usuarios.
@@ -100,8 +111,31 @@ export default function UserVisitTable() {
             </CardContent>
             <CardFooter>
                  <div className="text-xs text-muted-foreground">
-                    Mostrando <strong>{users?.length ?? 0}</strong> usuarios.
+                    Mostrando <strong>{paginatedUsers.length}</strong> de <strong>{users?.length ?? 0}</strong> usuarios.
                  </div>
+                 <div className="ml-auto flex items-center gap-2">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                        Anterior
+                    </Button>
+                    <span className="text-sm font-medium">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                    >
+                        Siguiente
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+                </div>
             </CardFooter>
         </Card>
     )
