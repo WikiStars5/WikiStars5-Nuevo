@@ -160,12 +160,22 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
     const figureRef = doc(firestore, 'figures', slug);
 
     try {
+        // First, just check if the document exists outside of a transaction.
+        const docSnap = await getDoc(figureRef);
+        if (docSnap.exists()) {
+            toast({
+                variant: 'destructive',
+                title: 'Perfil Duplicado',
+                description: `Ya existe un perfil para "${verificationResult.title}". Redirigiendo...`,
+            });
+            router.push(`/figures/${slug}`);
+            onProfileCreated();
+            setIsCreating(false);
+            return;
+        }
+        
+        // If it does not exist, then proceed with the creation transaction.
         await runTransaction(firestore, async (transaction) => {
-            const docSnap = await transaction.get(figureRef);
-            if (docSnap.exists()) {
-                throw new Error(`Ya existe un perfil para ${verificationResult.title}.`);
-            }
-
             const keywords = generateKeywords(verificationResult.title!);
 
             const figureData = {
