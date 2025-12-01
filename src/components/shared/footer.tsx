@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { Logo } from '@/components/icons';
 import Image from 'next/image';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Footer() {
   return (
@@ -24,6 +25,7 @@ export default function Footer() {
           <Link href="/disclaimer" className="text-muted-foreground transition-colors hover:text-foreground">
             Descargo de Responsabilidad
           </Link>
+          <LanguageSwitcher />
         </nav>
       </div>
     </footer>

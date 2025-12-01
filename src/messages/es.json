@@ -1,0 +1,17 @@
+{
+  "Header": {
+    "guestMenu": "Menú de Invitado",
+    "myProfile": "Mi Perfil",
+    "login": "Iniciar Sesión",
+    "adminPanel": "Panel de Administrador",
+    "createCharacterProfile": "Crear Perfil de Personaje",
+    "createWebProfile": "Crear Perfil Web",
+    "toggleTheme": "Cambiar a modo {theme, select, dark {oscuro} other {claro}}",
+    "logout": "Cerrar Sesión"
+  },
+  "Footer": {
+    "rules": "Reglas",
+    "privacy": "Privacidad",
+    "disclaimer": "Descargo de Responsabilidad"
+  }
+}

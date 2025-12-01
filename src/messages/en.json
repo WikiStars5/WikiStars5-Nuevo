@@ -1,0 +1,17 @@
+{
+  "Header": {
+    "guestMenu": "Guest Menu",
+    "myProfile": "My Profile",
+    "login": "Log In",
+    "adminPanel": "Admin Panel",
+    "createCharacterProfile": "Create Character Profile",
+    "createWebProfile": "Create Web Profile",
+    "toggleTheme": "Switch to {theme, select, dark {dark} other {light}} mode",
+    "logout": "Log Out"
+  },
+  "Footer": {
+    "rules": "Rules",
+    "privacy": "Privacy",
+    "disclaimer": "Disclaimer"
+  }
+}
