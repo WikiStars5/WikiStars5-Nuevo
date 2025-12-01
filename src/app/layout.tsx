@@ -10,6 +10,7 @@ import { StreakAnimationProvider } from '@/context/StreakAnimationContext';
 import StreakAnimationOverlay from '@/components/streaks/StreakAnimationOverlay';
 import Script from 'next/script';
 import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -74,12 +75,14 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <FirebaseClientProvider>
-            <StreakAnimationProvider>
-              {children}
-              <Toaster />
-              <StreakAnimationOverlay />
-              <CookieConsentBanner />
-            </StreakAnimationProvider>
+            <LanguageProvider>
+              <StreakAnimationProvider>
+                {children}
+                <Toaster />
+                <StreakAnimationOverlay />
+                <CookieConsentBanner />
+              </StreakAnimationProvider>
+            </LanguageProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
          <Script id="service-worker-unregister" strategy="afterInteractive">
