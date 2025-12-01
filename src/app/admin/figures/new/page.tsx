@@ -281,6 +281,50 @@ export default function AdminNewFigurePage() {
                         />
                     </div>
                 </div>
+                 <div className="space-y-4">
+                    <h3 className="text-lg font-medium flex items-center">
+                        <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
+                            <LinkIcon />
+                        </span>
+                        Redes Sociales y Wikis
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        {(Object.keys(SOCIAL_MEDIA_CONFIG) as SocialPlatform[]).map((platform) => (
+                             <FormField
+                                key={platform}
+                                control={form.control}
+                                name={`socialLinks.${platform}`}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{SOCIAL_MEDIA_CONFIG[platform].label}</FormLabel>
+                                        <div className="relative">
+                                            <FormControl>
+                                                <Input 
+                                                    placeholder={SOCIAL_MEDIA_CONFIG[platform].placeholder} 
+                                                    {...field}
+                                                    value={field.value || ''}
+                                                    className="pr-8"
+                                                />
+                                            </FormControl>
+                                            {field.value && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                    onClick={() => form.setValue(`socialLinks.${platform}`, '')}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        ))}
+                    </div>
+                 </div>
 
             </CardContent>
             <CardFooter className="flex justify-end gap-2 p-6 border-t mt-6">
@@ -297,3 +341,5 @@ export default function AdminNewFigurePage() {
     </Card>
   );
 }
+
+    

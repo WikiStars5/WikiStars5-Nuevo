@@ -180,7 +180,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
         <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardHeader>
                 <CardTitle>Editar Información</CardTitle>
-                <CardDescription>Modifica los datos biográficos de {figure.name}.</CardDescription>
+                <CardDescription>Modifica los datos biográficos de ${figure.name}.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 pt-6">
                 <div className="space-y-4">
@@ -381,7 +381,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
                             <LinkIcon />
                         </span>
-                        Redes Sociales y Enlaces
+                        Redes Sociales y Wikis
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                         {(Object.keys(SOCIAL_MEDIA_CONFIG) as SocialPlatform[]).map((platform) => (
@@ -392,13 +392,27 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{SOCIAL_MEDIA_CONFIG[platform].label}</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                placeholder={SOCIAL_MEDIA_CONFIG[platform].placeholder} 
-                                                {...field}
-                                                value={field.value || ''}
-                                            />
-                                        </FormControl>
+                                        <div className="relative">
+                                            <FormControl>
+                                                <Input 
+                                                    placeholder={SOCIAL_MEDIA_CONFIG[platform].placeholder} 
+                                                    {...field}
+                                                    value={field.value || ''}
+                                                    className="pr-8"
+                                                />
+                                            </FormControl>
+                                            {field.value && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                    onClick={() => form.setValue(`socialLinks.${platform}`, '')}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -423,3 +437,5 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
     </Card>
   );
 }
+
+    
