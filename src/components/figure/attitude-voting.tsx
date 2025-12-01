@@ -43,6 +43,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
   const [optimisticFigure, setOptimisticFigure] = useState(figure);
+  const [optimisticVote, setOptimisticVote] = useState<AttitudeVote | null>(null);
 
   useEffect(() => {
     setOptimisticFigure(figure);
@@ -65,6 +66,15 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
+
+  useEffect(() => {
+    if (userVote) {
+      setOptimisticVote(userVote);
+    } else {
+      setOptimisticVote(null);
+    }
+  }, [userVote]);
+
 
   const handleVote = async (vote: AttitudeOption) => {
     if (!areVotesEnabled) {
@@ -100,24 +110,32 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
 
     setIsVoting(vote);
-    let finalAttitude: AttitudeOption | null = null;
     
     // --- Optimistic Update ---
-    const previousVote = userVote?.vote;
+    const previousVote = optimisticVote?.vote;
     const isRetracting = previousVote === vote;
     const previousOptimisticFigure = { ...optimisticFigure };
+    const previousOptimisticVote = optimisticVote;
 
+    // Update vote selection optimistically
+    if (isRetracting) {
+        setOptimisticVote(null);
+        onVote(null);
+    } else {
+        setOptimisticVote({ vote } as AttitudeVote); // Dummy object for selection
+        onVote(vote);
+    }
+
+    // Update counts optimistically
     setOptimisticFigure(prevFigure => {
       const newAttitude = { ...(prevFigure.attitude || {}) };
       if (isRetracting) {
         newAttitude[vote] = (newAttitude[vote] || 1) - 1;
-        finalAttitude = null;
       } else {
         if (previousVote) {
           newAttitude[previousVote] = (newAttitude[previousVote] || 1) - 1;
         }
         newAttitude[vote] = (newAttitude[vote] || 0) + 1;
-        finalAttitude = vote;
       }
       return { ...prevFigure, attitude: newAttitude };
     });
@@ -177,12 +195,11 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         transaction.update(figureRef, updates);
       });
       
-      onVote(finalAttitude);
-      
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
       // Revert optimistic update on error
       setOptimisticFigure(previousOptimisticFigure);
+      setOptimisticVote(previousOptimisticVote);
       toast({
         variant: 'destructive',
         title: 'Error al votar',
@@ -218,13 +235,13 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
   return (
     <div className="w-full relative">
-      {userVote?.vote && (
+      {optimisticVote?.vote && (
         <div className="absolute top-0 right-0 z-10">
           <ShareButton
               figureId={figure.id}
               figureName={figure.name}
               isAttitudeShare={true}
-              attitude={userVote.vote}
+              attitude={optimisticVote.vote}
               showText={false}
           />
         </div>
@@ -234,7 +251,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
       </div>
       <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
           {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
-          const isSelected = userVote?.vote === id;
+          const isSelected = optimisticVote?.vote === id;
           return (
           <Button
               key={id}

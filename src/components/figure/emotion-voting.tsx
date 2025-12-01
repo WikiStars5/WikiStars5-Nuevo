@@ -44,6 +44,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   
   const [isVoting, setIsVoting] = useState<EmotionOption | null>(null);
   const [optimisticFigure, setOptimisticFigure] = useState(figure);
+  const [optimisticVote, setOptimisticVote] = useState<EmotionVote | null>(null);
 
   useEffect(() => {
     setOptimisticFigure(figure);
@@ -62,6 +63,14 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading } = useDoc<EmotionVote>(userVoteRef);
+
+  useEffect(() => {
+    if (userVote) {
+      setOptimisticVote(userVote);
+    } else {
+      setOptimisticVote(null);
+    }
+  }, [userVote]);
 
   const handleVote = async (vote: EmotionOption) => {
      if (!areVotesEnabled) {
@@ -97,10 +106,19 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     setIsVoting(vote);
     
     // --- Optimistic Update ---
-    const previousVote = userVote?.vote;
+    const previousVote = optimisticVote?.vote;
     const isRetracting = previousVote === vote;
     const previousOptimisticFigure = { ...optimisticFigure };
+    const previousOptimisticVote = optimisticVote;
 
+    // Update vote selection optimistically
+    if (isRetracting) {
+        setOptimisticVote(null);
+    } else {
+        setOptimisticVote({ vote } as EmotionVote);
+    }
+
+    // Update counts optimistically
     setOptimisticFigure(prevFigure => {
       const newEmotion = { ...(prevFigure.emotion || {}) };
       if (isRetracting) {
@@ -175,6 +193,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
       console.error('Error al registrar el voto:', error);
       // Revert optimistic update
       setOptimisticFigure(previousOptimisticFigure);
+      setOptimisticVote(previousOptimisticVote);
       toast({
         variant: 'destructive',
         title: 'Error al votar',
@@ -209,13 +228,13 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
   return (
       <div className="w-full relative">
-        {userVote?.vote && (
+        {optimisticVote?.vote && (
             <div className="absolute top-0 right-0 z-10">
                 <ShareButton
                     figureId={figure.id}
                     figureName={figure.name}
                     isEmotionShare={true}
-                    emotion={userVote.vote}
+                    emotion={optimisticVote.vote}
                     showText={false}
                 />
             </div>
@@ -225,7 +244,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {emotionOptions.map(({ id, label, gifUrl, colorClass, selectedClass, textColorClass }) => {
-            const isSelected = userVote?.vote === id;
+            const isSelected = optimisticVote?.vote === id;
             return (
               <Button
                 key={id}
