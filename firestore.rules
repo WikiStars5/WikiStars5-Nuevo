@@ -85,12 +85,13 @@ service cloud.firestore {
       allow delete: if isOwner(userId) || isAdmin();
 
       // Users can manage their own private votes, streaks, and notifications
-      match /attitudeVotes/{figureId} { allow get, write, list: if isOwner(userId); }
-      match /emotionVotes/{figureId} { allow get, write, list: if isOwner(userId); }
-      match /streaks/{streakId} { allow get, list, write: if isOwner(userId); }
-      match /user_achievements/{achievementId} { allow get, list, write: if isOwner(userId); }
-      match /notifications/{notificationId} { allow read, update, delete, list: if isOwner(userId); allow create: if isSignedIn(); }
-      match /referrals/{referredUserId} { allow read, write: if isOwner(userId); }
+      // Admins can list them for the dashboard
+      match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /streaks/{streakId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /user_achievements/{achievementId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
+      match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
     }
 
     
@@ -197,8 +198,15 @@ service cloud.firestore {
         }
       }
 
-      // Public streaks are readable by all, writable only by the owner
-      match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId); }
+      // Public streaks are readable by all, writable only by the owner (or admin for maintenance)
+      match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
+    }
+    
+    // --- Collection Group Rules ---
+    
+    // Allow admins to query across all comments for analytics
+    match /{path=**}/comments/{commentId} {
+      allow get: if isAdmin();
     }
     
     // --- Other Root-Level Collections ---
@@ -226,7 +234,7 @@ service cloud.firestore {
             )
         );
         // Allow any signed-in user (including anonymous) to cast their personal vote
-        match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
+        match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
     }
     
     match /roles_admin/{userId} {
