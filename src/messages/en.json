@@ -1,3 +1,4 @@
+
 {
   "Footer": {
     "rules": "Rules",
@@ -106,7 +107,9 @@
     "threadDialogTitle": "Comment Thread",
     "threadDialogDescription": "Replying on the profile of",
     "originalCommentDeleted": "The original comment in this thread has been deleted.",
-    "errorLoadingConversation": "An error occurred while loading the conversation."
+    "errorLoadingConversation": "An error occurred while loading the conversation.",
+    "replyMessage": "{user} has replied to your comment on {figure}'s profile.",
+    "defaultMessage": "You have a new notification."
   },
   "ReplyForm": {
     "placeholder": "Replying to",

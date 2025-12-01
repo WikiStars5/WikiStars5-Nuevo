@@ -153,7 +153,11 @@ export interface Notification {
   id: string;
   userId: string;
   type: 'comment_reply';
-  message: string;
+  message: string; // Legacy, will be deprecated
+  data: {
+    commenterName: string;
+    figureName: string;
+  };
   isRead: boolean;
   createdAt: Timestamp;
   link: string;

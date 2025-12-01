@@ -26,6 +26,7 @@ const NOTIFICATION_SOUND_URL = 'https://firebasestorage.googleapis.com/v0/b/wiki
 
 function NotificationItem({ notification, onNotificationClick }: { notification: Notification, onNotificationClick: (id: string) => void }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { language, t } = useLanguage();
 
   const getParamsFromLink = (link: string) => {
     try {
@@ -39,11 +40,6 @@ function NotificationItem({ notification, onNotificationClick }: { notification:
         return { figureId: '', parentId: '', replyId: '' };
     }
   };
-
-  const getFigureNameFromMessage = (message: string): string => {
-      const match = message.match(/en el perfil de (.*?)\.$/);
-      return match ? match[1] : '';
-  }
   
   const handleOpenDialog = (open: boolean) => {
     if (open && !notification.isRead) {
@@ -53,7 +49,18 @@ function NotificationItem({ notification, onNotificationClick }: { notification:
   }
 
   const { figureId, parentId, replyId } = getParamsFromLink(notification.link);
-  const figureName = getFigureNameFromMessage(notification.message);
+  
+  const getMessage = () => {
+    if (notification.type === 'comment_reply') {
+      return t('Notifications.replyMessage')
+        .replace('{user}', notification.data.commenterName)
+        .replace('{figure}', notification.data.figureName);
+    }
+    return notification.message || t('Notifications.defaultMessage');
+  }
+
+  const figureName = notification.data?.figureName || '';
+
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
@@ -65,9 +72,9 @@ function NotificationItem({ notification, onNotificationClick }: { notification:
           {!notification.isRead && <Circle className="h-2 w-2 mt-1.5 fill-primary text-primary flex-shrink-0" />}
           <div className={cn("flex-shrink-0 mt-1", notification.isRead && "ml-5")}><MessageSquare className="h-4 w-4 text-primary" /></div>
           <div className="flex-1 space-y-1">
-              <p className="text-sm">{notification.message}</p>
+              <p className="text-sm">{getMessage()}</p>
               <p className="text-xs text-muted-foreground">
-              {formatDateDistance(notification.createdAt.toDate())}
+              {formatDateDistance(notification.createdAt.toDate(), language)}
               </p>
           </div>
         </button>

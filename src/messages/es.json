@@ -1,3 +1,4 @@
+
 {
   "Footer": {
     "rules": "Reglas",
@@ -106,7 +107,9 @@
     "threadDialogTitle": "Conversación de Comentarios",
     "threadDialogDescription": "Respondiendo en el perfil de",
     "originalCommentDeleted": "El comentario original de esta conversación ha sido eliminado.",
-    "errorLoadingConversation": "Ocurrió un error al cargar la conversación."
+    "errorLoadingConversation": "Ocurrió un error al cargar la conversación.",
+    "replyMessage": "{user} ha respondido a tu comentario en el perfil de {figure}.",
+    "defaultMessage": "Tienes una nueva notificación."
   },
   "ReplyForm": {
     "placeholder": "Respondiendo a",

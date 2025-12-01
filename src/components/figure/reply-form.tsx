@@ -99,7 +99,10 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
                 const notification = {
                     userId: replyToAuthorId,
                     type: 'comment_reply',
-                    message: `${displayName} ha respondido a tu comentario en el perfil de ${figureName}.`,
+                    data: {
+                        commenterName: displayName,
+                        figureName: figureName,
+                    },
                     isRead: false,
                     createdAt: serverTimestamp(),
                     link: `/figures/${figureId}?thread=${parentComment.id}&reply=${newReplyRef.id}`
