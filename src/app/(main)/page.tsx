@@ -12,55 +12,54 @@ import SearchBar from '@/components/shared/search-bar';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 export const dynamic = 'force-dynamic';
 
-const features = [
-  {
-    icon: Lightbulb,
-    title: 'Descubre Figuras',
-    description:
-      'Busca o navega a través de perfiles de figuras públicas de diversos campos.',
-  },
-  {
-    icon: Users,
-    title: 'Expresa tu Percepción',
-    description:
-      'Vota por la emoción que te provoca una figura y mira los resultados globales.',
-  },
-  {
-    icon: MessageSquare,
-    title: 'Únete a las Discusiones',
-    description:
-      'Comparte tus opiniones en las secciones de comentarios y reacciona a los demás.',
-  },
-  {
-    icon: Share2,
-    title: 'Comparte Perfiles',
-    description:
-      'Comparte fácilmente perfiles con tus amigos en redes sociales.',
-  },
-];
-
 export default function HomePage() {
+  const { t } = useLanguage();
+
+  const features = [
+    {
+      icon: Lightbulb,
+      title: t('HomePage.features.discover.title'),
+      description: t('HomePage.features.discover.description'),
+    },
+    {
+      icon: Users,
+      title: t('HomePage.features.express.title'),
+      description: t('HomePage.features.express.description'),
+    },
+    {
+      icon: MessageSquare,
+      title: t('HomePage.features.discuss.title'),
+      description: t('HomePage.features.discuss.description'),
+    },
+    {
+      icon: Share2,
+      title: t('HomePage.features.share.title'),
+      description: t('HomePage.features.share.description'),
+    },
+  ];
+
   return (
     <div className="container mx-auto px-4 py-16 md:py-24">
       <section className="text-center mb-16 md:mb-24">
         <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4 font-headline">
-          Bienvenido a <span className="text-primary">WikiStars5</span>
+          {t('HomePage.welcome.title.part1')} <span className="text-primary">{t('HomePage.welcome.title.part2')}</span>
         </h1>
         <div className="mt-8">
           <SearchBar className="max-w-lg mx-auto" />
           <p className="mt-3 text-sm text-muted-foreground">
-            Escribe un nombre y presiona enter o haz clic en buscar.
+            {t('HomePage.welcome.searchHint')}
           </p>
         </div>
       </section>
 
       <section>
         <h2 className="text-3xl font-bold tracking-tight mb-8 font-headline text-center">
-          Cómo Funciona WikiStars5
+          {t('HomePage.howItWorks.title')}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {features.map((feature, index) => (
@@ -84,9 +83,9 @@ export default function HomePage() {
       <section className="mt-16 md:mt-24">
         <Alert className="border-primary/50 bg-primary/10">
           <Info className="h-4 w-4 text-primary" />
-          <AlertTitle className="text-primary">Versión Beta</AlertTitle>
+          <AlertTitle className="text-primary">{t('HomePage.betaAlert.title')}</AlertTitle>
           <AlertDescription className="text-primary/90">
-              Nuestra plataforma se encuentra actualmente en fase de desarrollo activo. Agradecemos tu paciencia y tus comentarios mientras trabajamos para mejorar la experiencia.
+              {t('HomePage.betaAlert.description')}
           </AlertDescription>
         </Alert>
       </section>

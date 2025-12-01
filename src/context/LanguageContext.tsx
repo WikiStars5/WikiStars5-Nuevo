@@ -5,14 +5,13 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 // Import message files
 import esMessages from '@/messages/es.json';
 import enMessages from '@/messages/en.json';
-import { useTheme } from 'next-themes';
 
 type Language = 'es' | 'en';
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
-  t: (key: string, values?: Record<string, string | number>) => string;
+  t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -30,16 +29,12 @@ function getNestedValue(obj: any, key: string): string | undefined {
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>('es');
-  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     // This effect runs on the client side
     const savedLanguage = localStorage.getItem('wikistars5-lang') as Language;
     if (savedLanguage && (savedLanguage === 'es' || savedLanguage === 'en')) {
       setLanguageState(savedLanguage);
-      document.documentElement.lang = savedLanguage;
-    } else {
-        document.documentElement.lang = 'es';
     }
   }, []);
 
@@ -47,34 +42,14 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     setLanguageState(lang);
     try {
       localStorage.setItem('wikistars5-lang', lang);
-      document.documentElement.lang = lang;
     } catch (error) {
         console.error("Could not save language to localStorage:", error)
     }
   };
 
-  const t = (key: string, values?: Record<string, string | number>): string => {
-    let translation = getNestedValue(messages[language], key) || key;
-
-    if (values) {
-        Object.entries(values).forEach(([k, v]) => {
-            if (key.includes('{theme}')) {
-                // Special handling for theme
-                const themeValue = resolvedTheme === 'dark' ? 'oscuro' : 'claro';
-                if (language === 'en') {
-                  translation = translation.replace('{theme}', resolvedTheme === 'dark' ? 'dark' : 'light');
-                } else {
-                  translation = translation.replace('{theme}', themeValue);
-                }
-            } else {
-                translation = translation.replace(`{${k}}`, String(v));
-            }
-        });
-    }
-
-    return translation;
+  const t = (key: string): string => {
+    return getNestedValue(messages[language], key) || key;
   };
-  
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>

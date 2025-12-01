@@ -10,27 +10,21 @@ import {
 import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
 import Image from 'next/image';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function LanguageSwitcher() {
-  // Placeholder for language state
-  const [selectedLanguage, setSelectedLanguage] = React.useState('es');
-
-  const handleLanguageChange = (lang: string) => {
-    setSelectedLanguage(lang);
-    // Logic to change the site's language will be added here later.
-    console.log('Language changed to:', lang);
-  };
+  const { language, setLanguage, t } = useLanguage();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="text-muted-foreground transition-colors hover:text-foreground">
           <Globe className="mr-2 h-4 w-4" />
-          Idioma
+          {t('Footer.language')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => handleLanguageChange('es')}>
+        <DropdownMenuItem onSelect={() => setLanguage('es')}>
           <div className="flex items-center gap-2">
             <Image
               src="https://flagcdn.com/w20/es.png"
@@ -41,7 +35,7 @@ export default function LanguageSwitcher() {
             <span>Español</span>
           </div>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => handleLanguageChange('en')}>
+        <DropdownMenuItem onSelect={() => setLanguage('en')}>
           <div className="flex items-center gap-2">
             <Image
               src="https://flagcdn.com/w20/us.png"

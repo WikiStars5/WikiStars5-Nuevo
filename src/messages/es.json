@@ -1,17 +1,42 @@
 {
-  "Header": {
-    "guestMenu": "Menú de Invitado",
-    "myProfile": "Mi Perfil",
-    "login": "Iniciar Sesión",
-    "adminPanel": "Panel de Administrador",
-    "createCharacterProfile": "Crear Perfil de Personaje",
-    "createWebProfile": "Crear Perfil Web",
-    "toggleTheme": "Cambiar a modo {theme, select, dark {oscuro} other {claro}}",
-    "logout": "Cerrar Sesión"
-  },
   "Footer": {
     "rules": "Reglas",
     "privacy": "Privacidad",
-    "disclaimer": "Descargo de Responsabilidad"
+    "disclaimer": "Descargo de Responsabilidad",
+    "language": "Idioma"
+  },
+  "HomePage": {
+    "welcome": {
+      "title": {
+        "part1": "Bienvenido a",
+        "part2": "WikiStars5"
+      },
+      "searchHint": "Escribe un nombre y presiona enter o haz clic en buscar."
+    },
+    "howItWorks": {
+      "title": "Cómo Funciona WikiStars5"
+    },
+    "features": {
+      "discover": {
+        "title": "Descubre Figuras",
+        "description": "Busca o navega a través de perfiles de figuras públicas de diversos campos."
+      },
+      "express": {
+        "title": "Expresa tu Percepción",
+        "description": "Vota por la emoción que te provoca una figura y mira los resultados globales."
+      },
+      "discuss": {
+        "title": "Únete a las Discusiones",
+        "description": "Comparte tus opiniones en las secciones de comentarios y reacciona a los demás."
+      },
+      "share": {
+        "title": "Comparte Perfiles",
+        "description": "Comparte fácilmente perfiles con tus amigos en redes sociales."
+      }
+    },
+    "betaAlert": {
+      "title": "Versión Beta",
+      "description": "Nuestra plataforma se encuentra actualmente en fase de desarrollo activo. Agradecemos tu paciencia y tus comentarios mientras trabajamos para mejorar la experiencia."
+    }
   }
 }

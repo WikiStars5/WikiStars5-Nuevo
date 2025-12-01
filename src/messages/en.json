@@ -1,17 +1,42 @@
 {
-  "Header": {
-    "guestMenu": "Guest Menu",
-    "myProfile": "My Profile",
-    "login": "Log In",
-    "adminPanel": "Admin Panel",
-    "createCharacterProfile": "Create Character Profile",
-    "createWebProfile": "Create Web Profile",
-    "toggleTheme": "Switch to {theme, select, dark {dark} other {light}} mode",
-    "logout": "Log Out"
-  },
   "Footer": {
     "rules": "Rules",
     "privacy": "Privacy",
-    "disclaimer": "Disclaimer"
+    "disclaimer": "Disclaimer",
+    "language": "Language"
+  },
+  "HomePage": {
+    "welcome": {
+      "title": {
+        "part1": "Welcome to",
+        "part2": "WikiStars5"
+      },
+      "searchHint": "Type a name and press enter or click search."
+    },
+    "howItWorks": {
+      "title": "How WikiStars5 Works"
+    },
+    "features": {
+      "discover": {
+        "title": "Discover Figures",
+        "description": "Search or browse through profiles of public figures from various fields."
+      },
+      "express": {
+        "title": "Express Your Perception",
+        "description": "Vote for the emotion a figure provokes in you and see the global results."
+      },
+      "discuss": {
+        "title": "Join the Discussions",
+        "description": "Share your opinions in the comment sections and react to others."
+      },
+      "share": {
+        "title": "Share Profiles",
+        "description": "Easily share profiles with your friends on social media."
+      }
+    },
+    "betaAlert": {
+      "title": "Beta Version",
+      "description": "Our platform is currently in active development. We appreciate your patience and feedback as we work to improve the experience."
+    }
   }
 }

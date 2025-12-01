@@ -3,8 +3,11 @@ import Link from 'next/link';
 import { Logo } from '@/components/icons';
 import Image from 'next/image';
 import LanguageSwitcher from './LanguageSwitcher';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="border-t border-border/60 bg-card">
       <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 items-center gap-4 px-4 py-6">
@@ -17,13 +20,13 @@ export default function Footer() {
         </p>
         <nav className="flex items-center justify-center md:justify-end gap-x-4 text-sm font-medium">
           <Link href="/rules" className="text-muted-foreground transition-colors hover:text-foreground">
-            Reglas
+            {t('Footer.rules')}
           </Link>
           <Link href="/privacy" className="text-muted-foreground transition-colors hover:text-foreground">
-            Privacidad
+            {t('Footer.privacy')}
           </Link>
           <Link href="/disclaimer" className="text-muted-foreground transition-colors hover:text-foreground">
-            Descargo de Responsabilidad
+            {t('Footer.disclaimer')}
           </Link>
           <LanguageSwitcher />
         </nav>
