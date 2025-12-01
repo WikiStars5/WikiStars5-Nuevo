@@ -51,6 +51,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [editText, setEditText] = useState(comment.text);
 
     const isOwner = user && user.uid === comment.userId;
@@ -68,7 +69,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
 
     const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef);
 
-    const country = countries.find(c => c.name === comment.userCountry);
+    const country = countries.find(c => t(`countries.${c.key}`) === comment.userCountry);
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
         if (!firestore || !user || isVoting) return;
@@ -90,17 +91,17 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 if (existingVote === voteType) { // Retracting vote
                     updates[`${voteType}s`] = increment(-1);
                     transaction.delete(voteRef);
-                    toast({ title: "Voto eliminado" });
+                    toast({ title: t("CommentThread.toast.voteRemoved") });
                 } else if (existingVote) { // Changing vote
                     const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
                     updates[`${voteType}s`] = increment(1);
                     updates[`${otherVoteType}s`] = increment(-1);
                     transaction.set(voteRef, { vote: voteType, createdAt: serverTimestamp() });
-                    toast({ title: "¡Voto actualizado!" });
+                    toast({ title: t("CommentThread.toast.voteUpdated") });
                 } else { // First vote
                     updates[`${voteType}s`] = increment(1);
                     transaction.set(voteRef, { vote: voteType, createdAt: serverTimestamp() });
-                    toast({ title: "¡Voto registrado!" });
+                    toast({ title: t("CommentThread.toast.voteRegistered") });
                 }
                 
                 transaction.update(commentRef, updates);
@@ -110,8 +111,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         } catch (error: any) {
             console.error("Error al votar:", error);
             toast({
-                title: "Error al Votar",
-                description: error.message || "No se pudo registrar tu voto.",
+                title: t("CommentThread.toast.voteErrorTitle"),
+                description: error.message || t("CommentThread.toast.voteErrorDescription"),
                 variant: "destructive",
             });
         } finally {
@@ -147,8 +148,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                         ratingCount: increment(-1),
                         totalRating: increment(-comment.rating),
                         [`ratingsBreakdown.${comment.rating}`]: increment(-1),
-                        __ratingCount_delta: -1,
-                        __totalRating_delta: -comment.rating,
+                        __ratingCount_delta: -comment.rating,
+                        __totalRating_delta: -1,
                         updatedAt: serverTimestamp(),
                      };
                      transaction.update(figureRef, ratingUpdates);
@@ -171,7 +172,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
             console.error("Error al eliminar comentario:", error);
             toast({
                 title: t('CommentThread.toast.deleteError'),
-                description: error.message || "No se pudo eliminar el comentario.",
+                description: error.message || t("CommentThread.toast.deleteErrorDescription"),
                 variant: "destructive",
             });
         } finally {
@@ -240,8 +241,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 <div className="flex items-center gap-2 flex-wrap">
                     <Link href={`/u/${comment.userDisplayName}`} className="font-semibold text-sm hover:underline">{comment.userDisplayName}</Link>
                     
-                    {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                    {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                    {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title={t('ProfilePage.genderMale')}>♂</span>}
+                    {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title={t('ProfilePage.genderFemale')}>♀</span>}
 
                     {country && (
                         <Image
@@ -272,10 +273,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                         />
                         <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={isSavingEdit}>
-                                <X className="mr-1.5" /> Cancelar
+                                <X className="mr-1.5" /> {t("ReplyForm.cancelButton")}
                             </Button>
                             <Button size="sm" onClick={handleUpdate} disabled={isSavingEdit}>
-                                {isSavingEdit ? <Loader2 className="animate-spin" /> : <Send className="mr-1.5" />} Guardar
+                                {isSavingEdit ? <Loader2 className="animate-spin" /> : <Send className="mr-1.5" />} {t("EditFigure.buttons.save")}
                             </Button>
                         </div>
                     </div>
@@ -314,7 +315,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                                         </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogCancel>{t("ReplyForm.cancelButton")}</AlertDialogCancel>
                                         <AlertDialogAction onClick={handleDelete}>{t('CommentThread.confirmDelete.continue')}</AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
@@ -465,7 +466,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
             ) : (
                 <>
                 <ChevronDown className="mr-1 h-4 w-4" />
-                {t('CommentList.buttons.seeMore').replace('{count}', threadReplies!.length.toString()).replace('{reply, plural, one {respuesta} other {respuestas}}', threadReplies!.length > 1 ? 'respuestas' : 'respuesta')}
+                {t('CommentThread.seeReplies', { count: threadReplies!.length, reply: threadReplies!.length > 1 ? 'respuestas' : 'respuesta' })}
                 </>
             )}
         </Button>
@@ -514,5 +515,3 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
-
-    
