@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc } from 'firebase/firestore'; 
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,12 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   const { toast } = useToast();
   
   const [isVoting, setIsVoting] = useState<EmotionOption | null>(null);
+  const [optimisticFigure, setOptimisticFigure] = useState(figure);
+
+  useEffect(() => {
+    setOptimisticFigure(figure);
+  }, [figure]);
+
 
   // Fetch global settings
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -69,7 +75,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
      if (isVoting || !firestore || !auth) return;
 
     let currentUser = user;
-    // If there's no user, create an anonymous one just-in-time
     if (!currentUser) {
         try {
             const userCredential = await signInAnonymously(auth);
@@ -91,6 +96,25 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
     setIsVoting(vote);
     
+    // --- Optimistic Update ---
+    const previousVote = userVote?.vote;
+    const isRetracting = previousVote === vote;
+    const previousOptimisticFigure = { ...optimisticFigure };
+
+    setOptimisticFigure(prevFigure => {
+      const newEmotion = { ...(prevFigure.emotion || {}) };
+      if (isRetracting) {
+        newEmotion[vote] = (newEmotion[vote] || 1) - 1;
+      } else {
+        if (previousVote) {
+          newEmotion[previousVote] = (newEmotion[previousVote] || 1) - 1;
+        }
+        newEmotion[vote] = (newEmotion[vote] || 0) + 1;
+      }
+      return { ...prevFigure, emotion: newEmotion };
+    });
+    // --- End Optimistic Update ---
+
     try {
       const publicVoteRef = doc(firestore, `figures/${figure.id}/emotionVotes`, currentUser.uid);
       const privateVoteRef = doc(firestore, `users/${currentUser.uid}/emotionVotes`, figure.id);
@@ -98,23 +122,21 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
       await runTransaction(firestore, async (transaction) => {
         const privateVoteDoc = await transaction.get(privateVoteRef);
-        const previousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as EmotionVote).vote : null;
+        const dbPreviousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as EmotionVote).vote : null;
 
-        const isRetracting = previousVote === vote;
+        const isDbRetracting = dbPreviousVote === vote;
         
         const updates: any = {
-          __oldVote: previousVote,
-          __newVote: isRetracting ? previousVote : vote,
+          __oldVote: dbPreviousVote,
+          __newVote: isDbRetracting ? dbPreviousVote : vote,
         };
         
-        // Data for denormalization
         const denormalizedData = {
             figureName: figure.name,
             figureImageUrl: figure.imageUrl,
         };
 
-        if (isRetracting) {
-          // --- RETRACTING VOTE ---
+        if (isDbRetracting) {
           transaction.delete(publicVoteRef);
           transaction.delete(privateVoteRef);
           updates[`emotion.${vote}`] = increment(-1);
@@ -129,17 +151,15 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                 ...denormalizedData,
             };
 
-            if (previousVote) {
-                // --- CHANGING VOTE ---
+            if (dbPreviousVote) {
                 transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() }, { merge: true });
                 transaction.set(privateVoteRef, voteData, { merge: true });
 
-                updates[`emotion.${previousVote}`] = increment(-1);
+                updates[`emotion.${dbPreviousVote}`] = increment(-1);
                 updates[`emotion.${vote}`] = increment(1);
                 toast({ title: '¡Voto actualizado!' });
             
             } else {
-                // --- FIRST VOTE ---
                 transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() });
                 transaction.set(privateVoteRef, voteData);
                 
@@ -153,6 +173,8 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
       });
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
+      // Revert optimistic update
+      setOptimisticFigure(previousOptimisticFigure);
       toast({
         variant: 'destructive',
         title: 'Error al votar',
@@ -164,7 +186,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   };
 
 
-  const totalVotes = Object.values(figure.emotion || {}).reduce(
+  const totalVotes = Object.values(optimisticFigure.emotion || {}).reduce(
     (sum, count) => sum + count,
     0
   );
@@ -227,7 +249,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                         <div>
                             <span className="font-semibold text-sm">{label}</span>
                             <span className="block text-lg font-bold">
-                            {(figure.emotion?.[id] ?? 0).toLocaleString()}
+                            {(optimisticFigure.emotion?.[id] ?? 0).toLocaleString()}
                             </span>
                         </div>
                     </div>
