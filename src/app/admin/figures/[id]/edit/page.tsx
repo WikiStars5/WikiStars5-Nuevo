@@ -43,6 +43,11 @@ const SOCIAL_MEDIA_CONFIG = {
 
 type SocialPlatform = keyof typeof SOCIAL_MEDIA_CONFIG;
 
+const urlSchema = (domain: string) => z.string().url("URL inválida.").optional().or(z.literal('')).refine(
+    (url) => !url || url.includes(domain),
+    { message: `La URL debe ser de ${domain}.` }
+);
+
 const editFormSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
   imageUrl: z.string().url('Debe ser una URL válida.').optional().or(z.literal('')),
@@ -54,13 +59,26 @@ const editFormSchema = z.object({
   occupation: z.string().max(20, 'La ocupación no puede superar los 20 caracteres.').optional(),
   maritalStatus: z.enum(['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Separado/Ex-Conviviente']).optional(),
   height: z.number().min(100).max(250).optional(),
-  socialLinks: z.object(
-    Object.keys(SOCIAL_MEDIA_CONFIG).reduce((acc, key) => {
-        acc[key as SocialPlatform] = z.string().url().or(z.literal('')).optional();
-        return acc;
-    }, {} as Record<SocialPlatform, z.ZodTypeAny>)
-  ).optional(),
+  socialLinks: z.object({
+    website: z.string().url("URL inválida.").optional().or(z.literal('')),
+    instagram: urlSchema('instagram.com'),
+    twitter: z.string().url("URL inválida.").optional().or(z.literal('')).refine(
+        (url) => !url || url.includes('x.com') || url.includes('twitter.com'),
+        { message: 'La URL debe ser de x.com o twitter.com.' }
+    ),
+    youtube: z.string().url("URL inválida.").optional().or(z.literal('')).refine(
+        (url) => !url || url.includes('youtube.com') || url.includes('youtu.be'),
+        { message: 'La URL debe ser de youtube.com o youtu.be.' }
+    ),
+    facebook: urlSchema('facebook.com'),
+    tiktok: urlSchema('tiktok.com'),
+    linkedin: urlSchema('linkedin.com'),
+    discord: urlSchema('discord.gg'),
+    wikipedia: urlSchema('wikipedia.org'),
+    fandom: urlSchema('fandom.com'),
+  }).optional(),
 });
+
 
 type EditFormValues = z.infer<typeof editFormSchema>;
 
