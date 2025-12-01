@@ -23,7 +23,7 @@ import { UserCog } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs, doc, getDoc, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, getDocs, doc, getDoc, where, collectionGroup, orderBy } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 
 
@@ -37,7 +37,7 @@ interface EnrichedUser extends User {
 
 export default function UserManagementTable() {
     const firestore = useFirestore();
-    const usersCollection = useMemoFirebase(() => firestore ? query(collection(firestore, 'users')) : null, [firestore]);
+    const usersCollection = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
 
     const [enrichedUsers, setEnrichedUsers] = React.useState<EnrichedUser[]>([]);
