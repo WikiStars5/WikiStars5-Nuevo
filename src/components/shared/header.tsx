@@ -33,6 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from './ThemeToggle';
 import { InstallPwaButton } from '../layout/InstallPwaButton';
 import { useTheme } from 'next-themes';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 export default function Header() {
@@ -47,6 +48,7 @@ export default function Header() {
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
   const [isSearchDialogOpen, setIsSearchDialogOpen] = React.useState(false);
   const { setTheme, theme } = useTheme();
+  const { t } = useLanguage();
 
   // New logic: Check if a user profile document exists for the current user
   const userProfileRef = useMemoFirebase(() => {
@@ -148,19 +150,19 @@ export default function Header() {
                   
                   {user.isAnonymous ? (
                     <>
-                      <DropdownMenuLabel>Menú de Invitado</DropdownMenuLabel>
+                      <DropdownMenuLabel>{t('Header.guestMenuTitle')}</DropdownMenuLabel>
                       <DropdownMenuSeparator />
                       {userProfile ? (
                          <DropdownMenuItem asChild>
                            <Link href="/profile">
                              <UserIcon className="mr-2 h-4 w-4" />
-                             <span>Mi Perfil</span>
+                             <span>{t('Header.myProfile')}</span>
                            </Link>
                          </DropdownMenuItem>
                       ) : (
                          <DropdownMenuItem onSelect={handleLogin}>
                           <LogIn className="mr-2 h-4 w-4" />
-                          <span>Iniciar Sesión</span>
+                          <span>{t('Header.login')}</span>
                         </DropdownMenuItem>
                       )}
                     </>
@@ -181,7 +183,7 @@ export default function Header() {
                       <DropdownMenuItem asChild>
                         <Link href="/profile">
                           <UserIcon className="mr-2 h-4 w-4" />
-                          <span>Mi Perfil</span>
+                          <span>{t('Header.myProfile')}</span>
                         </Link>
                       </DropdownMenuItem>
 
@@ -190,7 +192,7 @@ export default function Header() {
                           <DropdownMenuItem asChild>
                               <Link href="/admin">
                               <Gem className="mr-2 h-4 w-4" />
-                              <span>Panel de Administrador</span>
+                              <span>{t('Header.adminPanel')}</span>
                               </Link>
                           </DropdownMenuItem>
                           </>
@@ -202,13 +204,13 @@ export default function Header() {
 
                   <DropdownMenuItem onSelect={() => setIsCharacterDialogOpen(true)}>
                       <UserPlus className="mr-2 h-4 w-4" />
-                      <span>Crear Perfil de Personaje</span>
+                      <span>{t('Header.createCharacterProfile')}</span>
                   </DropdownMenuItem>
                   
                   {isAdmin && (
                     <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
                       <Globe className="mr-2 h-4 w-4" />
-                      <span>Crear Perfil Web</span>
+                      <span>{t('Header.createWebProfile')}</span>
                     </DropdownMenuItem>
                   )}
 
@@ -216,7 +218,7 @@ export default function Header() {
                   
                   <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
                     {theme === 'light' ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
-                    <span>Cambiar a modo {theme === 'light' ? 'oscuro' : 'claro'}</span>
+                    <span>{theme === 'light' ? t('Header.changeToDarkMode') : t('Header.changeToLightMode')}</span>
                   </DropdownMenuItem>
                   
                   {!user.isAnonymous && (
@@ -224,7 +226,7 @@ export default function Header() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout}>
                       <LogOut className="mr-2 h-4 w-4" />
-                      <span>Cerrar Sesión</span>
+                      <span>{t('Header.logout')}</span>
                     </DropdownMenuItem>
                     </>
                   )}
@@ -235,7 +237,7 @@ export default function Header() {
             pathname === '/' && (
               <Button onClick={handleLogin}>
                 <LogIn className="mr-2 h-4 w-4" />
-                Iniciar Sesión
+                {t('Header.login')}
               </Button>
             )
           )}

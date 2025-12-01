@@ -38,5 +38,16 @@
       "title": "Versión Beta",
       "description": "Nuestra plataforma se encuentra actualmente en fase de desarrollo activo. Agradecemos tu paciencia y tus comentarios mientras trabajamos para mejorar la experiencia."
     }
+  },
+  "Header": {
+    "guestMenuTitle": "Menú de Invitado",
+    "myProfile": "Mi Perfil",
+    "adminPanel": "Panel de Administrador",
+    "createCharacterProfile": "Crear Perfil de Personaje",
+    "createWebProfile": "Crear Perfil Web",
+    "changeToLightMode": "Cambiar a modo claro",
+    "changeToDarkMode": "Cambiar a modo oscuro",
+    "logout": "Cerrar Sesión",
+    "login": "Iniciar Sesión"
   }
 }

@@ -38,5 +38,16 @@
       "title": "Beta Version",
       "description": "Our platform is currently in active development. We appreciate your patience and feedback as we work to improve the experience."
     }
+  },
+  "Header": {
+    "guestMenuTitle": "Guest Menu",
+    "myProfile": "My Profile",
+    "adminPanel": "Admin Panel",
+    "createCharacterProfile": "Create Character Profile",
+    "createWebProfile": "Create Web Profile",
+    "changeToLightMode": "Switch to light mode",
+    "changeToDarkMode": "Switch to dark mode",
+    "logout": "Log Out",
+    "login": "Log In"
   }
 }
