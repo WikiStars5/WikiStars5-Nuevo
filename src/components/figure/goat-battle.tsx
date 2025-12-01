@@ -204,6 +204,7 @@ export default function GoatBattle() {
     
     const previousOptimisticData = { ...optimisticBattleData };
     const currentVote = userVote?.vote;
+    setIsVoting(true);
 
     // --- Optimistic UI Update ---
     setOptimisticBattleData(prev => {
@@ -222,7 +223,6 @@ export default function GoatBattle() {
         return newVotes as GoatBattle;
     });
 
-    setIsVoting(true);
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -463,6 +463,8 @@ export default function GoatBattle() {
       </Card>
   );
 }
+
+    
 
     
 
