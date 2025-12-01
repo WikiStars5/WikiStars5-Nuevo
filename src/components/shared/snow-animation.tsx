@@ -1,8 +1,11 @@
+
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
+import { useSnow } from '@/context/SnowContext';
 
 const SnowAnimation = () => {
+  const { isSnowing } = useSnow();
   const [snowflakes, setSnowflakes] = useState<JSX.Element[]>([]);
 
   useEffect(() => {
@@ -24,6 +27,10 @@ const SnowAnimation = () => {
 
     generateSnowflakes();
   }, []);
+
+  if (!isSnowing) {
+    return null;
+  }
 
   return <>{snowflakes}</>;
 };

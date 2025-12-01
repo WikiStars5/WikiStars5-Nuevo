@@ -11,6 +11,7 @@ import StreakAnimationOverlay from '@/components/streaks/StreakAnimationOverlay'
 import Script from 'next/script';
 import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
 import { LanguageProvider } from '@/context/LanguageContext';
+import { SnowProvider } from '@/context/SnowContext';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -76,12 +77,14 @@ export default function RootLayout({
         >
           <FirebaseClientProvider>
             <LanguageProvider>
-              <StreakAnimationProvider>
-                {children}
-                <Toaster />
-                <StreakAnimationOverlay />
-                <CookieConsentBanner />
-              </StreakAnimationProvider>
+              <SnowProvider>
+                <StreakAnimationProvider>
+                  {children}
+                  <Toaster />
+                  <StreakAnimationOverlay />
+                  <CookieConsentBanner />
+                </StreakAnimationProvider>
+              </SnowProvider>
             </LanguageProvider>
           </FirebaseClientProvider>
         </ThemeProvider>

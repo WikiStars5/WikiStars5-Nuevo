@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider, useDoc, useMemoFirebase } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
@@ -34,6 +34,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { InstallPwaButton } from '../layout/InstallPwaButton';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/context/LanguageContext';
+import { useSnow } from '@/context/SnowContext';
 
 
 export default function Header() {
@@ -49,6 +50,7 @@ export default function Header() {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = React.useState(false);
   const { setTheme, theme } = useTheme();
   const { t } = useLanguage();
+  const { isSnowing, toggleSnow } = useSnow();
 
   // New logic: Check if a user profile document exists for the current user
   const userProfileRef = useMemoFirebase(() => {
@@ -219,6 +221,11 @@ export default function Header() {
                   <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
                     {theme === 'light' ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
                     <span>{theme === 'light' ? t('Header.changeToDarkMode') : t('Header.changeToLightMode')}</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem onSelect={toggleSnow}>
+                    <Snowflake className="mr-2 h-4 w-4" />
+                    <span>{isSnowing ? "Desactivar nieve" : "Activar nieve"}</span>
                   </DropdownMenuItem>
                   
                   {!user.isAnonymous && (
