@@ -67,6 +67,7 @@ export default function LanguageSwitcher() {
             <span>Português</span>
           </div>
         </DropdownMenuItem>
+        {/*
         <DropdownMenuItem 
           onSelect={() => setLanguage('fr')}
           className={cn(language === 'fr' && 'bg-accent/50')}
@@ -123,6 +124,7 @@ export default function LanguageSwitcher() {
             <span>中文</span>
           </div>
         </DropdownMenuItem>
+        */}
       </DropdownMenuContent>
     </DropdownMenu>
   );
