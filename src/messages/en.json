@@ -97,5 +97,29 @@
         "profilePhotoUrl": "Please enter a valid URL.",
         "descriptionMax": "Description cannot exceed 160 characters."
     }
+  },
+  "Notifications": {
+    "title": "Notifications",
+    "viewNotifications": "View notifications",
+    "noNotifications": "You have no notifications.",
+    "seeAll": "See all",
+    "threadDialogTitle": "Comment Thread",
+    "threadDialogDescription": "Replying on the profile of",
+    "originalCommentDeleted": "The original comment in this thread has been deleted.",
+    "errorLoadingConversation": "An error occurred while loading the conversation."
+  },
+  "ReplyForm": {
+    "placeholder": "Replying to",
+    "cancelButton": "Cancel",
+    "replyButton": "Reply",
+    "toast": {
+      "replyPosted": "Reply Posted!",
+      "errorPostingTitle": "Error Posting",
+      "errorPostingDescription": "Could not send your reply. Please try again."
+    },
+    "validation": {
+      "notEmpty": "Reply cannot be empty.",
+      "maxLength": "Reply cannot exceed 1000 characters."
+    }
   }
 }

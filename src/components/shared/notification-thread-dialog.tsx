@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -13,6 +12,7 @@ import type { Comment } from '@/lib/types';
 import ReplyForm from '../figure/reply-form';
 import { countries } from '@/lib/countries';
 import { StarRating } from './star-rating';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface NotificationThreadDialogProps {
   figureId: string;
@@ -100,6 +100,7 @@ export default function NotificationThreadDialog({
     const [comments, setComments] = useState<Comment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { t } = useLanguage();
 
     const rootComment = useMemo(() => {
         return comments.find(c => c.id === parentId);
@@ -126,7 +127,7 @@ export default function NotificationThreadDialog({
                 ]);
 
                 if (!rootDocSnap.exists()) {
-                    setError("El comentario original de esta conversación ha sido eliminado.");
+                    setError(t('Notifications.originalCommentDeleted'));
                     setIsLoading(false);
                     return;
                 }
@@ -142,14 +143,14 @@ export default function NotificationThreadDialog({
 
             } catch (err) {
                 console.error("Error fetching comments for notification dialog:", err);
-                setError("Ocurrió un error al cargar la conversación.");
+                setError(t('Notifications.errorLoadingConversation'));
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchThread();
-    }, [firestore, figureId, parentId]);
+    }, [firestore, figureId, parentId, t]);
 
 
     useEffect(() => {
@@ -183,9 +184,9 @@ export default function NotificationThreadDialog({
     return (
         <DialogContent className="sm:max-w-xl">
             <DialogHeader>
-                <DialogTitle>Conversación de Comentarios</DialogTitle>
+                <DialogTitle>{t('Notifications.threadDialogTitle')}</DialogTitle>
                 <DialogDescription>
-                    Respondiendo en el perfil de <span className="font-semibold text-primary">{figureName}</span>.
+                    {t('Notifications.threadDialogDescription')} <span className="font-semibold text-primary">{figureName}</span>.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">

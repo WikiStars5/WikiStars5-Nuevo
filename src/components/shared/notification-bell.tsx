@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -20,6 +19,7 @@ import { formatDateDistance } from '@/lib/utils';
 import type { Notification } from '@/lib/types';
 import { Dialog, DialogTrigger } from '../ui/dialog';
 import NotificationThreadDialog from './notification-thread-dialog';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 const NOTIFICATION_SOUND_URL = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/AUDIO--NOTIFICACION%2Flivechat.mp3?alt=media&token=6f7084e4-9bad-4599-9f72-5534ad2464b7';
@@ -91,6 +91,7 @@ export default function NotificationBell() {
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
   const previousUnreadCountRef = useRef<number>(0);
+  const { t } = useLanguage();
 
   const notificationsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -137,12 +138,12 @@ export default function NotificationBell() {
               {unreadCount}
             </div>
           )}
-          <span className="sr-only">Ver notificaciones</span>
+          <span className="sr-only">{t('Notifications.viewNotifications')}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="p-3 font-semibold text-sm border-b">
-            Notificaciones
+            {t('Notifications.title')}
         </div>
         <ScrollArea className="h-96">
             {isLoading && (
@@ -161,14 +162,14 @@ export default function NotificationBell() {
             )}
              {!isLoading && (!notifications || notifications.length === 0) && (
                 <div className="text-center p-8">
-                    <p className="text-sm text-muted-foreground">No tienes notificaciones.</p>
+                    <p className="text-sm text-muted-foreground">{t('Notifications.noNotifications')}</p>
                 </div>
             )}
         </ScrollArea>
         <Separator />
         <div className="p-2 text-center">
             <Button variant="link" size="sm" asChild>
-                <Link href="#">Ver todas</Link>
+                <Link href="#">{t('Notifications.seeAll')}</Link>
             </Button>
         </div>
       </PopoverContent>

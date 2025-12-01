@@ -16,12 +16,13 @@ import { updateStreak } from '@/firebase/streaks';
 import { Comment as CommentType } from '@/lib/types';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
+import { useLanguage } from '@/context/LanguageContext';
 
-const replySchema = z.object({
-  text: z.string().min(1, 'La respuesta no puede estar vacía.').max(1000, 'La respuesta no puede superar los 1000 caracteres.'),
+const createReplySchema = (t: (key: string) => string) => z.object({
+  text: z.string().min(1, t('ReplyForm.validation.notEmpty')).max(1000, t('ReplyForm.validation.maxLength')),
 });
 
-type ReplyFormValues = z.infer<typeof replySchema>;
+type ReplyFormValues = z.infer<ReturnType<typeof createReplySchema>>;
 
 interface ReplyFormProps {
   figureId: string;
@@ -37,6 +38,9 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
+  const { t } = useLanguage();
+
+  const replySchema = createReplySchema(t);
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
@@ -121,7 +125,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
       }
 
       toast({
-        title: '¡Respuesta Publicada!',
+        title: t('ReplyForm.toast.replyPosted'),
       });
       form.reset({ text: `@[${parentComment.userDisplayName}] ` });
       onReplySuccess();
@@ -129,8 +133,8 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
       console.error('Error al publicar respuesta:', error);
       toast({
         variant: 'destructive',
-        title: 'Error al Publicar',
-        description: 'No se pudo enviar tu respuesta. Inténtalo de nuevo.',
+        title: t('ReplyForm.toast.errorPostingTitle'),
+        description: t('ReplyForm.toast.errorPostingDescription'),
       });
     } finally {
       setIsSubmitting(false);
@@ -147,13 +151,13 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
                 <Textarea
                 {...form.register('text')}
-                placeholder={`Respondiendo a ${parentComment.userDisplayName}...`}
+                placeholder={`${t('ReplyForm.placeholder')} ${parentComment.userDisplayName}...`}
                 className="text-sm"
                 rows={2}
                 />
                 <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="sm" onClick={() => onReplySuccess()} disabled={isSubmitting}>
-                        Cancelar
+                        {t('ReplyForm.cancelButton')}
                     </Button>
                     <Button type="submit" size="sm" disabled={isSubmitting}>
                         {isSubmitting ? (
@@ -161,7 +165,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
                         ) : (
                         <Send className="mr-2 h-4 w-4" />
                         )}
-                        Responder
+                        {t('ReplyForm.replyButton')}
                     </Button>
                 </div>
                 {form.formState.errors.text && <p className="text-xs text-destructive">{form.formState.errors.text.message}</p>}

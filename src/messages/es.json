@@ -97,5 +97,29 @@
         "profilePhotoUrl": "Por favor, introduce una URL válida.",
         "descriptionMax": "La descripción no puede superar los 160 caracteres."
     }
+  },
+  "Notifications": {
+    "title": "Notificaciones",
+    "viewNotifications": "Ver notificaciones",
+    "noNotifications": "No tienes notificaciones.",
+    "seeAll": "Ver todas",
+    "threadDialogTitle": "Conversación de Comentarios",
+    "threadDialogDescription": "Respondiendo en el perfil de",
+    "originalCommentDeleted": "El comentario original de esta conversación ha sido eliminado.",
+    "errorLoadingConversation": "Ocurrió un error al cargar la conversación."
+  },
+  "ReplyForm": {
+    "placeholder": "Respondiendo a",
+    "cancelButton": "Cancelar",
+    "replyButton": "Responder",
+    "toast": {
+      "replyPosted": "¡Respuesta Publicada!",
+      "errorPostingTitle": "Error al Publicar",
+      "errorPostingDescription": "No se pudo enviar tu respuesta. Inténtalo de nuevo."
+    },
+    "validation": {
+      "notEmpty": "La respuesta no puede estar vacía.",
+      "maxLength": "La respuesta no puede superar los 1000 caracteres."
+    }
   }
 }
