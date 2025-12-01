@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState, useContext } from 'react';
@@ -15,17 +14,21 @@ const SnowAnimation = () => {
       const newSnowflakes = Array.from({ length: flakeCount }).map((_, i) => {
         const style: React.CSSProperties = {
           left: `${Math.random() * 100}vw`,
-          animationDuration: `${Math.random() * 5 + 5}s`, // 5 to 10 seconds
-          animationDelay: `${Math.random() * 5}s`,
-          opacity: Math.random(),
-          transform: `scale(${Math.random()})`,
+          animationDuration: `${Math.random() * 5 + 10}s`, // 10 to 15 seconds
+          animationDelay: `-${Math.random() * 20}s`, // Start at random points
+          opacity: Math.random() * 0.7 + 0.3,
+          fontSize: `${Math.random() * 10 + 10}px`, // 10px to 20px
         };
-        return <div key={i} className="snowflake" style={style} />;
+        const character = Math.random() > 0.3 ? '❄' : '•';
+        
+        return <div key={i} className="snowflake" style={style}>{character}</div>;
       });
       setSnowflakes(newSnowflakes);
     };
 
-    generateSnowflakes();
+    if (typeof window !== 'undefined') {
+        generateSnowflakes();
+    }
   }, []);
 
   if (!isSnowing) {
