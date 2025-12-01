@@ -109,7 +109,9 @@
     "originalCommentDeleted": "The original comment in this thread has been deleted.",
     "errorLoadingConversation": "An error occurred while loading the conversation.",
     "replyMessage": "{user} has replied to your comment on {figure}'s profile.",
-    "defaultMessage": "You have a new notification."
+    "defaultMessage": "You have a new notification.",
+    "someone": "Someone",
+    "aProfile": "a profile"
   },
   "ReplyForm": {
     "placeholder": "Replying to",

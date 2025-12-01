@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -51,10 +52,13 @@ function NotificationItem({ notification, onNotificationClick }: { notification:
   const { figureId, parentId, replyId } = getParamsFromLink(notification.link);
   
   const getMessage = () => {
-    if (notification.type === 'comment_reply') {
+    // Fallback for older notifications that don't have the `data` field
+    if (notification.type === 'comment_reply' && notification.data) {
+      const commenterName = notification.data.commenterName || t('Notifications.someone');
+      const figureName = notification.data.figureName || t('Notifications.aProfile');
       return t('Notifications.replyMessage')
-        .replace('{user}', notification.data.commenterName)
-        .replace('{figure}', notification.data.figureName);
+        .replace('{user}', commenterName)
+        .replace('{figure}', figureName);
     }
     return notification.message || t('Notifications.defaultMessage');
   }
@@ -116,13 +120,13 @@ export default function NotificationBell() {
 
   useEffect(() => {
     // Play sound only if new unread notifications have arrived.
-    if (unreadCount > previousUnreadCountRef.current) {
+    if (isOpen && unreadCount > previousUnreadCountRef.current) {
         const audio = new Audio(NOTIFICATION_SOUND_URL);
         audio.play().catch(e => console.error("Error playing notification sound:", e));
     }
     // Update the ref with the new count for the next check.
     previousUnreadCountRef.current = unreadCount;
-  }, [unreadCount]);
+  }, [unreadCount, isOpen]);
 
 
  const handleMarkAsRead = async (notificationId: string) => {

@@ -109,7 +109,9 @@
     "originalCommentDeleted": "El comentario original de esta conversación ha sido eliminado.",
     "errorLoadingConversation": "Ocurrió un error al cargar la conversación.",
     "replyMessage": "{user} ha respondido a tu comentario en el perfil de {figure}.",
-    "defaultMessage": "Tienes una nueva notificación."
+    "defaultMessage": "Tienes una nueva notificación.",
+    "someone": "Alguien",
+    "aProfile": "un perfil"
   },
   "ReplyForm": {
     "placeholder": "Respondiendo a",
