@@ -53,6 +53,20 @@ export default function LanguageSwitcher() {
             <span>English</span>
           </div>
         </DropdownMenuItem>
+        <DropdownMenuItem 
+          onSelect={() => setLanguage('pt')}
+          className={cn(language === 'pt' && 'bg-accent/50')}
+        >
+          <div className="flex items-center gap-2">
+            <Image
+              src="https://flagcdn.com/w20/br.png"
+              alt="Bandera de Brasil"
+              width={20}
+              height={15}
+            />
+            <span>Português</span>
+          </div>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
