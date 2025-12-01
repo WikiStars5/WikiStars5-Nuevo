@@ -234,7 +234,11 @@ service cloud.firestore {
             )
         );
         // Allow any signed-in user (including anonymous) to cast their personal vote
-        match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+        match /votes/{userId} { 
+          allow get: if isOwner(userId) || isAdmin(); 
+          allow write: if isOwner(userId); 
+          allow list: if isOwner(userId) || isAdmin(); 
+        }
     }
     
     match /roles_admin/{userId} {
