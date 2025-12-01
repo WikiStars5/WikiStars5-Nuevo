@@ -153,7 +153,7 @@
       "info": "Información",
       "attitude": "Actitud",
       "emotion": "Emoción",
-      "rachas": "Rachas"
+      "streaks": "Rachas"
     },
     "detailedInfo": {
       "title": "Información Detallada",
@@ -606,5 +606,17 @@
       "Respeta los derechos de autor. No publiques contenido que no te pertenezca sin la debida atribución."
     ],
     "conclusion": "El incumplimiento de estas reglas puede resultar en la eliminación de comentarios, la suspensión temporal o la expulsión permanente de la plataforma. Nos reservamos el derecho de moderar el contenido para garantizar la seguridad y el bienestar de nuestra comunidad."
+  },
+  "UserActivity": {
+    "title": "Actividad del Usuario",
+    "description": "Un resumen de las interacciones del usuario en la plataforma.",
+    "tabs": {
+      "attitudes": "Actitud",
+      "emotions": "Emociones",
+      "streaks": "Rachas"
+    },
+    "noVotes": "No has votado como '{category}' por ningún perfil.",
+    "noStreaksTitle": "Aún no tienes rachas activas",
+    "noStreaksDescription": "Gana rachas dejando un comentario o respondiendo a uno en cualquier perfil durante días consecutivos."
   }
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -14,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { isDateActive } from '@/lib/streaks';
 import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart, Trophy, Award } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useLanguage } from '@/context/LanguageContext';
+
 
 // The fetched votes will now contain the denormalized data
 interface FetchedVote extends AttitudeVote {
@@ -29,28 +30,10 @@ interface UserActivityProps {
     userId: string;
 }
 
-const attitudeOptions = [
-  { id: 'neutral', label: 'Neutral', icon: Meh },
-  { id: 'fan', label: 'Fan', icon: Star },
-  { id: 'simp', label: 'Simp', icon: Heart },
-  { id: 'hater', label: 'Hater', icon: ThumbsDown },
-];
-
-const emotionOptions = [
-  { id: 'alegria', label: 'Alegría', icon: Smile },
-  { id: 'envidia', label: 'Envidia', icon: Meh },
-  { id: 'tristeza', label: 'Tristeza', icon: Frown },
-  { id: 'miedo', label: 'Miedo', icon: AlertTriangle },
-  { id: 'desagrado', label: 'Desagrado', icon: ThumbsDown },
-  { id: 'furia', label: 'Furia', icon: Angry },
-];
-
-// No longer needed as we denormalize data
-// const fetchFigureData...
-
 function ActivityDisplay({ votes, category }: { votes: FetchedVote[], category: string }) {
+    const { t } = useLanguage();
     if (!votes || votes.length === 0) {
-        return <p className="text-sm text-muted-foreground text-center py-8">No has votado como '{category}' por ningún perfil.</p>;
+        return <p className="text-sm text-muted-foreground text-center py-8">{t('UserActivity.noVotes').replace('{category}', category)}</p>;
     }
     
     return (
@@ -75,13 +58,14 @@ function ActivityDisplay({ votes, category }: { votes: FetchedVote[], category: 
 }
 
 function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
+  const { t } = useLanguage();
   if (streaks.length === 0) {
     return (
         <div className="text-center py-8">
             <Flame className="mx-auto h-12 w-12 text-muted-foreground/30" />
-            <h3 className="mt-2 text-md font-semibold">Aún no tienes rachas activas</h3>
+            <h3 className="mt-2 text-md font-semibold">{t('UserActivity.noStreaksTitle')}</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-                Gana rachas dejando un comentario o respondiendo a uno en cualquier perfil durante días consecutivos.
+                {t('UserActivity.noStreaksDescription')}
             </p>
         </div>
     );
@@ -109,6 +93,23 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
 
 export default function UserActivity({ userId }: UserActivityProps) {
   const firestore = useFirestore();
+  const { t } = useLanguage();
+
+  const attitudeOptions = useMemo(() => [
+    { id: 'neutral', label: t('AttitudeVoting.labels.neutral') },
+    { id: 'fan', label: t('AttitudeVoting.labels.fan') },
+    { id: 'simp', label: t('AttitudeVoting.labels.simp') },
+    { id: 'hater', label: t('AttitudeVoting.labels.hater') },
+  ], [t]);
+
+  const emotionOptions = useMemo(() => [
+    { id: 'alegria', label: t('EmotionVoting.labels.alegria') },
+    { id: 'envidia', label: t('EmotionVoting.labels.envidia') },
+    { id: 'tristeza', label: t('EmotionVoting.labels.tristeza') },
+    { id: 'miedo', label: t('EmotionVoting.labels.miedo') },
+    { id: 'desagrado', label: t('EmotionVoting.labels.desagrado') },
+    { id: 'furia', label: t('EmotionVoting.labels.furia') },
+  ], [t]);
 
   const attitudeQuery = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
@@ -152,15 +153,15 @@ export default function UserActivity({ userId }: UserActivityProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Actividad del Usuario</CardTitle>
-        <CardDescription>Un resumen de las interacciones del usuario en la plataforma.</CardDescription>
+        <CardTitle>{t('UserActivity.title')}</CardTitle>
+        <CardDescription>{t('UserActivity.description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="attitudes" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="attitudes">Actitud</TabsTrigger>
-            <TabsTrigger value="emotions">Emociones</TabsTrigger>
-            <TabsTrigger value="streaks">Rachas</TabsTrigger>
+            <TabsTrigger value="attitudes">{t('UserActivity.tabs.attitudes')}</TabsTrigger>
+            <TabsTrigger value="emotions">{t('UserActivity.tabs.emotions')}</TabsTrigger>
+            <TabsTrigger value="streaks">{t('UserActivity.tabs.streaks')}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="attitudes" className="mt-4">

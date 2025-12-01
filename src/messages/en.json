@@ -606,5 +606,17 @@
       "Respect copyrights. Do not post content that you do not own without proper attribution."
     ],
     "conclusion": "Failure to comply with these rules may result in the removal of comments, temporary suspension, or permanent expulsion from the platform. We reserve the right to moderate content to ensure the safety and well-being of our community."
+  },
+  "UserActivity": {
+    "title": "User Activity",
+    "description": "A summary of the user's interactions on the platform.",
+    "tabs": {
+      "attitudes": "Attitude",
+      "emotions": "Emotions",
+      "streaks": "Streaks"
+    },
+    "noVotes": "You have not voted as '{category}' for any profile.",
+    "noStreaksTitle": "You have no active streaks yet",
+    "noStreaksDescription": "Earn streaks by leaving a comment or replying to one on any profile on consecutive days."
   }
 }
