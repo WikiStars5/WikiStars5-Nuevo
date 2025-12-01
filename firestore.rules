@@ -169,7 +169,9 @@ service cloud.firestore {
             // Any signed-in user can update votes
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) ||
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
-            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']))
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
+             // Allow incrementing replyCount when a reply is added
+            (isIncrement('replyCount', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount']))
         );
         
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
