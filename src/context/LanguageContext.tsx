@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
@@ -12,6 +13,8 @@ import itMessages from '@/messages/it.json';
 import deMessages from '@/messages/de.json';
 
 type Language = 'es' | 'en' | 'pt'; // | 'zh' | 'fr' | 'it' | 'de';
+
+const supportedLanguages: Language[] = ['es', 'en', 'pt'];
 
 interface LanguageContextType {
   language: Language;
@@ -38,13 +41,21 @@ function getNestedValue(obj: any, key: string): string | undefined {
 
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>('es');
+  const [language, setLanguageState] = useState<Language>('es'); // Default to Spanish initially
 
   useEffect(() => {
-    // This effect runs on the client side
+    // This effect runs only on the client side
     const savedLanguage = localStorage.getItem('wikistars5-lang') as Language;
-    if (savedLanguage && /^(es|en|pt)$/.test(savedLanguage)) {
+    
+    if (savedLanguage && supportedLanguages.includes(savedLanguage)) {
       setLanguageState(savedLanguage);
+    } else {
+      // If no language is saved, detect from browser
+      const browserLang = navigator.language.split('-')[0] as Language;
+      if (supportedLanguages.includes(browserLang)) {
+        setLanguageState(browserLang);
+      }
+      // Otherwise, it stays on the default 'es'
     }
   }, []);
 
