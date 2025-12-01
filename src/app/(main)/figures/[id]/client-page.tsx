@@ -25,7 +25,6 @@ import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
 import { countries } from '@/lib/countries';
-import { cleanFandomImageUrl } from '@/lib/utils';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -316,7 +315,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                                 <div className="space-y-4">
                                     <h3 className="font-semibold text-sm flex items-center gap-2">
                                         <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                                        Redes Sociales
+                                        Redes Sociales y Wikis
                                     </h3>
                                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
                                         {Object.entries(figure.socialLinks || {}).map(([platform, url]) => (
