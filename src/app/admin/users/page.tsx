@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -23,8 +24,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { countries } from '@/lib/countries';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
 import { Users, TrendingUp, MapPin, UserCheck } from 'lucide-react';
-// import UserTrendsChart from '@/components/admin/user-trends-chart';
-// import ActiveUsersChart from '@/components/admin/active-users-chart';
+import UserTrendsChart from '@/components/admin/user-trends-chart';
+import ActiveUsersChart from '@/components/admin/active-users-chart';
 
 interface UserData {
     country?: string;
@@ -237,8 +238,8 @@ export default function AdminUsersDashboardPage() {
                 </CardContent>
             </Card>
             
-            {/* <UserTrendsChart /> */}
-            {/* <ActiveUsersChart /> */}
+            <UserTrendsChart />
+            <ActiveUsersChart />
         </div>
     </div>
   );
