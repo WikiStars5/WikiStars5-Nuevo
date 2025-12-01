@@ -19,47 +19,78 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { UserCog, Eye } from 'lucide-react';
+import { UserCog } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import Link from 'next/link';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, getDocs, doc, getDoc, where, collectionGroup } from 'firebase/firestore';
+import type { User } from '@/lib/types';
 
-// Mock data - replace with real data from Firebase later
-const mockUsers = [
-  {
-    id: '1',
-    username: 'tifany',
-    profilePhotoUrl: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&q=80',
-    attitudeVotes: 5,
-    emotionVotes: 8,
-    goatVote: 'Messi',
-    ratingsCount: 12,
-  },
-  {
-    id: '2',
-    username: 'juanperez',
-    profilePhotoUrl: 'https://images.unsplash.com/photo-1636377985931-898218afd306?w=100&q=80',
-    attitudeVotes: 2,
-    emotionVotes: 15,
-    goatVote: 'Ronaldo',
-    ratingsCount: 20,
-  },
-  {
-    id: '3',
-    username: 'maria_g',
-    profilePhotoUrl: null,
-    attitudeVotes: 10,
-    emotionVotes: 3,
-    goatVote: null,
-    ratingsCount: 5,
-  },
-];
+
+interface EnrichedUser extends User {
+    attitudeVotes: number;
+    emotionVotes: number;
+    goatVote: string | null;
+    ratingsCount: number;
+}
+
 
 export default function UserManagementTable() {
-    const isLoading = false; // Replace with real loading state later
+    const firestore = useFirestore();
+    const usersCollection = useMemoFirebase(() => firestore ? query(collection(firestore, 'users')) : null, [firestore]);
+    const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
+
+    const [enrichedUsers, setEnrichedUsers] = React.useState<EnrichedUser[]>([]);
+    const [isLoadingDetails, setIsLoadingDetails] = React.useState(true);
+
+    React.useEffect(() => {
+        const fetchDetails = async () => {
+            if (!users || !firestore) return;
+
+            setIsLoadingDetails(true);
+            const enrichedData = await Promise.all(
+                users.map(async (user) => {
+                    // Get attitude votes count
+                    const attitudeVotesSnap = await getDocs(collection(firestore, `users/${user.id}/attitudeVotes`));
+                    
+                    // Get emotion votes count
+                    const emotionVotesSnap = await getDocs(collection(firestore, `users/${user.id}/emotionVotes`));
+
+                    // Get GOAT vote
+                    const goatVoteDoc = await getDoc(doc(firestore, `goat_battles/messi-vs-ronaldo/votes/${user.id}`));
+                    const goatVote = goatVoteDoc.exists() ? goatVoteDoc.data().vote : null;
+
+                    // Get ratings count
+                    const commentsQuery = query(
+                        collectionGroup(firestore, 'comments'), 
+                        where('userId', '==', user.id),
+                        where('rating', '>=', 0)
+                    );
+                    const ratingsSnap = await getDocs(commentsQuery);
+
+                    return {
+                        ...user,
+                        attitudeVotes: attitudeVotesSnap.size,
+                        emotionVotes: emotionVotesSnap.size,
+                        goatVote: goatVote,
+                        ratingsCount: ratingsSnap.size,
+                    };
+                })
+            );
+            setEnrichedUsers(enrichedData);
+            setIsLoadingDetails(false);
+        };
+
+        fetchDetails();
+
+    }, [users, firestore]);
+
 
     const getAvatarFallback = (name: string | null) => {
         return name ? name.charAt(0).toUpperCase() : 'U';
     };
+    
+    const isLoading = isLoadingUsers || isLoadingDetails;
 
     return (
         <Card>
@@ -95,7 +126,7 @@ export default function UserManagementTable() {
                                 <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
                              </TableRow>
                         ))}
-                        {!isLoading && mockUsers.map(user => (
+                        {!isLoading && enrichedUsers.map(user => (
                             <TableRow key={user.id}>
                                 <TableCell>
                                     <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
@@ -120,12 +151,19 @@ export default function UserManagementTable() {
                                 </TableCell>
                             </TableRow>
                         ))}
+                         {!isLoading && enrichedUsers.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">
+                                No se encontraron usuarios.
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                  </Table>
             </CardContent>
             <CardFooter>
                  <div className="text-xs text-muted-foreground">
-                    Mostrando <strong>{mockUsers.length}</strong> de <strong>{mockUsers.length}</strong> usuarios.
+                    Mostrando <strong>{enrichedUsers.length}</strong> de <strong>{enrichedUsers.length}</strong> usuarios.
                  </div>
             </CardFooter>
         </Card>
