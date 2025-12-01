@@ -247,7 +247,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                     {country && (
                         <Image
                             src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                            alt={country.name}
+                            alt={country.name || country.code}
                             width={20}
                             height={15}
                             className="object-contain"
