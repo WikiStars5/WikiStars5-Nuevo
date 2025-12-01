@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -11,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
 import { collection, query as firestoreQuery, where, getDocs, limit } from 'firebase/firestore';
 import { normalizeText } from '@/lib/keywords';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Debounce function
 function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
@@ -55,6 +57,7 @@ export default function SearchBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const firestore = useFirestore();
+  const { t } = useLanguage();
 
   const searchFigures = async (searchTerm: string): Promise<Figure[]> => {
     if (searchTerm.trim().length < 1 || !firestore) {
@@ -166,7 +169,7 @@ export default function SearchBar({
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Buscar perfiles"
+          placeholder={t('SearchBar.placeholder')}
           value={currentQuery}
           onChange={(e) => setCurrentQuery(e.target.value)}
           onKeyDown={handleKeyDown}

@@ -126,5 +126,8 @@
       "notEmpty": "La respuesta no puede estar vacía.",
       "maxLength": "La respuesta no puede superar los 1000 caracteres."
     }
+  },
+  "SearchBar": {
+    "placeholder": "Buscar perfiles"
   }
 }

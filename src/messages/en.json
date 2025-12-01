@@ -126,5 +126,8 @@
       "notEmpty": "Reply cannot be empty.",
       "maxLength": "Reply cannot exceed 1000 characters."
     }
+  },
+  "SearchBar": {
+    "placeholder": "Search profiles"
   }
 }
