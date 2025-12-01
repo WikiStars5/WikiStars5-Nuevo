@@ -9,6 +9,8 @@ export interface User {
   coverPhotoUrl?: string;
   fcmTokens?: string[]; // For Push Notifications
   referralCount?: number;
+  visitCount?: number;
+  lastVisit?: Timestamp;
 }
 
 export interface GlobalSettings {

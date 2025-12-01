@@ -1,12 +1,14 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Firestore, doc, getDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged, signInAnonymously, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { UserHookResult } from './auth/use-user';
 import { normalizeText } from '@/lib/keywords';
+import type { User as AppUser } from '@/lib/types';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -43,6 +45,14 @@ export interface FirebaseServicesAndUser {
 }
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
+
+// Helper function to check if two dates are on the same day.
+const isSameDay = (date1: Date, date2: Date) => {
+    return date1.getFullYear() === date2.getFullYear() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getDate() === date2.getDate();
+};
+
 
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
@@ -81,6 +91,28 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         auth,
         (firebaseUser) => {
             setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+
+            // --- Daily Visit Tracking Logic ---
+            if (firebaseUser && firestore) {
+                const userRef = doc(firestore, 'users', firebaseUser.uid);
+                getDoc(userRef).then(userSnap => {
+                    const userData = userSnap.data() as AppUser;
+                    const lastVisitDate = userData?.lastVisit?.toDate();
+                    const today = new Date();
+
+                    // Check if it's a new day or the very first visit
+                    if (!lastVisitDate || !isSameDay(lastVisitDate, today)) {
+                         setDoc(userRef, { 
+                            visitCount: increment(1),
+                            lastVisit: serverTimestamp() 
+                        }, { merge: true });
+                    }
+                }).catch(error => {
+                    console.error("Error tracking user visit:", error);
+                });
+            }
+            // --- End Daily Visit Tracking Logic ---
+
         },
         (error) => {
             console.error("FirebaseProvider: onAuthStateChanged error:", error);
@@ -94,7 +126,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     );
 
     return () => unsubscribe();
-  }, [auth, areServicesReady]);
+  }, [auth, areServicesReady, firestore]);
 
 
   const contextValue = useMemo((): FirebaseContextState => {

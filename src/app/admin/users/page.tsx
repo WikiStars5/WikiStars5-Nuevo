@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -25,6 +26,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'rec
 import { Users, TrendingUp, MapPin, UserCheck } from 'lucide-react';
 import UserTrendsChart from '@/components/admin/user-trends-chart';
 import UserManagementTable from '@/components/admin/user-management-table';
+import UserVisitTable from '@/components/admin/user-visit-table';
 
 
 interface UserData {
@@ -240,6 +242,7 @@ export default function AdminUsersDashboardPage() {
             <UserTrendsChart className="lg:col-span-2" />
         </div>
         <UserManagementTable />
+        <UserVisitTable />
     </div>
   );
 }

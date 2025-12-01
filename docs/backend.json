@@ -53,6 +53,15 @@
         "referralCount": {
           "type": "number",
           "description": "The total number of users this user has successfully referred."
+        },
+        "visitCount": {
+            "type": "number",
+            "description": "The total number of unique days the user has visited the site."
+        },
+        "lastVisit": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp of the user's last recorded daily visit."
         }
       },
       "required": [
@@ -837,5 +846,3 @@
     "reasoning": "The Firestore structure is designed to support the WikiStars5 application, focusing on user profiles, public figures, comments, notifications, streaks, and achievements. Key considerations include authorization independence, clarity of intent, and secure list operations. The structure utilizes path-based ownership for user-specific data and denormalization for collaborative data, ensuring that security rules can be written without complex `get()` calls.\n\n*   **Users:** User data is stored under `/users/{userId}`, providing secure and straightforward access to individual user profiles. This path-based ownership simplifies security rules. The `role` property within each user document determines administrative privileges.\n*   **Usernames:** A top-level `/usernames` collection is used to enforce unique usernames. Each document's ID is the normalized (lowercase) username, and it contains the `userId` of the owner. This allows for fast, efficient checks for username availability using a `get()` operation instead of a costly query. \n*   **Public Figures:** Public figure profiles are stored in the `/figures/{figureId}` collection.  Featuring status is stored directly in the `PublicFigure` document.\n*   **Comments:** Comments are stored in a subcollection under each `PublicFigure` at `/figures/{figureId}/comments/{commentId}`.  This structure facilitates efficient querying of comments for a specific public figure.  Denormalizing the `figureId` into the comment document itself (even though it is implicit in the path) ensures authorization independence.\n*   **Notifications:** Notifications are stored under `/users/{userId}/notifications/{notificationId}`.  This path-based approach ensures that only the user can access their notifications. No denormalization is required here.\n*   **Streaks:** Streaks, representing a user's commenting activity on a public figure, are stored under `/users/{userId}/streaks/{streakId}`. This adheres to path-based ownership. The `publicFigureId` is stored within each `Streak` document.\n*   **Related Figures:** Relationships between public figures are stored in the `/related_figures/{relatedFigureId}` collection. Each document includes `sourceFigureId` and `targetFigureId` to define the relationship.\n*   **Admin Roles:**  Admin status is checked by verifying the existence of a document in the `/roles_admin/{userId}` collection. This existence-based check is efficient and secure.\n*   **GOAT Battle:** A global `/goat_battles/{battleId}` collection stores the main battle document (e.g., `messi-vs-ronaldo`) containing aggregated vote counts. A subcollection, `votes/{userId}`, is used to track individual user votes, ensuring data integrity and preventing duplicate votes efficiently.\n\nThis structure supports the required QAPs by:\n\n*   **Authorization Independence:** Denormalizing authorization-relevant data into subcollections eliminates the need for `get()` calls in security rules.\n*   **Secure List Operations:** Segregating data based on access requirements (e.g., user-specific data under `/users/{userId}`) ensures that list operations can be secured effectively. Public figures are in a separate collection, allowing open read access while restricting write access to admins only."
   }
 }
-
-    
