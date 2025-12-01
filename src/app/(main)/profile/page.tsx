@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity } from "lucide-react";
+import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
@@ -301,9 +301,22 @@ function ProfilePageContent() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>URL de Foto de Perfil</FormLabel>
-                                                <FormControl>
-                                                    <Input {...field} placeholder="https://..." value={field.value || ''} />
-                                                </FormControl>
+                                                <div className="relative">
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="https://..." value={field.value || ''} className="pr-8" />
+                                                    </FormControl>
+                                                    {field.value && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                            onClick={() => profileForm.setValue('profilePhotoUrl', '')}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -421,5 +434,3 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
-
-    
