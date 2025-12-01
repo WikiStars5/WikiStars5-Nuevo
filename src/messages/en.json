@@ -91,11 +91,11 @@
       "linkErrorInUse": "This Google account is already associated with another WikiStars5 user."
     },
     "validation": {
-        "usernameMin": "Username must be at least 3 characters.",
-        "usernameMax": "Username cannot exceed 10 characters.",
-        "usernameRegex": "Only letters, numbers, and underscores are allowed.",
-        "profilePhotoUrl": "Please enter a valid URL.",
-        "descriptionMax": "Description cannot exceed 160 characters."
+      "usernameMin": "Username must be at least 3 characters.",
+      "usernameMax": "Username cannot exceed 10 characters.",
+      "usernameRegex": "Only letters, numbers, and underscores are allowed.",
+      "profilePhotoUrl": "Please enter a valid URL.",
+      "descriptionMax": "Description cannot exceed 160 characters."
     }
   },
   "Notifications": {
@@ -131,72 +131,72 @@
   },
   "FigurePage": {
     "tabs": {
-        "info": "Information",
-        "attitude": "Attitude",
-        "emotion": "Emotion",
-        "streaks": "Streaks"
+      "info": "Information",
+      "attitude": "Attitude",
+      "emotion": "Emotion",
+      "streaks": "Streaks"
     },
     "detailedInfo": {
-        "title": "Detailed Information",
-        "description": "Biographical and descriptive data for {name}.",
-        "editButton": "Edit",
-        "nameLabel": "Full Name",
-        "genderLabel": "Gender",
-        "birthDateLabel": "Birth Date",
-        "deathDateLabel": "Death Date",
-        "occupationLabel": "Occupation",
-        "countryLabel": "Country of origin",
-        "maritalStatusLabel": "Marital Status",
-        "heightLabel": "Height",
-        "noInfo": "No detailed information available. Click 'Edit' to add it!",
-        "socialMediaTitle": "Social Media and Wikis"
+      "title": "Detailed Information",
+      "description": "Biographical and descriptive data for {name}.",
+      "editButton": "Edit",
+      "nameLabel": "Full Name",
+      "genderLabel": "Gender",
+      "birthDateLabel": "Birth Date",
+      "deathDateLabel": "Death Date",
+      "occupationLabel": "Occupation",
+      "countryLabel": "Country of origin",
+      "maritalStatusLabel": "Marital Status",
+      "heightLabel": "Height",
+      "noInfo": "No detailed information available. Click 'Edit' to add it!",
+      "socialMediaTitle": "Social Media and Wikis"
     },
     "callToAction": {
-        "goat": "Now take part in the battle!",
-        "rate": "Now rate this profile!"
+      "goat": "Now take part in the battle!",
+      "rate": "Now rate this profile!"
     },
     "relatedFigures": {
-        "title": "Related Profiles",
-        "description": "Other profiles you might be interested in (Max. 6).",
-        "addButton": "Add",
-        "limitReached": "You have reached the limit of 6 related profiles.",
-        "deleteConfirmTitle": "Are you sure?",
-        "deleteConfirmDescription": "This action will remove the relationship with {name}. It cannot be undone.",
-        "deleteConfirmContinue": "Continue",
-        "deleteToastTitle": "Relationship Deleted",
-        "deleteToastDescription": "The related profile has been removed.",
-        "errorDeleteToastTitle": "Error Deleting",
-        "errorDeleteToastDescription": "Could not remove the relationship.",
-        "noRelated": "No related profiles have been added yet.",
-        "addDialog": {
-          "title": "Add Related Profile",
-          "description": "Search and select a profile to relate it to {name}.",
-          "selfRelationError": "You cannot relate a profile to itself.",
-          "addSuccessTitle": "Relationship Added",
-          "addSuccessDescription": "{sourceName} and {targetName} are now related.",
-          "addErrorTitle": "Error Adding",
-          "addErrorDescription": "Could not save the relationship. Please try again.",
-          "cancelButton": "Cancel",
-          "confirmButton": "Confirm Relationship",
-          "searchInputPlaceholder": "Search profiles to relate..."
-        }
+      "title": "Related Profiles",
+      "description": "Other profiles you might be interested in (Max. 6).",
+      "addButton": "Add",
+      "limitReached": "You have reached the limit of 6 related profiles.",
+      "deleteConfirmTitle": "Are you sure?",
+      "deleteConfirmDescription": "This action will remove the relationship with {name}. It cannot be undone.",
+      "deleteConfirmContinue": "Continue",
+      "deleteToastTitle": "Relationship Deleted",
+      "deleteToastDescription": "The related profile has been removed.",
+      "errorDeleteToastTitle": "Error Deleting",
+      "errorDeleteToastDescription": "Could not remove the relationship.",
+      "noRelated": "No related profiles have been added yet.",
+      "addDialog": {
+        "title": "Add Related Profile",
+        "description": "Search and select a profile to relate it to {name}.",
+        "selfRelationError": "You cannot relate a profile to itself.",
+        "addSuccessTitle": "Relationship Added",
+        "addSuccessDescription": "{sourceName} and {targetName} are now related.",
+        "addErrorTitle": "Error Adding",
+        "addErrorDescription": "Could not save the relationship. Please try again.",
+        "cancelButton": "Cancel",
+        "confirmButton": "Confirm Relationship",
+        "searchInputPlaceholder": "Search profiles to relate..."
+      }
     }
   },
   "AttitudeVoting": {
     "title": "How do you see them?",
     "totalVotes": "Total responses: {count}",
     "voteToast": {
-        "removed": "Vote removed",
-        "updated": "Vote updated!",
-        "registered": "Vote registered!"
+      "removed": "Vote removed",
+      "updated": "Vote updated!",
+      "registered": "Vote registered!"
     },
     "errorToast": {
-        "title": "Error Voting",
-        "description": "There was a problem registering your vote. Security rules may have prevented it."
+      "title": "Error Voting",
+      "description": "There was a problem registering your vote. Security rules may have prevented it."
     },
     "disabledToast": {
-        "title": "Voting disabled",
-        "description": "The administrator has temporarily disabled voting."
+      "title": "Voting disabled",
+      "description": "The administrator has temporarily disabled voting."
     },
     "anonymousToast": {
       "title": "Welcome, Guest!",
@@ -206,7 +206,7 @@
       "title": "Authentication Error",
       "description": "Could not start an anonymous session."
     },
-     "userErrorToast": {
+    "userErrorToast": {
       "title": "Error",
       "description": "Could not get user identity."
     },
@@ -224,11 +224,11 @@
   "EmotionVoting": {
     "title": "What emotion do they evoke in you?",
     "totalVotes": "Total responses: {count}",
-     "locked": {
+    "locked": {
       "title": "Voting Disabled",
       "description": "The administrator has temporarily disabled emotion voting."
     },
-     "labels": {
+    "labels": {
       "alegria": "Joy",
       "envidia": "Envy",
       "tristeza": "Sadness",
@@ -249,10 +249,14 @@
     "winnerMessage": "The winner is {winner}!",
     "tieMessage": "It's a tie!",
     "calculating": "Calculating winner...",
-    "notStarted": "The administrator has not started the battle yet.",
+    "notStarted": "The event has not started. Come back later.",
+    "adminNotStarted": "The administrator has not started the battle yet.",
     "shareAlert": {
       "messi": "Are you just going to vote? The battle is won with numbers. True fans bring reinforcements.",
       "ronaldo": "Are you just going to vote? The battle is won with numbers. True fans bring reinforcements."
+    },
+    "toast": {
+      "voted": "You have voted for {player}!"
     }
   },
   "CommunityRatings": {
@@ -287,13 +291,13 @@
       "errorPostingDescription": "Could not submit your opinion. Please try again."
     },
     "existingComment": {
-        "title": "You have already left your opinion",
-        "description": "Only one review per profile is allowed. To leave a new rating, delete your previous comment.",
-        "goToComment": "Go to my opinion"
+      "title": "You have already left your opinion",
+      "description": "Only one review per profile is allowed. To leave a new rating, delete your previous comment.",
+      "goToComment": "Go to my opinion"
     },
     "locked": {
-        "title": "Opinions Disabled",
-        "description": "The administrator has temporarily disabled ratings and comments."
+      "title": "Opinions Disabled",
+      "description": "The administrator has temporarily disabled ratings and comments."
     }
   },
   "CommentList": {
@@ -347,4 +351,3 @@
     "noStreaks": "No active streaks yet. Be the first to comment on consecutive days!"
   }
 }
-

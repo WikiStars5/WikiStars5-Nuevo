@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -17,6 +16,7 @@ import { usePathname } from 'next/navigation';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { signInAnonymously } from 'firebase/auth';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 const BATTLE_ID = 'messi-vs-ronaldo';
@@ -61,6 +61,7 @@ export default function GoatBattle() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   const [isVoting, setIsVoting] = useState(false);
 
@@ -163,8 +164,8 @@ export default function GoatBattle() {
   const handleVote = async (player: 'messi' | 'ronaldo') => {
     if (!areVotesEnabled) {
       toast({
-        title: 'Votaciones deshabilitadas',
-        description: 'El administrador ha desactivado temporalmente las votaciones.',
+        title: t('AttitudeVoting.disabledToast.title'),
+        description: t('AttitudeVoting.disabledToast.description'),
         variant: 'destructive',
       });
       return;
@@ -179,19 +180,19 @@ export default function GoatBattle() {
             const userCredential = await signInAnonymously(auth);
             currentUser = userCredential.user;
              toast({
-                title: "¡Bienvenido, Invitado!",
-                description: "Tu actividad ahora es anónima. Inicia sesión para guardarla."
+                title: t('AttitudeVoting.anonymousToast.title'),
+                description: t('AttitudeVoting.anonymousToast.description')
             });
         } catch (error) {
             console.error("Error signing in anonymously:", error);
-            toast({ title: 'Error de Autenticación', description: 'No se pudo iniciar la sesión anónima.', variant: 'destructive'});
+            toast({ title: t('AttitudeVoting.authErrorToast.title'), description: t('AttitudeVoting.authErrorToast.description'), variant: 'destructive'});
             setIsVoting(false);
             return;
         }
     }
     
     if (!currentUser) {
-        toast({ title: 'Error', description: 'No se pudo obtener la identidad del usuario.', variant: 'destructive'});
+        toast({ title: t('AttitudeVoting.userErrorToast.title'), description: t('AttitudeVoting.userErrorToast.description'), variant: 'destructive'});
         return;
     }
     
@@ -217,7 +218,7 @@ export default function GoatBattle() {
             if (dbVote === player) {
                 updates[`${player}Votes`] = increment(-1);
                 transaction.delete(userVoteRef);
-                toast({ title: "Voto cancelado" });
+                toast({ title: t('AttitudeVoting.voteToast.removed') });
 
             } else {
                 updates[`${player}Votes`] = increment(1);
@@ -231,7 +232,7 @@ export default function GoatBattle() {
                     vote: player, 
                     createdAt: serverTimestamp() 
                 });
-                toast({ title: `¡Has votado por ${player === 'messi' ? 'Messi' : 'Ronaldo'}!` });
+                toast({ title: t('GoatBattle.toast.voted').replace('{player}', player === 'messi' ? 'Messi' : 'Ronaldo') });
                 if (player === 'ronaldo') {
                     const audio = new Audio('https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/sonido%20goat%2Fsiuuu%20(1).mp3?alt=media&token=46407682-9c42-4226-98c7-7486db802039');
                     audio.play();
@@ -244,8 +245,8 @@ export default function GoatBattle() {
     } catch (error: any) {
         console.error("Error casting vote:", error);
         toast({
-            title: "Error al Votar",
-            description: error.message || "No se pudo registrar tu voto.",
+            title: t('AttitudeVoting.errorToast.title'),
+            description: error.message || t('AttitudeVoting.errorToast.description'),
             variant: "destructive"
         });
     } finally {
@@ -308,12 +309,12 @@ export default function GoatBattle() {
         <Card className="dark:bg-black">
             <CardHeader className="items-center text-center">
                  <CardTitle className="flex items-center gap-2 text-3xl">
-                    <GoatIcon/> ELIJAMOS AL VERDADERO GOAT
+                    <GoatIcon/> {t('GoatBattle.title')}
                 </CardTitle>
-                <CardDescription className="text-muted-foreground">El evento no ha comenzado. Vuelve más tarde.</CardDescription>
+                <CardDescription className="text-muted-foreground">{t('GoatBattle.notStarted')}</CardDescription>
             </CardHeader>
              <CardContent className="text-center text-muted-foreground">
-                El administrador aún no ha iniciado la batalla.
+                {t('GoatBattle.adminNotStarted')}
             </CardContent>
         </Card>
     )
@@ -325,18 +326,18 @@ export default function GoatBattle() {
       <Card className="relative dark:bg-black">
         <CardHeader className="items-center text-center pt-12">
             <CardTitle className="flex items-center gap-2 text-3xl">
-            <GoatIcon/> ELIJAMOS AL VERDADERO GOAT
+            <GoatIcon/> {t('GoatBattle.title')}
             </CardTitle>
             <CardDescription className="max-w-md flex flex-col items-center text-center gap-2 text-muted-foreground">
-                <span>¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.</span>
+                <span>{t('GoatBattle.description')}</span>
                 <Image src={GOAT_ICON_URL} alt="GOAT Icon" width={80} height={80} className="h-40 w-40" />
             </CardDescription>
             {isBattleOver ? (
-                <div className="font-bold text-lg text-primary">¡La votación ha terminado!</div>
+                <div className="font-bold text-lg text-primary">{t('GoatBattle.countdownFinished')}</div>
             ) : battleData.isPaused ? (
                  <div className="flex items-center gap-2 font-mono text-lg font-bold text-yellow-500">
                     <Timer className="h-5 w-5" />
-                    <span>BATALLA EN PAUSA</span>
+                    <span>{t('GoatBattle.paused')}</span>
                 </div>
             ) : (
                 <div className="flex items-center gap-2 font-mono text-lg font-bold text-primary animate-pulse">
@@ -373,17 +374,17 @@ export default function GoatBattle() {
                     />
                 </div>
                 <div className="flex justify-between text-sm font-bold mt-1">
-                    <span className="text-blue-400">{messiVotes.toLocaleString()} votos</span>
-                    <span className="text-red-400">{ronaldoVotes.toLocaleString()} votos</span>
+                    <span className="text-blue-400">{messiVotes.toLocaleString()} {t('GoatBattle.votesLabel')}</span>
+                    <span className="text-red-400">{ronaldoVotes.toLocaleString()} {t('GoatBattle.votesLabel')}</span>
                 </div>
-                 <p className="text-center text-sm text-muted-foreground mt-2">Deja tu voto para el mejor. ¿Qué opinas?</p>
+                 <p className="text-center text-sm text-muted-foreground mt-2">{t('GoatBattle.callToAction')}</p>
             </div>
 
             {isBattleOver ? (
                 <div className="text-center font-bold text-xl py-6">
-                    {winner === 'tie' && '¡Es un empate!'}
-                    {winner && winner !== 'tie' && `El ganador es ${winner === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo'}!`}
-                    {!winner && 'Calculando ganador...'}
+                    {winner === 'tie' && t('GoatBattle.tieMessage')}
+                    {winner && winner !== 'tie' && t('GoatBattle.winnerMessage').replace('{winner}', winner === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo')}
+                    {!winner && t('GoatBattle.calculating')}
                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-4 w-full max-w-md">
@@ -396,7 +397,7 @@ export default function GoatBattle() {
                     onClick={() => handleVote('messi')}
                     disabled={isVoting || battleData?.isPaused}
                 >
-                    {isVoting && userVote?.vote !== 'messi' ? <Loader2 className="animate-spin" /> : 'Votar por Messi'}
+                    {isVoting && userVote?.vote !== 'messi' ? <Loader2 className="animate-spin" /> : t('GoatBattle.messiButton')}
                 </Button>
                 <Button
                     size="lg"
@@ -407,7 +408,7 @@ export default function GoatBattle() {
                     onClick={() => handleVote('ronaldo')}
                     disabled={isVoting || battleData?.isPaused}
                 >
-                    {isVoting && userVote?.vote !== 'ronaldo' ? <Loader2 className="animate-spin" /> : 'Votar por Ronaldo'}
+                    {isVoting && userVote?.vote !== 'ronaldo' ? <Loader2 className="animate-spin" /> : t('GoatBattle.ronaldoButton')}
                 </Button>
                 </div>
             )}
@@ -416,8 +417,8 @@ export default function GoatBattle() {
                     <Alert className="flex items-center justify-between gap-4">
                         <AlertDescription className="text-sm font-semibold">
                             {userVote.vote === 'messi'
-                            ? "¿Solo vas a votar? La batalla se gana con números. Los verdaderos fans traen refuerzos."
-                            : "¿Solo vas a votar? La batalla se gana con números. Los verdaderos fans traen refuerzos."
+                            ? t('GoatBattle.shareAlert.messi')
+                            : t('GoatBattle.shareAlert.ronaldo')
                             }
                         </AlertDescription>
                         <ShareButton
