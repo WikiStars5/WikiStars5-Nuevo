@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
+import { cn } from '@/lib/utils';
 
 export default function LanguageSwitcher() {
   const { language, setLanguage, t } = useLanguage();
@@ -24,7 +25,10 @@ export default function LanguageSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => setLanguage('es')}>
+        <DropdownMenuItem 
+          onSelect={() => setLanguage('es')}
+          className={cn(language === 'es' && 'bg-accent/50')}
+        >
           <div className="flex items-center gap-2">
             <Image
               src="https://flagcdn.com/w20/es.png"
@@ -35,7 +39,10 @@ export default function LanguageSwitcher() {
             <span>Español</span>
           </div>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setLanguage('en')}>
+        <DropdownMenuItem 
+          onSelect={() => setLanguage('en')}
+          className={cn(language === 'en' && 'bg-accent/50')}
+        >
           <div className="flex items-center gap-2">
             <Image
               src="https://flagcdn.com/w20/us.png"
