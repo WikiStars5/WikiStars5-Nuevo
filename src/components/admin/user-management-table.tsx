@@ -78,7 +78,6 @@ export default function UserManagementTable() {
                             <TableHead className="text-center">Emocion</TableHead>
                             <TableHead className="text-center">Goat</TableHead>
                             <TableHead className="text-center">Calificacion</TableHead>
-                            <TableHead><span className="sr-only">Acciones</span></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -94,7 +93,6 @@ export default function UserManagementTable() {
                                 <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
                                 <TableCell className="text-center"><Skeleton className="h-4 w-16 mx-auto" /></TableCell>
                                 <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
-                                <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                              </TableRow>
                         ))}
                         {!isLoading && mockUsers.map(user => (
@@ -120,13 +118,6 @@ export default function UserManagementTable() {
                                 <TableCell className="text-center font-bold">
                                     {user.ratingsCount}
                                 </TableCell>
-                                 <TableCell className="text-right">
-                                     <Button variant="outline" size="sm" asChild>
-                                        <Link href={`/u/${user.username}`}>
-                                            <Eye className="mr-2 h-4 w-4" /> Ver Perfil
-                                        </Link>
-                                     </Button>
-                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
