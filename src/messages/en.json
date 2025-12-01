@@ -1,4 +1,3 @@
-
 {
   "Footer": {
     "rules": "Rules",
@@ -129,5 +128,223 @@
   },
   "SearchBar": {
     "placeholder": "Search profiles"
+  },
+  "FigurePage": {
+    "tabs": {
+        "info": "Information",
+        "attitude": "Attitude",
+        "emotion": "Emotion",
+        "streaks": "Streaks"
+    },
+    "detailedInfo": {
+        "title": "Detailed Information",
+        "description": "Biographical and descriptive data for {name}.",
+        "editButton": "Edit",
+        "nameLabel": "Full Name",
+        "genderLabel": "Gender",
+        "birthDateLabel": "Birth Date",
+        "deathDateLabel": "Death Date",
+        "occupationLabel": "Occupation",
+        "countryLabel": "Country of origin",
+        "maritalStatusLabel": "Marital Status",
+        "heightLabel": "Height",
+        "noInfo": "No detailed information available. Click 'Edit' to add it!",
+        "socialMediaTitle": "Social Media and Wikis"
+    },
+    "callToAction": {
+        "goat": "Now take part in the battle!",
+        "rate": "Now rate this profile!"
+    },
+    "relatedFigures": {
+        "title": "Related Profiles",
+        "description": "Other profiles you might be interested in (Max. 6).",
+        "addButton": "Add",
+        "limitReached": "You have reached the limit of 6 related profiles.",
+        "deleteConfirmTitle": "Are you sure?",
+        "deleteConfirmDescription": "This action will remove the relationship with {name}. It cannot be undone.",
+        "deleteConfirmContinue": "Continue",
+        "deleteToastTitle": "Relationship Deleted",
+        "deleteToastDescription": "The related profile has been removed.",
+        "errorDeleteToastTitle": "Error Deleting",
+        "errorDeleteToastDescription": "Could not remove the relationship.",
+        "noRelated": "No related profiles have been added yet.",
+        "addDialog": {
+          "title": "Add Related Profile",
+          "description": "Search and select a profile to relate it to {name}.",
+          "selfRelationError": "You cannot relate a profile to itself.",
+          "addSuccessTitle": "Relationship Added",
+          "addSuccessDescription": "{sourceName} and {targetName} are now related.",
+          "addErrorTitle": "Error Adding",
+          "addErrorDescription": "Could not save the relationship. Please try again.",
+          "cancelButton": "Cancel",
+          "confirmButton": "Confirm Relationship",
+          "searchInputPlaceholder": "Search profiles to relate..."
+        }
+    }
+  },
+  "AttitudeVoting": {
+    "title": "How do you see them?",
+    "totalVotes": "Total responses: {count}",
+    "voteToast": {
+        "removed": "Vote removed",
+        "updated": "Vote updated!",
+        "registered": "Vote registered!"
+    },
+    "errorToast": {
+        "title": "Error Voting",
+        "description": "There was a problem registering your vote. Security rules may have prevented it."
+    },
+    "disabledToast": {
+        "title": "Voting disabled",
+        "description": "The administrator has temporarily disabled voting."
+    },
+    "anonymousToast": {
+      "title": "Welcome, Guest!",
+      "description": "Your activity is now anonymous. Log in to save it."
+    },
+    "authErrorToast": {
+      "title": "Authentication Error",
+      "description": "Could not start an anonymous session."
+    },
+     "userErrorToast": {
+      "title": "Error",
+      "description": "Could not get user identity."
+    },
+    "locked": {
+      "title": "Voting Disabled",
+      "description": "The administrator has temporarily disabled attitude voting."
+    },
+    "labels": {
+      "neutral": "Neutral",
+      "fan": "Fan",
+      "simp": "Simp",
+      "hater": "Hater"
+    }
+  },
+  "EmotionVoting": {
+    "title": "What emotion do they evoke in you?",
+    "totalVotes": "Total responses: {count}",
+     "locked": {
+      "title": "Voting Disabled",
+      "description": "The administrator has temporarily disabled emotion voting."
+    },
+     "labels": {
+      "alegria": "Joy",
+      "envidia": "Envy",
+      "tristeza": "Sadness",
+      "miedo": "Fear",
+      "desagrado": "Disgust",
+      "furia": "Fury"
+    }
+  },
+  "GoatBattle": {
+    "title": "LET'S CHOOSE THE TRUE GOAT",
+    "description": "Who is the greatest of all time? The winner gets this icon on their profile.",
+    "countdownFinished": "Voting has ended!",
+    "paused": "BATTLE PAUSED",
+    "votesLabel": "votes",
+    "callToAction": "Cast your vote for the best. What do you think?",
+    "messiButton": "Vote for Messi",
+    "ronaldoButton": "Vote for Ronaldo",
+    "winnerMessage": "The winner is {winner}!",
+    "tieMessage": "It's a tie!",
+    "calculating": "Calculating winner...",
+    "notStarted": "The administrator has not started the battle yet.",
+    "shareAlert": {
+      "messi": "Are you just going to vote? The battle is won with numbers. True fans bring reinforcements.",
+      "ronaldo": "Are you just going to vote? The battle is won with numbers. True fans bring reinforcements."
+    }
+  },
+  "CommunityRatings": {
+    "title": "Community Ratings",
+    "rating": "rating",
+    "ratings": "ratings"
+  },
+  "CommentForm": {
+    "title": "Share your opinion and Earn Streaks!",
+    "description": "Become a reviewer by completing the following steps.",
+    "step1": "1",
+    "step2": "2",
+    "step3": "3",
+    "rateLabel": "Rate this profile*",
+    "identityLabel": "Create your reviewer identity",
+    "usernameLabel": "Username*",
+    "usernamePlaceholder": "Choose a unique name",
+    "opinionLabel": "Write your opinion (optional)",
+    "opinionPlaceholder": "What do you think of {name}?",
+    "submitButton": "Post Opinion",
+    "loginDialog": {
+      "title": "Join the Community!",
+      "description": "To perform this action, you need an account. It's free, fast, and saves your progress!",
+      "continueButton": "Continue with Google"
+    },
+    "toast": {
+      "alreadyCommented": "You have already commented on this profile.",
+      "usernameInUse": "Username is already in use.",
+      "opinionPosted": "Opinion Posted!",
+      "thanks": "Thank you for sharing your opinion.",
+      "errorPostingTitle": "Error Posting",
+      "errorPostingDescription": "Could not submit your opinion. Please try again."
+    },
+    "existingComment": {
+        "title": "You have already left your opinion",
+        "description": "Only one review per profile is allowed. To leave a new rating, delete your previous comment.",
+        "goToComment": "Go to my opinion"
+    },
+    "locked": {
+        "title": "Opinions Disabled",
+        "description": "The administrator has temporarily disabled ratings and comments."
+    }
+  },
+  "CommentList": {
+    "filters": {
+      "featured": "Featured",
+      "popular": "Most Popular",
+      "myOpinion": "My Opinion",
+      "byStars": "Filter by stars"
+    },
+    "stars": "Stars",
+    "noComments": {
+      "title": "No opinions found",
+      "description": "No comments match the selected filter."
+    },
+    "beTheFirst": {
+      "title": "Be the first to break the ice",
+      "description": "There are no comments for this profile yet. Share your opinion!"
+    },
+    "buttons": {
+      "seeMore": "See more comments",
+      "showLess": "Show less"
+    },
+    "loading": "Loading replies..."
+  },
+  "CommentThread": {
+    "edited": "(edited)",
+    "replyButton": "Reply",
+    "editButton": "Edit comment",
+    "deleteButton": "Delete comment",
+    "confirmDelete": {
+      "title": "Are you sure?",
+      "description": "This action cannot be undone. This will permanently delete your comment and all its replies.",
+      "continue": "Continue"
+    },
+    "toast": {
+      "deleteSuccess": "Comment Deleted",
+      "deleteSuccessDescription": "The comment has been successfully deleted.",
+      "deleteError": "Error Deleting",
+      "deleteErrorDescription": "Could not delete the comment.",
+      "updateSuccess": "Comment Updated",
+      "updateError": "Error Updating",
+      "updateErrorDescription": "Could not save your comment."
+    },
+    "seeReplies": "View {count} {reply, plural, one {reply} other {replies}}",
+    "hideReplies": "Hide replies",
+    "repliesLocked": "Replies are temporarily disabled."
+  },
+  "TopStreaks": {
+    "title": "Top Active Streaks",
+    "description": "Users with the longest comment streaks for this profile.",
+    "noStreaks": "No active streaks yet. Be the first to comment on consecutive days!"
   }
 }
+

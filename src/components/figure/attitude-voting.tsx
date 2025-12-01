@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -13,21 +14,22 @@ import type { Figure, AttitudeVote, GlobalSettings } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { ShareButton } from '../shared/ShareButton';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
 const allAttitudeOptions: {
   id: AttitudeOption;
-  label: string;
+  labelKey: string;
   gifUrl: string;
   colorClass: string;
   selectedClass: string;
 }[] = [
-  { id: 'neutral', label: 'Neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=aac1fe00-4e42-49d1-98a2-3dab605987d3', colorClass: 'border-gray-500', selectedClass: 'bg-gray-500/20 border-4 border-gray-400' },
-  { id: 'fan', label: 'Fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=a937aee9-04b6-48e8-bf37-25eef5f28e90', colorClass: 'border-yellow-400', selectedClass: 'bg-yellow-400/20 border-4 border-yellow-300' },
-  { id: 'simp', label: 'Simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-pink-400', selectedClass: 'bg-pink-400/20 border-4 border-pink-300' },
-  { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', colorClass: 'border-red-500', selectedClass: 'bg-red-500/20 border-4 border-red-400' },
+  { id: 'neutral', labelKey: 'AttitudeVoting.labels.neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=aac1fe00-4e42-49d1-98a2-3dab605987d3', colorClass: 'border-gray-500', selectedClass: 'bg-gray-500/20 border-4 border-gray-400' },
+  { id: 'fan', labelKey: 'AttitudeVoting.labels.fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=a937aee9-04b6-48e8-bf37-25eef5f28e90', colorClass: 'border-yellow-400', selectedClass: 'bg-yellow-400/20 border-4 border-yellow-300' },
+  { id: 'simp', labelKey: 'AttitudeVoting.labels.simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-pink-400', selectedClass: 'bg-pink-400/20 border-4 border-pink-300' },
+  { id: 'hater', labelKey: 'AttitudeVoting.labels.hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', colorClass: 'border-red-500', selectedClass: 'bg-red-500/20 border-4 border-red-400' },
 ];
 
 interface AttitudeVotingProps {
@@ -40,6 +42,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
   const [optimisticFigure, setOptimisticFigure] = useState(figure);
@@ -79,8 +82,8 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
   const handleVote = async (vote: AttitudeOption) => {
     if (!areVotesEnabled) {
       toast({
-        title: 'Votaciones deshabilitadas',
-        description: 'El administrador ha desactivado temporalmente las votaciones.',
+        title: t('AttitudeVoting.disabledToast.title'),
+        description: t('AttitudeVoting.disabledToast.description'),
         variant: 'destructive',
       });
       return;
@@ -93,18 +96,18 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
             const userCredential = await signInAnonymously(auth);
             currentUser = userCredential.user;
             toast({
-                title: "¡Bienvenido, Invitado!",
-                description: "Tu actividad ahora es anónima. Inicia sesión para guardarla."
+                title: t('AttitudeVoting.anonymousToast.title'),
+                description: t('AttitudeVoting.anonymousToast.description')
             });
         } catch (error) {
             console.error("Error signing in anonymously:", error);
-            toast({ title: 'Error de Autenticación', description: 'No se pudo iniciar la sesión anónima.', variant: 'destructive'});
+            toast({ title: t('AttitudeVoting.authErrorToast.title'), description: t('AttitudeVoting.authErrorToast.description'), variant: 'destructive'});
             return;
         }
     }
 
     if (!currentUser) {
-        toast({ title: 'Error', description: 'No se pudo obtener la identidad del usuario.', variant: 'destructive'});
+        toast({ title: t('AttitudeVoting.userErrorToast.title'), description: t('AttitudeVoting.userErrorToast.description'), variant: 'destructive'});
         return;
     }
 
@@ -166,7 +169,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
           transaction.delete(publicVoteRef);
           transaction.delete(privateVoteRef);
           updates[`attitude.${vote}`] = increment(-1);
-          toast({ title: 'Voto eliminado' });
+          toast({ title: t('AttitudeVoting.voteToast.removed') });
 
         } else {
             const voteData: Omit<AttitudeVote, 'id'> & { createdAt: any } = {
@@ -182,12 +185,12 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
                 transaction.set(privateVoteRef, voteData, { merge: true });
                 updates[`attitude.${dbPreviousVote}`] = increment(-1);
                 updates[`attitude.${vote}`] = increment(1);
-                toast({ title: '¡Voto actualizado!' });
+                toast({ title: t('AttitudeVoting.voteToast.updated') });
             } else {
                 transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() });
                 transaction.set(privateVoteRef, voteData);
                 updates[`attitude.${vote}`] = increment(1);
-                toast({ title: '¡Voto registrado!' });
+                toast({ title: t('AttitudeVoting.voteToast.registered') });
             }
         }
         
@@ -202,8 +205,8 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
       setOptimisticVote(previousOptimisticVote);
       toast({
         variant: 'destructive',
-        title: 'Error al votar',
-        description: 'Hubo un problema al registrar tu voto. Es posible que las reglas de seguridad lo hayan impedido.',
+        title: t('AttitudeVoting.errorToast.title'),
+        description: t('AttitudeVoting.errorToast.description'),
       });
     } finally {
       setIsVoting(null);
@@ -227,8 +230,8 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted">
         <Lock className="h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">Votaciones Deshabilitadas</h3>
-        <p className="mt-1 text-sm text-muted-foreground">El administrador ha desactivado temporalmente las votaciones de actitud.</p>
+        <h3 className="mt-4 text-lg font-semibold">{t('AttitudeVoting.locked.title')}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">{t('AttitudeVoting.locked.description')}</p>
       </div>
     );
   }
@@ -247,10 +250,10 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         </div>
       )}
       <div className="mb-4 text-left">
-          <h3 className="text-xl font-bold font-headline">¿Qué te consideras?</h3>
+          <h3 className="text-xl font-bold font-headline">{t('AttitudeVoting.title')}</h3>
       </div>
       <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
-          {attitudeOptions.map(({ id, label, gifUrl, colorClass, selectedClass }) => {
+          {attitudeOptions.map(({ id, labelKey, gifUrl, colorClass, selectedClass }) => {
           const isSelected = optimisticVote?.vote === id;
           return (
           <Button
@@ -270,10 +273,10 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
               ) : (
                   <div className="flex h-full flex-col items-center justify-center text-center">
                       <div className="flex-1 flex items-center justify-center">
-                          <Image src={gifUrl} alt={label} width={48} height={48} unoptimized className="h-12 w-12" />
+                          <Image src={gifUrl} alt={t(labelKey)} width={48} height={48} unoptimized className="h-12 w-12" />
                       </div>
                       <div>
-                          <span className="font-semibold text-sm">{label}</span>
+                          <span className="font-semibold text-sm">{t(labelKey)}</span>
                           <span className="block text-lg font-bold">
                           {(optimisticFigure.attitude?.[id] ?? 0).toLocaleString()}
                           </span>
@@ -285,9 +288,10 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
       </div>
       <div className="mt-4 text-center">
           <p className="text-sm text-muted-foreground">
-              Total de respuestas: {totalVotes.toLocaleString()}
+              {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
           </p>
       </div>
     </div>
   );
 }
+

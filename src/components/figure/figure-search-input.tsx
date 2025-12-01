@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
 import { collection, query as firestoreQuery, where, getDocs, limit } from 'firebase/firestore';
 import { normalizeText } from '@/lib/keywords';
+import { useLanguage } from '@/context/LanguageContext';
 
 function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
   let timeout: NodeJS.Timeout;
@@ -40,6 +41,7 @@ export default function FigureSearchInput({ onFigureSelect, className }: FigureS
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const firestore = useFirestore();
+  const { t } = useLanguage();
 
   const searchFigures = async (searchTerm: string): Promise<Figure[]> => {
     if (searchTerm.trim().length < 1 || !firestore) return [];
@@ -133,7 +135,7 @@ export default function FigureSearchInput({ onFigureSelect, className }: FigureS
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Buscar perfiles para relacionar..."
+          placeholder={t('FigurePage.relatedFigures.addDialog.searchInputPlaceholder')}
           value={currentQuery}
           onChange={(e) => setCurrentQuery(e.target.value)}
           onFocus={() => { 
@@ -203,3 +205,4 @@ export default function FigureSearchInput({ onFigureSelect, className }: FigureS
     </div>
   );
 }
+

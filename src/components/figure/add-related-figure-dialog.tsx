@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import { collection, serverTimestamp } from 'firebase/firestore';
 import type { Figure, RelatedFigure } from '@/lib/types';
 import FigureSearchInput from './figure-search-input';
 import Image from 'next/image';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface AddRelatedFigureDialogProps {
     sourceFigure: Figure;
@@ -20,13 +22,14 @@ interface AddRelatedFigureDialogProps {
 export default function AddRelatedFigureDialog({ sourceFigure, onDialogClose }: AddRelatedFigureDialogProps) {
     const { toast } = useToast();
     const firestore = useFirestore();
+    const { t } = useLanguage();
     const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
     const handleSelectFigure = (figure: Figure) => {
         if (figure.id === sourceFigure.id) {
             toast({
-                title: 'No puedes relacionar un perfil consigo mismo.',
+                title: t('FigurePage.relatedFigures.addDialog.selfRelationError'),
                 variant: 'destructive',
             });
             return;
@@ -51,15 +54,17 @@ export default function AddRelatedFigureDialog({ sourceFigure, onDialogClose }: 
             await addDocumentNonBlocking(relatedFiguresCol, newRelation);
 
             toast({
-                title: 'Relación Añadida',
-                description: `${sourceFigure.name} y ${selectedFigure.name} ahora están relacionados.`,
+                title: t('FigurePage.relatedFigures.addDialog.addSuccessTitle'),
+                description: t('FigurePage.relatedFigures.addDialog.addSuccessDescription')
+                                .replace('{sourceName}', sourceFigure.name)
+                                .replace('{targetName}', selectedFigure.name),
             });
             onDialogClose();
         } catch (error) {
             console.error("Error adding related figure:", error);
             toast({
-                title: 'Error al Añadir',
-                description: 'No se pudo guardar la relación. Inténtalo de nuevo.',
+                title: t('FigurePage.relatedFigures.addDialog.addErrorTitle'),
+                description: t('FigurePage.relatedFigures.addDialog.addErrorDescription'),
                 variant: 'destructive',
             });
         } finally {
@@ -71,9 +76,9 @@ export default function AddRelatedFigureDialog({ sourceFigure, onDialogClose }: 
     return (
         <DialogContent className="sm:max-w-md">
             <DialogHeader>
-                <DialogTitle>Añadir Perfil Relacionado</DialogTitle>
+                <DialogTitle>{t('FigurePage.relatedFigures.addDialog.title')}</DialogTitle>
                 <DialogDescription>
-                    Busca y selecciona un perfil para relacionarlo con {sourceFigure.name}.
+                    {t('FigurePage.relatedFigures.addDialog.description').replace('{name}', sourceFigure.name)}
                 </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
@@ -101,13 +106,14 @@ export default function AddRelatedFigureDialog({ sourceFigure, onDialogClose }: 
             </div>
             <DialogFooter>
                 <Button type="button" variant="outline" onClick={onDialogClose}>
-                    Cancelar
+                    {t('FigurePage.relatedFigures.addDialog.cancelButton')}
                 </Button>
                 <Button type="button" onClick={handleAddRelation} disabled={!selectedFigure || isSaving}>
                     {isSaving ? <Loader2 className="animate-spin" /> : <LinkIcon className="mr-2"/>}
-                    Confirmar Relación
+                    {t('FigurePage.relatedFigures.addDialog.confirmButton')}
                 </Button>
             </DialogFooter>
         </DialogContent>
     );
 }
+

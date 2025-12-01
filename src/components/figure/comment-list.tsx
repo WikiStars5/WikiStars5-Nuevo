@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import Image from 'next/image';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -61,6 +62,7 @@ const calculateHotScore = (comment: Comment): number => {
 export default function CommentList({ figureId, figureName, sortPreference }: CommentListProps) {
   const firestore = useFirestore();
   const { user } = useUser();
+  const { t } = useLanguage();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
 
@@ -175,9 +177,9 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     <div className="space-y-6">
       <div className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
-            <FilterButton filter="featured" isActive={activeFilter === 'featured'}>Destacados</FilterButton>
-            <FilterButton filter="popular" isActive={activeFilter === 'popular'}>Más Populares</FilterButton>
-            {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>Mi Opinión</FilterButton>}
+            <FilterButton filter="featured" isActive={activeFilter === 'featured'}>{t('CommentList.filters.featured')}</FilterButton>
+            <FilterButton filter="popular" isActive={activeFilter === 'popular'}>{t('CommentList.filters.popular')}</FilterButton>
+            {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>{t('CommentList.filters.myOpinion')}</FilterButton>}
             
             <div className="flex-grow" />
             
@@ -194,11 +196,11 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Filtrar por estrellas</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t('CommentList.filters.byStars')}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {[5, 4, 3, 2, 1, 0].map(rating => (
                         <DropdownMenuItem key={rating} onSelect={() => setActiveFilter(rating)}>
-                            {rating} {rating > 0 && <Star className="ml-2 h-3 w-3" />}
+                            {rating} {rating > 0 ? t('CommentList.stars') : ''}
                         </DropdownMenuItem>
                     ))}
                 </DropdownMenuContent>
@@ -228,13 +230,14 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
             />
             <h3 className="mt-2 text-lg font-semibold">
                 {activeFilter === 'featured' && (!comments || comments.length === 0) 
-                    ? 'Sé el primero en romper el hielo' 
-                    : 'No se encontraron opiniones'}
+                    ? t('CommentList.beTheFirst.title')
+                    : t('CommentList.noComments.title')
+                }
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
                 {activeFilter === 'featured' && (!comments || comments.length === 0)
-                    ? 'Aún no hay comentarios para este perfil. ¡Da tu opinión!'
-                    : 'No hay comentarios que coincidan con el filtro seleccionado.'
+                    ? t('CommentList.beTheFirst.description')
+                    : t('CommentList.noComments.description')
                 }
             </p>
         </div>
@@ -244,15 +247,16 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
         <div className="flex items-center justify-center gap-4">
             {sortedAndFilteredComments.length > visibleCount && (
                 <Button variant="outline" onClick={() => setVisibleCount(prev => prev + COMMENT_INCREMENT)}>
-                    Ver más comentarios
+                    {t('CommentList.buttons.seeMore')}
                 </Button>
             )}
             {visibleCount > INITIAL_COMMENT_LIMIT && (
                  <Button variant="ghost" onClick={() => setVisibleCount(INITIAL_COMMENT_LIMIT)}>
-                    Mostrar menos
+                    {t('CommentList.buttons.showLess')}
                 </Button>
             )}
         </div>
     </div>
   );
 }
+

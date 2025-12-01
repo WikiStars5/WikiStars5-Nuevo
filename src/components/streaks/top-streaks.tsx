@@ -14,6 +14,7 @@ import Image from 'next/image';
 import { countries } from '@/lib/countries';
 import Link from 'next/link';
 import { isDateActive } from '@/lib/streaks';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 interface TopStreaksProps {
@@ -43,6 +44,7 @@ const StreakItemSkeleton = () => (
 
 export default function TopStreaks({ figureId }: TopStreaksProps) {
     const firestore = useFirestore();
+    const { t } = useLanguage();
     const [topStreaks, setTopStreaks] = useState<Streak[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -80,8 +82,8 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
     return (
         <Card className="dark:bg-black">
             <CardHeader>
-                <CardTitle>Top Rachas Activas</CardTitle>
-                <CardDescription className="text-muted-foreground">Los usuarios con las rachas de comentarios más largas para este perfil.</CardDescription>
+                <CardTitle>{t('TopStreaks.title')}</CardTitle>
+                <CardDescription className="text-muted-foreground">{t('TopStreaks.description')}</CardDescription>
             </CardHeader>
             <CardContent>
                 {isLoading ? (
@@ -136,10 +138,11 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                     </div>
                 ) : (
                     <p className="text-center text-muted-foreground py-6">
-                        Aún no hay rachas activas. ¡Sé el primero en comentar varios días seguidos!
+                        {t('TopStreaks.noStreaks')}
                     </p>
                 )}
             </CardContent>
         </Card>
     );
 }
+

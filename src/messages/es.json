@@ -129,5 +129,223 @@
   },
   "SearchBar": {
     "placeholder": "Buscar perfiles"
+  },
+  "FigurePage": {
+    "tabs": {
+        "info": "Información",
+        "attitude": "Actitud",
+        "emotion": "Emoción",
+        "streaks": "Rachas"
+    },
+    "detailedInfo": {
+        "title": "Información Detallada",
+        "description": "Datos biográficos y descriptivos de {name}.",
+        "editButton": "Editar",
+        "nameLabel": "Nombre Completo",
+        "genderLabel": "Sexo",
+        "birthDateLabel": "Nacimiento",
+        "deathDateLabel": "Fallecimiento",
+        "occupationLabel": "Ocupación",
+        "countryLabel": "País de origen",
+        "maritalStatusLabel": "Estado civil",
+        "heightLabel": "Altura",
+        "noInfo": "No hay información detallada disponible. ¡Haz clic en \"Editar\" para añadirla!",
+        "socialMediaTitle": "Redes Sociales y Wikis"
+    },
+    "callToAction": {
+        "goat": "¡Ahora participa en la batalla!",
+        "rate": "¡Ahora califica este perfil!"
+    },
+    "relatedFigures": {
+        "title": "Perfiles Relacionados",
+        "description": "Otros perfiles que podrían interesarte (Máx. 6).",
+        "addButton": "Añadir",
+        "limitReached": "Has alcanzado el límite de 6 perfiles relacionados.",
+        "deleteConfirmTitle": "¿Estás seguro?",
+        "deleteConfirmDescription": "Esta acción eliminará la relación con {name}. No se puede deshacer.",
+        "deleteConfirmContinue": "Continuar",
+        "deleteToastTitle": "Relación Eliminada",
+        "deleteToastDescription": "El perfil relacionado ha sido eliminado.",
+        "errorDeleteToastTitle": "Error al Eliminar",
+        "errorDeleteToastDescription": "No se pudo eliminar la relación.",
+        "noRelated": "Aún no se han añadido perfiles relacionados.",
+        "addDialog": {
+          "title": "Añadir Perfil Relacionado",
+          "description": "Busca y selecciona un perfil para relacionarlo con {name}.",
+          "selfRelationError": "No puedes relacionar un perfil consigo mismo.",
+          "addSuccessTitle": "Relación Añadida",
+          "addSuccessDescription": "{sourceName} y {targetName} ahora están relacionados.",
+          "addErrorTitle": "Error al Añadir",
+          "addErrorDescription": "No se pudo guardar la relación. Inténtalo de nuevo.",
+          "cancelButton": "Cancelar",
+          "confirmButton": "Confirmar Relación",
+          "searchInputPlaceholder": "Buscar perfiles para relacionar..."
+        }
+    }
+  },
+  "AttitudeVoting": {
+    "title": "¿Qué te consideras?",
+    "totalVotes": "Total de respuestas: {count}",
+    "voteToast": {
+        "removed": "Voto eliminado",
+        "updated": "¡Voto actualizado!",
+        "registered": "¡Voto registrado!"
+    },
+    "errorToast": {
+        "title": "Error al votar",
+        "description": "Hubo un problema al registrar tu voto. Es posible que las reglas de seguridad lo hayan impedido."
+    },
+    "disabledToast": {
+        "title": "Votaciones deshabilitadas",
+        "description": "El administrador ha desactivado temporalmente las votaciones."
+    },
+    "anonymousToast": {
+      "title": "¡Bienvenido, Invitado!",
+      "description": "Tu actividad ahora es anónima. Inicia sesión para guardarla."
+    },
+     "authErrorToast": {
+      "title": "Error de Autenticación",
+      "description": "No se pudo iniciar la sesión anónima."
+    },
+     "userErrorToast": {
+      "title": "Error",
+      "description": "No se pudo obtener la identidad del usuario."
+    },
+    "locked": {
+      "title": "Votaciones Deshabilitadas",
+      "description": "El administrador ha desactivado temporalmente las votaciones de actitud."
+    },
+     "labels": {
+      "neutral": "Neutral",
+      "fan": "Fan",
+      "simp": "Simp",
+      "hater": "Hater"
+    }
+  },
+   "EmotionVoting": {
+    "title": "¿Qué emoción te genera?",
+    "totalVotes": "Total de respuestas: {count}",
+    "locked": {
+      "title": "Votaciones Deshabilitadas",
+      "description": "El administrador ha desactivado temporalmente las votaciones de emoción."
+    },
+     "labels": {
+      "alegria": "Alegría",
+      "envidia": "Envidia",
+      "tristeza": "Tristeza",
+      "miedo": "Miedo",
+      "desagrado": "Desagrado",
+      "furia": "Furia"
+    }
+  },
+  "GoatBattle": {
+    "title": "ELIJAMOS AL VERDADERO GOAT",
+    "description": "¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.",
+    "countdownFinished": "¡La votación ha terminado!",
+    "paused": "BATALLA EN PAUSA",
+    "votesLabel": "votos",
+    "callToAction": "Deja tu voto para el mejor. ¿Qué opinas?",
+    "messiButton": "Votar por Messi",
+    "ronaldoButton": "Votar por Ronaldo",
+    "winnerMessage": "¡El ganador es {winner}!",
+    "tieMessage": "¡Es un empate!",
+    "calculating": "Calculando ganador...",
+    "notStarted": "El administrador aún no ha iniciado la batalla.",
+     "shareAlert": {
+      "messi": "¿Solo vas a votar? La batalla se gana con números. Los verdaderos fans traen refuerzos.",
+      "ronaldo": "¿Solo vas a votar? La batalla se gana con números. Los verdaderos fans traen refuerzos."
+    }
+  },
+  "CommunityRatings": {
+    "title": "Calificaciones de la Comunidad",
+    "rating": "calificación",
+    "ratings": "calificaciones"
+  },
+  "CommentForm": {
+    "title": "¡Opina y Gana Rachas!",
+    "description": "Conviértete en un opinador completando los siguientes pasos.",
+    "step1": "1",
+    "step2": "2",
+    "step3": "3",
+    "rateLabel": "Califica este perfil*",
+    "identityLabel": "Crea tu identidad de opinador",
+    "usernameLabel": "Nombre de usuario*",
+    "usernamePlaceholder": "Elige un nombre único",
+    "opinionLabel": "Escribe tu opinión (opcional)",
+    "opinionPlaceholder": "¿Qué opinas de {name}?",
+    "submitButton": "Publicar Opinión",
+    "loginDialog": {
+      "title": "¡Únete a la Comunidad!",
+      "description": "Para realizar esta acción, necesitas una cuenta. ¡Es gratis, rápido y guarda tu progreso!",
+      "continueButton": "Continuar con Google"
+    },
+    "toast": {
+      "alreadyCommented": "Ya has comentado en este perfil.",
+      "usernameInUse": "El nombre de usuario ya está en uso.",
+      "opinionPosted": "¡Opinión Publicada!",
+      "thanks": "Gracias por compartir tu opinión.",
+      "errorPostingTitle": "Error al Publicar",
+      "errorPostingDescription": "No se pudo enviar tu opinión. Inténtalo de nuevo."
+    },
+    "existingComment": {
+        "title": "Ya has dejado tu opinión",
+        "description": "Solo se permite una reseña por perfil. Para dejar una nueva calificación, elimina tu comentario anterior.",
+        "goToComment": "Ir a mi opinión"
+    },
+     "locked": {
+        "title": "Opiniones Deshabilitadas",
+        "description": "El administrador ha desactivado temporalmente las calificaciones y comentarios."
+    }
+  },
+  "CommentList": {
+    "filters": {
+      "featured": "Destacados",
+      "popular": "Más Populares",
+      "myOpinion": "Mi Opinión",
+      "byStars": "Filtrar por estrellas"
+    },
+    "stars": "Estrellas",
+    "noComments": {
+      "title": "No se encontraron opiniones",
+      "description": "No hay comentarios que coincidan con el filtro seleccionado."
+    },
+    "beTheFirst": {
+      "title": "Sé el primero en romper el hielo",
+      "description": "Aún no hay comentarios para este perfil. ¡Da tu opinión!"
+    },
+    "buttons": {
+      "seeMore": "Ver más comentarios",
+      "showLess": "Mostrar menos"
+    },
+    "loading": "Cargando respuestas..."
+  },
+  "CommentThread": {
+    "edited": "(editado)",
+    "replyButton": "Responder",
+    "editButton": "Editar comentario",
+    "deleteButton": "Eliminar comentario",
+    "confirmDelete": {
+      "title": "¿Estás seguro?",
+      "description": "Esta acción no se puede deshacer. Esto eliminará permanentemente tu comentario y todas sus respuestas.",
+      "continue": "Continuar"
+    },
+    "toast": {
+      "deleteSuccess": "Comentario Eliminado",
+      "deleteSuccessDescription": "El comentario ha sido eliminado con éxito.",
+      "deleteError": "Error al Eliminar",
+      "deleteErrorDescription": "No se pudo eliminar el comentario.",
+      "updateSuccess": "Comentario Actualizado",
+      "updateError": "Error al Actualizar",
+      "updateErrorDescription": "No se pudo guardar tu comentario."
+    },
+    "seeReplies": "Ver {count} {reply, plural, one {respuesta} other {respuestas}}",
+    "hideReplies": "Ocultar respuestas",
+    "repliesLocked": "Las respuestas están desactivadas temporalmente."
+  },
+  "TopStreaks": {
+    "title": "Top Rachas Activas",
+    "description": "Los usuarios con las rachas de comentarios más largas para este perfil.",
+    "noStreaks": "Aún no hay rachas activas. ¡Sé el primero en comentar varios días seguidos!"
   }
 }
+

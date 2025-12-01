@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeText } from '@/lib/keywords';
 import { cn } from '@/lib/utils';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
+import { useLanguage } from '@/context/LanguageContext';
 
 const createCommentSchema = (isRatingEnabled: boolean, isCommentingEnabled: boolean, needsIdentity: boolean) => z.object({
   rating: isRatingEnabled
@@ -63,6 +64,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const { t } = useLanguage();
 
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
@@ -111,14 +113,14 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         const userCredential = await signInAnonymously(auth);
         currentUser = userCredential.user;
       } catch (error) {
-        toast({ title: "Error de autenticación", description: "No se pudo crear una sesión de invitado.", variant: "destructive"});
+        toast({ title: t('AttitudeVoting.authErrorToast.title'), description: t('AttitudeVoting.authErrorToast.description'), variant: "destructive"});
         setIsSubmitting(false);
         return;
       }
     }
     
     if (!firestore || !currentUser) {
-        toast({ title: "No se pudo enviar la opinión.", variant: "destructive" });
+        toast({ title: t('CommentForm.toast.errorPostingTitle'), variant: "destructive" });
         setIsSubmitting(false);
         return;
     }
@@ -136,11 +138,11 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         
         const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser!.uid), limit(1)));
         if (!existingCommentSnap.empty) {
-          transactionError = 'Ya has comentado en este perfil.';
+          transactionError = t('CommentForm.toast.alreadyCommented');
           return; // Abort transaction
         }
         
-        finalDisplayName = userProfile?.username || currentUser?.displayName || `Invitado_${currentUser!.uid.substring(0,4)}`;
+        finalDisplayName = userProfile?.username || currentUser?.displayName || `${t('ProfilePage.guestUser')}_${currentUser!.uid.substring(0,4)}`;
         finalUserProfileData = userProfile || {};
 
         if (needsIdentity && data.username) {
@@ -150,7 +152,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
             const usernameDoc = await transaction.get(newUsernameRef);
             
             if (usernameDoc.exists()) {
-                transactionError = 'El nombre de usuario ya está en uso.';
+                transactionError = t('CommentForm.toast.usernameInUse');
                 return; // Abort transaction
             }
             transaction.set(newUsernameRef, { userId: currentUser!.uid });
@@ -198,7 +200,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
       });
 
       if (transactionError) {
-        if (transactionError === 'El nombre de usuario ya está en uso.') {
+        if (transactionError === t('CommentForm.toast.usernameInUse')) {
           form.setError('username', { type: 'manual', message: transactionError });
         } else {
           toast({ title: 'Error', description: transactionError, variant: 'destructive' });
@@ -229,8 +231,8 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
       }
 
       toast({
-        title: '¡Opinión Publicada!',
-        description: 'Gracias por compartir tu opinión.',
+        title: t('CommentForm.toast.opinionPosted'),
+        description: t('CommentForm.toast.thanks'),
       });
       
       form.reset({text: '', rating: null as any, username: '' });
@@ -241,8 +243,8 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
       console.error('Error al publicar comentario:', error);
       toast({
         variant: 'destructive',
-        title: 'Error al Publicar',
-        description: 'No se pudo enviar tu opinión. Inténtalo de nuevo.',
+        title: t('CommentForm.toast.errorPostingTitle'),
+        description: t('CommentForm.toast.errorPostingDescription'),
       });
     } finally {
       setIsSubmitting(false);
@@ -264,12 +266,12 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
       <Card className="bg-muted/50 dark:bg-black">
         <CardContent className="p-6 text-center space-y-3">
           <MessageCircle className="mx-auto h-8 w-8 text-muted-foreground" />
-          <h3 className="font-semibold">Ya has dejado tu opinión</h3>
-          <p className="text-sm text-muted-foreground">Solo se permite una reseña por perfil. Para dejar una nueva calificación, elimina tu comentario anterior.</p>
+          <h3 className="font-semibold">{t('CommentForm.existingComment.title')}</h3>
+          <p className="text-sm text-muted-foreground">{t('CommentForm.existingComment.description')}</p>
            <Button asChild variant="outline">
               <Link href={`#comment-${existingComment.id}`}>
                 <Edit className="mr-2 h-4 w-4" />
-                Ir a mi opinión
+                {t('CommentForm.existingComment.goToComment')}
               </Link>
            </Button>
         </CardContent>
@@ -283,8 +285,8 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         <Card className="dark:bg-black">
             <CardContent className="p-6 flex flex-col items-center justify-center text-center">
                 <Lock className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="font-semibold text-lg">Opiniones Deshabilitadas</h3>
-                <p className="text-sm text-muted-foreground">El administrador ha desactivado temporalmente las calificaciones y comentarios.</p>
+                <h3 className="font-semibold text-lg">{t('CommentForm.locked.title')}</h3>
+                <p className="text-sm text-muted-foreground">{t('CommentForm.locked.description')}</p>
             </CardContent>
         </Card>
       )
@@ -302,16 +304,16 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                 height={28}
                 unoptimized
               />
-              ¡Opina y Gana Rachas!
+              {t('CommentForm.title')}
           </CardTitle>
-          <CardDescription>Conviértete en un opinador completando los siguientes pasos.</CardDescription>
+          <CardDescription>{t('CommentForm.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               {isRatingEnabled && (
                 <div className='space-y-4'>
-                    <h3 className="font-semibold flex items-center gap-2 text-primary"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>1</span> Califica este perfil*</h3>
+                    <h3 className="font-semibold flex items-center gap-2 text-primary"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>{t('CommentForm.step1')}</span> {t('CommentForm.rateLabel')}</h3>
                     <FormField
                         control={form.control}
                         name="rating"
@@ -332,15 +334,15 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
 
                {needsIdentity && (
                  <div className='space-y-4'>
-                    <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>{isRatingEnabled ? 2 : 1}</span>Crea tu identidad de opinador</h3>
+                    <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>{isRatingEnabled ? t('CommentForm.step2') : t('CommentForm.step1')}</span>{t('CommentForm.identityLabel')}</h3>
                      <FormField
                         control={form.control}
                         name="username"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Nombre de usuario*</FormLabel>
+                                <FormLabel>{t('CommentForm.usernameLabel')}</FormLabel>
                                 <FormControl>
-                                    <Input {...field} placeholder="Elige un nombre único" />
+                                    <Input {...field} placeholder={t('CommentForm.usernamePlaceholder')} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -358,9 +360,9 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                         'flex items-center justify-center h-6 w-6 rounded-full text-sm font-bold',
                         'bg-primary text-primary-foreground'
                     )}>
-                        {isRatingEnabled ? (needsIdentity ? 3 : 2) : (needsIdentity ? 2 : 1)}
+                        {isRatingEnabled ? (needsIdentity ? t('CommentForm.step3') : t('CommentForm.step2')) : (needsIdentity ? t('CommentForm.step2') : t('CommentForm.step1'))}
                     </span>
-                    Escribe tu opinión (opcional)
+                    {t('CommentForm.opinionLabel')}
                     </h3>
                     <FormField
                         control={form.control}
@@ -369,7 +371,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                             <FormItem>
                             <FormControl>
                                 <Textarea
-                                placeholder={`¿Qué opinas de ${figureName}?`}
+                                placeholder={t('CommentForm.opinionPlaceholder').replace('{name}', figureName)}
                                 className="resize-none"
                                 rows={4}
                                 maxLength={500}
@@ -395,7 +397,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                   ) : (
                   <Send />
                   )}
-                  Publicar Opinión
+                  {t('CommentForm.submitButton')}
               </Button>
               </div>
           </form>
@@ -404,3 +406,4 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
       </Card>
   );
 }
+

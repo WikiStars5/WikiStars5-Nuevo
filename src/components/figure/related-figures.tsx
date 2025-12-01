@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 interface RelatedFiguresProps {
@@ -39,6 +40,7 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
     const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const { user } = useUser();
+    const { t } = useLanguage();
     
     const handleDelete = async () => {
         if (!firestore) return;
@@ -47,15 +49,15 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
             const relationRef = doc(firestore, 'related_figures', relationId);
             await deleteDoc(relationRef);
             toast({
-                title: 'Relación Eliminada',
-                description: 'El perfil relacionado ha sido eliminado.',
+                title: t('FigurePage.relatedFigures.deleteToastTitle'),
+                description: t('FigurePage.relatedFigures.deleteToastDescription'),
             });
             // The component will unmount as the parent's `relations` data updates
         } catch (error) {
             console.error("Failed to delete relation:", error);
             toast({
-                title: 'Error al Eliminar',
-                description: 'No se pudo eliminar la relación.',
+                title: t('FigurePage.relatedFigures.errorDeleteToastTitle'),
+                description: t('FigurePage.relatedFigures.errorDeleteToastDescription'),
                 variant: 'destructive',
             });
             setIsDeleting(false);
@@ -109,14 +111,14 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogTitle>{t('FigurePage.relatedFigures.deleteConfirmTitle')}</AlertDialogTitle>
                             <AlertDialogDescription>
-                               Esta acción eliminará la relación con {figureData.name}. No se puede deshacer.
+                               {t('FigurePage.relatedFigures.deleteConfirmDescription').replace('{name}', figureData.name)}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDelete}>Continuar</AlertDialogAction>
+                            <AlertDialogCancel>{t('FigurePage.relatedFigures.addDialog.cancelButton')}</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete}>{t('FigurePage.relatedFigures.deleteConfirmContinue')}</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -130,6 +132,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const firestore = useFirestore();
     const { user } = useUser();
+    const { t } = useLanguage();
 
     // Query only for relationships where the current figure is the SOURCE.
     const relationsAsSourceQuery = useMemoFirebase(() => {
@@ -155,9 +158,9 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <CardTitle className="flex items-center gap-2">
-                           <Users /> Perfiles Relacionados
+                           <Users /> {t('FigurePage.relatedFigures.title')}
                         </CardTitle>
-                        <CardDescription className="text-muted-foreground">Otros perfiles que podrían interesarte (Máx. 6).</CardDescription>
+                        <CardDescription className="text-muted-foreground">{t('FigurePage.relatedFigures.description')}</CardDescription>
                     </div>
                      {user && !user.isAnonymous && (
                          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -167,13 +170,13 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                                         <DialogTrigger asChild>
                                             <Button variant="outline" disabled={isLimitReached}>
                                                 <PlusCircle className="mr-2" />
-                                                Añadir
+                                                {t('FigurePage.relatedFigures.addButton')}
                                             </Button>
                                         </DialogTrigger>
                                     </TooltipTrigger>
                                     {isLimitReached && (
                                         <TooltipContent>
-                                            <p>Has alcanzado el límite de 6 perfiles relacionados.</p>
+                                            <p>{t('FigurePage.relatedFigures.limitReached')}</p>
                                         </TooltipContent>
                                     )}
                                 </Tooltip>
@@ -209,10 +212,11 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                 )}
                 {!isLoading && relatedItems.length === 0 && (
                      <p className="text-sm text-muted-foreground text-center py-8">
-                        Aún no se han añadido perfiles relacionados.
+                        {t('FigurePage.relatedFigures.noRelated')}
                     </p>
                 )}
             </CardContent>
         </Card>
     );
 }
+

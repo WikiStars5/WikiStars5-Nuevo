@@ -25,6 +25,7 @@ import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
 import { countries } from '@/lib/countries';
+import { useLanguage } from '@/context/LanguageContext';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -123,6 +124,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
   const [commentSortPreference, setCommentSortPreference] = useState<AttitudeOption | null>(null);
+  const { t } = useLanguage();
 
   const figureDocRef = useMemoFirebase(() => {
     if (!firestore || !figureId) return null;
@@ -156,42 +158,42 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
 
   const infoItems = [
     {
-      label: 'Nombre Completo',
+      label: t('FigurePage.detailedInfo.nameLabel'),
       value: figure.name,
       icon: User,
     },
     {
-      label: 'Sexo',
+      label: t('FigurePage.detailedInfo.genderLabel'),
       value: figure.gender,
       icon: Users,
     },
     {
-        label: 'Nacimiento',
+        label: t('FigurePage.detailedInfo.birthDateLabel'),
         value: formatDate(figure.birthDate),
         icon: CalendarDays,
     },
     {
-        label: 'Fallecimiento',
+        label: t('FigurePage.detailedInfo.deathDateLabel'),
         value: formatDate(figure.deathDate),
         icon: CalendarDays,
     },
     {
-      label: 'Ocupación',
+      label: t('FigurePage.detailedInfo.occupationLabel'),
       value: figure.occupation,
       icon: Briefcase,
     },
     {
-      label: 'País de origen',
+      label: t('FigurePage.detailedInfo.countryLabel'),
       value: figure.nationality,
       icon: Globe,
     },
     {
-      label: 'Estado civil',
+      label: t('FigurePage.detailedInfo.maritalStatusLabel'),
       value: figure.maritalStatus,
       icon: Heart,
     },
     {
-      label: 'Altura',
+      label: t('FigurePage.detailedInfo.heightLabel'),
       value: formatHeight(figure.height),
       icon: Ruler,
     },
@@ -210,28 +212,28 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
             <TabsList className="inline-flex h-auto">
               <TabsTrigger value="informacion">
                 <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
-                Información
+                {t('FigurePage.tabs.info')}
               </TabsTrigger>
               <TabsTrigger value="actitud">
                 <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="currentColor" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="2" />
                 </svg>
-                Actitud
+                {t('FigurePage.tabs.attitude')}
               </TabsTrigger>
               <TabsTrigger value="emocion">
               <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
-                Emoción
+                {t('FigurePage.tabs.emotion')}
               </TabsTrigger>
               <TabsTrigger value="rachas">
                 <Image
                   src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
-                  alt="Rachas"
+                  alt={t('FigurePage.tabs.streaks')}
                   width={16}
                   height={16}
                   unoptimized
                   className="mr-2"
                 />
-                Rachas
+                {t('FigurePage.tabs.streaks')}
               </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
@@ -244,12 +246,12 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <div>
-                                <CardTitle>Información Detallada</CardTitle>
-                                <CardDescription className="text-muted-foreground">Datos biográficos y descriptivos de {figure.name}.</CardDescription>
+                                <CardTitle>{t('FigurePage.detailedInfo.title')}</CardTitle>
+                                <CardDescription className="text-muted-foreground">{t('FigurePage.detailedInfo.description').replace('{name}', figure.name)}</CardDescription>
                             </div>
                             {user && !user.isAnonymous && (
                               <Button variant="outline" onClick={() => setIsEditing(true)}>
-                                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                                  <Pencil className="mr-2 h-4 w-4" /> {t('FigurePage.detailedInfo.editButton')}
                               </Button>
                             )}
                         </div>
@@ -260,7 +262,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                                 {infoItems.map((item) => {
                                     if (!item.value) return null;
                                     
-                                    if (item.label === 'País de origen') {
+                                    if (item.label === t('FigurePage.detailedInfo.countryLabel')) {
                                         const country = countries.find(c => c.name === item.value);
                                         return (
                                             <div key={item.label} className="flex items-start gap-3">
@@ -289,7 +291,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                                             <item.icon className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
                                             <div>
                                                 <p className="font-semibold text-sm">{item.label}</p>
-                                                {item.label === 'Sexo' ? (
+                                                {item.label === t('FigurePage.detailedInfo.genderLabel') ? (
                                                     <div className="flex items-center gap-2 text-muted-foreground">
                                                         <span>{item.value}</span>
                                                         {item.value === 'Masculino' && <span className="text-blue-400 font-bold">♂</span>}
@@ -305,7 +307,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                             </div>
                         ) : (
                              <p className="text-muted-foreground text-center py-4">
-                                No hay información detallada disponible. ¡Haz clic en "Editar" para añadirla!
+                                {t('FigurePage.detailedInfo.noInfo')}
                             </p>
                         )}
 
@@ -315,7 +317,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                                 <div className="space-y-4">
                                     <h3 className="font-semibold text-sm flex items-center gap-2">
                                         <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                                        Redes Sociales y Wikis
+                                        {t('FigurePage.detailedInfo.socialMediaTitle')}
                                     </h3>
                                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
                                         {Object.entries(figure.socialLinks || {}).map(([platform, url]) => (
@@ -352,7 +354,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
 
       <div className="flex flex-col items-center justify-center my-6 text-center text-muted-foreground">
         <p className="text-sm font-semibold">
-          {isGoatCandidate ? '¡Ahora participa en la batalla!' : '¡Ahora califica este perfil!'}
+          {isGoatCandidate ? t('FigurePage.callToAction.goat') : t('FigurePage.callToAction.rate')}
         </p>
         <ArrowDown className="h-6 w-6 animate-bounce" />
       </div>
@@ -379,3 +381,4 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </Suspense>
   );
 }
+

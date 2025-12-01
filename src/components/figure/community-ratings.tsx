@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -7,6 +8,7 @@ import { StarRating } from '@/components/shared/star-rating';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 interface CommunityRatingsProps {
@@ -31,6 +33,7 @@ const RatingRow = ({ stars, count, total }: { stars: number; count: number; tota
 
 
 export default function CommunityRatings({ figure }: CommunityRatingsProps) {
+    const { t } = useLanguage();
     const { ratingsBreakdown } = figure;
 
     const { totalVotes, averageRating } = React.useMemo(() => {
@@ -59,7 +62,7 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
     return (
         <Card className="dark:bg-black">
             <CardHeader>
-                <CardTitle>Calificaciones de la Comunidad</CardTitle>
+                <CardTitle>{t('CommunityRatings.title')}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -69,7 +72,7 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
                         </div>
                         <StarRating rating={averageRating} starClassName="h-5 w-5" />
                         <div className="text-sm text-muted-foreground">
-                            {totalVotes.toLocaleString()} {totalVotes === 1 ? 'calificación' : 'calificaciones'}
+                            {totalVotes.toLocaleString()} {totalVotes === 1 ? t('CommunityRatings.rating') : t('CommunityRatings.ratings')}
                         </div>
                     </div>
                     <div className="md:col-span-2 flex flex-col justify-center space-y-2">
@@ -87,3 +90,4 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
         </Card>
     );
 }
+
