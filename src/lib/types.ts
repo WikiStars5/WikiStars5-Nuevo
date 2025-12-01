@@ -44,6 +44,8 @@ export interface Figure {
     discord?: string;
     tiktok?: string;
     website?: string;
+    wikipedia?: string;
+    fandom?: string;
   };
   attitude?: {
     neutral: number;

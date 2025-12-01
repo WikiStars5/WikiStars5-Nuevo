@@ -38,6 +38,8 @@ const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
     tiktok: { label: 'TikTok' },
     linkedin: { label: 'LinkedIn' },
     discord: { label: 'Discord' },
+    wikipedia: { label: 'Wikipedia' },
+    fandom: { label: 'Fandom' },
 };
 
 const SocialLink = ({ platform, url }: { platform: string; url: string }) => {

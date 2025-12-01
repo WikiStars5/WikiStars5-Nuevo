@@ -37,6 +37,8 @@ const SOCIAL_MEDIA_CONFIG = {
     tiktok: { label: 'TikTok', placeholder: 'https://tiktok.com/@...' },
     linkedin: { label: 'LinkedIn', placeholder: 'https://linkedin.com/in/...' },
     discord: { label: 'Discord', placeholder: 'https://discord.gg/...' },
+    wikipedia: { label: 'Wikipedia', placeholder: 'https://es.wikipedia.org/wiki/...' },
+    fandom: { label: 'Fandom', placeholder: 'https://comunidad.fandom.com/wiki/...' },
 } as const;
 
 type SocialPlatform = keyof typeof SOCIAL_MEDIA_CONFIG;
