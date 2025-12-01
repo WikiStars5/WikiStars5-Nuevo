@@ -68,6 +68,20 @@ export default function LanguageSwitcher() {
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem 
+          onSelect={() => setLanguage('fr')}
+          className={cn(language === 'fr' && 'bg-accent/50')}
+        >
+          <div className="flex items-center gap-2">
+            <Image
+              src="https://flagcdn.com/w20/fr.png"
+              alt="Bandera de Francia"
+              width={20}
+              height={15}
+            />
+            <span>Français</span>
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem 
           onSelect={() => setLanguage('zh')}
           className={cn(language === 'zh' && 'bg-accent/50')}
         >
