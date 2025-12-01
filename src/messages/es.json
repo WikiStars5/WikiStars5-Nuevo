@@ -493,5 +493,99 @@
       "createErrorTitle": "Error al Crear",
       "createErrorDescription": "No se pudo crear el perfil. Inténtalo de nuevo."
     }
+  },
+  "DisclaimerPage": {
+    "title": "Descargo de Responsabilidad",
+    "paragraphs": {
+      "1_strong": "Naturaleza del Sitio:",
+      "1": " WikiStars5 es una plataforma de opinión y entretenimiento. Creemos firmemente en la libertad de expresión y nuestro propósito es permitir que los usuarios expresen y discutan libremente sus percepciones sobre figuras públicas. El contenido de este sitio, incluyendo las calificaciones, votos, y comentarios, representa las opiniones subjetivas de nuestros usuarios y no debe ser interpretado como una declaración de hechos.",
+      "2_strong": "Reflejo de la Percepción Pública:",
+      "2": " Las percepciones, ya sean de admiración u odio, que se reflejan en esta plataforma son el resultado de las acciones y la reputación de las propias figuras públicas. WikiStars5 no crea ni controla estas opiniones; simplemente actúa como un foro para su expresión. La responsabilidad de la imagen pública recae enteramente en la figura pública, no en la plataforma que permite la discusión sobre ella. En resumen: no es nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.",
+      "3_strong": "Sin Afiliación ni Respaldo:",
+      "3": " Este sitio web no está afiliado, asociado, autorizado, respaldado por, ni de ninguna manera conectado oficialmente con ninguna de las figuras públicas mencionadas en él, ni con ninguna de sus subsidiarias o afiliadas.",
+      "4": "Los nombres, así como cualquier imagen, marca registrada y derecho de autor relacionados, son propiedad de sus respectivos dueños. El uso de estos nombres e imágenes tiene fines de identificación, comentario y crítica, en el marco del derecho a la libertad de expresión.",
+      "5_strong": "Contenido Generado por el Usuario:",
+      "5": " Todo el contenido generado por los usuarios, como comentarios y votos, es responsabilidad exclusiva de la persona que lo publica. WikiStars5 no se hace responsable de la exactitud, veracidad o legalidad de dicho contenido. Nos reservamos el derecho de moderar o eliminar contenido que viole nuestras políticas, pero no tenemos la obligación de hacerlo.",
+      "6_strong": "Sin Fines de Lucro Directo con la Imagen:",
+      "6": " La plataforma no utiliza la imagen o el nombre de las figuras públicas para la venta directa de productos o servicios. El propósito es fomentar la discusión y el debate público."
+    }
+  },
+  "PrivacyPolicyPage": {
+    "title": "Política de Privacidad",
+    "sections": {
+      "1": {
+        "title": "1. Introducción",
+        "content": "Bienvenido a WikiStars5. Tu privacidad es de suma importancia para nosotros. Esta Política de Privacidad explica qué datos recopilamos, por qué los recopilamos y cómo puedes ver y gestionar tu información."
+      },
+      "2": {
+        "title": "2. Qué Información Recopilamos",
+        "intro": "Recopilamos información para proporcionar y mejorar nuestros servicios. Esto incluye:",
+        "points": [
+          {
+            "strong": "Información que nos proporcionas:",
+            "text": " Al registrarte con Google, nos proporcionas tu nombre, dirección de correo electrónico y foto de perfil. También puedes añadir voluntariamente en tu perfil un nombre de usuario, país, sexo y una breve descripción."
+          },
+          {
+            "strong": "Contenido que generas:",
+            "text": " Recopilamos el contenido que creas en nuestra plataforma, como los comentarios que publicas, los votos de actitud y emoción que emites y las rachas que generas. Esta información es pública por naturaleza."
+          },
+          {
+            "strong": "Información de Actividad:",
+            "text": " Recopilamos información sobre tu actividad en nuestro servicio, como tu estado en línea (online/offline), para mejorar la experiencia de la comunidad."
+          }
+        ]
+      },
+      "3": {
+        "title": "3. Por Qué Recopilamos Datos",
+        "intro": "Utilizamos la información que recopilamos para los siguientes propósitos:",
+        "points": [
+          "Proporcionar nuestros servicios: Para operar las funciones principales de WikiStars5, como mostrar tu perfil público, tus comentarios, votos y rachas.",
+          "Mantener y mejorar nuestros servicios: Para entender cómo se utiliza nuestra plataforma y poder mejorarla.",
+          "Comunicarnos contigo: Para enviarte notificaciones importantes, como respuestas a tus comentarios.",
+          "Proteger nuestra plataforma y a nuestros usuarios: Usamos la información para ayudar a mejorar la seguridad y fiabilidad de nuestros servicios."
+        ]
+      },
+      "4": {
+        "title": "4. Compartir tu Información",
+        "intro": "No compartimos tu información personal con empresas, organizaciones o individuos fuera de WikiStars5, excepto en los siguientes casos:",
+        "points": [
+          {
+            "strong": "Contenido público:",
+            "text": " Tu nombre de usuario, tu foto de perfil (si la tienes) y todo el contenido que generas (comentarios, votos, etc.) son visibles públicamente para otros usuarios de la plataforma."
+          },
+          {
+            "strong": "Proveedores de servicios:",
+            "text": " Utilizamos Google Firebase para la autenticación, base de datos y alojamiento. Google tiene sus propias políticas de privacidad que rigen cómo procesan los datos."
+          },
+          {
+            "strong": "Por razones legales:",
+            "text": " Compartiremos información personal si creemos de buena fe que el acceso, uso, preservación o divulgación de la información es razonablemente necesario para cumplir con la ley aplicable, regulación, proceso legal o solicitud gubernamental exigible."
+          }
+        ]
+      },
+      "5": {
+        "title": "5. Tus Controles de Privacidad",
+        "intro": "Tienes control sobre la información que proporcionas y tu actividad. Desde tu página de perfil, puedes:",
+        "points": [
+          "Ver y editar la información de tu perfil, como tu nombre de usuario, país, sexo y descripción.",
+          "Ver un resumen de tu actividad, incluyendo tus votos y rachas."
+        ],
+        "outro": "Si deseas eliminar tu cuenta y toda la información asociada, por favor, contáctanos."
+      }
+    }
+  },
+  "RulesPage": {
+    "title": "Reglas de la Comunidad",
+    "description": "Para mantener un ambiente constructivo y respetuoso, todos los miembros deben seguir estas reglas.",
+    "rules": [
+      "Sé respetuoso. No se tolerarán ataques personales, acoso, discurso de odio ni amenazas.",
+      "Mantén el debate centrado en la figura pública. Las discusiones deben ser sobre sus acciones, carrera y percepción pública, no sobre otros usuarios.",
+      "No publiques información privada (doxing) de ninguna persona, ya sea una figura pública o un usuario.",
+      "Evita el spam y la autopromoción. Los comentarios deben aportar valor a la discusión.",
+      "No manipules las votaciones. No se permite el uso de bots, scripts o múltiples cuentas para alterar los resultados.",
+      "El contenido sexualmente explícito, violento o ilegal está estrictamente prohibido.",
+      "Respeta los derechos de autor. No publiques contenido que no te pertenezca sin la debida atribución."
+    ],
+    "conclusion": "El incumplimiento de estas reglas puede resultar en la eliminación de comentarios, la suspensión temporal o la expulsión permanente de la plataforma. Nos reservamos el derecho de moderar el contenido para garantizar la seguridad y el bienestar de nuestra comunidad."
   }
 }

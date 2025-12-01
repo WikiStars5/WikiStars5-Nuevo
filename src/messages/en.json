@@ -493,5 +493,99 @@
       "createErrorTitle": "Error Creating",
       "createErrorDescription": "Could not create the profile. Please try again."
     }
+  },
+  "DisclaimerPage": {
+    "title": "Disclaimer",
+    "paragraphs": {
+      "1_strong": "Nature of the Site:",
+      "1": " WikiStars5 is an opinion and entertainment platform. We strongly believe in freedom of speech, and our purpose is to allow users to freely express and discuss their perceptions of public figures. The content on this site, including ratings, votes, and comments, represents the subjective opinions of our users and should not be interpreted as a statement of fact.",
+      "2_strong": "Reflection of Public Perception:",
+      "2": " The perceptions, whether of admiration or hatred, reflected on this platform are the result of the public figures' own actions and reputation. WikiStars5 does not create or control these opinions; it simply acts as a forum for their expression. The responsibility for public image lies entirely with the public figure, not with the platform that allows discussion about it. In short: it's not our fault if you make yourself loved or hated; that responsibility is entirely yours and not under our control.",
+      "3_strong": "No Affiliation or Endorsement:",
+      "3": " This website is not affiliated, associated, authorized, endorsed by, or in any way officially connected with any of the public figures mentioned on it, nor with any of their subsidiaries or affiliates.",
+      "4": "The names, as well as any related images, trademarks, and copyrights, are the property of their respective owners. The use of these names and images is for identification, commentary, and criticism purposes, within the framework of the right to freedom of expression.",
+      "5_strong": "User-Generated Content:",
+      "5": " All user-generated content, such as comments and votes, is the sole responsibility of the person who posts it. WikiStars5 is not responsible for the accuracy, truthfulness, or legality of such content. We reserve the right to moderate or remove content that violates our policies, but we are not obligated to do so.",
+      "6_strong": "No Direct Profit from Image:",
+      "6": " The platform does not use the image or name of public figures for the direct sale of products or services. The purpose is to foster public discussion and debate."
+    }
+  },
+  "PrivacyPolicyPage": {
+    "title": "Privacy Policy",
+    "sections": {
+      "1": {
+        "title": "1. Introduction",
+        "content": "Welcome to WikiStars5. Your privacy is of utmost importance to us. This Privacy Policy explains what data we collect, why we collect it, and how you can view and manage your information."
+      },
+      "2": {
+        "title": "2. What Information We Collect",
+        "intro": "We collect information to provide and improve our services. This includes:",
+        "points": [
+          {
+            "strong": "Information you provide us:",
+            "text": " When you register with Google, you provide us with your name, email address, and profile picture. You can also voluntarily add a username, country, gender, and a short description to your profile."
+          },
+          {
+            "strong": "Content you generate:",
+            "text": " We collect the content you create on our platform, such as comments you post, attitude and emotion votes you cast, and streaks you generate. This information is public by nature."
+          },
+          {
+            "strong": "Activity Information:",
+            "text": " We collect information about your activity on our service, such as your online/offline status, to enhance the community experience."
+          }
+        ]
+      },
+      "3": {
+        "title": "3. Why We Collect Data",
+        "intro": "We use the information we collect for the following purposes:",
+        "points": [
+          "To provide our services: To operate the core functions of WikiStars5, such as displaying your public profile, comments, votes, and streaks.",
+          "To maintain and improve our services: To understand how our platform is used so we can improve it.",
+          "To communicate with you: To send you important notifications, such as replies to your comments.",
+          "To protect our platform and our users: We use the information to help improve the security and reliability of our services."
+        ]
+      },
+      "4": {
+        "title": "4. Sharing Your Information",
+        "intro": "We do not share your personal information with companies, organizations, or individuals outside of WikiStars5, except in the following cases:",
+        "points": [
+          {
+            "strong": "Public content:",
+            "text": " Your username, your profile picture (if you have one), and all the content you generate (comments, votes, etc.) are publicly visible to other users of the platform."
+          },
+          {
+            "strong": "Service providers:",
+            "text": " We use Google Firebase for authentication, database, and hosting. Google has its own privacy policies that govern how they process data."
+          },
+          {
+            "strong": "For legal reasons:",
+            "text": " We will share personal information if we have a good-faith belief that access, use, preservation, or disclosure of the information is reasonably necessary to comply with applicable law, regulation, legal process, or enforceable governmental request."
+          }
+        ]
+      },
+      "5": {
+        "title": "5. Your Privacy Controls",
+        "intro": "You have control over the information you provide and your activity. From your profile page, you can:",
+        "points": [
+          "View and edit your profile information, such as your username, country, gender, and description.",
+          "View a summary of your activity, including your votes and streaks."
+        ],
+        "outro": "If you wish to delete your account and all associated information, please contact us."
+      }
+    }
+  },
+  "RulesPage": {
+    "title": "Community Rules",
+    "description": "To maintain a constructive and respectful environment, all members must follow these rules.",
+    "rules": [
+      "Be respectful. Personal attacks, harassment, hate speech, or threats will not be tolerated.",
+      "Keep the discussion focused on the public figure. Discussions should be about their actions, career, and public perception, not about other users.",
+      "Do not post private information (doxing) of any person, whether a public figure or a user.",
+      "Avoid spam and self-promotion. Comments should add value to the discussion.",
+      "Do not manipulate votes. The use of bots, scripts, or multiple accounts to alter results is not allowed.",
+      "Sexually explicit, violent, or illegal content is strictly prohibited.",
+      "Respect copyrights. Do not post content that you do not own without proper attribution."
+    ],
+    "conclusion": "Failure to comply with these rules may result in the removal of comments, temporary suspension, or permanent expulsion from the platform. We reserve the right to moderate content to ensure the safety and well-being of our community."
   }
 }
