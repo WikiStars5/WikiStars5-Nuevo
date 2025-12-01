@@ -49,5 +49,53 @@
     "changeToDarkMode": "Cambiar a modo oscuro",
     "logout": "Cerrar Sesión",
     "login": "Iniciar Sesión"
+  },
+  "ProfilePage": {
+    "loading": "Cargando...",
+    "pleaseLoginTitle": "Por favor, inicia sesión",
+    "pleaseLoginDescription": "Necesitas haber iniciado sesión para ver tu perfil.",
+    "goToLoginButton": "Ir a Iniciar Sesión",
+    "guestUser": "Invitado",
+    "anonymousUser": "Usuario anónimo",
+    "editProfileTitle": "Editar Perfil",
+    "editProfileDescription": "Aquí puedes editar tus datos públicos.",
+    "profilePhotoUrlLabel": "URL de Foto de Perfil",
+    "profilePhotoUrlPlaceholder": "https://...",
+    "usernameLabel": "Nombre de Usuario",
+    "emailLabel": "Correo Electrónico",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "Una breve descripción sobre ti.",
+    "countryLabel": "País",
+    "genderLabel": "Sexo",
+    "genderPlaceholder": "Selecciona tu sexo",
+    "genderMale": "Masculino",
+    "genderFemale": "Femenino",
+    "genderOther": "Otro",
+    "genderPreferNotToSay": "Prefiero no decirlo",
+    "saveChangesButton": "Guardar Cambios",
+    "saveProgressTitle": "¿Listo para Guardar tu Progreso?",
+    "saveProgressDescription": "Tu actividad es anónima. Para guardar tus rachas y logros de forma permanente, vincula tu cuenta con Google.",
+    "linkWithGoogleButton": "Vincular con Google y Guardar Progreso",
+    "infoTab": "Información",
+    "activityTab": "Actividad",
+    "toast": {
+      "profileUpdatedTitle": "¡Perfil Actualizado!",
+      "profileUpdatedDescription": "Tu información ha sido guardada correctamente.",
+      "errorSavingTitle": "Error al Guardar",
+      "errorSavingDescription": "No se pudo actualizar tu perfil. Inténtalo de nuevo.",
+      "usernameInUse": "El nombre de usuario ya está en uso.",
+      "accountLinkedTitle": "¡Cuenta Vinculada!",
+      "accountLinkedDescription": "Has conectado tu cuenta de Google. Tu actividad se ha guardado.",
+      "linkErrorTitle": "Error de Vinculación",
+      "linkErrorDescription": "No se pudo vincular la cuenta. Inténtalo de nuevo.",
+      "linkErrorInUse": "Esta cuenta de Google ya está asociada con otro usuario de WikiStars5."
+    },
+    "validation": {
+        "usernameMin": "El nombre de usuario debe tener al menos 3 caracteres.",
+        "usernameMax": "El nombre de usuario no puede superar los 10 caracteres.",
+        "usernameRegex": "Solo se permiten letras, números y guiones bajos.",
+        "profilePhotoUrl": "Por favor, introduce una URL válida.",
+        "descriptionMax": "La descripción no puede superar los 160 caracteres."
+    }
   }
 }

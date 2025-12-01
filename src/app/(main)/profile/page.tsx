@@ -26,6 +26,7 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Image from 'next/image';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 export const dynamic = 'force-dynamic';
@@ -40,15 +41,19 @@ const GoogleIcon = () => (
 );
 
 
-const profileSchema = z.object({
-  username: z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.'),
-  profilePhotoUrl: z.string().url('Por favor, introduce una URL válida.').optional().or(z.literal('')),
+const createProfileSchema = (t: (key: string) => string) => z.object({
+  username: z.string()
+    .min(3, t('ProfilePage.validation.usernameMin'))
+    .max(10, t('ProfilePage.validation.usernameMax'))
+    .regex(/^[a-zA-Z0-9_]+$/, t('ProfilePage.validation.usernameRegex')),
+  profilePhotoUrl: z.string().url(t('ProfilePage.validation.profilePhotoUrl')).optional().or(z.literal('')),
   country: z.string().optional(),
   gender: z.enum(['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo']).optional(),
-  description: z.string().max(160, 'La descripción no puede superar los 160 caracteres.').optional(),
+  description: z.string().max(160, t('ProfilePage.validation.descriptionMax')).optional(),
 });
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileFormValues = z.infer<ReturnType<typeof createProfileSchema>>;
+
 
 function ProfilePageContent() {
     const { user, isUserLoading, reloadUser } = useUser();
@@ -58,8 +63,12 @@ function ProfilePageContent() {
     const [isSaving, setIsSaving] = useState(false);
     const [isLinking, setIsLinking] = useState(false);
 
+    const { t } = useLanguage();
+
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
+    
+    const profileSchema = createProfileSchema(t);
 
     const profileForm = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
@@ -85,14 +94,14 @@ function ProfilePageContent() {
                     const data = userSnap.data();
                     setUserData(data);
                     profileForm.reset({
-                        username: data.username || (user.isAnonymous ? `Invitado_${user.uid.substring(0,4)}` : user.displayName) || '',
+                        username: data.username || (user.isAnonymous ? `${t('ProfilePage.guestUser')}_${user.uid.substring(0,4)}` : user.displayName) || '',
                         profilePhotoUrl: data.profilePhotoUrl || user.photoURL || '',
                         country: data.country || '',
                         gender: data.gender || undefined,
                         description: data.description || '',
                     });
                 } else {
-                    profileForm.reset({ username: user.isAnonymous ? `Invitado_${user.uid.substring(0,4)}` : user.displayName || '' });
+                    profileForm.reset({ username: user.isAnonymous ? `${t('ProfilePage.guestUser')}_${user.uid.substring(0,4)}` : user.displayName || '' });
                 }
                 setIsUserDataLoading(false);
             }
@@ -101,7 +110,7 @@ function ProfilePageContent() {
         if (!isUserLoading) {
             fetchUserData();
         }
-    }, [user, firestore, isUserLoading, profileForm]);
+    }, [user, firestore, isUserLoading, profileForm, t]);
 
 
     const onProfileSubmit = async (data: ProfileFormValues) => {
@@ -124,7 +133,7 @@ function ProfilePageContent() {
                     const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
                     const usernameDoc = await transaction.get(newUsernameRef);
                     if (usernameDoc.exists() && usernameDoc.data()?.userId !== user.uid) {
-                        throw new Error('El nombre de usuario ya está en uso.');
+                        throw new Error(t('ProfilePage.toast.usernameInUse'));
                     }
 
                     if (oldUsernameLower && oldUsernameLower !== newUsernameLower) {
@@ -158,18 +167,18 @@ function ProfilePageContent() {
             setUserData((prev: any) => ({...prev, ...data}));
 
             toast({
-                title: "¡Perfil Actualizado!",
-                description: "Tu información ha sido guardada correctamente.",
+                title: t('ProfilePage.toast.profileUpdatedTitle'),
+                description: t('ProfilePage.toast.profileUpdatedDescription'),
             });
 
         } catch (error: any) {
             console.error("Error updating profile:", error);
-            if (error.message === 'El nombre de usuario ya está en uso.') {
+            if (error.message === t('ProfilePage.toast.usernameInUse')) {
                 profileForm.setError('username', { type: 'manual', message: error.message });
             } else {
                  toast({
-                    title: "Error al Guardar",
-                    description: "No se pudo actualizar tu perfil. Inténtalo de nuevo.",
+                    title: t('ProfilePage.toast.errorSavingTitle'),
+                    description: t('ProfilePage.toast.errorSavingDescription'),
                     variant: "destructive",
                 });
             }
@@ -195,17 +204,17 @@ function ProfilePageContent() {
             
             await reloadUser();
             toast({
-                title: "¡Cuenta Vinculada!",
-                description: "Has conectado tu cuenta de Google. Tu actividad se ha guardado.",
+                title: t('ProfilePage.toast.accountLinkedTitle'),
+                description: t('ProfilePage.toast.accountLinkedDescription'),
             });
         } catch (error: any) {
             console.error("Error linking account:", error);
-            let description = "No se pudo vincular la cuenta. Inténtalo de nuevo.";
+            let description = t('ProfilePage.toast.linkErrorDescription');
             if (error.code === 'auth/credential-already-in-use') {
-                description = "Esta cuenta de Google ya está asociada con otro usuario de WikiStars5.";
+                description = t('ProfilePage.toast.linkErrorInUse');
             }
              toast({
-                title: "Error de Vinculación",
+                title: t('ProfilePage.toast.linkErrorTitle'),
                 description,
                 variant: "destructive",
             });
@@ -236,9 +245,9 @@ function ProfilePageContent() {
     if (!user) {
         return (
              <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12 text-center">
-                <h1 className="text-2xl font-bold">Por favor, inicia sesión</h1>
-                <p className="text-muted-foreground">Necesitas haber iniciado sesión para ver tu perfil.</p>
-                <Button asChild className="mt-4"><Link href="/login">Ir a Iniciar Sesión</Link></Button>
+                <h1 className="text-2xl font-bold">{t('ProfilePage.pleaseLoginTitle')}</h1>
+                <p className="text-muted-foreground">{t('ProfilePage.pleaseLoginDescription')}</p>
+                <Button asChild className="mt-4"><Link href="/login">{t('ProfilePage.goToLoginButton')}</Link></Button>
             </div>
         )
     }
@@ -248,7 +257,7 @@ function ProfilePageContent() {
         return profileForm.getValues('username')?.charAt(0) || user?.email?.charAt(0) || 'U';
     }
     
-    const displayName = userData?.username || user.displayName || 'Invitado';
+    const displayName = userData?.username || user.displayName || t('ProfilePage.guestUser');
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
@@ -277,20 +286,20 @@ function ProfilePageContent() {
                 </Dialog>
 
                 <h1 className="text-4xl font-bold tracking-tight font-headline">{displayName}</h1>
-                <p className="text-muted-foreground mt-2">{userData?.description || (user.isAnonymous ? 'Usuario invitado' : user.email)}</p>
+                <p className="text-muted-foreground mt-2">{userData?.description || (user.isAnonymous ? t('ProfilePage.anonymousUser') : user.email)}</p>
             </div>
             
             <div className="mt-8">
                  <Tabs defaultValue="info" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>Información</TabsTrigger>
-                        <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>Actividad</TabsTrigger>
+                        <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
+                        <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="info" className="mt-4">
                       <Card>
                         <CardHeader>
-                            <CardTitle>Editar Perfil</CardTitle>
-                            <CardDescription>Aquí puedes editar tus datos públicos.</CardDescription>
+                            <CardTitle>{t('ProfilePage.editProfileTitle')}</CardTitle>
+                            <CardDescription>{t('ProfilePage.editProfileDescription')}</CardDescription>
                         </CardHeader>
                         <Form {...profileForm}>
                             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
@@ -300,10 +309,10 @@ function ProfilePageContent() {
                                         name="profilePhotoUrl"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>URL de Foto de Perfil</FormLabel>
+                                                <FormLabel>{t('ProfilePage.profilePhotoUrlLabel')}</FormLabel>
                                                 <div className="relative">
                                                     <FormControl>
-                                                        <Input {...field} placeholder="https://..." value={field.value || ''} className="pr-8" />
+                                                        <Input {...field} placeholder={t('ProfilePage.profilePhotoUrlPlaceholder')} value={field.value || ''} className="pr-8" />
                                                     </FormControl>
                                                     {field.value && (
                                                         <Button
@@ -326,7 +335,7 @@ function ProfilePageContent() {
                                         name="username"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Nombre de Usuario</FormLabel>
+                                                <FormLabel>{t('ProfilePage.usernameLabel')}</FormLabel>
                                                 <FormControl><Input {...field} /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -334,7 +343,7 @@ function ProfilePageContent() {
                                     />
                                     {!user.isAnonymous && (
                                         <div className="space-y-2">
-                                            <FormLabel>Correo Electrónico</FormLabel>
+                                            <FormLabel>{t('ProfilePage.emailLabel')}</FormLabel>
                                             <Input type="email" value={user?.email || ''} disabled />
                                         </div>
                                     )}
@@ -343,10 +352,10 @@ function ProfilePageContent() {
                                         name="description"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Descripción</FormLabel>
+                                                <FormLabel>{t('ProfilePage.descriptionLabel')}</FormLabel>
                                                 <FormControl>
                                                     <Textarea
-                                                        placeholder="Una breve descripción sobre ti."
+                                                        placeholder={t('ProfilePage.descriptionPlaceholder')}
                                                         className="resize-none"
                                                         maxLength={160}
                                                         {...field}
@@ -367,7 +376,7 @@ function ProfilePageContent() {
                                             name="country"
                                             render={({ field }) => (
                                                 <FormItem className="flex flex-col">
-                                                    <FormLabel>País</FormLabel>
+                                                    <FormLabel>{t('ProfilePage.countryLabel')}</FormLabel>
                                                     <CountrySelector value={field.value || ''} onChange={field.onChange} />
                                                     <FormMessage />
                                                 </FormItem>
@@ -378,16 +387,16 @@ function ProfilePageContent() {
                                             name="gender"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Sexo</FormLabel>
+                                                    <FormLabel>{t('ProfilePage.genderLabel')}</FormLabel>
                                                     <Select onValueChange={field.onChange} value={field.value || undefined}>
                                                         <FormControl>
-                                                            <SelectTrigger><SelectValue placeholder="Selecciona tu sexo" /></SelectTrigger>
+                                                            <SelectTrigger><SelectValue placeholder={t('ProfilePage.genderPlaceholder')} /></SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="Masculino">Masculino</SelectItem>
-                                                            <SelectItem value="Femenino">Femenino</SelectItem>
-                                                            <SelectItem value="Otro">Otro</SelectItem>
-                                                            <SelectItem value="Prefiero no decirlo">Prefiero no decirlo</SelectItem>
+                                                            <SelectItem value="Masculino">{t('ProfilePage.genderMale')}</SelectItem>
+                                                            <SelectItem value="Femenino">{t('ProfilePage.genderFemale')}</SelectItem>
+                                                            <SelectItem value="Otro">{t('ProfilePage.genderOther')}</SelectItem>
+                                                            <SelectItem value="Prefiero no decirlo">{t('ProfilePage.genderPreferNotToSay')}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
@@ -399,7 +408,7 @@ function ProfilePageContent() {
                                 <CardFooter>
                                     <Button type="submit" disabled={isSaving}>
                                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                        Guardar Cambios
+                                        {t('ProfilePage.saveChangesButton')}
                                     </Button>
                                 </CardFooter>
                             </form>
@@ -408,13 +417,13 @@ function ProfilePageContent() {
                        {user.isAnonymous && (
                         <Card className="mt-6">
                             <CardHeader>
-                                <CardTitle>¿Listo para Guardar tu Progreso?</CardTitle>
-                                <CardDescription>Tu actividad es anónima. Para guardar tus rachas y logros de forma permanente, vincula tu cuenta con Google.</CardDescription>
+                                <CardTitle>{t('ProfilePage.saveProgressTitle')}</CardTitle>
+                                <CardDescription>{t('ProfilePage.saveProgressDescription')}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <Button onClick={handleLinkAccount} disabled={isLinking} className="w-full">
                                     {isLinking ? <Loader2 className="animate-spin" /> : <GoogleIcon />}
-                                    Vincular con Google y Guardar Progreso
+                                    {t('ProfilePage.linkWithGoogleButton')}
                                 </Button>
                             </CardContent>
                         </Card>

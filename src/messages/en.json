@@ -49,5 +49,53 @@
     "changeToDarkMode": "Switch to dark mode",
     "logout": "Log Out",
     "login": "Log In"
+  },
+  "ProfilePage": {
+    "loading": "Loading...",
+    "pleaseLoginTitle": "Please Log In",
+    "pleaseLoginDescription": "You need to be logged in to view your profile.",
+    "goToLoginButton": "Go to Log In",
+    "guestUser": "Guest",
+    "anonymousUser": "Anonymous User",
+    "editProfileTitle": "Edit Profile",
+    "editProfileDescription": "Here you can edit your public information.",
+    "profilePhotoUrlLabel": "Profile Photo URL",
+    "profilePhotoUrlPlaceholder": "https://...",
+    "usernameLabel": "Username",
+    "emailLabel": "Email",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "A brief description about yourself.",
+    "countryLabel": "Country",
+    "genderLabel": "Gender",
+    "genderPlaceholder": "Select your gender",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "genderOther": "Other",
+    "genderPreferNotToSay": "Prefer not to say",
+    "saveChangesButton": "Save Changes",
+    "saveProgressTitle": "Ready to Save Your Progress?",
+    "saveProgressDescription": "Your activity is anonymous. To save your streaks and achievements permanently, link your account with Google.",
+    "linkWithGoogleButton": "Link with Google and Save Progress",
+    "infoTab": "Information",
+    "activityTab": "Activity",
+    "toast": {
+      "profileUpdatedTitle": "Profile Updated!",
+      "profileUpdatedDescription": "Your information has been saved successfully.",
+      "errorSavingTitle": "Error Saving",
+      "errorSavingDescription": "Could not update your profile. Please try again.",
+      "usernameInUse": "Username is already in use.",
+      "accountLinkedTitle": "Account Linked!",
+      "accountLinkedDescription": "You have connected your Google account. Your activity has been saved.",
+      "linkErrorTitle": "Linking Error",
+      "linkErrorDescription": "Could not link the account. Please try again.",
+      "linkErrorInUse": "This Google account is already associated with another WikiStars5 user."
+    },
+    "validation": {
+        "usernameMin": "Username must be at least 3 characters.",
+        "usernameMax": "Username cannot exceed 10 characters.",
+        "usernameRegex": "Only letters, numbers, and underscores are allowed.",
+        "profilePhotoUrl": "Please enter a valid URL.",
+        "descriptionMax": "Description cannot exceed 160 characters."
+    }
   }
 }
