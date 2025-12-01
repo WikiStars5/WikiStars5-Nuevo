@@ -67,6 +67,20 @@ export default function LanguageSwitcher() {
             <span>Português</span>
           </div>
         </DropdownMenuItem>
+        <DropdownMenuItem 
+          onSelect={() => setLanguage('zh')}
+          className={cn(language === 'zh' && 'bg-accent/50')}
+        >
+          <div className="flex items-center gap-2">
+            <Image
+              src="https://flagcdn.com/w20/cn.png"
+              alt="Bandera de China"
+              width={20}
+              height={15}
+            />
+            <span>中文</span>
+          </div>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
