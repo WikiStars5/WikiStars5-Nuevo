@@ -4,10 +4,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   DocumentReference,
-  getDoc,
+  onSnapshot,
   DocumentData,
   FirestoreError,
-  DocumentSnapshot,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -32,7 +31,7 @@ interface UseDocOptions {
 }
 
 /**
- * React hook to fetch a single Firestore document once.
+ * React hook to fetch a single Firestore document in real-time.
  * Handles nullable references.
  * 
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
@@ -54,36 +53,32 @@ export function useDoc<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(options.enabled);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (!options.enabled) {
-      setIsLoading(false);
+  const fetchData = useCallback(() => {
+    if (!options.enabled || !memoizedDocRef) {
+      setIsLoading(!options.enabled);
       setData(null);
       setError(null);
-      return;
+      return () => {}; // Return an empty unsubscribe function
     }
 
-    if (!memoizedDocRef) {
-      setIsLoading(true);
-      setData(null);
-      setError(null);
-      return;
-    }
-    
     if (!memoizedDocRef.__memo) {
       console.warn('The query passed to useDoc was not properly memoized using useMemoFirebase. This can cause infinite loops and unexpected behavior.');
     }
 
     setIsLoading(true);
-    setError(null);
 
-    try {
-      const snapshot = await getDoc(memoizedDocRef);
-      if (snapshot.exists()) {
-        setData({ ...(snapshot.data() as T), id: snapshot.id });
-      } else {
-        setData(null);
-      }
-    } catch (err: any) {
+    const unsubscribe = onSnapshot(
+      memoizedDocRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setData({ ...(snapshot.data() as T), id: snapshot.id });
+        } else {
+          setData(null);
+        }
+        setError(null);
+        setIsLoading(false);
+      },
+      (err: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
@@ -91,15 +86,28 @@ export function useDoc<T = any>(
 
         setError(contextualError);
         setData(null);
-        errorEmitter.emit('permission-error', contextualError);
-    } finally {
         setIsLoading(false);
-    }
+        errorEmitter.emit('permission-error', contextualError);
+      }
+    );
+
+    return unsubscribe;
   }, [memoizedDocRef, options.enabled]);
 
   useEffect(() => {
+    const unsubscribe = fetchData();
+    return () => unsubscribe();
+  }, [fetchData]);
+  
+  // The refetch function for onSnapshot is essentially just re-running the effect.
+  // This is handled by making the component that uses the hook re-render.
+  // For simplicity, we'll just re-trigger the internal fetchData.
+  const refetch = useCallback(() => {
+    // This will trigger the useEffect to re-subscribe
     fetchData();
   }, [fetchData]);
 
-  return { data, isLoading, error, refetch: fetchData };
+
+  return { data, isLoading, error, refetch };
 }
+
