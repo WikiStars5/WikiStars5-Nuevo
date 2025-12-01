@@ -17,6 +17,7 @@ import { GoogleAuthProvider, signInWithPopup, User } from 'firebase/auth';
 import { doc, runTransaction, serverTimestamp, collection, writeBatch, getDocs, query, where, getDoc } from 'firebase/firestore';
 import { normalizeText } from '@/lib/keywords';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 const GoogleIcon = () => (
@@ -36,6 +37,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     // Redirect to profile if user is already logged in and not anonymous
@@ -53,7 +55,7 @@ export default function LoginPage() {
     // If the user document already exists, it means this user has either
     // registered before or has linked their anonymous account. We do nothing.
     if (userDoc.exists()) {
-        toast({ title: "¡Bienvenido de Nuevo!", description: "Has iniciado sesión correctamente." });
+        toast({ title: t('LoginPage.toast.welcomeBackTitle'), description: t('LoginPage.toast.welcomeBackDescription') });
         router.push('/profile');
         return;
     }
@@ -72,8 +74,8 @@ export default function LoginPage() {
                 finalUsername = `user${signedInUser.uid.substring(0, 8)}`;
                 finalUsernameLower = normalizeText(finalUsername);
                 toast({
-                    title: 'Nombre de usuario en uso',
-                    description: `El nombre de Google "${signedInUser.displayName}" ya está en uso. Se te ha asignado uno temporal. Puedes cambiarlo en tu perfil.`,
+                    title: t('LoginPage.toast.usernameInUseTitle'),
+                    description: t('LoginPage.toast.usernameInUseDescription').replace('{displayName}', signedInUser.displayName || 'name'),
                     variant: 'destructive',
                     duration: 7000,
                 });
@@ -91,12 +93,12 @@ export default function LoginPage() {
         });
 
         await reloadUser();
-        toast({ title: "¡Bienvenido a WikiStars5!", description: "Tu cuenta ha sido creada." });
+        toast({ title: t('LoginPage.toast.welcomeTitle'), description: t('LoginPage.toast.welcomeDescription') });
         router.push('/profile');
 
     } catch (error) {
         console.error("Error during new user profile creation:", error);
-        toast({ title: 'Error de Perfil', description: 'No se pudo crear tu perfil de usuario.', variant: 'destructive' });
+        toast({ title: t('LoginPage.toast.profileErrorTitle'), description: t('LoginPage.toast.profileErrorDescription'), variant: 'destructive' });
     }
 };
 
@@ -115,8 +117,8 @@ export default function LoginPage() {
       if (error.code !== 'auth/popup-closed-by-user') {
         console.error("Error with Google Sign-In:", error);
         toast({
-          title: "Error de Autenticación",
-          description: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
+          title: t('LoginPage.toast.authErrorTitle'),
+          description: t('LoginPage.toast.authErrorDescription'),
           variant: "destructive",
         });
       }
@@ -129,7 +131,7 @@ export default function LoginPage() {
   if (isUserLoading || (user && !user.isAnonymous)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>Cargando...</p>
+        <p>{t('LoginPage.loading')}</p>
       </div>
     );
   }
@@ -145,8 +147,8 @@ export default function LoginPage() {
         </div>
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
-            <CardDescription>Usa tu cuenta para acceder a tu perfil y continuar donde lo dejaste.</CardDescription>
+            <CardTitle className="text-2xl">{t('LoginPage.title')}</CardTitle>
+            <CardDescription>{t('LoginPage.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
@@ -159,7 +161,7 @@ export default function LoginPage() {
                 ) : (
                 <GoogleIcon />
                 )}
-                Continuar con Google
+                {t('LoginPage.continueButton')}
             </Button>
           </CardContent>
         </Card>

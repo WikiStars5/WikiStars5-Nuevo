@@ -1,3 +1,4 @@
+
 {
   "Footer": {
     "rules": "Rules",
@@ -96,6 +97,24 @@
       "usernameRegex": "Only letters, numbers, and underscores are allowed.",
       "profilePhotoUrl": "Please enter a valid URL.",
       "descriptionMax": "Description cannot exceed 160 characters."
+    }
+  },
+  "LoginPage": {
+    "loading": "Loading...",
+    "title": "Log In",
+    "description": "Use your account to access your profile and pick up where you left off.",
+    "continueButton": "Continue with Google",
+    "toast": {
+      "welcomeBackTitle": "Welcome Back!",
+      "welcomeBackDescription": "You have successfully logged in.",
+      "usernameInUseTitle": "Username in use",
+      "usernameInUseDescription": "The Google name \"{displayName}\" is already in use. A temporary one has been assigned to you. You can change it in your profile.",
+      "welcomeTitle": "Welcome to WikiStars5!",
+      "welcomeDescription": "Your account has been created.",
+      "profileErrorTitle": "Profile Error",
+      "profileErrorDescription": "Could not create your user profile.",
+      "authErrorTitle": "Authentication Error",
+      "authErrorDescription": "Could not log in with Google. Please try again."
     }
   },
   "Notifications": {

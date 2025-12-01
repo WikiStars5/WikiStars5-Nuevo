@@ -1,3 +1,4 @@
+
 {
   "Footer": {
     "rules": "Reglas",
@@ -96,6 +97,24 @@
       "usernameRegex": "Solo se permiten letras, números y guiones bajos.",
       "profilePhotoUrl": "Por favor, introduce una URL válida.",
       "descriptionMax": "La descripción no puede superar los 160 caracteres."
+    }
+  },
+   "LoginPage": {
+    "loading": "Cargando...",
+    "title": "Iniciar Sesión",
+    "description": "Usa tu cuenta para acceder a tu perfil y continuar donde lo dejaste.",
+    "continueButton": "Continuar con Google",
+    "toast": {
+      "welcomeBackTitle": "¡Bienvenido de Nuevo!",
+      "welcomeBackDescription": "Has iniciado sesión correctamente.",
+      "usernameInUseTitle": "Nombre de usuario en uso",
+      "usernameInUseDescription": "El nombre de Google \"{displayName}\" ya está en uso. Se te ha asignado uno temporal. Puedes cambiarlo en tu perfil.",
+      "welcomeTitle": "¡Bienvenido a WikiStars5!",
+      "welcomeDescription": "Tu cuenta ha sido creada.",
+      "profileErrorTitle": "Error de Perfil",
+      "profileErrorDescription": "No se pudo crear tu perfil de usuario.",
+      "authErrorTitle": "Error de Autenticación",
+      "authErrorDescription": "No se pudo iniciar sesión con Google. Inténtalo de nuevo."
     }
   },
   "Notifications": {
