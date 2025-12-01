@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -75,10 +74,10 @@ export default function UserManagementTable() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Usuarios</TableHead>
-                            <TableHead>Actitud</TableHead>
-                            <TableHead>Emocion</TableHead>
-                            <TableHead>Goat</TableHead>
-                            <TableHead>Calificacion</TableHead>
+                            <TableHead className="text-center">Actitud</TableHead>
+                            <TableHead className="text-center">Emocion</TableHead>
+                            <TableHead className="text-center">Goat</TableHead>
+                            <TableHead className="text-center">Calificacion</TableHead>
                             <TableHead><span className="sr-only">Acciones</span></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -91,10 +90,10 @@ export default function UserManagementTable() {
                                         <Skeleton className="h-4 w-24" />
                                     </div>
                                 </TableCell>
-                                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
+                                <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
+                                <TableCell className="text-center"><Skeleton className="h-4 w-16 mx-auto" /></TableCell>
+                                <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
                                 <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                              </TableRow>
                         ))}
@@ -109,17 +108,17 @@ export default function UserManagementTable() {
                                         <p className="font-medium group-hover:underline">{user.username}</p>
                                     </Link>
                                 </TableCell>
-                                <TableCell>
-                                    La cantidad de perfiles en la cual votó en actitud: <span className="font-bold">{user.attitudeVotes}</span>
+                                <TableCell className="text-center font-bold">
+                                    {user.attitudeVotes}
                                 </TableCell>
-                                <TableCell>
-                                    La cantidad de perfiles en la cual votó en emoción: <span className="font-bold">{user.emotionVotes}</span>
+                                <TableCell className="text-center font-bold">
+                                    {user.emotionVotes}
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="text-center">
                                     {user.goatVote ? `Votó por ${user.goatVote}` : 'No ha votado'}
                                 </TableCell>
-                                <TableCell>
-                                    La cantidad de perfiles que calificó con estrellas: <span className="font-bold">{user.ratingsCount}</span>
+                                <TableCell className="text-center font-bold">
+                                    {user.ratingsCount}
                                 </TableCell>
                                  <TableCell className="text-right">
                                      <Button variant="outline" size="sm" asChild>
