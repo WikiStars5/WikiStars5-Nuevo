@@ -164,10 +164,12 @@ service cloud.firestore {
         );
         
         allow update: if isSignedIn() && (
-            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) || // Text edit
-            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (isIncrement('likes', 1) || isIncrement('likes', -1))) || // Like/unlike
-            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']) && (isIncrement('dislikes', 1) || isIncrement('dislikes', -1))) || // Dislike/undislike
-            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) && ((isIncrement('likes', -1) && isIncrement('dislikes', 1)) || (isIncrement('dislikes', -1) && isIncrement('likes', 1)))) // Change vote
+            // Owner can edit text
+            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) || 
+            // Any signed-in user can update votes
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']))
         );
         
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
@@ -180,10 +182,12 @@ service cloud.firestore {
           // Allow any signed-in user to reply if the content is theirs
           allow create: if isSignedIn() && areRepliesEnabled() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
           allow update: if isSignedIn() && (
-              (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
-              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) && (isIncrement('likes', 1) || isIncrement('likes', -1))) ||
-              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']) && (isIncrement('dislikes', 1) || isIncrement('dislikes', -1))) ||
-              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes']) && ((isIncrement('likes', -1) && isIncrement('dislikes', 1)) || (isIncrement('dislikes', -1) && isIncrement('likes', 1))))
+             // Owner can edit text
+            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
+            // Any signed-in user can update votes
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']))
           );
           allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
           // Allow any signed-in user to vote on replies

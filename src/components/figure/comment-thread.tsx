@@ -183,8 +183,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         setIsSavingEdit(true);
 
          const commentPath = isReply
-            ? `figures/${figureId}/comments-v2/${comment.parentId}/replies/${comment.id}`
-            : `figures/${figureId}/comments-v2/${comment.id}`;
+            ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
+            : `figures/${figureId}/comments/${comment.id}`;
         const commentRef = doc(firestore, commentPath);
 
         try {
