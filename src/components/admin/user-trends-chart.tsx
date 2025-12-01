@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -11,6 +10,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { countries } from '@/lib/countries';
 import { Skeleton } from '../ui/skeleton';
 import CountryCombobox from '../shared/country-combobox';
+import { cn } from '@/lib/utils';
 
 interface UserData {
   id: string;
@@ -33,7 +33,7 @@ const timeRanges = [
   { value: '2160', label: 'Últimos 90 Días' },
 ];
 
-export default function UserTrendsChart() {
+export default function UserTrendsChart({ className }: { className?: string }) {
   const firestore = useFirestore();
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -122,7 +122,7 @@ export default function UserTrendsChart() {
   };
 
   return (
-    <Card>
+    <Card className={cn(className)}>
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>

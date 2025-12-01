@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -25,6 +24,7 @@ import { countries } from '@/lib/countries';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
 import { Users, TrendingUp, MapPin, UserCheck } from 'lucide-react';
 import UserTrendsChart from '@/components/admin/user-trends-chart';
+import UserManagementTable from '@/components/admin/user-management-table';
 
 
 interface UserData {
@@ -189,12 +189,12 @@ export default function AdminUsersDashboardPage() {
             </Card>
         </div>
 
-        <div className="grid gap-4">
-            <Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-1">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><MapPin /> Top Países</CardTitle>
                 </CardHeader>
-                <CardContent className="max-h-[250px] overflow-y-auto">
+                <CardContent className="max-h-[300px] overflow-y-auto">
                      {isLoading ? (
                         <div className="space-y-4">
                            <Skeleton className="h-8 w-full" />
@@ -237,9 +237,9 @@ export default function AdminUsersDashboardPage() {
                     )}
                 </CardContent>
             </Card>
-            
-            <UserTrendsChart />
+            <UserTrendsChart className="lg:col-span-2" />
         </div>
+        <UserManagementTable />
     </div>
   );
 }
