@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -19,52 +20,46 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, User, Eye, UserCog } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { UserCog, Eye } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
-import Image from 'next/image';
+import Link from 'next/link';
 
-// Mock data - replace with real data from Firebase
+// Mock data - replace with real data from Firebase later
 const mockUsers = [
   {
     id: '1',
+    username: 'tifany',
     profilePhotoUrl: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&q=80',
-    username: 'alicew',
-    email: 'alice.w@example.com',
-    country: 'Argentina',
-    countryCode: 'ar'
+    attitudeVotes: 5,
+    emotionVotes: 8,
+    goatVote: 'Messi',
+    ratingsCount: 12,
   },
   {
     id: '2',
+    username: 'juanperez',
     profilePhotoUrl: 'https://images.unsplash.com/photo-1636377985931-898218afd306?w=100&q=80',
-    username: 'bob.j',
-    email: 'b.johnson@example.com',
-    country: 'México',
-    countryCode: 'mx'
+    attitudeVotes: 2,
+    emotionVotes: 15,
+    goatVote: 'Ronaldo',
+    ratingsCount: 20,
   },
   {
     id: '3',
+    username: 'maria_g',
     profilePhotoUrl: null,
-    username: 'invitado_x4f',
-    email: null,
-    country: 'España',
-    countryCode: 'es'
+    attitudeVotes: 10,
+    emotionVotes: 3,
+    goatVote: null,
+    ratingsCount: 5,
   },
 ];
 
-
 export default function UserManagementTable() {
     const isLoading = false; // Replace with real loading state later
-    const users = mockUsers; // Replace with real users data later
 
     const getAvatarFallback = (name: string | null) => {
-        return name ? name.charAt(0).toUpperCase() : <User className="h-4 w-4" />;
+        return name ? name.charAt(0).toUpperCase() : 'U';
     };
 
     return (
@@ -72,15 +67,18 @@ export default function UserManagementTable() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><UserCog /> Gestión de Usuarios</CardTitle>
                 <CardDescription>
-                    Visualiza, busca y gestiona todos los usuarios de la plataforma.
+                    Visualiza, busca y gestiona la actividad de todos los usuarios de la plataforma.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                  <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Usuario</TableHead>
-                            <TableHead>País</TableHead>
+                            <TableHead>Usuarios</TableHead>
+                            <TableHead>Actitud</TableHead>
+                            <TableHead>Emocion</TableHead>
+                            <TableHead>Goat</TableHead>
+                            <TableHead>Calificacion</TableHead>
                             <TableHead><span className="sr-only">Acciones</span></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -90,47 +88,44 @@ export default function UserManagementTable() {
                                 <TableCell>
                                     <div className="flex items-center gap-3">
                                         <Skeleton className="h-10 w-10 rounded-full" />
-                                        <div className="space-y-1">
-                                            <Skeleton className="h-4 w-24" />
-                                            <Skeleton className="h-3 w-32" />
-                                        </div>
+                                        <Skeleton className="h-4 w-24" />
                                     </div>
                                 </TableCell>
-                                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                                <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                              </TableRow>
                         ))}
-                        {!isLoading && users.map(user => (
+                        {!isLoading && mockUsers.map(user => (
                             <TableRow key={user.id}>
                                 <TableCell>
-                                    <div className="flex items-center gap-3">
+                                    <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
                                         <Avatar>
                                             <AvatarImage src={user.profilePhotoUrl || undefined} />
                                             <AvatarFallback>{getAvatarFallback(user.username)}</AvatarFallback>
                                         </Avatar>
-                                        <div>
-                                            <p className="font-medium">{user.username}</p>
-                                            <p className="text-sm text-muted-foreground">{user.email || 'Cuenta de invitado'}</p>
-                                        </div>
-                                    </div>
+                                        <p className="font-medium group-hover:underline">{user.username}</p>
+                                    </Link>
                                 </TableCell>
-                                 <TableCell>
-                                    <div className="flex items-center gap-2">
-                                        {user.countryCode && (
-                                             <Image 
-                                                src={`https://flagcdn.com/w20/${user.countryCode.toLowerCase()}.png`}
-                                                width={20}
-                                                height={15}
-                                                alt={user.country}
-                                                className="object-contain"
-                                            />
-                                        )}
-                                        <span>{user.country || 'N/A'}</span>
-                                    </div>
-                                 </TableCell>
+                                <TableCell>
+                                    La cantidad de perfiles en la cual votó en actitud: <span className="font-bold">{user.attitudeVotes}</span>
+                                </TableCell>
+                                <TableCell>
+                                    La cantidad de perfiles en la cual votó en emoción: <span className="font-bold">{user.emotionVotes}</span>
+                                </TableCell>
+                                <TableCell>
+                                    {user.goatVote ? `Votó por ${user.goatVote}` : 'No ha votado'}
+                                </TableCell>
+                                <TableCell>
+                                    La cantidad de perfiles que calificó con estrellas: <span className="font-bold">{user.ratingsCount}</span>
+                                </TableCell>
                                  <TableCell className="text-right">
-                                     <Button variant="outline" size="sm">
-                                        <Eye className="mr-2 h-4 w-4" /> Ver detalles
+                                     <Button variant="outline" size="sm" asChild>
+                                        <Link href={`/u/${user.username}`}>
+                                            <Eye className="mr-2 h-4 w-4" /> Ver Perfil
+                                        </Link>
                                      </Button>
                                  </TableCell>
                             </TableRow>
@@ -140,7 +135,7 @@ export default function UserManagementTable() {
             </CardContent>
             <CardFooter>
                  <div className="text-xs text-muted-foreground">
-                    Mostrando <strong>{users.length}</strong> de <strong>{users.length}</strong> usuarios.
+                    Mostrando <strong>{mockUsers.length}</strong> de <strong>{mockUsers.length}</strong> usuarios.
                  </div>
             </CardFooter>
         </Card>
