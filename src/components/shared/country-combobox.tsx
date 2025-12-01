@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { countries } from '@/lib/countries';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface CountryComboboxProps {
   value?: string;
@@ -29,9 +30,17 @@ interface CountryComboboxProps {
 
 export default function CountryCombobox({ value, onChange }: CountryComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const { t } = useLanguage();
 
-  const selectedCountry = value !== 'all' ? countries.find(
-    (country) => country.name === value
+  const translatedCountries = React.useMemo(() => {
+    return countries.map(country => ({
+      ...country,
+      name: t(`countries.${country.key}`),
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [t]);
+
+  const selectedCountry = value !== 'all' ? translatedCountries.find(
+    (country) => t(`countries.${country.key}`) === value
   ) : null;
 
   return (
@@ -55,20 +64,20 @@ export default function CountryCombobox({ value, onChange }: CountryComboboxProp
               <span className="truncate">{selectedCountry.name}</span>
             </div>
           ) : (
-            'Todos los países'
+            t('countries.all') || 'Todos los países'
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Buscar país..." />
+          <CommandInput placeholder={t('EditFigure.countrySelector.searchPlaceholder')} />
           <CommandList>
-            <CommandEmpty>No se encontró el país.</CommandEmpty>
+            <CommandEmpty>{t('EditFigure.countrySelector.noResults')}</CommandEmpty>
             <CommandGroup>
                 <CommandItem
                     key="all-countries"
-                    value="Todos los países"
+                    value={t('countries.all') || 'Todos los países'}
                     onSelect={() => {
                         onChange('all');
                         setOpen(false);
@@ -82,15 +91,16 @@ export default function CountryCombobox({ value, onChange }: CountryComboboxProp
                             : 'opacity-0'
                         )}
                     />
-                    Todos los países
+                    {t('countries.all') || 'Todos los países'}
                 </CommandItem>
-              {countries.map((country) => (
+              {translatedCountries.map((country) => (
                 <CommandItem
                   key={country.code}
                   value={country.name}
                   onSelect={(currentValue) => {
+                    const originalCountry = translatedCountries.find(c => c.name.toLowerCase() === currentValue.toLowerCase());
                     onChange(
-                      currentValue.toLowerCase() === value?.toLowerCase() ? 'all' : country.name
+                      originalCountry ? t(`countries.${originalCountry.key}`) : 'all'
                     );
                     setOpen(false);
                   }}

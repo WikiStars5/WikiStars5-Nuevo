@@ -156,6 +156,11 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
     return <div className="text-center py-10 text-red-500">Error: {error.message}</div>
   }
 
+  const getCountryName = (countryKey?: string) => {
+    if (!countryKey) return null;
+    return t(`countries.${countryKey.toLowerCase().replace(/ /g, '_')}`);
+  }
+
   const infoItems = [
     {
       label: t('FigurePage.detailedInfo.nameLabel'),
@@ -184,7 +189,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
     },
     {
       label: t('FigurePage.detailedInfo.countryLabel'),
-      value: figure.nationality,
+      value: getCountryName(figure.nationality),
       icon: Globe,
     },
     {
@@ -262,36 +267,27 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                                 {infoItems.map((item) => {
                                     if (!item.value) return null;
                                     
-                                    if (item.label === t('FigurePage.detailedInfo.countryLabel')) {
-                                        const country = countries.find(c => c.name === item.value);
-                                        return (
-                                            <div key={item.label} className="flex items-start gap-3">
-                                                <item.icon className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
-                                                <div>
-                                                    <p className="font-semibold text-sm">{item.label}</p>
-                                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                                        {country && (
-                                                            <Image
-                                                                src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                                                                alt={country.name}
-                                                                width={20}
-                                                                height={15}
-                                                                className="object-contain"
-                                                            />
-                                                        )}
-                                                        <span>{item.value}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    }
+                                    const countryData = item.label === t('FigurePage.detailedInfo.countryLabel') 
+                                        ? countries.find(c => t(`countries.${c.key}`) === item.value) 
+                                        : null;
 
                                     return (
                                         <div key={item.label} className="flex items-start gap-3">
                                             <item.icon className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
                                             <div>
                                                 <p className="font-semibold text-sm">{item.label}</p>
-                                                {item.label === t('FigurePage.detailedInfo.genderLabel') ? (
+                                                {item.label === t('FigurePage.detailedInfo.countryLabel') && countryData ? (
+                                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                                        <Image
+                                                            src={`https://flagcdn.com/w20/${countryData.code.toLowerCase()}.png`}
+                                                            alt={item.value}
+                                                            width={20}
+                                                            height={15}
+                                                            className="object-contain"
+                                                        />
+                                                        <span>{item.value}</span>
+                                                    </div>
+                                                ) : item.label === t('FigurePage.detailedInfo.genderLabel') ? (
                                                     <div className="flex items-center gap-2 text-muted-foreground">
                                                         <span>{item.value}</span>
                                                         {item.value === 'Masculino' && <span className="text-blue-400 font-bold">♂</span>}
@@ -381,4 +377,3 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </Suspense>
   );
 }
-

@@ -32,10 +32,20 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
   const [open, setOpen] = React.useState(false);
   const { t } = useLanguage();
 
-  // Find the full country object from the saved value (which is just the name)
-  const selectedCountry = countries.find(
-    (country) => country.name.toLowerCase() === value?.toLowerCase()
-  );
+  const countryName = value ? t(`countries.${value.toLowerCase().replace(/ /g, '_')}`) : '';
+
+  const translatedCountries = React.useMemo(() => {
+    return countries.map(country => ({
+      ...country,
+      name: t(`countries.${country.key}`),
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [t]);
+
+
+  const selectedCountry = value ? translatedCountries.find(
+    (country) => country.name.toLowerCase() === countryName?.toLowerCase()
+  ) : null;
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -50,12 +60,12 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
             <div className="flex items-center gap-2">
               <Image
                 src={`https://flagcdn.com/w20/${selectedCountry.code.toLowerCase()}.png`}
-                alt={`${selectedCountry.name} flag`}
+                alt={`${countryName} flag`}
                 width={20}
                 height={15}
                 className="object-contain"
               />
-              <span className="truncate">{selectedCountry.name}</span>
+              <span className="truncate">{countryName}</span>
             </div>
           ) : (
             t('EditFigure.countrySelector.placeholder')
@@ -69,13 +79,15 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
           <CommandList>
             <CommandEmpty>{t('EditFigure.countrySelector.noResults')}</CommandEmpty>
             <CommandGroup>
-              {countries.map((country) => (
+              {translatedCountries.map((country) => (
                 <CommandItem
                   key={country.code}
                   value={country.name}
                   onSelect={(currentValue) => {
+                    // Find original english name to store
+                    const originalCountry = countries.find(c => t(`countries.${c.key}`).toLowerCase() === currentValue.toLowerCase());
                     onChange(
-                      currentValue.toLowerCase() === value?.toLowerCase() ? '' : country.name
+                      originalCountry ? t(`countries.${originalCountry.key}`) : ''
                     );
                     setOpen(false);
                   }}
@@ -83,7 +95,7 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
                   <Check
                     className={cn(
                       'mr-2 h-4 w-4',
-                      value?.toLowerCase() === country.name.toLowerCase()
+                      countryName?.toLowerCase() === country.name.toLowerCase()
                         ? 'opacity-100'
                         : 'opacity-0'
                     )}

@@ -8,6 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from '@/components/ui/card';
 import {
   Table,
@@ -27,6 +28,7 @@ import { Users, TrendingUp, MapPin, UserCheck } from 'lucide-react';
 import UserTrendsChart from '@/components/admin/user-trends-chart';
 import UserManagementTable from '@/components/admin/user-management-table';
 import UserVisitTable from '@/components/admin/user-visit-table';
+import { useLanguage } from '@/context/LanguageContext';
 
 
 interface UserData {
@@ -60,6 +62,7 @@ export default function AdminUsersDashboardPage() {
   }, [firestore]);
 
   const { data: users, isLoading } = useCollection<UserData>(usersCollection);
+  const { t } = useLanguage();
 
   const stats = useMemo(() => {
     if (!users) {
@@ -100,10 +103,11 @@ export default function AdminUsersDashboardPage() {
     const accountTypeData = Object.entries(accountTypeCounts).map(([name, value]) => ({ name, value }));
 
     const countryData: CountryStat[] = Object.entries(countryCounts)
-      .map(([name, count]) => {
-        const countryInfo = countries.find(c => c.name === name);
+      .map(([nameKey, count]) => {
+        const countryInfo = countries.find(c => c.key === nameKey.toLowerCase().replace(/ /g, '_'));
+        const translatedName = countryInfo ? t(`countries.${countryInfo.key}`) : nameKey;
         return {
-          name,
+          name: translatedName,
           code: countryInfo?.code || '',
           count,
         };
@@ -116,7 +120,7 @@ export default function AdminUsersDashboardPage() {
       countryData,
       accountTypeData,
     };
-  }, [users]);
+  }, [users, t]);
   
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
@@ -213,7 +217,7 @@ export default function AdminUsersDashboardPage() {
                             </TableHeader>
                             <TableBody>
                                 {stats.countryData.map(country => (
-                                    <TableRow key={country.code}>
+                                    <TableRow key={country.code || country.name}>
                                         <TableCell className="flex items-center gap-2 font-medium">
                                             {country.code && (
                                                 <Image 
