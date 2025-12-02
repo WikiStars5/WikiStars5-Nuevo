@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle, CheckCircle2, Globe, Loader2, ArrowRight } from 'lucide-react';
-import { verifyDomain } from '@/ai/flows/verify-domain';
+import { verifyDomain } from '@/services/verify-domain';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { useLanguage } from '@/context/LanguageContext';

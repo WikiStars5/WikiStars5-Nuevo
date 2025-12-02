@@ -33,11 +33,11 @@ import { AlertCircle, ArrowRight, Check, CheckCircle2, Loader2, Search } from 'l
 import {
   verifyWikipediaCharacter,
   type WikipediaVerificationOutput,
-} from '@/ai/flows/verify-wikipedia-character';
+} from '@/services/verify-wikipedia-character';
 import {
   verifyFamousBirthdaysCharacter,
   type VerifyFamousBirthdaysOutput,
-} from '@/ai/flows/verify-famous-birthdays-character';
+} from '@/services/verify-famous-birthdays-character';
 import Image from 'next/image';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';

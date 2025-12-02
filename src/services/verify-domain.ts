@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow to verify if a domain is real and accessible.
