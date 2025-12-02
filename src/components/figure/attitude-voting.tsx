@@ -7,7 +7,7 @@ import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc } fr
 import { onAuthStateChanged, User as FirebaseUser, Auth, signInAnonymously } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Lock } from 'lucide-react';
+import { Loader2, Lock, ArrowDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote, GlobalSettings } from '@/lib/types';
@@ -69,6 +69,8 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
+  
+  const isGoatCandidate = figure?.name === 'Lionel Messi' || figure?.name === 'Cristiano Ronaldo';
 
   useEffect(() => {
     if (userVote) {
@@ -291,7 +293,14 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
               {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
           </p>
       </div>
+      {isGoatCandidate && (
+        <div className="flex flex-col items-center justify-center mt-6 text-center text-muted-foreground animate-color-pulse">
+            <p className="text-sm font-semibold">
+              {t('FigurePage.callToAction.goat')}
+            </p>
+            <ArrowDown className="h-6 w-6 animate-bounce" />
+        </div>
+      )}
     </div>
   );
 }
-
