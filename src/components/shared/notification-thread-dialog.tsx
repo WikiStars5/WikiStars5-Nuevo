@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Comment } from '@/lib/types';
-import ReplyForm from '../figure/reply-form';
 import { countries } from '@/lib/countries';
 import { StarRating } from './star-rating';
 import { useLanguage } from '@/context/LanguageContext';
@@ -35,7 +34,8 @@ function CommentDisplaySkeleton() {
 }
 
 function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, isHighlighted?: boolean }) {
-    const country = comment.userCountry ? countries.find(c => c.name === comment.userCountry) : null;
+    const { t } = useLanguage();
+    const countryData = comment.userCountry ? countries.find(c => t(`countries.${c.key}`) === comment.userCountry) : null;
     const getAvatarFallback = () => comment.userDisplayName?.charAt(0).toUpperCase() || 'U';
 
     const renderCommentText = () => {
@@ -70,13 +70,13 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
                     </Link>
                     {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
                     {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
-                    {country && (
+                    {countryData && (
                         <Image
-                            src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                            alt={country.name}
+                            src={`https://flagcdn.com/w20/${countryData.code.toLowerCase()}.png`}
+                            alt={countryData.name}
                             width={20} height={15}
                             className="object-contain"
-                            title={country.name}
+                            title={countryData.name}
                         />
                     )}
                 </div>
@@ -102,44 +102,35 @@ export default function NotificationThreadDialog({
     const [error, setError] = useState<string | null>(null);
     const { t } = useLanguage();
 
-    const rootComment = useMemo(() => {
-        return comments.find(c => c.id === parentId);
-    }, [comments, parentId]);
-    
     useEffect(() => {
         const fetchThread = async () => {
-            if (!firestore) return;
+            if (!firestore || !parentId || !replyId) return;
             setIsLoading(true);
             setError(null);
             
             try {
-                const fetchedComments = new Map<string, Comment>();
+                const fetchedComments: Comment[] = [];
                 
                 // 1. Get the root comment
                 const rootDocRef = doc(firestore, 'figures', figureId, 'comments', parentId);
-
-                // 2. Get all replies for that root comment
-                const repliesQuery = query(collection(rootDocRef, 'replies'), orderBy('createdAt', 'asc'));
-
-                const [rootDocSnap, repliesSnapshot] = await Promise.all([
-                    getDoc(rootDocRef),
-                    getDocs(repliesQuery)
-                ]);
+                const rootDocSnap = await getDoc(rootDocRef);
 
                 if (!rootDocSnap.exists()) {
                     setError(t('Notifications.originalCommentDeleted'));
                     setIsLoading(false);
                     return;
                 }
-                const rootCommentData = { id: rootDocSnap.id, ...rootDocSnap.data() } as Comment;
-                fetchedComments.set(rootCommentData.id, rootCommentData);
+                fetchedComments.push({ id: rootDocSnap.id, ...rootDocSnap.data() } as Comment);
 
-                repliesSnapshot.forEach(replyDoc => {
-                     const replyData = { id: replyDoc.id, ...replyDoc.data() } as Comment;
-                     fetchedComments.set(replyData.id, replyData);
-                });
+                // 2. Get the specific reply
+                const replyDocRef = doc(firestore, 'figures', figureId, 'comments', parentId, 'replies', replyId);
+                const replyDocSnap = await getDoc(replyDocRef);
                 
-                setComments(Array.from(fetchedComments.values()));
+                if (replyDocSnap.exists()) {
+                    fetchedComments.push({ id: replyDocSnap.id, ...replyDocSnap.data() } as Comment);
+                }
+                
+                setComments(fetchedComments);
 
             } catch (err) {
                 console.error("Error fetching comments for notification dialog:", err);
@@ -150,7 +141,7 @@ export default function NotificationThreadDialog({
         };
 
         fetchThread();
-    }, [firestore, figureId, parentId, t]);
+    }, [firestore, figureId, parentId, replyId, t]);
 
 
     useEffect(() => {
@@ -164,22 +155,18 @@ export default function NotificationThreadDialog({
         }
     }, [isLoading, replyId]);
 
-    const handleReplySuccess = () => {
-        onOpenChange(false);
-    };
-
     const orderedComments = useMemo(() => {
         if (comments.length === 0) return [];
+        
         const root = comments.find(c => c.id === parentId);
-        const replies = comments.filter(c => c.id !== parentId);
+        const reply = comments.find(c => c.id === replyId);
         
-        if (!root) return [];
+        const result: Comment[] = [];
+        if (root) result.push(root);
+        if (reply) result.push(reply);
         
-        // Sort replies by creation date, root comment is always first
-        replies.sort((a,b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
-        
-        return [root, ...replies];
-    }, [comments, parentId]);
+        return result;
+    }, [comments, parentId, replyId]);
 
     return (
         <DialogContent className="sm:max-w-xl">
@@ -204,17 +191,6 @@ export default function NotificationThreadDialog({
                                 <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
                              </div>
                         ))}
-                        
-                        {rootComment && (
-                             <div className="pl-8 border-l-2 ml-4 pt-4">
-                                <ReplyForm
-                                    figureId={figureId}
-                                    figureName={figureName}
-                                    parentComment={rootComment}
-                                    onReplySuccess={handleReplySuccess}
-                                />
-                             </div>
-                        )}
                     </div>
                 )}
             </div>
