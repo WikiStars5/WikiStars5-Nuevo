@@ -49,7 +49,9 @@
     "changeToLightMode": "Switch to light mode",
     "changeToDarkMode": "Switch to dark mode",
     "logout": "Log Out",
-    "login": "Log In"
+    "login": "Log In",
+    "enableSnow": "Enable snow",
+    "disableSnow": "Disable snow"
   },
   "ProfilePage": {
     "loading": "Loading...",

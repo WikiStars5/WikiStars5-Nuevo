@@ -225,7 +225,7 @@ export default function Header() {
 
                   <DropdownMenuItem onSelect={toggleSnow}>
                     <Snowflake className="mr-2 h-4 w-4" />
-                    <span>{isSnowing ? "Desactivar nieve" : "Activar nieve"}</span>
+                    <span>{isSnowing ? t('Header.disableSnow') : t('Header.enableSnow')}</span>
                   </DropdownMenuItem>
                   
                   {!user.isAnonymous && (

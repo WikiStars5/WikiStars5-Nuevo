@@ -49,7 +49,9 @@
     "changeToLightMode": "Mudar para modo claro",
     "changeToDarkMode": "Mudar para modo escuro",
     "logout": "Sair",
-    "login": "Entrar"
+    "login": "Entrar",
+    "enableSnow": "Ativar neve",
+    "disableSnow": "Desativar neve"
   },
   "ProfilePage": {
     "loading": "Carregando...",
@@ -231,7 +233,7 @@
     },
     "locked": {
       "title": "Votação Desativada",
-      "description": "O administrador desativou temporariamente la votação de atitude."
+      "description": "O administrador desativou temporariamente a votação de atitude."
     },
     "labels": {
       "neutral": "Neutro",
@@ -245,7 +247,7 @@
     "totalVotes": "Total de respostas: {count}",
     "locked": {
       "title": "Votação Desativada",
-      "description": "O administrador desativou temporariamente la votação de emoção."
+      "description": "O administrador desativou temporariamente a votação de emoção."
     },
     "labels": {
       "alegria": "Alegria",
@@ -611,7 +613,7 @@
   },
   "UserActivity": {
     "title": "Atividade do Usuário",
-    "description": "Un resumo das interações do usuário na plataforma.",
+    "description": "Um resumo das interações do usuário na plataforma.",
     "tabs": {
       "attitudes": "Atitude",
       "emotions": "Emoções",

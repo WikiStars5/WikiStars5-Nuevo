@@ -49,7 +49,9 @@
     "changeToLightMode": "Cambiar a modo claro",
     "changeToDarkMode": "Cambiar a modo oscuro",
     "logout": "Cerrar Sesión",
-    "login": "Iniciar Sesión"
+    "login": "Iniciar Sesión",
+    "enableSnow": "Activar nieve",
+    "disableSnow": "Desactivar nieve"
   },
   "ProfilePage": {
     "loading": "Cargando...",
@@ -127,7 +129,7 @@
     "originalCommentDeleted": "El comentario original de esta conversación ha sido eliminado.",
     "errorLoadingConversation": "Ocurrió un error al cargar la conversación.",
     "replyMessage": "{user} ha respondido a tu comentario en el perfil de {figure}.",
-    "defaultMessage": "Tienes una nueva notificación.",
+    "defaultMessage": "Tienes una nueva notifiación.",
     "someone": "Alguien",
     "aProfile": "un perfil"
   },
@@ -258,7 +260,7 @@
   },
   "GoatBattle": {
     "title": "ELIJAMOS AL VERDADERO GOAT",
-    "description": "¿Quién es el mejor de todos los tiempos? El ganador obtiene este ícono en su perfil.",
+    "description": "¿Quién es el más grande de todos los tiempos? El ganador obtiene este ícono en su perfil.",
     "countdownFinished": "¡La votación ha terminado!",
     "paused": "BATALLA EN PAUSA",
     "votesLabel": "votos",
@@ -789,7 +791,7 @@
     "nepal": "Nepal",
     "nicaragua": "Nicaragua",
     "niger": "Níger",
-    "nigeria": "Nigeria",
+    "nigeria": "Nigéria",
     "niue": "Niue",
     "norway": "Noruega",
     "new_caledonia": "Nueva Caledonia",
