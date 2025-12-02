@@ -348,7 +348,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
         </Tabs>
       </div>
 
-      <div className="flex flex-col items-center justify-center my-6 text-center text-muted-foreground animate-color-pulse">
+      <div className="flex flex-col items-center justify-center my-4 text-center text-muted-foreground animate-color-pulse">
         <p className="text-sm font-semibold">
           {isGoatCandidate ? t('FigurePage.callToAction.goat') : t('FigurePage.callToAction.rate')}
         </p>
@@ -356,7 +356,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
       </div>
       
        {isGoatCandidate && (
-          <div className="mt-8">
+          <div className="mt-4">
             <GoatBattle />
           </div>
         )}
