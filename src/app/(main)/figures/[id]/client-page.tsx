@@ -354,7 +354,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
         </div>
        )}
 
-       <div className="flex flex-col items-center justify-center my-4 text-center text-muted-foreground animate-color-pulse">
+       <div className="flex flex-col items-center justify-center my-2 text-center text-muted-foreground animate-color-pulse">
         <p className="text-sm font-semibold">
             {t('FigurePage.callToAction.rate')}
         </p>
@@ -362,7 +362,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
        </div>
 
 
-       <div className="mt-8 space-y-8">
+       <div className="mt-4 space-y-8">
         <CommunityRatings figure={figure} />
         <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
         <RelatedFigures figure={figure} />
