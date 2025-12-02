@@ -349,9 +349,17 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
       </div>
       
        {isGoatCandidate && (
-        <div className="mt-4">
-            <GoatBattle />
-        </div>
+        <>
+          <div className="flex flex-col items-center justify-center mt-6 text-center text-muted-foreground animate-color-pulse">
+              <p className="text-sm font-semibold">
+                {t('FigurePage.callToAction.goat')}
+              </p>
+              <ArrowDown className="h-6 w-6 animate-bounce" />
+          </div>
+          <div className="mt-2">
+              <GoatBattle />
+          </div>
+        </>
        )}
 
        <div className="flex flex-col items-center justify-center my-2 text-center text-muted-foreground animate-color-pulse">

@@ -293,14 +293,6 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
               {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
           </p>
       </div>
-      {isGoatCandidate && (
-        <div className="flex flex-col items-center justify-center mt-6 text-center text-muted-foreground animate-color-pulse">
-            <p className="text-sm font-semibold">
-              {t('FigurePage.callToAction.goat')}
-            </p>
-            <ArrowDown className="h-6 w-6 animate-bounce" />
-        </div>
-      )}
     </div>
   );
 }
