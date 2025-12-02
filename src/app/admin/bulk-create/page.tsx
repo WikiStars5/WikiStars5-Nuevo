@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -19,7 +20,7 @@ import { collection, doc, getDoc, writeBatch, serverTimestamp } from 'firebase/f
 import { generateKeywords } from '@/lib/keywords';
 import { Loader2, Sparkles, AlertCircle, ArrowLeft, Pencil } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { verifyWikipediaCharacter } from '@/ai/flows/verify-wikipedia-character';
+import { verifyWikipediaCharacter } from '@/services/verify-wikipedia-character';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Figure } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
