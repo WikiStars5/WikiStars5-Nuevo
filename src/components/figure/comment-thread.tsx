@@ -287,7 +287,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 {!isEditing && (
                    <div className="mt-2 space-y-2 text-muted-foreground">
                         <div className="flex items-center gap-1">
-                           {user && areRepliesEnabled && (
+                           {user && areRepliesEnabled && !isReply && (
                                 <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
                                     <MessageSquare className="h-4 w-4" />
                                     <span>{t('CommentThread.replyButton')}</span>
