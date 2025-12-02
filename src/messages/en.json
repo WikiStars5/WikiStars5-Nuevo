@@ -173,7 +173,7 @@
       "socialMediaTitle": "Social Media and Wikis"
     },
     "callToAction": {
-      "goat": "Now take part in the battle!",
+      "goat": "Now take part in the battle to choose the best",
       "rate": "Now rate this profile!"
     },
     "relatedFigures": {
@@ -362,9 +362,7 @@
       "updateError": "Error Updating",
       "updateErrorDescription": "Could not save your comment."
     },
-    "seeReplies": "View",
-    "singleReply": "reply",
-    "multipleReplies": "replies",
+    "seeReplies": "View {count} replies",
     "hideReplies": "Hide replies",
     "repliesLocked": "Replies are temporarily disabled."
   },

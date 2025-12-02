@@ -173,7 +173,7 @@
       "socialMediaTitle": "Redes Sociais e Wikis"
     },
     "callToAction": {
-      "goat": "Agora participe da batalha!",
+      "goat": "Agora participe da batalha para escolher o melhor",
       "rate": "Agora avalie este perfil!"
     },
     "relatedFigures": {
@@ -362,9 +362,7 @@
       "updateError": "Erro ao Atualizar",
       "updateErrorDescription": "Não foi possível salvar seu comentário."
     },
-    "seeReplies": "Ver",
-    "singleReply": "resposta",
-    "multipleReplies": "respostas",
+    "seeReplies": "Ver {count} respostas",
     "hideReplies": "Ocultar respostas",
     "repliesLocked": "As respostas estão temporariamente desativadas."
   },

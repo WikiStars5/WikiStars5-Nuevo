@@ -140,11 +140,11 @@
     "toast": {
       "replyPosted": "¡Respuesta Publicada!",
       "errorPostingTitle": "Error al Publicar",
-      "errorPostingDescription": "No se pudo enviar tu respuesta. Inténtalo de nuevo."
+      "errorPostingDescription": "No se pudo enviar tu respuesta. Tente novamente."
     },
     "validation": {
       "notEmpty": "La respuesta no puede estar vacía.",
-      "maxLength": "La respuesta no puede superar los 1000 caracteres."
+      "maxLength": "La respuesta no puede exceder los 1000 caracteres."
     }
   },
   "SearchBar": {
@@ -173,7 +173,7 @@
       "socialMediaTitle": "Redes Sociales y Wikis"
     },
     "callToAction": {
-      "goat": "¡Ahora participa en la batalla!",
+      "goat": "Ahora participa en la batalla para elegir al mejor",
       "rate": "¡Ahora califica este perfil!"
     },
     "relatedFigures": {
@@ -362,9 +362,7 @@
       "updateError": "Error al Actualizar",
       "updateErrorDescription": "No se pudo guardar tu comentario."
     },
-    "seeReplies": "Ver",
-    "singleReply": "respuesta",
-    "multipleReplies": "respuestas",
+    "seeReplies": "Ver {count} respuestas",
     "hideReplies": "Ocultar respuestas",
     "repliesLocked": "Las respuestas están desactivadas temporalmente."
   },
