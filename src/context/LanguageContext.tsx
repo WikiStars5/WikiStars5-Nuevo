@@ -19,7 +19,7 @@ const supportedLanguages: Language[] = ['es', 'en', 'pt'];
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -68,14 +68,20 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  const t = (key: string): string => {
-    const value = getNestedValue(messages[language], key);
-    // If translation is missing for the current language, fall back to English
-    if (value === undefined || value === '') {
-        return getNestedValue(messages['en'], key) || key;
+  const t = (key: string, values: Record<string, string | number> = {}): string => {
+    let message = getNestedValue(messages[language], key);
+    
+    // Fallback to English if translation is missing
+    if (message === undefined || message === '') {
+        message = getNestedValue(messages['en'], key) || key;
     }
-    return value;
+
+    // Replace placeholders like {count}
+    return message.replace(/\{(\w+)\}/g, (placeholder, placeholderKey) => {
+        return values[placeholderKey]?.toString() || placeholder;
+    });
   };
+
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
@@ -91,3 +97,4 @@ export const useLanguage = () => {
   }
   return context;
 };
+

@@ -466,7 +466,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
             ) : (
                 <>
                 <ChevronDown className="mr-1 h-4 w-4" />
-                {t('CommentThread.seeReplies', { count: threadReplies!.length, reply: threadReplies!.length > 1 ? 'respuestas' : 'respuesta' })}
+                {t('CommentThread.seeReplies', { count: threadReplies.length, reply: threadReplies.length === 1 ? 'respuesta' : 'respuestas' })}
                 </>
             )}
         </Button>
@@ -515,3 +515,4 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
+
