@@ -360,7 +360,9 @@
       "updateError": "Error al Actualizar",
       "updateErrorDescription": "No se pudo guardar tu comentario."
     },
-    "seeReplies": "Ver {count} {reply, plural, one {respuesta} other {respuestas}}",
+    "seeReplies": "Ver",
+    "singleReply": "respuesta",
+    "multipleReplies": "respuestas",
     "hideReplies": "Ocultar respuestas",
     "repliesLocked": "Las respuestas están desactivadas temporalmente."
   },

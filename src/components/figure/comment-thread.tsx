@@ -440,6 +440,8 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     }
   }
 
+  const replyText = threadReplies?.length === 1 ? t('CommentThread.singleReply') : t('CommentThread.multipleReplies');
+
   return (
     <div className="space-y-4 rounded-lg border bg-card text-card-foreground p-4 dark:bg-black">
       <CommentItem 
@@ -466,7 +468,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
             ) : (
                 <>
                 <ChevronDown className="mr-1 h-4 w-4" />
-                {t('CommentThread.seeReplies', { count: threadReplies.length, reply: threadReplies.length === 1 ? 'respuesta' : 'respuestas' })}
+                {`${t('CommentThread.seeReplies')} ${threadReplies.length} ${replyText}`}
                 </>
             )}
         </Button>
@@ -515,4 +517,3 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
-

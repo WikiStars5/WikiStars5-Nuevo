@@ -360,7 +360,9 @@
       "updateError": "Erro ao Atualizar",
       "updateErrorDescription": "Não foi possível salvar seu comentário."
     },
-    "seeReplies": "Ver {count} {reply, plural, one {resposta} other {respostas}}",
+    "seeReplies": "Ver",
+    "singleReply": "resposta",
+    "multipleReplies": "respostas",
     "hideReplies": "Ocultar respostas",
     "repliesLocked": "As respostas estão temporariamente desativadas."
   },
