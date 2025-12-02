@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -73,7 +74,7 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
                     {countryData && (
                         <Image
                             src={`https://flagcdn.com/w20/${countryData.code.toLowerCase()}.png`}
-                            alt={countryData.name}
+                            alt={countryData.name || `Bandera de ${countryData.code}`}
                             width={20} height={15}
                             className="object-contain"
                             title={countryData.name}
@@ -104,7 +105,11 @@ export default function NotificationThreadDialog({
 
     useEffect(() => {
         const fetchThread = async () => {
-            if (!firestore || !parentId || !replyId) return;
+            if (!firestore || !parentId) {
+                setError(t('Notifications.errorLoadingConversation'));
+                setIsLoading(false);
+                return;
+            };
             setIsLoading(true);
             setError(null);
             
@@ -122,12 +127,14 @@ export default function NotificationThreadDialog({
                 }
                 fetchedComments.push({ id: rootDocSnap.id, ...rootDocSnap.data() } as Comment);
 
-                // 2. Get the specific reply
-                const replyDocRef = doc(firestore, 'figures', figureId, 'comments', parentId, 'replies', replyId);
-                const replyDocSnap = await getDoc(replyDocRef);
-                
-                if (replyDocSnap.exists()) {
-                    fetchedComments.push({ id: replyDocSnap.id, ...replyDocSnap.data() } as Comment);
+                // 2. Get the specific reply if replyId is provided
+                if (replyId) {
+                    const replyDocRef = doc(firestore, 'figures', figureId, 'comments', parentId, 'replies', replyId);
+                    const replyDocSnap = await getDoc(replyDocRef);
+                    
+                    if (replyDocSnap.exists()) {
+                        fetchedComments.push({ id: replyDocSnap.id, ...replyDocSnap.data() } as Comment);
+                    }
                 }
                 
                 setComments(fetchedComments);
@@ -159,7 +166,7 @@ export default function NotificationThreadDialog({
         if (comments.length === 0) return [];
         
         const root = comments.find(c => c.id === parentId);
-        const reply = comments.find(c => c.id === replyId);
+        const reply = replyId ? comments.find(c => c.id === replyId) : null;
         
         const result: Comment[] = [];
         if (root) result.push(root);
