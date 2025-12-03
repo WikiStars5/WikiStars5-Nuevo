@@ -297,7 +297,7 @@
     "usernamePlaceholder": "Choose a unique name",
     "opinionLabel": "Write your opinion (optional)",
     "opinionPlaceholder": "What do you think of {name}?",
-    "submitButton": "Post StarPost",
+    "submitButton": "Publish StarPost",
     "loginDialog": {
       "title": "Join the Community!",
       "description": "To perform this action, you need an account. It's free, fast, and saves your progress!",
@@ -876,4 +876,3 @@
   }
 }
 
-    
