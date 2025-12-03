@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -328,18 +329,14 @@ export default function ActivitySimulatorPage() {
                                     </FormItem>
                                 )}
                             />
+                             <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                                Publicar Comentario Artificial
+                            </Button>
                         </div>
                     )}
                      {selectedFigure && <ArtificialCommentList figure={selectedFigure} />}
                 </CardContent>
-                {selectedFigure && (
-                    <CardFooter>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                            Publicar Comentario Artificial
-                        </Button>
-                    </CardFooter>
-                )}
             </form>
         </Form>
       </Card>
