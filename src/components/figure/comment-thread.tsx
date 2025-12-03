@@ -234,12 +234,12 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
       <div id={`comment-${comment.id}`} className="space-y-2">
         <div className="flex items-start gap-4">
             <Avatar className={cn("h-10 w-10", isReply && "h-8 w-8")}>
-                 <Link href={`/u/${comment.userDisplayName}`}><AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} /></Link>
-                <AvatarFallback><Link href={`/u/${comment.userDisplayName}`}>{getAvatarFallback()}</Link></AvatarFallback>
+                <AvatarImage src={comment.userPhotoURL || undefined} alt={comment.userDisplayName} />
+                <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                    <Link href={`/u/${comment.userDisplayName}`} className="font-semibold text-sm hover:underline">{comment.userDisplayName}</Link>
+                    <span className="font-semibold text-sm">{comment.userDisplayName}</span>
                     
                     {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title={t('ProfilePage.genderMale')}>♂</span>}
                     {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title={t('ProfilePage.genderFemale')}>♀</span>}
