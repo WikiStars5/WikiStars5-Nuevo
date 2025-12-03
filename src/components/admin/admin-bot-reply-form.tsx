@@ -85,11 +85,13 @@ export default function AdminBotReplyForm({
     setIsSubmitting(true);
 
     try {
+      const newReplyId = doc(collection(firestore, 'temp')).id;
+
       await runTransaction(firestore, async (transaction) => {
         const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentComment.id);
         const repliesColRef = collection(parentCommentRef, 'replies');
         
-        const newReplyRef = doc(repliesColRef);
+        const newReplyRef = doc(repliesColRef, newReplyId);
 
         const newReplyData = {
           figureId: figureId,
@@ -106,6 +108,25 @@ export default function AdminBotReplyForm({
 
         transaction.set(newReplyRef, newReplyData);
         transaction.update(parentCommentRef, { replyCount: increment(1) });
+        
+        // --- Notification Logic ---
+        const replyToAuthorId = parentComment.userId;
+        // Don't notify if the bot is replying to itself or another bot
+        if (replyToAuthorId && !replyToAuthorId.startsWith('virtual_')) {
+            const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
+            const notification = {
+                userId: replyToAuthorId,
+                type: 'comment_reply',
+                data: {
+                    commenterName: selectedBot.name,
+                    figureName: figureName,
+                },
+                isRead: false,
+                createdAt: serverTimestamp(),
+                link: `/figures/${figureId}?thread=${parentComment.id}&reply=${newReplyId}`
+            };
+            transaction.set(doc(notificationsColRef), notification);
+        }
       });
 
       // Update streak for the bot
@@ -120,7 +141,7 @@ export default function AdminBotReplyForm({
       });
 
       toast({ title: 'Respuesta de Bot Publicada' });
-      form.reset({ text: '', botUserId: '' });
+      form.reset({ text: `@[${parentComment.userDisplayName}] `, botUserId: data.botUserId });
       onReplySuccess();
     } catch (error) {
       console.error('Error al publicar respuesta de bot:', error);
@@ -137,7 +158,7 @@ export default function AdminBotReplyForm({
   return (
     <div className="rounded-lg border p-4 bg-muted/50">
         <Form {...form}>
-            <div className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <h4 className="font-semibold text-sm flex items-center gap-2"><Bot className="h-4 w-4" /> Responder como Bot</h4>
                 
                 <div className="flex items-start gap-4">
@@ -191,7 +212,7 @@ export default function AdminBotReplyForm({
                             <Button variant="ghost" size="sm" type="button" onClick={onReplySuccess} disabled={isSubmitting}>
                                 Cancelar
                             </Button>
-                            <Button size="sm" type="button" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>
+                            <Button size="sm" type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 ) : (
@@ -202,8 +223,7 @@ export default function AdminBotReplyForm({
                         </div>
                     </div>
                 </div>
-
-            </div>
+            </form>
         </Form>
     </div>
   );

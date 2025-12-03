@@ -43,7 +43,7 @@ export default function BotResponderPage() {
 
   const handleReplySuccess = () => {
     setReplyingToComment(null);
-    // Optionally refetch comments if reply count needs to be updated live
+    refetch();
   };
 
   return (
