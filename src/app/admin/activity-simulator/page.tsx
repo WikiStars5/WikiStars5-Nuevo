@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -17,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Bot, User, Image as ImageIcon, Send, XCircle } from 'lucide-react';
 import type { Figure, Comment } from '@/lib/types';
 import FigureSearchInput from '@/components/figure/figure-search-input';
@@ -66,8 +67,8 @@ export default function ActivitySimulatorPage() {
     try {
         const batch = writeBatch(firestore);
         
+        // 1. Prepare the new comment
         const commentRef = doc(collection(firestore, `figures/${selectedFigure.id}/comments`));
-        
         const newComment: Omit<Comment, 'id'> = {
             userId: `virtual_${uuidv4()}`,
             figureId: selectedFigure.id,
@@ -76,15 +77,26 @@ export default function ActivitySimulatorPage() {
             createdAt: serverTimestamp() as any,
             userDisplayName: data.virtualUsername,
             userPhotoURL: data.virtualAvatarUrl || null,
-            likes: Math.floor(Math.random() * 25), // Random likes
-            dislikes: Math.floor(Math.random() * 5), // Random dislikes
+            likes: Math.floor(Math.random() * 25),
+            dislikes: Math.floor(Math.random() * 5),
             parentId: null,
             replyCount: 0,
             threadId: commentRef.id,
         };
-
         batch.set(commentRef, newComment);
+
+        // 2. Prepare the update for the figure's rating statistics
+        const figureRef = doc(firestore, 'figures', selectedFigure.id);
+        if (typeof data.rating === 'number' && data.rating >= 0) {
+            const ratingUpdates = {
+                ratingCount: increment(1),
+                totalRating: increment(data.rating),
+                [`ratingsBreakdown.${data.rating}`]: increment(1),
+            };
+            batch.update(figureRef, ratingUpdates);
+        }
         
+        // 3. Commit both operations atomically
         await batch.commit();
 
         toast({
@@ -92,7 +104,6 @@ export default function ActivitySimulatorPage() {
             description: `Se ha publicado un comentario de "${data.virtualUsername}" en el perfil de ${selectedFigure.name}.`,
         });
 
-        // Reset part of the form for next comment, but keep author?
         form.reset({
             ...form.getValues(),
             commentText: '',
@@ -227,3 +238,5 @@ export default function ActivitySimulatorPage() {
     </div>
   );
 }
+
+    
