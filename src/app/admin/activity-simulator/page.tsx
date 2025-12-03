@@ -117,7 +117,7 @@ function ArtificialCommentList({ figure }: { figure: Figure }) {
     return (
         <div className="space-y-4">
             <Separator />
-             <h3 className="font-semibold text-lg">Comentarios Artificiales Activos</h3>
+             <h3 className="font-semibold text-lg">Comentarios Artificiales Activos ({comments.length})</h3>
             {comments.map(comment => (
                 <div key={comment.id} className="flex items-start gap-4 rounded-md border p-3">
                     <Avatar>
@@ -329,7 +329,7 @@ export default function ActivitySimulatorPage() {
                                     </FormItem>
                                 )}
                             />
-                             <Button type="submit" disabled={isSubmitting}>
+                            <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                                 Publicar Comentario Artificial
                             </Button>
@@ -343,3 +343,4 @@ export default function ActivitySimulatorPage() {
     </div>
   );
 }
+
