@@ -440,11 +440,6 @@ export default function AdminDashboard() {
                 <Bot className="mr-2 h-4 w-4" /> Simulador de Actividad
               </Link>
             </Button>
-             <Button asChild variant="secondary">
-               <Link href="/admin/virtual-conversations">
-                 <MessagesSquare className="mr-2 h-4 w-4" /> Conversaciones Virtuales
-              </Link>
-            </Button>
           </CardContent>
         </Card>
     </>
