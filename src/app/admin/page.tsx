@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -438,6 +437,11 @@ export default function AdminDashboard() {
             <Button asChild variant="secondary">
                <Link href="/admin/activity-simulator">
                 <Bot className="mr-2 h-4 w-4" /> Simulador de Actividad
+              </Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/admin/bot-responder">
+                  <MessagesSquare className="mr-2 h-4 w-4" /> Responder como Bot
               </Link>
             </Button>
           </CardContent>
