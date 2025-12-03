@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -32,8 +31,6 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
   const [open, setOpen] = React.useState(false);
   const { t } = useLanguage();
 
-  const countryName = value ? t(`countries.${value.toLowerCase().replace(/ /g, '_')}`) : '';
-
   const translatedCountries = React.useMemo(() => {
     return countries.map(country => ({
       ...country,
@@ -41,9 +38,8 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
     })).sort((a, b) => a.name.localeCompare(b.name));
   }, [t]);
 
-
   const selectedCountry = value ? translatedCountries.find(
-    (country) => country.name.toLowerCase() === countryName?.toLowerCase()
+    (country) => country.key === value
   ) : null;
 
 
@@ -60,12 +56,12 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
             <div className="flex items-center gap-2">
               <Image
                 src={`https://flagcdn.com/w20/${selectedCountry.code.toLowerCase()}.png`}
-                alt={`${countryName} flag`}
+                alt={`${selectedCountry.name} flag`}
                 width={20}
                 height={15}
                 className="object-contain"
               />
-              <span className="truncate">{countryName}</span>
+              <span className="truncate">{selectedCountry.name}</span>
             </div>
           ) : (
             t('EditFigure.countrySelector.placeholder')
@@ -81,23 +77,18 @@ export function CountrySelector({ value, onChange }: CountrySelectorProps) {
             <CommandGroup>
               {translatedCountries.map((country) => (
                 <CommandItem
-                  key={country.code}
-                  value={country.name}
+                  key={country.key}
+                  value={country.name} // Search by translated name
                   onSelect={(currentValue) => {
-                    // Find original english name to store
-                    const originalCountry = countries.find(c => t(`countries.${c.key}`).toLowerCase() === currentValue.toLowerCase());
-                    onChange(
-                      originalCountry ? t(`countries.${originalCountry.key}`) : ''
-                    );
+                    const originalCountry = translatedCountries.find(c => c.name.toLowerCase() === currentValue.toLowerCase());
+                    onChange(originalCountry ? originalCountry.key : '');
                     setOpen(false);
                   }}
                 >
                   <Check
                     className={cn(
                       'mr-2 h-4 w-4',
-                      countryName?.toLowerCase() === country.name.toLowerCase()
-                        ? 'opacity-100'
-                        : 'opacity-0'
+                      value === country.key ? 'opacity-100' : 'opacity-0'
                     )}
                   />
                   <div className="flex items-center gap-2">
