@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -26,9 +25,9 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import StarInput from '@/components/figure/star-input';
 import { v4 as uuidv4 } from 'uuid';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { StarRating } from '../shared/star-rating';
-import { Separator } from '../ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { StarRating } from '@/components/shared/star-rating';
+import { Separator } from '@/components/ui/separator';
 
 const simulatorSchema = z.object({
   virtualUsername: z.string().min(3, 'El nombre de usuario virtual es obligatorio.'),
