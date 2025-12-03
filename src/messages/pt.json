@@ -286,7 +286,7 @@
     "ratings": "avaliações"
   },
   "CommentForm": {
-    "title": "Compartilhe sua opinião e Ganhe Sequências!",
+    "title": "Avalie e Ganhe Sequências!",
     "description": "Torne-se um revisor completando os seguintes passos.",
     "step1": "1",
     "step2": "2",
@@ -545,7 +545,7 @@
         "points": [
           {
             "strong": "Informações que você nos fornece:",
-            "text": " Quando você se registra com o Google, você nos fornece seu nome, endereço de e-mail e foto de perfil. Você também pode adicionar voluntariamente um nome de usuário, país, sexo и uma breve descrição ao seu perfil."
+            "text": " Quando você se registra com o Google, você nos fornece seu nome, endereço de e-mail e foto de perfil. Você também pode adicionar voluntariamente um nome de usuário, país, sexo e uma breve descrição ao seu perfil."
           },
           {
             "strong": "Conteúdo que você gera:",

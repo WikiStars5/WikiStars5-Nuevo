@@ -260,15 +260,15 @@
   },
   "GoatBattle": {
     "title": "ELIJAMOS AL VERDADERO GOAT",
-    "description": "¿Quién es el más grande de todos los tiempos? El ganador obtiene este ícono en su perfil.",
+    "description": "Quem é o maior de todos os tempos? O vencedor ganha este ícone em seu perfil.",
     "countdownFinished": "¡La votación ha terminado!",
     "paused": "BATALLA EN PAUSA",
     "votesLabel": "votos",
-    "callToAction": "Deja tu voto para el mejor. ¿Qué opinas?",
-    "messiButton": "Votar por Messi",
-    "ronaldoButton": "Votar por Ronaldo",
-    "winnerMessage": "¡El ganador es {winner}!",
-    "tieMessage": "¡Es un empate!",
+    "callToAction": "Dê seu voto para o melhor. O que você acha?",
+    "messiButton": "Votar em Messi",
+    "ronaldoButton": "Votar em Ronaldo",
+    "winnerMessage": "O vencedor é {winner}!",
+    "tieMessage": "É um empate!",
     "calculating": "Calculando ganador...",
     "notStarted": "El evento no ha comenzado. Vuelve más tarde.",
     "adminNotStarted": "El administrador aún no ha iniciado la batalla.",
@@ -286,7 +286,7 @@
     "ratings": "calificaciones"
   },
   "CommentForm": {
-    "title": "¡Opina y Gana Rachas!",
+    "title": "¡Califica y Gana Rachas!",
     "description": "Conviértete en un opinador completando los siguientes pasos.",
     "step1": "1",
     "step2": "2",
@@ -467,7 +467,7 @@
     },
     "FamousBirthdays": {
       "planBTitle": "Plan B: Verificación Manual",
-      "planBDescription": "No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manually.",
+      "planBDescription": "No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manualmente.",
       "urlLabel": "URL de FamousBirthdays.com",
       "placeholder": "https://es.famousbirthdays.com/people/...",
       "verifyButton": "Verificar con URL",
@@ -510,7 +510,7 @@
       "duplicateTitle": "Perfil Duplicado",
       "duplicateDescription": "Ya existe un perfil para \"{name}\".",
       "duplicateDescriptionRedirect": "Ya existe un perfil para {name}. Redirigiendo...",
-      "createSuccessTitle": "¡Perfil Creato!",
+      "createSuccessTitle": "¡Perfil Creado!",
       "createSuccessDescription": "El perfil para {name} ha sido añadido.",
       "createErrorTitle": "Error al Crear",
       "createErrorDescription": "No se pudo crear el perfil. Inténtalo de nuevo."
