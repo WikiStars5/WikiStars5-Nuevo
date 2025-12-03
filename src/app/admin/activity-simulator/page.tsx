@@ -17,15 +17,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
-import { collection, doc, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Bot, User, Image as ImageIcon, Send, XCircle } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, writeBatch, serverTimestamp, increment, query, where, runTransaction, getDoc, deleteDoc } from 'firebase/firestore';
+import { Loader2, ArrowLeft, Bot, User, Image as ImageIcon, Send, XCircle, Trash2 } from 'lucide-react';
 import type { Figure, Comment } from '@/lib/types';
 import FigureSearchInput from '@/components/figure/figure-search-input';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import StarInput from '@/components/figure/star-input';
 import { v4 as uuidv4 } from 'uuid';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { StarRating } from '../shared/star-rating';
+import { Separator } from '../ui/separator';
 
 const simulatorSchema = z.object({
   virtualUsername: z.string().min(3, 'El nombre de usuario virtual es obligatorio.'),
@@ -35,6 +38,114 @@ const simulatorSchema = z.object({
 });
 
 type SimulatorFormValues = z.infer<typeof simulatorSchema>;
+
+function ArtificialCommentList({ figure }: { figure: Figure }) {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    
+    const commentsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(
+            collection(firestore, 'figures', figure.id, 'comments'),
+            where('userId', '>=', 'virtual_'),
+            where('userId', '<', 'virtual_z')
+        );
+    }, [firestore, figure.id]);
+
+    const { data: comments, isLoading, refetch } = useCollection<Comment>(commentsQuery);
+    const [deletingId, setDeletingId] = React.useState<string | null>(null);
+
+    const handleDelete = async (comment: Comment) => {
+        if (!firestore) return;
+        setDeletingId(comment.id);
+        
+        const figureRef = doc(firestore, 'figures', figure.id);
+        const commentRef = doc(firestore, 'figures', figure.id, 'comments', comment.id);
+
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const figureDoc = await transaction.get(figureRef);
+                if (!figureDoc.exists()) {
+                    throw new Error("El perfil de la figura ya no existe.");
+                }
+
+                // Prepare rating updates to revert the comment's contribution
+                if (typeof comment.rating === 'number' && comment.rating >= 0) {
+                    const ratingUpdates = {
+                        ratingCount: increment(-1),
+                        totalRating: increment(-comment.rating),
+                        [`ratingsBreakdown.${comment.rating}`]: increment(-1),
+                    };
+                    transaction.update(figureRef, ratingUpdates);
+                }
+                
+                // Delete the comment
+                transaction.delete(commentRef);
+            });
+            
+            toast({
+                title: "Comentario Eliminado",
+                description: "El comentario artificial ha sido eliminado y las estadísticas han sido ajustadas.",
+            });
+            refetch(); // Refreshes the list after deletion
+
+        } catch (error: any) {
+            console.error("Error deleting artificial comment:", error);
+            toast({
+                title: 'Error al Eliminar',
+                description: error.message || 'No se pudo eliminar el comentario artificial.',
+                variant: 'destructive',
+            });
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+
+    if (isLoading) {
+        return <p className="text-muted-foreground">Cargando comentarios artificiales...</p>
+    }
+
+    if (!comments || comments.length === 0) {
+        return (
+            <div className="text-center text-muted-foreground py-4">
+                <p>No se han encontrado comentarios artificiales para este perfil.</p>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-4">
+            <Separator />
+             <h3 className="font-semibold text-lg">Comentarios Artificiales Activos</h3>
+            {comments.map(comment => (
+                <div key={comment.id} className="flex items-start gap-4 rounded-md border p-3">
+                    <Avatar>
+                        <AvatarImage src={comment.userPhotoURL || undefined} />
+                        <AvatarFallback>{comment.userDisplayName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                            <p className="font-semibold text-sm">{comment.userDisplayName}</p>
+                            {typeof comment.rating === 'number' && comment.rating >= 0 && <StarRating rating={comment.rating} />}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{comment.text}</p>
+                    </div>
+                     <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => handleDelete(comment)}
+                        disabled={deletingId === comment.id}
+                     >
+                        {deletingId === comment.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                     </Button>
+                </div>
+            ))}
+        </div>
+    )
+
+}
 
 export default function ActivitySimulatorPage() {
   const firestore = useFirestore();
@@ -67,7 +178,6 @@ export default function ActivitySimulatorPage() {
     try {
         const batch = writeBatch(firestore);
         
-        // 1. Prepare the new comment
         const commentRef = doc(collection(firestore, `figures/${selectedFigure.id}/comments`));
         const newComment: Omit<Comment, 'id'> = {
             userId: `virtual_${uuidv4()}`,
@@ -85,7 +195,6 @@ export default function ActivitySimulatorPage() {
         };
         batch.set(commentRef, newComment);
 
-        // 2. Prepare the update for the figure's rating statistics
         const figureRef = doc(firestore, 'figures', selectedFigure.id);
         if (typeof data.rating === 'number' && data.rating >= 0) {
             const ratingUpdates = {
@@ -96,7 +205,6 @@ export default function ActivitySimulatorPage() {
             batch.update(figureRef, ratingUpdates);
         }
         
-        // 3. Commit both operations atomically
         await batch.commit();
 
         toast({
@@ -223,6 +331,7 @@ export default function ActivitySimulatorPage() {
                             />
                         </div>
                     )}
+                     {selectedFigure && <ArtificialCommentList figure={selectedFigure} />}
                 </CardContent>
                 {selectedFigure && (
                     <CardFooter>
@@ -238,5 +347,3 @@ export default function ActivitySimulatorPage() {
     </div>
   );
 }
-
-    
