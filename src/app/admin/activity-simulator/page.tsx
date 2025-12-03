@@ -12,7 +12,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,6 +28,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { StarRating } from '@/components/shared/star-rating';
 import { Separator } from '@/components/ui/separator';
+import { updateStreak } from '@/firebase/streaks';
 
 const simulatorSchema = z.object({
   virtualUsername: z.string().min(3, 'El nombre de usuario virtual es obligatorio.'),
@@ -174,13 +174,15 @@ export default function ActivitySimulatorPage() {
     }
 
     setIsSubmitting(true);
+    
+    const virtualUserId = `virtual_${uuidv4()}`;
 
     try {
         const batch = writeBatch(firestore);
         
         const commentRef = doc(collection(firestore, `figures/${selectedFigure.id}/comments`));
         const newComment: Omit<Comment, 'id'> = {
-            userId: `virtual_${uuidv4()}`,
+            userId: virtualUserId,
             figureId: selectedFigure.id,
             text: data.commentText,
             rating: data.rating,
@@ -206,6 +208,18 @@ export default function ActivitySimulatorPage() {
         }
         
         await batch.commit();
+
+        // After comment is created, update the streak for the virtual user.
+        await updateStreak({
+          firestore,
+          figureId: selectedFigure.id,
+          figureName: selectedFigure.name,
+          userId: virtualUserId,
+          userDisplayName: data.virtualUsername,
+          userPhotoURL: data.virtualAvatarUrl || null,
+          isAnonymous: true, // Virtual users are treated as anonymous for streak purposes
+        });
+
 
         toast({
             title: '¡Comentario Publicado!',
@@ -343,4 +357,3 @@ export default function ActivitySimulatorPage() {
     </div>
   );
 }
-
