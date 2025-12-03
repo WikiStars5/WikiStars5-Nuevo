@@ -108,13 +108,13 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
       };
 
       if (sortPreference === 'fan' || sortPreference === 'simp') {
-          // Para fans/simps, mostrar comentarios negativos (0-2 estrellas) primero
-          tempComments = provocativeSort(tempComments, c => (c.rating ?? 3) < 3);
+          // For fans/simps, show comments with 0-2 stars first (provocative)
+          tempComments = provocativeSort(tempComments, c => (c.rating ?? 3) < 3 && c.rating !== -1);
       } else if (sortPreference === 'hater') {
-          // Para haters, mostrar comentarios positivos (3-5 estrellas) primero
+          // For haters, show comments with 3-5 stars first (provocative)
           tempComments = provocativeSort(tempComments, c => (c.rating ?? 0) >= 3);
       } else { 
-        // Para 'neutral' o cualquier otro caso, aplicar el filtro de la pestaña seleccionada.
+        // For 'neutral' or any other case, apply the filter from the active tab.
         switch(activeFilter) {
           case 'featured':
               tempComments.sort(hotScoreSort);
@@ -123,10 +123,10 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
               tempComments.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
               break;
           case 'newest':
-              // Ya está ordenado por createdAt desc desde la consulta de Firestore
+              // Already sorted by createdAt desc from Firestore query
               break;
           default:
-              // Para 'mine' y filtros de estrellas, el orden por defecto será Hot Score
+              // For 'mine' and star filters, default to hot score sorting
               tempComments.sort(hotScoreSort);
               break;
         }
@@ -259,4 +259,3 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     </div>
   );
 }
-
