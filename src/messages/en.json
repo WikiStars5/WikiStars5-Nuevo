@@ -362,7 +362,7 @@
       "updateError": "Error Updating",
       "updateErrorDescription": "Could not save your comment."
     },
-    "seeReplies": "View {count} replies",
+    "seeReplies": "View {count, plural, one {# reply} other {# replies}}",
     "hideReplies": "Hide replies",
     "repliesLocked": "Replies are temporarily disabled."
   },
@@ -607,7 +607,7 @@
       "Sexually explicit, violent, or illegal content is strictly prohibited.",
       "Respect copyrights. Do not post content that you do not own without proper attribution."
     ],
-    "conclusion": "Failure to comply with these rules may result in the removal of comments, temporary suspension, or permanent expulsion from the platform. We reserve the right to moderate content to ensure the safety and well-being of our community."
+    "conclusion": "Failure to comply with these rules may result in the removal of comments, temporary suspension, or permanent expulsion from the platform. We reserve the right to moderate the content to ensure the safety and well-being of our community."
   },
   "UserActivity": {
     "title": "User Activity",

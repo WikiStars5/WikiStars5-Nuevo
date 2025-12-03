@@ -51,7 +51,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [editText, setEditText] = useState(comment.text);
 
     const isOwner = user && user.uid === comment.userId;
@@ -440,8 +439,6 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     }
   }
 
-  const replyText = threadReplies?.length === 1 ? t('CommentThread.singleReply') : t('CommentThread.multipleReplies');
-
   return (
     <div className="space-y-4 rounded-lg border bg-card text-card-foreground p-4 dark:bg-black">
       <CommentItem 
@@ -468,7 +465,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
             ) : (
                 <>
                 <ChevronDown className="mr-1 h-4 w-4" />
-                {`${t('CommentThread.seeReplies')} ${threadReplies.length} ${replyText}`}
+                {t('CommentThread.seeReplies', { count: threadReplies.length })}
                 </>
             )}
         </Button>

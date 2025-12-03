@@ -362,7 +362,7 @@
       "updateError": "Error al Actualizar",
       "updateErrorDescription": "No se pudo guardar tu comentario."
     },
-    "seeReplies": "Ver {count} respuestas",
+    "seeReplies": "Ver {count, plural, one {# respuesta} other {# respuestas}}",
     "hideReplies": "Ocultar respuestas",
     "repliesLocked": "Las respuestas están desactivadas temporalmente."
   },
