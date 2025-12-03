@@ -362,7 +362,8 @@
       "updateError": "Error al Actualizar",
       "updateErrorDescription": "No se pudo guardar tu comentario."
     },
-    "seeReplies": "Ver {count, plural, one {# respuesta} other {# respuestas}}",
+    "seeRepliesSingular": "Ver 1 respuesta",
+    "seeRepliesPlural": "Ver {count} respuestas",
     "hideReplies": "Ocultar respuestas",
     "repliesLocked": "Las respuestas están desactivadas temporalmente."
   },
@@ -466,7 +467,7 @@
     },
     "FamousBirthdays": {
       "planBTitle": "Plan B: Verificación Manual",
-      "planBDescription": "No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manualmente.",
+      "planBDescription": "No se encontró en Wikipedia. Pega el enlace de su perfil en es.famousbirthdays.com para verificarlo manually.",
       "urlLabel": "URL de FamousBirthdays.com",
       "placeholder": "https://es.famousbirthdays.com/people/...",
       "verifyButton": "Verificar con URL",
@@ -509,7 +510,7 @@
       "duplicateTitle": "Perfil Duplicado",
       "duplicateDescription": "Ya existe un perfil para \"{name}\".",
       "duplicateDescriptionRedirect": "Ya existe un perfil para {name}. Redirigiendo...",
-      "createSuccessTitle": "¡Perfil Creado!",
+      "createSuccessTitle": "¡Perfil Creato!",
       "createSuccessDescription": "El perfil para {name} ha sido añadido.",
       "createErrorTitle": "Error al Crear",
       "createErrorDescription": "No se pudo crear el perfil. Inténtalo de nuevo."

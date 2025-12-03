@@ -52,6 +52,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(comment.text);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     const isOwner = user && user.uid === comment.userId;
     
@@ -438,6 +439,15 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
         setVisibleRepliesCount(INITIAL_REPLIES_LIMIT);
     }
   }
+  
+  const getSeeRepliesText = () => {
+    if (!threadReplies) return '';
+    const count = threadReplies.length;
+    if (count === 1) {
+      return t('CommentThread.seeRepliesSingular');
+    }
+    return t('CommentThread.seeRepliesPlural', { count });
+  };
 
   return (
     <div className="space-y-4 rounded-lg border bg-card text-card-foreground p-4 dark:bg-black">
@@ -465,7 +475,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
             ) : (
                 <>
                 <ChevronDown className="mr-1 h-4 w-4" />
-                {t('CommentThread.seeReplies', { count: threadReplies.length })}
+                {getSeeRepliesText()}
                 </>
             )}
         </Button>

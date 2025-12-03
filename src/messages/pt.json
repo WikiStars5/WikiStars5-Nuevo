@@ -362,7 +362,8 @@
       "updateError": "Erro ao Atualizar",
       "updateErrorDescription": "Não foi possível salvar seu comentário."
     },
-    "seeReplies": "Ver {count} respostas",
+    "seeRepliesSingular": "Ver 1 resposta",
+    "seeRepliesPlural": "Ver {count} respostas",
     "hideReplies": "Ocultar respostas",
     "repliesLocked": "As respostas estão temporariamente desativadas."
   },
@@ -544,7 +545,7 @@
         "points": [
           {
             "strong": "Informações que você nos fornece:",
-            "text": " Quando você se registra com o Google, você nos fornece seu nome, endereço de e-mail e foto de perfil. Você também pode adicionar voluntariamente um nome de usuário, país, sexo e uma breve descrição ao seu perfil."
+            "text": " Quando você se registra com o Google, você nos fornece seu nome, endereço de e-mail e foto de perfil. Você também pode adicionar voluntariamente um nome de usuário, país, sexo и uma breve descrição ao seu perfil."
           },
           {
             "strong": "Conteúdo que você gera:",

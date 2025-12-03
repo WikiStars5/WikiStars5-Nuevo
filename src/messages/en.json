@@ -362,7 +362,8 @@
       "updateError": "Error Updating",
       "updateErrorDescription": "Could not save your comment."
     },
-    "seeReplies": "View {count, plural, one {# reply} other {# replies}}",
+    "seeRepliesSingular": "View 1 reply",
+    "seeRepliesPlural": "View {count} replies",
     "hideReplies": "Hide replies",
     "repliesLocked": "Replies are temporarily disabled."
   },
