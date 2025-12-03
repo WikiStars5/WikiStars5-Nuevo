@@ -154,7 +154,7 @@
     "tabs": {
       "info": "Información",
       "attitude": "Actitud",
-      "emotion": "Emoción",
+      "emotion": "Emoção",
       "streaks": "Rachas"
     },
     "detailedInfo": {
@@ -186,7 +186,7 @@
       "deleteConfirmContinue": "Continuar",
       "deleteToastTitle": "Relación Eliminada",
       "deleteToastDescription": "El perfil relacionado ha sido eliminado.",
-      "errorDeleteToastTitle": "Error al Eliminar",
+      "errorDeleteToastTitle": "Erro ao Excluir",
       "errorDeleteToastDescription": "No se pudo eliminar la relación.",
       "noRelated": "Aún no se han añadido perfiles relacionados.",
       "addDialog": {
@@ -195,8 +195,8 @@
         "selfRelationError": "No puedes relacionar un perfil consigo mismo.",
         "addSuccessTitle": "Relación Añadida",
         "addSuccessDescription": "{sourceName} y {targetName} ahora están relacionados.",
-        "addErrorTitle": "Error al Añadir",
-        "addErrorDescription": "No se pudo guardar la relación. Inténtalo de nuevo.",
+        "addErrorTitle": "Erro ao Adicionar",
+        "addErrorDescription": "Não foi possível salvar o relacionamento. Tente novamente.",
         "cancelButton": "Cancelar",
         "confirmButton": "Confirmar Relación",
         "searchInputPlaceholder": "Buscar perfiles para relacionar..."
@@ -262,7 +262,7 @@
     "title": "ELIJAMOS AL VERDADERO GOAT",
     "description": "Quem é o maior de todos os tempos? O vencedor ganha este ícone em seu perfil.",
     "countdownFinished": "¡La votación ha terminado!",
-    "paused": "BATALLA EN PAUSA",
+    "paused": "BATALHA EN PAUSA",
     "votesLabel": "votos",
     "callToAction": "Dê seu voto para o melhor. O que você acha?",
     "messiButton": "Votar em Messi",
@@ -297,7 +297,7 @@
     "usernamePlaceholder": "Elige un nombre único",
     "opinionLabel": "Escribe tu opinión (opcional)",
     "opinionPlaceholder": "¿Qué opinas de {name}?",
-    "submitButton": "Publicar Opinión",
+    "submitButton": "Publicar StarPost",
     "loginDialog": {
       "title": "¡Únete a la Comunidad!",
       "description": "Para realizar esta acción, necesitas una cuenta. ¡Es gratis, rápido y guarda tu progreso!",
@@ -356,11 +356,11 @@
     "toast": {
       "deleteSuccess": "Comentario Eliminado",
       "deleteSuccessDescription": "El comentario ha sido eliminado con éxito.",
-      "deleteError": "Error al Eliminar",
+      "deleteError": "Erro ao Excluir",
       "deleteErrorDescription": "No se pudo eliminar el comentario.",
       "updateSuccess": "Comentario Actualizado",
-      "updateError": "Error al Actualizar",
-      "updateErrorDescription": "No se pudo guardar tu comentario."
+      "updateError": "Erro ao Atualizar",
+      "updateErrorDescription": "Não foi possível salvar seu comentário."
     },
     "seeRepliesSingular": "Ver 1 respuesta",
     "seeRepliesPlural": "Ver {count} respuestas",
@@ -404,8 +404,8 @@
       "heightUnit": "cm"
     },
     "socialMedia": {
-      "title": "Redes Sociales y Wikis",
-      "websiteLabel": "Página Web",
+      "title": "Redes Sociais e Wikis",
+      "websiteLabel": "Site",
       "instagramLabel": "Instagram",
       "twitterLabel": "X (Twitter)",
       "youtubeLabel": "YouTube",
@@ -413,7 +413,7 @@
       "tiktokLabel": "TikTok",
       "linkedinLabel": "LinkedIn",
       "discordLabel": "Discord",
-      "wikipediaLabel": "Wikipedia",
+      "wikipediaLabel": "Wikipédia",
       "fandomLabel": "Fandom"
     },
     "dateInput": {
@@ -449,8 +449,8 @@
     "toast": {
       "successTitle": "¡Perfil Actualizado!",
       "successDescription": "La información de {name} ha sido guardada.",
-      "errorTitle": "Error al Guardar",
-      "errorDescription": "No se pudo actualizar el perfil. Por favor, inténtalo de nuevo."
+      "errorTitle": "Erro ao Salvar",
+      "errorDescription": "Não foi possível atualizar o perfil. Tente novamente."
     }
   },
   "CreateProfile": {
@@ -512,8 +512,8 @@
       "duplicateDescriptionRedirect": "Ya existe un perfil para {name}. Redirigiendo...",
       "createSuccessTitle": "¡Perfil Creado!",
       "createSuccessDescription": "El perfil para {name} ha sido añadido.",
-      "createErrorTitle": "Error al Crear",
-      "createErrorDescription": "No se pudo crear el perfil. Inténtalo de nuevo."
+      "createErrorTitle": "Erro ao Criar",
+      "createErrorDescription": "Não foi possível criar o perfil. Tente novamente."
     }
   },
   "DisclaimerPage": {
@@ -875,3 +875,5 @@
     "zimbabwe": "Zimbabue"
   }
 }
+
+    

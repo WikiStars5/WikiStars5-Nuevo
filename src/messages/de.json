@@ -284,7 +284,7 @@
     "ratings": "Bewertungen"
   },
   "CommentForm": {
-    "title": "Teilen Sie Ihre Meinung und verdienen Sie Strähnen!",
+    "title": "Bewerten und verdienen Sie Strähnen!",
     "description": "Werden Sie ein Rezensent, indem Sie die folgenden Schritte ausführen.",
     "step1": "1",
     "step2": "2",
@@ -295,7 +295,7 @@
     "usernamePlaceholder": "Wählen Sie einen eindeutigen Namen",
     "opinionLabel": "Schreiben Sie Ihre Meinung (optional)",
     "opinionPlaceholder": "Was denken Sie über {name}?",
-    "submitButton": "Meinung veröffentlichen",
+    "submitButton": "StarPost veröffentlichen",
     "loginDialog": {
       "title": "Treten Sie der Community bei!",
       "description": "Um diese Aktion auszuführen, benötigen Sie ein Konto. Es ist kostenlos, schnell und speichert Ihren Fortschritt!",
@@ -360,7 +360,8 @@
       "updateError": "Fehler beim Aktualisieren",
       "updateErrorDescription": "Ihr Kommentar konnte nicht gespeichert werden."
     },
-    "seeReplies": "{count} Antworten anzeigen",
+    "seeRepliesSingular": "1 Antwort anzeigen",
+    "seeRepliesPlural": "{count} Antworten anzeigen",
     "hideReplies": "Antworten ausblenden",
     "repliesLocked": "Antworten sind vorübergehend deaktiviert."
   },
@@ -872,3 +873,5 @@
     "zimbabwe": "Simbabwe"
   }
 }
+
+    

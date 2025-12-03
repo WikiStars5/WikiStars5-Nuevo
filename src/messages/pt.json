@@ -297,7 +297,7 @@
     "usernamePlaceholder": "Escolha um nome único",
     "opinionLabel": "Escreva sua opinião (opcional)",
     "opinionPlaceholder": "O que você acha de {name}?",
-    "submitButton": "Publicar Opinião",
+    "submitButton": "Publicar StarPost",
     "loginDialog": {
       "title": "Junte-se à Comunidade!",
       "description": "Para realizar esta ação, você precisa de uma conta. É grátis, rápido e salva seu progresso!",
@@ -875,3 +875,5 @@
     "zimbabwe": "Zimbábue"
   }
 }
+
+    

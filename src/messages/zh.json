@@ -295,7 +295,7 @@
     "usernamePlaceholder": "选择一个唯一的名称",
     "opinionLabel": "写下您的意见（可选）",
     "opinionPlaceholder": "您对 {name} 有什么看法？",
-    "submitButton": "发布意见",
+    "submitButton": "发布 StarPost",
     "loginDialog": {
       "title": "加入社区！",
       "description": "要执行此操作，您需要一个帐户。它是免费、快速的，并可以保存您的进度！",
@@ -360,7 +360,8 @@
       "updateError": "更新时出错",
       "updateErrorDescription": "无法保存您的评论。"
     },
-    "seeReplies": "查看 {count} 条回复",
+    "seeRepliesSingular": "查看 1 条回复",
+    "seeRepliesPlural": "查看 {count} 条回复",
     "hideReplies": "隐藏回复",
     "repliesLocked": "回复功能暂时禁用。"
   },
@@ -872,3 +873,5 @@
     "zimbabwe": "津巴布韦"
   }
 }
+
+    

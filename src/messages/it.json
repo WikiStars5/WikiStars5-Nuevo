@@ -1,3 +1,4 @@
+
 {
   "Footer": {
     "rules": "Regole",
@@ -294,7 +295,7 @@
     "usernamePlaceholder": "Scegli un nome univoco",
     "opinionLabel": "Scrivi la tua opinione (opzionale)",
     "opinionPlaceholder": "Cosa ne pensi di {name}?",
-    "submitButton": "Pubblica Opinione",
+    "submitButton": "Pubblica StarPost",
     "loginDialog": {
       "title": "Unisciti alla Comunità!",
       "description": "Per eseguire questa azione, è necessario un account. È gratuito, veloce e salva i tuoi progressi!",
@@ -359,7 +360,8 @@
       "updateError": "Errore nell'Aggiornamento",
       "updateErrorDescription": "Impossibile salvare il tuo commento."
     },
-    "seeReplies": "Vedi {count} {reply, plural, one {risposta} other {risposte}}",
+    "seeRepliesSingular": "Vedi 1 risposta",
+    "seeRepliesPlural": "Vedi {count} risposte",
     "hideReplies": "Nascondi risposte",
     "repliesLocked": "Le risposte sono temporaneamente disabilitate."
   },
@@ -871,3 +873,5 @@
     "zimbabwe": "Zimbabwe"
   }
 }
+
+    

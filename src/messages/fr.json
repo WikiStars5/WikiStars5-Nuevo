@@ -295,7 +295,7 @@
     "usernamePlaceholder": "Choisissez un nom unique",
     "opinionLabel": "Écrivez votre opinion (facultatif)",
     "opinionPlaceholder": "Que pensez-vous de {name} ?",
-    "submitButton": "Publier l'opinion",
+    "submitButton": "Publier StarPost",
     "loginDialog": {
       "title": "Rejoignez la communauté !",
       "description": "Pour effectuer cette action, vous avez besoin d'un compte. C'est gratuit, rapide et cela sauvegarde votre progression !",
@@ -360,7 +360,8 @@
       "updateError": "Erreur de mise à jour",
       "updateErrorDescription": "Impossible d'enregistrer votre commentaire."
     },
-    "seeReplies": "Voir {count} {reply, plural, one {réponse} other {réponses}}",
+    "seeRepliesSingular": "Voir 1 réponse",
+    "seeRepliesPlural": "Voir {count} réponses",
     "hideReplies": "Masquer les réponses",
     "repliesLocked": "Les réponses sont temporairement désactivées."
   },
@@ -872,3 +873,5 @@
     "zimbabwe": "Zimbabwe"
   }
 }
+
+    
