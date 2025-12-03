@@ -17,6 +17,8 @@ import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { signInAnonymously } from 'firebase/auth';
 import { useLanguage } from '@/context/LanguageContext';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 
 const BATTLE_ID = 'messi-vs-ronaldo';
@@ -338,7 +340,7 @@ export default function GoatBattle() {
             </CardDescription>
             {isBattleOver ? (
                 <div className="font-bold text-lg text-primary">{t('GoatBattle.countdownFinished')}</div>
-            ) : isBattleUpcoming ? (
+            ) : isBattleUpcoming && battleStartTime ? (
                  <div className="font-bold text-lg text-yellow-500">Comienza el: {format(battleStartTime, 'PPPp', { locale: es })}</div>
             ) : battleData.isPaused ? (
                  <div className="flex items-center gap-2 font-mono text-lg font-bold text-yellow-500">
