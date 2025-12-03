@@ -111,9 +111,13 @@ export default function GoatBattle() {
     }
   }, [firestore]);
   
+  const battleStartTime = battleData?.startTime?.toDate();
   const battleEndTime = battleData?.endTime?.toDate();
-  const isBattleActive = battleEndTime && new Date() < battleEndTime && !battleData?.isPaused;
-  const isBattleOver = battleEndTime ? new Date() > battleEndTime : false;
+  
+  const now = new Date();
+  const isBattleUpcoming = battleStartTime && now < battleStartTime;
+  const isBattleActive = battleStartTime && now >= battleStartTime && battleEndTime && now < battleEndTime && !battleData?.isPaused;
+  const isBattleOver = battleEndTime ? now > battleEndTime : false;
   let winner = battleData?.winner;
 
   // Determine winner if battle is over and winner isn't set yet
@@ -334,6 +338,8 @@ export default function GoatBattle() {
             </CardDescription>
             {isBattleOver ? (
                 <div className="font-bold text-lg text-primary">{t('GoatBattle.countdownFinished')}</div>
+            ) : isBattleUpcoming ? (
+                 <div className="font-bold text-lg text-yellow-500">Comienza el: {format(battleStartTime, 'PPPp', { locale: es })}</div>
             ) : battleData.isPaused ? (
                  <div className="flex items-center gap-2 font-mono text-lg font-bold text-yellow-500">
                     <Timer className="h-5 w-5" />
@@ -386,6 +392,10 @@ export default function GoatBattle() {
                     {winner && winner !== 'tie' && t('GoatBattle.winnerMessage').replace('{winner}', winner === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo')}
                     {!winner && t('GoatBattle.calculating')}
                 </div>
+            ) : isBattleUpcoming ? (
+                 <div className="text-center font-semibold text-lg py-6 text-yellow-500">
+                    ¡La batalla aún no ha comenzado!
+                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-4 w-full max-w-md">
                 <Button

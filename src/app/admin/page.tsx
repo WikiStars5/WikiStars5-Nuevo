@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessageCircle, Share2, Bot } from 'lucide-react';
+import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessageCircle, Share2, Bot, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,10 +17,17 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import type { GlobalSettings } from '@/lib/types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const battleFormSchema = z.object({
   duration: z.coerce.number().int().positive('La duración debe ser un número positivo.'),
   unit: z.enum(['minutes', 'hours', 'days']),
+  startDate: z.date().optional(),
+  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'El formato debe ser HH:MM').optional(),
 });
 
 type BattleFormValues = z.infer<typeof battleFormSchema>;
@@ -53,6 +60,8 @@ export default function AdminDashboard() {
     defaultValues: {
       duration: 30,
       unit: 'days',
+      startDate: undefined,
+      startTime: '00:00',
     },
   });
 
@@ -133,16 +142,27 @@ export default function AdminDashboard() {
     const battleRef = doc(firestore, 'goat_battles', battleId);
 
     try {
-        const newEndTime = new Date();
+        // Determine start time
+        let startTime = new Date();
+        if (data.startDate) {
+            startTime = data.startDate;
+            if (data.startTime) {
+                const [hours, minutes] = data.startTime.split(':');
+                startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+            }
+        }
+
+        // Calculate end time based on the determined start time
+        let endTime = new Date(startTime.getTime());
         switch(data.unit) {
             case 'minutes':
-                newEndTime.setMinutes(newEndTime.getMinutes() + data.duration);
+                endTime.setMinutes(endTime.getMinutes() + data.duration);
                 break;
             case 'hours':
-                newEndTime.setHours(newEndTime.getHours() + data.duration);
+                endTime.setHours(endTime.getHours() + data.duration);
                 break;
             case 'days':
-                newEndTime.setDate(newEndTime.getDate() + data.duration);
+                endTime.setDate(endTime.getDate() + data.duration);
                 break;
         }
 
@@ -150,15 +170,16 @@ export default function AdminDashboard() {
             transaction.set(battleRef, {
                 messiVotes: 0,
                 ronaldoVotes: 0,
-                endTime: Timestamp.fromDate(newEndTime),
+                startTime: Timestamp.fromDate(startTime),
+                endTime: Timestamp.fromDate(endTime),
                 winner: null,
-                startedAt: serverTimestamp()
-            }, { merge: true });
+                isPaused: false,
+            }, { merge: false }); // Use merge:false to reset the document
         });
 
         toast({
-            title: '¡Batalla del GOAT Iniciada!',
-            description: `El evento ha comenzado y durará ${data.duration} ${data.unit}. Los contadores se han reiniciado.`,
+            title: '¡Batalla del GOAT Programada!',
+            description: `El evento comenzará el ${format(startTime, 'PPPp', { locale: es })} y durará ${data.duration} ${data.unit}. Los contadores se reiniciarán.`,
         });
 
     } catch (error) {
@@ -239,7 +260,7 @@ export default function AdminDashboard() {
                             <h3 className="font-semibold">Batalla del GOAT</h3>
                             <p className="text-sm text-muted-foreground">Configura e inicia una nueva temporada, reiniciando todos los votos.</p>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-end gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
                              <FormField
                                 control={battleForm.control}
                                 name="duration"
@@ -275,15 +296,69 @@ export default function AdminDashboard() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" disabled={isStartingBattle} className="w-full sm:w-auto">
-                                {isStartingBattle ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Trophy className="mr-2 h-4 w-4" />
+                            <FormField
+                                control={battleForm.control}
+                                name="startDate"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                    <FormLabel>Fecha de Inicio (Opcional)</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "pl-3 text-left font-normal",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                            >
+                                            {field.value ? (
+                                                format(field.value, "PPP", { locale: es })
+                                            ) : (
+                                                <span>Selecciona una fecha</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                                date < new Date(new Date().setHours(0,0,0,0))
+                                            }
+                                            initialFocus
+                                        />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                    </FormItem>
                                 )}
-                                Iniciar/Reiniciar Batalla
-                            </Button>
+                            />
+                             <FormField
+                                control={battleForm.control}
+                                name="startTime"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Hora de Inicio (Opcional)</FormLabel>
+                                        <FormControl>
+                                            <Input type="time" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
+                        <Button type="submit" disabled={isStartingBattle} className="w-full sm:w-auto">
+                            {isStartingBattle ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Trophy className="mr-2 h-4 w-4" />
+                            )}
+                            Programar/Reiniciar Batalla
+                        </Button>
                     </form>
                 </Form>
 
@@ -375,6 +450,11 @@ export default function AdminDashboard() {
             <Button asChild variant="secondary">
                <Link href="/admin/activity-simulator">
                 <Bot className="mr-2 h-4 w-4" /> Simulador de Actividad
+              </Link>
+            </Button>
+             <Button asChild variant="secondary">
+               <Link href="/admin/virtual-conversations">
+                 <MessagesSquare className="mr-2 h-4 w-4" /> Conversaciones Virtuales
               </Link>
             </Button>
           </CardContent>

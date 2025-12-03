@@ -182,8 +182,10 @@ export interface GoatBattle {
     id: string;
     messiVotes: number;
     ronaldoVotes: number;
+    startTime?: Timestamp;
     endTime?: Timestamp;
     winner?: 'messi' | 'ronaldo' | null;
+    isPaused?: boolean;
 }
 
 export interface GoatVote {

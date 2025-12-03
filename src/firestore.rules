@@ -157,12 +157,12 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow get, list: if true;
         
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && (
+        allow create: if (isAdmin()) || (isSignedIn() && request.resource.data.userId == request.auth.uid && (
             // A) Si los comentarios de texto están habilitados, el texto no puede estar vacío.
             (areCommentsEnabled() && request.resource.data.text is string && request.resource.data.text.size() > 0) ||
             // B) Si solo las calificaciones están habilitadas (y los comentarios no), permite crear si hay una calificación válida.
             (!areCommentsEnabled() && areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5)
-        );
+        ));
         
         allow update: if isSignedIn() && (
             // Owner can edit text
@@ -223,17 +223,8 @@ service cloud.firestore {
 
     match /goat_battles/{battleId} {
         allow get, list: if true;
-        allow create, delete: if isAdmin();
-        // Allow any signed-in user (including anonymous) to update vote counts
-        allow update: if (
-            isAdmin() || (
-                isSignedIn() && (
-                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && (isIncrement('messiVotes', 1) || isIncrement('messiVotes', -1))) ||
-                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) && (isIncrement('ronaldoVotes', 1) || isIncrement('ronaldoVotes', -1))) ||
-                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']) && ((isIncrement('messiVotes', 1) && isIncrement('ronaldoVotes', -1)) || (isIncrement('messiVotes', -1) && isIncrement('ronaldoVotes', 1))))
-                )
-            )
-        );
+        allow write: if isAdmin(); // Admins can start/reset battles
+
         // Allow any signed-in user (including anonymous) to cast their personal vote
         match /votes/{userId} { 
           allow get: if isOwner(userId) || isAdmin(); 
