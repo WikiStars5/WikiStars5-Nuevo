@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -24,11 +25,30 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const battleFormSchema = z.object({
-  duration: z.coerce.number().int().positive('La duración debe ser un número positivo.'),
-  unit: z.enum(['minutes', 'hours', 'days']),
   startDate: z.date().optional(),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'El formato debe ser HH:MM').optional(),
+  endDate: z.date({
+    required_error: "La fecha de finalización es obligatoria.",
+  }),
+  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'El formato debe ser HH:MM'),
+}).refine(data => {
+    // Si no hay fecha de inicio, no podemos validar
+    if (!data.startDate || !data.endDate) return true;
+
+    const startDateTime = new Date(data.startDate);
+    const [startHours, startMinutes] = (data.startTime || "00:00").split(':');
+    startDateTime.setHours(parseInt(startHours, 10), parseInt(startMinutes, 10), 0, 0);
+
+    const endDateTime = new Date(data.endDate);
+    const [endHours, endMinutes] = (data.endTime || "00:00").split(':');
+    endDateTime.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0);
+
+    return endDateTime > startDateTime;
+}, {
+    message: "La fecha y hora de finalización debe ser posterior a la de inicio.",
+    path: ["endDate"], // Asignar el error al campo de fecha de finalización
 });
+
 
 type BattleFormValues = z.infer<typeof battleFormSchema>;
 
@@ -58,10 +78,9 @@ export default function AdminDashboard() {
   const battleForm = useForm<BattleFormValues>({
     resolver: zodResolver(battleFormSchema),
     defaultValues: {
-      duration: 30,
-      unit: 'days',
-      startDate: undefined,
+      startDate: new Date(),
       startTime: '00:00',
+      endTime: '00:00',
     },
   });
 
@@ -134,7 +153,7 @@ export default function AdminDashboard() {
   };
 
 
-  const handleStartGoatBattle = async (data: BattleFormValues) => {
+ const handleStartGoatBattle = async (data: BattleFormValues) => {
     if (!firestore) return;
     setIsStartingBattle(true);
 
@@ -143,29 +162,17 @@ export default function AdminDashboard() {
 
     try {
         // Determine start time
-        let startTime = new Date();
-        if (data.startDate) {
-            startTime = data.startDate;
-            if (data.startTime) {
-                const [hours, minutes] = data.startTime.split(':');
-                startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-            }
+        let startTime = data.startDate ? new Date(data.startDate) : new Date();
+        if (data.startTime) {
+            const [startHours, startMinutes] = data.startTime.split(':');
+            startTime.setHours(parseInt(startHours, 10), parseInt(startMinutes, 10), 0, 0);
         }
 
-        // Calculate end time based on the determined start time
-        let endTime = new Date(startTime.getTime());
-        switch(data.unit) {
-            case 'minutes':
-                endTime.setMinutes(endTime.getMinutes() + data.duration);
-                break;
-            case 'hours':
-                endTime.setHours(endTime.getHours() + data.duration);
-                break;
-            case 'days':
-                endTime.setDate(endTime.getDate() + data.duration);
-                break;
-        }
-
+        // Determine end time
+        let endTime = new Date(data.endDate);
+        const [endHours, endMinutes] = data.endTime.split(':');
+        endTime.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0);
+        
         await runTransaction(firestore, async (transaction) => {
             transaction.set(battleRef, {
                 messiVotes: 0,
@@ -174,12 +181,12 @@ export default function AdminDashboard() {
                 endTime: Timestamp.fromDate(endTime),
                 winner: null,
                 isPaused: false,
-            }, { merge: false }); // Use merge:false to reset the document
+            }, { merge: false });
         });
 
         toast({
             title: '¡Batalla del GOAT Programada!',
-            description: `El evento comenzará el ${format(startTime, 'PPPp', { locale: es })} y durará ${data.duration} ${data.unit}. Los contadores se reiniciarán.`,
+            description: `Inicio: ${format(startTime, 'Pp', { locale: es })}. Fin: ${format(endTime, 'Pp', { locale: es })}.`,
         });
 
     } catch (error) {
@@ -254,49 +261,14 @@ export default function AdminDashboard() {
                 <CardDescription>Controla los eventos y funciones especiales de la plataforma.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <Form {...battleForm}>
+                 <Form {...battleForm}>
                     <form onSubmit={battleForm.handleSubmit(handleStartGoatBattle)} className="rounded-lg border p-4 space-y-4">
                         <div>
                             <h3 className="font-semibold">Batalla del GOAT</h3>
                             <p className="text-sm text-muted-foreground">Configura e inicia una nueva temporada, reiniciando todos los votos.</p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                              <FormField
-                                control={battleForm.control}
-                                name="duration"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Duración</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="Ej: 30" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={battleForm.control}
-                                name="unit"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Unidad</FormLabel>
-                                         <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecciona unidad" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="minutes">Minutos</SelectItem>
-                                                <SelectItem value="hours">Horas</SelectItem>
-                                                <SelectItem value="days">Días</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
                                 control={battleForm.control}
                                 name="startDate"
                                 render={({ field }) => (
@@ -307,30 +279,15 @@ export default function AdminDashboard() {
                                         <FormControl>
                                             <Button
                                             variant={"outline"}
-                                            className={cn(
-                                                "pl-3 text-left font-normal",
-                                                !field.value && "text-muted-foreground"
-                                            )}
+                                            className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                                             >
-                                            {field.value ? (
-                                                format(field.value, "PPP", { locale: es })
-                                            ) : (
-                                                <span>Selecciona una fecha</span>
-                                            )}
+                                            {field.value ? format(field.value, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                             </Button>
                                         </FormControl>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            selected={field.value}
-                                            onSelect={field.onChange}
-                                            disabled={(date) =>
-                                                date < new Date(new Date().setHours(0,0,0,0))
-                                            }
-                                            initialFocus
-                                        />
+                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
                                         </PopoverContent>
                                     </Popover>
                                     <FormMessage />
@@ -343,20 +300,51 @@ export default function AdminDashboard() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Hora de Inicio (Opcional)</FormLabel>
+                                        <FormControl><Input type="time" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={battleForm.control}
+                                name="endDate"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                    <FormLabel>Fecha de Finalización*</FormLabel>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
                                         <FormControl>
-                                            <Input type="time" {...field} />
+                                            <Button
+                                            variant={"outline"}
+                                            className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                            >
+                                            {field.value ? format(field.value, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
                                         </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} initialFocus />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={battleForm.control}
+                                name="endTime"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Hora de Finalización*</FormLabel>
+                                        <FormControl><Input type="time" {...field} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                         </div>
-                        <Button type="submit" disabled={isStartingBattle} className="w-full sm:w-auto">
-                            {isStartingBattle ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Trophy className="mr-2 h-4 w-4" />
-                            )}
+                        <Button type="submit" disabled={isStartingBattle}>
+                            {isStartingBattle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trophy className="mr-2 h-4 w-4" />}
                             Programar/Reiniciar Batalla
                         </Button>
                     </form>
