@@ -182,8 +182,7 @@ service cloud.firestore {
 
         match /replies/{replyId} {
           allow get, list: if true;
-          // Allow any signed-in user to reply if the content is theirs
-          allow create: if isSignedIn() && areRepliesEnabled() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
+          allow create: if (isAdmin()) || (isSignedIn() && areRepliesEnabled() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0);
           allow update: if isSignedIn() && (
              // Owner can edit text
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
@@ -253,3 +252,5 @@ service cloud.firestore {
     match /settings/{settingId} { allow get: if true; allow write: if isAdmin(); }
   }
 }
+
+    
