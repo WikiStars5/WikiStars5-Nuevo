@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, doc, getDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,6 +13,10 @@ import type { Comment } from '@/lib/types';
 import { countries } from '@/lib/countries';
 import { StarRating } from './star-rating';
 import { useLanguage } from '@/context/LanguageContext';
+import { Button } from '../ui/button';
+import { MessageSquare } from 'lucide-react';
+import ReplyForm from '../figure/reply-form';
+
 
 interface NotificationThreadDialogProps {
   figureId: string;
@@ -34,7 +38,17 @@ function CommentDisplaySkeleton() {
     );
 }
 
-function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, isHighlighted?: boolean }) {
+function CommentDisplay({ 
+    comment, 
+    isHighlighted = false,
+    onReplyClick,
+    canReply 
+}: { 
+    comment: Comment, 
+    isHighlighted?: boolean,
+    onReplyClick: () => void,
+    canReply: boolean
+}) {
     const { t } = useLanguage();
     const countryData = comment.userCountry ? countries.find(c => t(`countries.${c.key}`) === comment.userCountry) : null;
     const getAvatarFallback = () => comment.userDisplayName?.charAt(0).toUpperCase() || 'U';
@@ -65,20 +79,28 @@ function CommentDisplay({ comment, isHighlighted = false }: { comment: Comment, 
                 </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <Link href={`/u/${comment.userDisplayName}`} className="font-semibold text-sm hover:underline">
-                        {comment.userDisplayName}
-                    </Link>
-                    {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                    {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
-                    {countryData && (
-                        <Image
-                            src={`https://flagcdn.com/w20/${countryData.code.toLowerCase()}.png`}
-                            alt={countryData.name || `Bandera de ${countryData.code}`}
-                            width={20} height={15}
-                            className="object-contain"
-                            title={countryData.name}
-                        />
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/u/${comment.userDisplayName}`} className="font-semibold text-sm hover:underline">
+                            {comment.userDisplayName}
+                        </Link>
+                        {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
+                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                        {countryData && (
+                            <Image
+                                src={`https://flagcdn.com/w20/${countryData.code.toLowerCase()}.png`}
+                                alt={countryData.name || `Bandera de ${countryData.code}`}
+                                width={20} height={15}
+                                className="object-contain"
+                                title={countryData.name}
+                            />
+                        )}
+                    </div>
+                     {canReply && (
+                        <Button variant="ghost" size="sm" onClick={onReplyClick}>
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            {t('CommentThread.replyButton')}
+                        </Button>
                     )}
                 </div>
                 {comment.rating !== -1 && typeof comment.rating === 'number' && (
@@ -98,9 +120,11 @@ export default function NotificationThreadDialog({
   onOpenChange,
 }: NotificationThreadDialogProps) {
     const firestore = useFirestore();
+    const { user } = useUser();
     const [comments, setComments] = useState<Comment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
     const { t } = useLanguage();
 
     useEffect(() => {
@@ -161,6 +185,11 @@ export default function NotificationThreadDialog({
             }, 100); 
         }
     }, [isLoading, replyId]);
+    
+    const handleReplySuccess = () => {
+        setReplyingTo(null);
+        onOpenChange(false); // Close dialog on successful reply
+    }
 
     const orderedComments = useMemo(() => {
         if (comments.length === 0) return [];
@@ -174,6 +203,8 @@ export default function NotificationThreadDialog({
         
         return result;
     }, [comments, parentId, replyId]);
+    
+    const parentCommentForReply = comments.find(c => c.id === parentId);
 
     return (
         <DialogContent className="sm:max-w-xl">
@@ -195,7 +226,23 @@ export default function NotificationThreadDialog({
                     <div className="space-y-4">
                         {orderedComments.map((comment) => (
                              <div key={comment.id} className={comment.id !== parentId ? "pl-8 border-l-2 ml-4" : ""}>
-                                <CommentDisplay comment={comment} isHighlighted={comment.id === replyId} />
+                                <CommentDisplay 
+                                    comment={comment} 
+                                    isHighlighted={comment.id === replyId}
+                                    onReplyClick={() => setReplyingTo(comment)}
+                                    canReply={!!user && user.uid !== comment.userId}
+                                />
+                                {replyingTo?.id === comment.id && parentCommentForReply && (
+                                    <div className="mt-4">
+                                        <ReplyForm
+                                            figureId={figureId}
+                                            figureName={figureName}
+                                            parentComment={parentCommentForReply}
+                                            replyToComment={replyingTo}
+                                            onReplySuccess={handleReplySuccess}
+                                        />
+                                    </div>
+                                )}
                              </div>
                         ))}
                     </div>
