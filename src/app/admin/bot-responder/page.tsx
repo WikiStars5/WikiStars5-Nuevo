@@ -26,8 +26,7 @@ import AdminBotReplyForm from '@/components/admin/admin-bot-reply-form';
 
 export default function BotResponderPage() {
   const [selectedFigure, setSelectedFigure] = React.useState<Figure | null>(null);
-  const [replyingToComment, setReplyingToComment] = React.useState<CommentType | null>(null);
-
+  
   const firestore = useFirestore();
 
   const commentsQuery = useMemoFirebase(() => {
@@ -40,11 +39,6 @@ export default function BotResponderPage() {
   }, [firestore, selectedFigure]);
 
   const { data: comments, isLoading: isLoadingComments, refetch } = useCollection<CommentType>(commentsQuery);
-
-  const handleReplySuccess = () => {
-    setReplyingToComment(null);
-    refetch();
-  };
 
   return (
     <div className="space-y-6">
@@ -70,7 +64,6 @@ export default function BotResponderPage() {
                         <p className="font-semibold">Perfil seleccionado: <span className="text-primary">{selectedFigure.name}</span></p>
                         <Button type="button" variant="ghost" size="icon" onClick={() => {
                             setSelectedFigure(null);
-                            setReplyingToComment(null);
                         }}>
                             <XCircle className="h-4 w-4" />
                         </Button>
@@ -95,23 +88,14 @@ export default function BotResponderPage() {
 
                     <div className="space-y-4">
                         {comments?.map(comment => (
-                            <div key={comment.id}>
-                                <CommentItem 
-                                    comment={comment}
-                                    onReply={() => setReplyingToComment(comment)}
-                                />
-                                {replyingToComment?.id === comment.id && (
-                                     <div className="mt-4 pl-10">
-                                         <AdminBotReplyForm
-                                            figureId={selectedFigure.id}
-                                            figureName={selectedFigure.name}
-                                            parentComment={comment}
-                                            onReplySuccess={handleReplySuccess}
-                                            allComments={comments}
-                                        />
-                                     </div>
-                                )}
-                            </div>
+                            <CommentItem 
+                                key={comment.id}
+                                figureId={selectedFigure.id}
+                                figureName={selectedFigure.name}
+                                comment={comment}
+                                allComments={comments || []}
+                                onReplySuccess={refetch}
+                            />
                         ))}
                     </div>
                 </div>

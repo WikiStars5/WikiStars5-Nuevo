@@ -35,6 +35,7 @@ interface AdminBotReplyFormProps {
   figureId: string;
   figureName: string;
   parentComment: CommentType;
+  replyToComment: CommentType; // The specific comment/reply being replied to
   onReplySuccess: () => void;
   allComments: CommentType[]; // Pass all comments to find virtual users
 }
@@ -43,6 +44,7 @@ export default function AdminBotReplyForm({
   figureId,
   figureName,
   parentComment,
+  replyToComment,
   onReplySuccess,
   allComments
 }: AdminBotReplyFormProps) {
@@ -67,7 +69,7 @@ export default function AdminBotReplyForm({
     resolver: zodResolver(replySchema),
     defaultValues: {
       botUserId: '',
-      text: `@${parentComment.userDisplayName} `,
+      text: `@[${replyToComment.userDisplayName}] `,
     },
   });
 
@@ -88,6 +90,7 @@ export default function AdminBotReplyForm({
       const newReplyId = doc(collection(firestore, 'temp')).id;
 
       await runTransaction(firestore, async (transaction) => {
+        // All replies go to the parent comment's subcollection
         const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentComment.id);
         const repliesColRef = collection(parentCommentRef, 'replies');
         
@@ -100,7 +103,7 @@ export default function AdminBotReplyForm({
           createdAt: serverTimestamp(),
           userDisplayName: selectedBot.name,
           userPhotoURL: selectedBot.photo || null,
-          likes: Math.floor(Math.random() * 3), // Add some random likes
+          likes: Math.floor(Math.random() * 3),
           dislikes: 0,
           parentId: parentComment.id,
           rating: -1,
@@ -109,9 +112,7 @@ export default function AdminBotReplyForm({
         transaction.set(newReplyRef, newReplyData);
         transaction.update(parentCommentRef, { replyCount: increment(1) });
         
-        // --- Notification Logic ---
-        const replyToAuthorId = parentComment.userId;
-        // Don't notify if the bot is replying to itself or another bot
+        const replyToAuthorId = replyToComment.userId;
         if (replyToAuthorId && !replyToAuthorId.startsWith('virtual_')) {
             const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
             const notification = {
@@ -141,7 +142,7 @@ export default function AdminBotReplyForm({
       });
 
       toast({ title: 'Respuesta de Bot Publicada' });
-      form.reset({ text: `@[${parentComment.userDisplayName}] `, botUserId: data.botUserId });
+      form.reset({ text: `@[${replyToComment.userDisplayName}] `, botUserId: data.botUserId });
       onReplySuccess();
     } catch (error) {
       console.error('Error al publicar respuesta de bot:', error);
@@ -197,7 +198,7 @@ export default function AdminBotReplyForm({
                                     <FormLabel>Respuesta</FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            placeholder={`Respondiendo a ${parentComment.userDisplayName}...`}
+                                            placeholder={`Respondiendo a ${replyToComment.userDisplayName}...`}
                                             className="text-sm"
                                             rows={2}
                                             {...field}
@@ -209,7 +210,7 @@ export default function AdminBotReplyForm({
                         />
 
                         <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" type="button" onClick={onReplySuccess} disabled={isSubmitting}>
+                            <Button variant="ghost" size="sm" type="button" onClick={() => onReplySuccess()} disabled={isSubmitting}>
                                 Cancelar
                             </Button>
                             <Button size="sm" type="submit" disabled={isSubmitting}>
