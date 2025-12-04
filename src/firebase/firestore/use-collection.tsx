@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Query,
   getDocs,
+  onSnapshot,
   DocumentData,
   FirestoreError,
   QuerySnapshot,
@@ -44,7 +45,7 @@ interface UseCollectionOptions {
 }
 
 /**
- * React hook to fetch a Firestore collection or query once.
+ * React hook to fetch a Firestore collection or query in real-time.
  * Handles nullable references/queries.
  * 
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
@@ -66,8 +67,13 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true); 
   const [error, setError] = useState<FirestoreError | Error | null>(null);
+  
+  // Refetch function to manually re-trigger the data fetch.
+  // We use a counter to force a re-render and re-subscription.
+  const [refetchCounter, setRefetchCounter] = useState(0);
+  const refetch = useCallback(() => setRefetchCounter(c => c + 1), []);
 
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
       setIsLoading(true);
       setData(null);
@@ -80,40 +86,42 @@ export function useCollection<T = any>(
     }
 
     setIsLoading(true);
-    setError(null);
 
-    try {
-      const snapshot = await getDocs(memoizedTargetRefOrQuery);
-      const results: ResultItemType[] = snapshot.docs.map(doc => ({ ...(doc.data() as T), id: doc.id }));
-      setData(results);
-      options.onNewData?.(snapshot);
-    } catch (err: any) {
-      let path = 'unknown';
-      try {
-        path = memoizedTargetRefOrQuery.type === 'collection'
-          ? (memoizedTargetRefOrQuery as CollectionReference).path
-          : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
-      } catch (e) {
-        console.warn("Could not determine path for useCollection permission error.");
+    const unsubscribe = onSnapshot(
+      memoizedTargetRefOrQuery,
+      (snapshot) => {
+        const results: ResultItemType[] = snapshot.docs.map(doc => ({ ...(doc.data() as T), id: doc.id }));
+        setData(results);
+        setError(null);
+        setIsLoading(false);
+        options.onNewData?.(snapshot);
+      },
+      (err: FirestoreError) => {
+        let path = 'unknown';
+        try {
+          path = memoizedTargetRefOrQuery.type === 'collection'
+            ? (memoizedTargetRefOrQuery as CollectionReference).path
+            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+        } catch (e) {
+          console.warn("Could not determine path for useCollection permission error.");
+        }
+
+        const contextualError = new FirestorePermissionError({
+          operation: 'list',
+          path: path,
+        });
+
+        setError(contextualError);
+        setData(null);
+        setIsLoading(false);
+        errorEmitter.emit('permission-error', contextualError);
       }
+    );
 
-      const contextualError = new FirestorePermissionError({
-        operation: 'list',
-        path: path,
-      });
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
 
-      setError(contextualError);
-      setData(null);
-      errorEmitter.emit('permission-error', contextualError);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [memoizedTargetRefOrQuery, options.onNewData]);
-
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  }, [memoizedTargetRefOrQuery, options.onNewData, refetchCounter]);
   
-  return { data, isLoading, error, refetch: fetchData };
+  return { data, isLoading, error, refetch };
 }
