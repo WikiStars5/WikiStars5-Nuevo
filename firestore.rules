@@ -183,7 +183,7 @@ service cloud.firestore {
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
         // Allow any signed-in user to vote on comments
-        match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
+        match /votes/{userId} { allow get: if isOwner(userId); allow list: if false; }
 
         match /replies/{replyId} {
           allow get, list: if true;
