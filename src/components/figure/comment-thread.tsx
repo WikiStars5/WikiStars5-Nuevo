@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -35,14 +36,12 @@ interface CommentItemProps {
   figureId: string,
   figureName: string,
   isReply?: boolean;
-  onReply: (parent: CommentType) => void;
-  isReplying: boolean;
   onReplySuccess: () => void;
   areRepliesEnabled: boolean;
   refetchReplies?: () => void; // Add refetch function for replies
 }
 
-function CommentItem({ comment, figureId, figureName, isReply = false, onReply, isReplying, onReplySuccess, areRepliesEnabled, refetchReplies }: CommentItemProps) {
+function CommentItem({ comment, figureId, figureName, isReply = false, onReplySuccess, areRepliesEnabled, refetchReplies }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -52,10 +51,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(comment.text);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [isReplying, setIsReplying] = useState(false);
 
     const isOwner = user && user.uid === comment.userId;
     
-    // Determine the correct path for the vote based on whether it's a root comment or a reply
     const votePath = isReply 
         ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}/votes`
         : `figures/${figureId}/comments/${comment.id}/votes`;
@@ -65,8 +64,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         return doc(firestore, votePath, user.uid);
     }, [firestore, user, votePath]);
 
-
-    const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef);
+    const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user });
 
     const country = countries.find(c => t(`countries.${c.key}`) === comment.userCountry);
 
@@ -131,7 +129,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
         
         try {
              await runTransaction(firestore, async (transaction) => {
-                // --- 1. READS FIRST ---
                 const figureDoc = await transaction.get(figureRef);
                 if (!figureDoc.exists()) throw new Error("Figure not found.");
 
@@ -141,7 +138,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                     repliesSnapshot = await getDocs(repliesRef);
                 }
 
-                // --- 2. WRITES SECOND ---
                 if (!isReply && typeof comment.rating === 'number' && comment.rating >= 0) {
                      const ratingUpdates: { [key: string]: any } = {
                         ratingCount: increment(-1),
@@ -166,7 +162,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 title: t('CommentThread.toast.deleteSuccess'),
                 description: t('CommentThread.toast.deleteSuccessDescription')
             });
-            refetchReplies?.(); // Refetch the list after deletion
+            refetchReplies?.();
         } catch (error: any) {
             console.error("Error al eliminar comentario:", error);
             toast({
@@ -197,7 +193,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 title: t('CommentThread.toast.updateSuccess'),
             });
             setIsEditing(false);
-            refetchReplies?.(); // Refetch after edit
+            refetchReplies?.();
         } catch (error) {
             console.error("updating comment:", error);
             toast({
@@ -209,6 +205,11 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
             setIsSavingEdit(false);
         }
     };
+    
+    const localOnReplySuccess = () => {
+        setIsReplying(false);
+        onReplySuccess();
+    }
 
     const getAvatarFallback = () => {
         return comment.userDisplayName?.charAt(0) || 'U';
@@ -285,7 +286,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
 
                 {!isEditing && (
                     <div className="mt-2 space-y-1">
-                        {/* Row 1: Likes and Dislikes */}
                         <div className="flex items-center gap-1 text-muted-foreground">
                             <Button 
                                 variant="ghost" 
@@ -295,7 +295,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                                 disabled={!user || !!isVoting}
                             >
                                 {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
-                                <span className="sr-only">{t("CommentThread.toast.voteRegistered")}</span>
                             </Button>
                             <span className="text-xs font-semibold w-6 text-center">{(comment.likes ?? 0).toLocaleString()}</span>
                             <Button 
@@ -306,23 +305,19 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                                 disabled={!user || !!isVoting}
                             >
                                 {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
-                                <span className="sr-only">{t("CommentThread.toast.voteRegistered")}</span>
                             </Button>
                             <span className="text-xs font-semibold w-6 text-center">{(comment.dislikes ?? 0).toLocaleString()}</span>
                         </div>
                         
-                        {/* Row 2: Edit, Delete, Share */}
                         {isOwner && (
                             <div className="flex items-center gap-1">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
                                     <FilePenLine className="h-4 w-4" />
-                                    <span className="sr-only">{t('CommentThread.editButton')}</span>
                                 </Button>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" disabled={isDeleting}>
                                             {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                            <span className="sr-only">{t('CommentThread.deleteButton')}</span>
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
@@ -351,12 +346,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                             </div>
                         )}
 
-                        {/* Row 3: Reply */}
                         {user && areRepliesEnabled && (
                             <div className="flex items-center">
-                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => onReply(comment)}>
+                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
                                     <MessageSquare className="h-4 w-4 mr-2" />
-                                    <span className="text-xs">{t('CommentThread.replyButton')}</span>
                                 </Button>
                             </div>
                         )}
@@ -371,7 +364,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
               figureName={figureName}
               parentComment={isReply ? { ...comment, id: comment.parentId! } : comment}
               replyToComment={comment}
-              onReplySuccess={onReplySuccess}
+              onReplySuccess={localOnReplySuccess}
             />
           </div>
         )}
@@ -393,8 +386,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
   const { t } = useLanguage();
   const [repliesVisible, setRepliesVisible] = useState(false);
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
-  const [replyingTo, setReplyingTo] = useState<CommentType | null>(null);
-
+  
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
   const areRepliesEnabled = (globalSettings?.isReplyEnabled ?? true);
@@ -418,17 +410,9 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
 
   const hasReplies = threadReplies && threadReplies.length > 0;
   const hasMoreReplies = threadReplies && threadReplies.length > visibleRepliesCount;
-
-  const handleReplyClick = (targetComment: CommentType) => {
-    if (!areRepliesEnabled) {
-      return;
-    }
-    setReplyingTo(prev => (prev?.id === targetComment.id ? null : targetComment));
-  }
   
   const handleReplySuccess = useCallback(() => {
-    setReplyingTo(null);
-    refetchReplies(); // Refetch replies to show the new one
+    refetchReplies();
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
@@ -438,7 +422,6 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     const nextRepliesVisible = !repliesVisible;
     setRepliesVisible(nextRepliesVisible);
     if (!nextRepliesVisible) {
-        setReplyingTo(null);
         setVisibleRepliesCount(INITIAL_REPLIES_LIMIT);
     }
   }
@@ -458,8 +441,6 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
         comment={comment} 
         figureId={figureId}
         figureName={figureName}
-        onReply={() => handleReplyClick(comment)}
-        isReplying={replyingTo?.id === comment.id}
         onReplySuccess={handleReplySuccess}
         areRepliesEnabled={areRepliesEnabled}
         refetchReplies={refetchReplies}
@@ -505,8 +486,6 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
                     figureId={figureId}
                     figureName={figureName}
                     isReply={true}
-                    onReply={() => handleReplyClick(reply)}
-                    isReplying={replyingTo?.id === reply.id}
                     onReplySuccess={handleReplySuccess}
                     areRepliesEnabled={areRepliesEnabled}
                     refetchReplies={refetchReplies}
