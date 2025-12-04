@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -138,8 +137,8 @@ export default function NotificationThreadDialog({
             setError(null);
             
             try {
-                const fetchedComments: Comment[] = [];
-                
+                const fetchedCommentsMap = new Map<string, Comment>();
+
                 // 1. Get the root comment
                 const rootDocRef = doc(firestore, 'figures', figureId, 'comments', parentId);
                 const rootDocSnap = await getDoc(rootDocRef);
@@ -149,19 +148,47 @@ export default function NotificationThreadDialog({
                     setIsLoading(false);
                     return;
                 }
-                fetchedComments.push({ id: rootDocSnap.id, ...rootDocSnap.data() } as Comment);
+                fetchedCommentsMap.set(rootDocSnap.id, { id: rootDocSnap.id, ...rootDocSnap.data() } as Comment);
 
-                // 2. Get the specific reply if replyId is provided
+                // 2. Get the specific reply that triggered the notification
+                let finalReply: Comment | null = null;
                 if (replyId) {
                     const replyDocRef = doc(firestore, 'figures', figureId, 'comments', parentId, 'replies', replyId);
                     const replyDocSnap = await getDoc(replyDocRef);
                     
                     if (replyDocSnap.exists()) {
-                        fetchedComments.push({ id: replyDocSnap.id, ...replyDocSnap.data() } as Comment);
+                        finalReply = { id: replyDocSnap.id, ...replyDocSnap.data() } as Comment;
+                        fetchedCommentsMap.set(replyDocSnap.id, finalReply);
                     }
                 }
                 
-                setComments(fetchedComments);
+                // 3. Find the parent of the final reply (the user's own comment) if it's not the root comment
+                if (finalReply) {
+                    const mentionMatch = finalReply.text.match(/^@\[(.*?)\]/);
+                    if (mentionMatch) {
+                        const repliedToUsername = mentionMatch[1];
+                        
+                        // We need to find the ID of the comment made by `repliedToUsername`
+                        // We search for it within the replies subcollection
+                        const repliesRef = collection(firestore, 'figures', figureId, 'comments', parentId, 'replies');
+                        const q = query(
+                            repliesRef, 
+                            where('userDisplayName', '==', repliedToUsername),
+                            orderBy('createdAt', 'desc'), // get the latest one just in case
+                            limit(1)
+                        );
+                        const middleCommentSnap = await getDocs(q);
+
+                        if (!middleCommentSnap.empty) {
+                            const middleCommentDoc = middleCommentSnap.docs[0];
+                            if (!fetchedCommentsMap.has(middleCommentDoc.id)) {
+                                fetchedCommentsMap.set(middleCommentDoc.id, { id: middleCommentDoc.id, ...middleCommentDoc.data() } as Comment);
+                            }
+                        }
+                    }
+                }
+
+                setComments(Array.from(fetchedCommentsMap.values()));
 
             } catch (err) {
                 console.error("Error fetching comments for notification dialog:", err);
@@ -192,17 +219,8 @@ export default function NotificationThreadDialog({
     }
 
     const orderedComments = useMemo(() => {
-        if (comments.length === 0) return [];
-        
-        const root = comments.find(c => c.id === parentId);
-        const reply = replyId ? comments.find(c => c.id === replyId) : null;
-        
-        const result: Comment[] = [];
-        if (root) result.push(root);
-        if (reply) result.push(reply);
-        
-        return result;
-    }, [comments, parentId, replyId]);
+        return comments.sort((a, b) => a.createdAt.toDate().getTime() - b.createdAt.toDate().getTime());
+    }, [comments]);
     
     const parentCommentForReply = comments.find(c => c.id === parentId);
 
