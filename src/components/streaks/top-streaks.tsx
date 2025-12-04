@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -93,7 +92,7 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                 ) : topStreaks.length > 0 ? (
                     <div className="space-y-1">
                         {topStreaks.map((streak, index) => {
-                             const countryData = streak.userCountry ? countries.find(c => t(`countries.${c.key}`) === streak.userCountry) : null;
+                             const countryData = streak.userCountry ? countries.find(c => c.key === streak.userCountry) : null;
                             return (
                                 <div key={streak.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                                     <div className="flex items-center gap-3">
@@ -111,11 +110,11 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                                                     {countryData && (
                                                         <Image
                                                             src={`https://flagcdn.com/w20/${countryData.code.toLowerCase()}.png`}
-                                                            alt={countryData.name}
+                                                            alt={countryData ? t(`countries.${countryData.key}`) : `Bandera de ${countryData?.code}`}
                                                             width={20}
                                                             height={15}
                                                             className="object-contain"
-                                                            title={countryData.name}
+                                                            title={countryData ? t(`countries.${countryData.key}`) : countryData?.code}
                                                         />
                                                     )}
                                                 </div>
