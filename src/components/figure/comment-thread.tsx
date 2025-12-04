@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -285,76 +284,72 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 )}
 
                 {!isEditing && (
-                   <div className="mt-2 text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                             <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && 'text-primary' )}
-                                onClick={() => handleVote('like')}
-                                disabled={!user || !!isVoting}
-                            >
-                                {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
-                                <span>{(comment.likes ?? 0).toLocaleString()}</span>
+                   <div className="mt-2 flex items-center gap-1 text-muted-foreground">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && 'text-primary' )}
+                            onClick={() => handleVote('like')}
+                            disabled={!user || !!isVoting}
+                        >
+                            {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
+                            <span>{(comment.likes ?? 0).toLocaleString()}</span>
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && 'text-destructive' )}
+                            onClick={() => handleVote('dislike')}
+                            disabled={!user || !!isVoting}
+                        >
+                            {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
+                            <span>{(comment.dislikes ?? 0).toLocaleString()}</span>
+                        </Button>
+                        
+                        {isOwner && (
+                            <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
+                                <FilePenLine className="h-4 w-4" />
+                                <span className="sr-only">{t('CommentThread.editButton')}</span>
                             </Button>
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && 'text-destructive' )}
-                                onClick={() => handleVote('dislike')}
-                                disabled={!user || !!isVoting}
-                            >
-                                {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
-                                <span>{(comment.dislikes ?? 0).toLocaleString()}</span>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" disabled={isDeleting}>
+                                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                        <span className="sr-only">{t('CommentThread.deleteButton')}</span>
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>{t('CommentThread.confirmDelete.title')}</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {t('CommentThread.confirmDelete.description')}
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>{t("ReplyForm.cancelButton")}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDelete}>{t('CommentThread.confirmDelete.continue')}</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                            {comment.rating > 0 && !isReply && (
+                                <ShareButton
+                                    figureId={figureId}
+                                    figureName={figureName}
+                                    isRatingShare={true}
+                                    rating={comment.rating}
+                                    showText={false}
+                                    className="h-8 w-8"
+                                />
+                            )}
+                            </>
+                        )}
+                        {user && areRepliesEnabled && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onReply(comment)}>
+                                <MessageSquare className="h-4 w-4" />
+                                <span className="sr-only">{t('CommentThread.replyButton')}</span>
                             </Button>
-                        </div>
-                         <div className="flex items-center gap-1">
-                            {isOwner && (
-                                <>
-                                <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => setIsEditing(true)}>
-                                    <FilePenLine className="h-4 w-4" />
-                                    <span className="hidden sm:inline">{t('CommentThread.editButton')}</span>
-                                </Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2 text-destructive" disabled={isDeleting}>
-                                            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                            <span className="hidden sm:inline">{t('CommentThread.deleteButton')}</span>
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>{t('CommentThread.confirmDelete.title')}</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            {t('CommentThread.confirmDelete.description')}
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>{t("ReplyForm.cancelButton")}</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDelete}>{t('CommentThread.confirmDelete.continue')}</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                                {comment.rating > 0 && (
-                                    <ShareButton
-                                        figureId={figureId}
-                                        figureName={figureName}
-                                        isRatingShare={true}
-                                        rating={comment.rating}
-                                        showText={false}
-                                    />
-                                )}
-                                </>
-                            )}
-                        </div>
-                         <div className="flex items-center gap-1">
-                           {user && areRepliesEnabled && (
-                                <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
-                                    <MessageSquare className="h-4 w-4" />
-                                    <span>{t('CommentThread.replyButton')}</span>
-                                </Button>
-                            )}
-                        </div>
+                        )}
                    </div>
                 )}
             </div>
@@ -522,4 +517,3 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
-
