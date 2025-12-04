@@ -88,7 +88,7 @@ service cloud.firestore {
       // Admins can list them for the dashboard
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
-      match /streaks/{streakId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
       match /user_achievements/{achievementId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
@@ -223,8 +223,17 @@ service cloud.firestore {
 
     match /goat_battles/{battleId} {
         allow get, list: if true;
-        allow write: if isAdmin(); // Admins can start/reset battles
-
+        allow create, delete: if isAdmin();
+        // Allow any signed-in user (including anonymous) to update vote counts
+        allow update: if (
+            isAdmin() || (
+                isSignedIn() && (
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && (isIncrement('messiVotes', 1) || isIncrement('messiVotes', -1))) ||
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) && (isIncrement('ronaldoVotes', 1) || isIncrement('ronaldoVotes', -1))) ||
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']) && ((isIncrement('messiVotes', 1) && isIncrement('ronaldoVotes', -1)) || (isIncrement('messiVotes', -1) && isIncrement('ronaldoVotes', 1))))
+                )
+            )
+        );
         // Allow any signed-in user (including anonymous) to cast their personal vote
         match /votes/{userId} { 
           allow get: if isOwner(userId) || isAdmin(); 
@@ -244,5 +253,3 @@ service cloud.firestore {
     match /settings/{settingId} { allow get: if true; allow write: if isAdmin(); }
   }
 }
-
-    
