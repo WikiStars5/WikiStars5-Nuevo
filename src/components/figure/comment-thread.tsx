@@ -285,26 +285,41 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                 )}
 
                 {!isEditing && (
-                   <div className="mt-2 space-y-2 text-muted-foreground">
+                   <div className="mt-2 text-muted-foreground">
                         <div className="flex items-center gap-1">
-                           {user && areRepliesEnabled && !isReply && (
-                                <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
-                                    <MessageSquare className="h-4 w-4" />
-                                    <span>{t('CommentThread.replyButton')}</span>
-                                </Button>
-                            )}
-
+                             <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && 'text-primary' )}
+                                onClick={() => handleVote('like')}
+                                disabled={!user || !!isVoting}
+                            >
+                                {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
+                                <span>{(comment.likes ?? 0).toLocaleString()}</span>
+                            </Button>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && 'text-destructive' )}
+                                onClick={() => handleVote('dislike')}
+                                disabled={!user || !!isVoting}
+                            >
+                                {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
+                                <span>{(comment.dislikes ?? 0).toLocaleString()}</span>
+                            </Button>
+                        </div>
+                         <div className="flex items-center gap-1">
                             {isOwner && (
                                 <>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
+                                <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => setIsEditing(true)}>
                                     <FilePenLine className="h-4 w-4" />
-                                    <span className="sr-only">{t('CommentThread.editButton')}</span>
+                                    <span className="hidden sm:inline">{t('CommentThread.editButton')}</span>
                                 </Button>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" disabled={isDeleting}>
+                                        <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2 text-destructive" disabled={isDeleting}>
                                             {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                            <span className="sr-only">{t('CommentThread.deleteButton')}</span>
+                                            <span className="hidden sm:inline">{t('CommentThread.deleteButton')}</span>
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
@@ -332,27 +347,13 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
                                 </>
                             )}
                         </div>
-                        <div className="flex items-center gap-1">
-                             <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'like' && 'text-primary' )}
-                                onClick={() => handleVote('like')}
-                                disabled={!user || !!isVoting}
-                            >
-                                {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
-                                <span>{(comment.likes ?? 0).toLocaleString()}</span>
-                            </Button>
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className={cn("flex items-center gap-1.5 h-8 px-2", userVote?.vote === 'dislike' && 'text-destructive' )}
-                                onClick={() => handleVote('dislike')}
-                                disabled={!user || !!isVoting}
-                            >
-                                {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
-                                <span>{(comment.dislikes ?? 0).toLocaleString()}</span>
-                            </Button>
+                         <div className="flex items-center gap-1">
+                           {user && areRepliesEnabled && (
+                                <Button variant="ghost" size="sm" className="flex items-center gap-1.5 h-8 px-2" onClick={() => onReply(comment)}>
+                                    <MessageSquare className="h-4 w-4" />
+                                    <span>{t('CommentThread.replyButton')}</span>
+                                </Button>
+                            )}
                         </div>
                    </div>
                 )}
@@ -363,7 +364,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReply, 
             <ReplyForm 
               figureId={figureId}
               figureName={figureName}
-              parentComment={comment}
+              parentComment={isReply ? { ...comment, id: comment.parentId! } : comment}
+              replyToComment={comment}
               onReplySuccess={onReplySuccess}
             />
           </div>
@@ -386,7 +388,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
   const { t } = useLanguage();
   const [repliesVisible, setRepliesVisible] = useState(false);
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
-  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<CommentType | null>(null);
 
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
@@ -416,15 +418,11 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     if (!areRepliesEnabled) {
       return;
     }
-    if (!repliesVisible) {
-        setRepliesVisible(true);
-    }
-    const targetId = comment.id;
-    setActiveReplyId(prevId => prevId === targetId ? null : targetId);
+    setReplyingTo(prev => (prev?.id === targetComment.id ? null : targetComment));
   }
   
   const handleReplySuccess = useCallback(() => {
-    setActiveReplyId(null);
+    setReplyingTo(null);
     refetchReplies(); // Refetch replies to show the new one
     if (!repliesVisible) {
         setRepliesVisible(true);
@@ -435,7 +433,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     const nextRepliesVisible = !repliesVisible;
     setRepliesVisible(nextRepliesVisible);
     if (!nextRepliesVisible) {
-        setActiveReplyId(null);
+        setReplyingTo(null);
         setVisibleRepliesCount(INITIAL_REPLIES_LIMIT);
     }
   }
@@ -456,7 +454,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
         figureId={figureId}
         figureName={figureName}
         onReply={() => handleReplyClick(comment)}
-        isReplying={activeReplyId === comment.id}
+        isReplying={replyingTo?.id === comment.id}
         onReplySuccess={handleReplySuccess}
         areRepliesEnabled={areRepliesEnabled}
         refetchReplies={refetchReplies}
@@ -502,8 +500,8 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
                     figureId={figureId}
                     figureName={figureName}
                     isReply={true}
-                    onReply={() => handleReplyClick(comment)}
-                    isReplying={activeReplyId === reply.id}
+                    onReply={() => handleReplyClick(reply)}
+                    isReplying={replyingTo?.id === reply.id}
                     onReplySuccess={handleReplySuccess}
                     areRepliesEnabled={areRepliesEnabled}
                     refetchReplies={refetchReplies}
@@ -524,3 +522,4 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
+

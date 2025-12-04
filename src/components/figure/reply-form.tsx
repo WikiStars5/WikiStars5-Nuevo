@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -28,10 +29,11 @@ interface ReplyFormProps {
   figureId: string;
   figureName: string;
   parentComment: CommentType; // The root comment of the thread
+  replyToComment: CommentType; // The comment being replied to (can be parent or another reply)
   onReplySuccess: () => void;
 }
 
-export default function ReplyForm({ figureId, figureName, parentComment, onReplySuccess }: ReplyFormProps) {
+export default function ReplyForm({ figureId, figureName, parentComment, replyToComment, onReplySuccess }: ReplyFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -44,7 +46,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { text: `@[${parentComment.userDisplayName}] ` },
+    defaultValues: { text: `@[${replyToComment.userDisplayName}] ` },
   });
   
   const getAvatarFallback = () => {
@@ -82,7 +84,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
                 userGender: userProfileData.gender || null,
                 likes: 0,
                 dislikes: 0,
-                parentId: parentComment.id,
+                parentId: parentComment.id, // Always link to the root comment
                 rating: -1,
             };
             
@@ -90,10 +92,10 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
             transaction.set(newReplyRef, newReplyData);
             
             // 2. Increment the reply count on the parent comment
-            transaction.update(parentCommentRef, { replyCount: increment(1) });
+            transaction.set(parentCommentRef, { replyCount: increment(1) }, { merge: true });
             
             // 3. Create a notification for the parent comment's author
-            const replyToAuthorId = parentComment.userId;
+            const replyToAuthorId = replyToComment.userId;
             if (replyToAuthorId && replyToAuthorId !== user.uid) {
                 const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
                 const notification = {
@@ -130,7 +132,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
       toast({
         title: t('ReplyForm.toast.replyPosted'),
       });
-      form.reset({ text: `@[${parentComment.userDisplayName}] ` });
+      form.reset({ text: `@[${replyToComment.userDisplayName}] ` });
       onReplySuccess();
     } catch (error) {
       console.error('Error al publicar respuesta:', error);
@@ -154,7 +156,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, onReply
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
                 <Textarea
                 {...form.register('text')}
-                placeholder={`${t('ReplyForm.placeholder')} ${parentComment.userDisplayName}...`}
+                placeholder={`${t('ReplyForm.placeholder')} ${replyToComment.userDisplayName}...`}
                 className="text-sm"
                 rows={2}
                 />
