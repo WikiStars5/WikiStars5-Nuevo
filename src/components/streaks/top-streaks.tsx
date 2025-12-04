@@ -93,7 +93,7 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                 ) : topStreaks.length > 0 ? (
                     <div className="space-y-1">
                         {topStreaks.map((streak, index) => {
-                            const country = countries.find(c => c.name === streak.userCountry);
+                             const countryData = streak.userCountry ? countries.find(c => t(`countries.${c.key}`) === streak.userCountry) : null;
                             return (
                                 <div key={streak.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                                     <div className="flex items-center gap-3">
@@ -108,14 +108,14 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                                                     <p className="font-semibold text-sm group-hover:underline">{streak.userDisplayName}</p>
                                                     {streak.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
                                                     {streak.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
-                                                    {country && (
+                                                    {countryData && (
                                                         <Image
-                                                            src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                                                            alt={country.name}
+                                                            src={`https://flagcdn.com/w20/${countryData.code.toLowerCase()}.png`}
+                                                            alt={countryData.name}
                                                             width={20}
                                                             height={15}
                                                             className="object-contain"
-                                                            title={country.name}
+                                                            title={countryData.name}
                                                         />
                                                     )}
                                                 </div>
@@ -145,4 +145,3 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
         </Card>
     );
 }
-
