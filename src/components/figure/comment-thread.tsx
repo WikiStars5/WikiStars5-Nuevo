@@ -273,10 +273,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                         />
                         <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={isSavingEdit}>
-                                <X className="mr-1.5" /> {t("ReplyForm.cancelButton")}
+                                <X className="mr-1.5 h-4 w-4" /> {t("ReplyForm.cancelButton")}
                             </Button>
                             <Button size="sm" onClick={handleUpdate} disabled={isSavingEdit}>
-                                {isSavingEdit ? <Loader2 className="animate-spin" /> : <Send className="mr-1.5" />} {t("EditFigure.buttons.save")}
+                                {isSavingEdit ? <Loader2 className="animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />} {t("EditFigure.buttons.save")}
                             </Button>
                         </div>
                     </div>
@@ -309,8 +309,9 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                             <span className="text-xs font-semibold w-6 text-center">{(comment.dislikes ?? 0).toLocaleString()}</span>
                         </div>
                         
-                        {isOwner && (
-                            <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1">
+                            {isOwner && (
+                                <>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
                                     <FilePenLine className="h-4 w-4" />
                                 </Button>
@@ -343,13 +344,15 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                                         className="h-8 w-8"
                                     />
                                 )}
-                            </div>
-                        )}
+                                </>
+                            )}
+                        </div>
 
                         {user && areRepliesEnabled && (
                             <div className="flex items-center">
                                 <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
                                     <MessageSquare className="h-4 w-4 mr-2" />
+                                    {t('CommentThread.replyButton')}
                                 </Button>
                             </div>
                         )}
@@ -506,3 +509,4 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
+

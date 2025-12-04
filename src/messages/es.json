@@ -260,7 +260,7 @@
   },
   "GoatBattle": {
     "title": "ELIJAMOS AL VERDADERO GOAT",
-    "description": "¿Quién es el más grande de todos los tiempos? El ganador obtiene este ícono en su perfil.",
+    "description": "Quién es el más grande de todos los tiempos? El ganador obtiene este ícono en su perfil.",
     "countdownFinished": "¡La votación ha terminado!",
     "paused": "BATALLA EN PAUSA",
     "votesLabel": "votos",
@@ -354,6 +354,11 @@
       "continue": "Continuar"
     },
     "toast": {
+      "voteRemoved": "Voto eliminado",
+      "voteUpdated": "¡Voto actualizado!",
+      "voteRegistered": "¡Voto registrado!",
+      "voteErrorTitle": "Error al votar",
+      "voteErrorDescription": "Hubo un problema al registrar tu voto.",
       "deleteSuccess": "Comentario Eliminado",
       "deleteSuccessDescription": "El comentario ha sido eliminado con éxito.",
       "deleteError": "Erro ao Excluir",
@@ -876,4 +881,3 @@
   }
 }
 
-    
