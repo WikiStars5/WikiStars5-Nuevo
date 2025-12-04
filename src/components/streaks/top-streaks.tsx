@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -92,7 +93,7 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                 ) : topStreaks.length > 0 ? (
                     <div className="space-y-1">
                         {topStreaks.map((streak, index) => {
-                             const countryData = streak.userCountry ? countries.find(c => c.key === streak.userCountry) : null;
+                             const countryData = streak.userCountry ? countries.find(c => c.key === streak.userCountry.toLowerCase().replace(/ /g, '_')) : null;
                             return (
                                 <div key={streak.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                                     <div className="flex items-center gap-3">
