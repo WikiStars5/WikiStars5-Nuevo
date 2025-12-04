@@ -90,12 +90,7 @@ service cloud.firestore {
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /streaks/{streakId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /user_achievements/{achievementId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
-      match /notifications/{notificationId} { 
-        allow read, update, delete: if isOwner(userId); 
-        allow list: if isOwner(userId) || isAdmin(); 
-        // Allow user to create for themselves OR admin to create for others
-        allow create: if isSignedIn() && (isOwner(userId) || isAdmin());
-      }
+      match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
     }
 
@@ -183,12 +178,12 @@ service cloud.firestore {
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
         // Allow any signed-in user to vote on comments
-        match /votes/{userId} { allow get: if isOwner(userId); allow list: if false; }
+        match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
 
         match /replies/{replyId} {
           allow get, list: if true;
-          // Allow any signed-in user to reply if the content is theirs, OR if an admin is creating it
-          allow create: if (isAdmin()) || (isSignedIn() && areRepliesEnabled() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0);
+          // Allow any signed-in user to reply if the content is theirs
+          allow create: if isSignedIn() && areRepliesEnabled() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0;
           allow update: if isSignedIn() && (
              // Owner can edit text
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
