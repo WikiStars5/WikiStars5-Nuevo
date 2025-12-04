@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -46,7 +45,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { text: `@[${replyToComment.userDisplayName}] ` },
+    defaultValues: { text: '' }, // The initial text is now empty
   });
   
   const getAvatarFallback = () => {
@@ -60,6 +59,9 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
         return;
     }
     setIsSubmitting(true);
+
+    // Combine the static mention with the user's input
+    const fullText = `@[${replyToComment.userDisplayName}] ${data.text}`;
 
     try {
         const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentComment.id);
@@ -76,7 +78,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
             const newReplyData = {
                 figureId: figureId,
                 userId: user.uid,
-                text: data.text,
+                text: fullText, // Use the combined text
                 createdAt: serverTimestamp(),
                 userDisplayName: displayName,
                 userPhotoURL: user.photoURL,
@@ -88,13 +90,9 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
                 rating: -1,
             };
             
-            // 1. Add the new reply
             transaction.set(newReplyRef, newReplyData);
-            
-            // 2. Increment the reply count on the parent comment
             transaction.set(parentCommentRef, { replyCount: increment(1) }, { merge: true });
             
-            // 3. Create a notification for the parent comment's author
             const replyToAuthorId = replyToComment.userId;
             if (replyToAuthorId && replyToAuthorId !== user.uid) {
                 const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
@@ -132,7 +130,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
       toast({
         title: t('ReplyForm.toast.replyPosted'),
       });
-      form.reset({ text: `@[${replyToComment.userDisplayName}] ` });
+      form.reset({ text: '' });
       onReplySuccess();
     } catch (error) {
       console.error('Error al publicar respuesta:', error);
@@ -154,12 +152,20 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
                 <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
             </Avatar>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-2">
-                <Textarea
-                {...form.register('text')}
-                placeholder={`${t('ReplyForm.placeholder')} ${replyToComment.userDisplayName}...`}
-                className="text-sm"
-                rows={2}
-                />
+                 <div className="relative rounded-md border border-input focus-within:ring-2 focus-within:ring-ring">
+                    <div className="flex items-center flex-wrap p-2 pb-0">
+                         <span className="text-sm text-primary font-semibold mr-1">
+                            {`@[${replyToComment.userDisplayName}]`}
+                         </span>
+                         <Textarea
+                            {...form.register('text')}
+                            placeholder={`${t('ReplyForm.placeholder')}...`}
+                            className="flex-1 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0 m-0 h-auto min-h-[20px] resize-none shadow-none"
+                            rows={1}
+                        />
+                    </div>
+                </div>
+
                 <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="sm" onClick={() => onReplySuccess()} disabled={isSubmitting}>
                         {t('ReplyForm.cancelButton')}
