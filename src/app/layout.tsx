@@ -43,6 +43,8 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
         <link rel="manifest" href="/manifest.json" />
+        {/* AdSense Code */}
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4946268254100131" crossOrigin="anonymous"></script>
         {/* Meta Pixel Code */}
         <script
           dangerouslySetInnerHTML={{
