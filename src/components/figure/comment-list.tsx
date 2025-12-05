@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -52,7 +51,8 @@ const calculateHotScore = (comment: Comment): number => {
     const y = Math.sign(s);
     const z = y * Math.log10(Math.max(1, Math.abs(s)));
 
-    const hoursAgo = (new Date().getTime() - comment.createdAt.toDate().getTime()) / (1000 * 3600);
+    const commentDate = comment.createdAt?.toDate ? comment.createdAt.toDate() : new Date();
+    const hoursAgo = (new Date().getTime() - commentDate.getTime()) / (1000 * 3600);
     const decay = hoursAgo / C_DECAY_CONSTANT;
     
     return z - decay;
