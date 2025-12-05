@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -242,6 +243,9 @@ export default function GoatBattle() {
                 if (player === 'ronaldo') {
                     const audio = new Audio('https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/sonido%20goat%2Fsiuuu%20(1).mp3?alt=media&token=46407682-9c42-4226-98c7-7486db802039');
                     audio.play();
+                } else if (player === 'messi') {
+                    const audio = new Audio('https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/sonido%20goat%2Fmagisterial-lionel.mp3?alt=media&token=c9b0dc23-b008-4665-84d4-3d8f237cc6b7');
+                    audio.play();
                 }
             }
 
@@ -447,3 +451,5 @@ export default function GoatBattle() {
       </Card>
   );
 }
+
+    
