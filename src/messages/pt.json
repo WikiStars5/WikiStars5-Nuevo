@@ -273,8 +273,8 @@
     "notStarted": "O evento não começou. Volte mais tarde.",
     "adminNotStarted": "O administrador ainda não iniciou a batalha.",
     "shareAlert": {
-      "messi": "Você vai apenas votar? A batalha é vencida com números. Fãs de verdade trazem reforços.",
-      "ronaldo": "Você vai apenas votar? A batalha é vencida com números. Fãs de verdade trazem reforços."
+      "messi": "Você vai apenas deixar seu voto? Traga reforços se você acha que Messi é o melhor.",
+      "ronaldo": "Você vai apenas votar? A batalha é vencida com números. Se você acha que Cristiano é o melhor, traga reforços."
     },
     "toast": {
       "voted": "Você votou em {player}!"

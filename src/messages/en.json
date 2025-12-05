@@ -273,8 +273,8 @@
     "notStarted": "The event has not started. Come back later.",
     "adminNotStarted": "The administrator has not started the battle yet.",
     "shareAlert": {
-      "messi": "Are you just going to vote? The battle is won with numbers. True fans bring reinforcements.",
-      "ronaldo": "Are you just going to vote? The battle is won with numbers. True fans bring reinforcements."
+      "messi": "Are you just going to leave your vote? Bring reinforcements if you think Messi is the best.",
+      "ronaldo": "Are you just going to vote? The battle is won with numbers. If you think Cristiano is the best, bring reinforcements."
     },
     "toast": {
       "voted": "You have voted for {player}!"
@@ -876,3 +876,4 @@
   }
 }
 
+    
