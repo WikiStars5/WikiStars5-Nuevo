@@ -1,0 +1,14 @@
+diff --git a/node_modules/react/package.json b/node_modules/react/package.json
+index d5cb26d..391c5d9 100644
+--- a/node_modules/react/package.json
++++ b/node_modules/react/package.json
+@@ -4,7 +4,7 @@
+   "description": "React is a JavaScript library for building user interfaces.",
+   "main": "index.js",
+   "repository": {
+-    "type": "git",
++    "type": "commonjs",
+     "url": "https://github.com/facebook/react.git",
+     "directory": "packages/react"
+   },
+

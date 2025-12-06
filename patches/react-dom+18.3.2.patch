@@ -1,0 +1,25 @@
+diff --git a/node_modules/react-dom/package.json b/node_modules/react-dom/package.json
+index 32b6348..7513361 100644
+--- a/node_modules/react-dom/package.json
++++ b/node_modules/react-dom/package.json
+@@ -4,7 +4,7 @@
+   "description": "React package for working with the DOM.",
+   "main": "index.js",
+   "repository": {
+-    "type": "git",
++    "type": "commonjs",
+     "url": "https://github.com/facebook/react.git",
+     "directory": "packages/react-dom"
+   },
+@@ -12,5 +12,5 @@
+   "license": "MIT",
+   "bugs": "https://github.com/facebook/react/issues",
+   "homepage": "https://react.dev/",
+-  "peerDependencies": {
+-    "react": "18.3.1"
+-  },
++  "peerDependencies": {},
+   "dependencies": {
+     "loose-envify": "^1.1.0",
+     "scheduler": "^0.23.2"
+
