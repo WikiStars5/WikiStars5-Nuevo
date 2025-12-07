@@ -25,6 +25,7 @@ import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
+import AudienceEstimator from '@/components/ads/audience-estimator';
 
 
 const targetingCriterionSchema = z.object({
@@ -166,6 +167,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
     const isCpc = campaign.type === 'cpc';
     const budgetValue = isCpc ? form.watch('clickBudget') : form.watch('impressionBudget');
     const totalCost = isCpc ? (budgetValue || 0) * CPC : ((budgetValue || 0) / 1000) * CPM;
+    const watchedCriteria = form.watch('targetingCriteria');
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-12">
@@ -291,6 +293,8 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                                 )}
                                 <FormMessage>{form.formState.errors.targetingCriteria?.message || form.formState.errors.targetingCriteria?.root?.message}</FormMessage>
                             </div>
+
+                            <AudienceEstimator criteria={watchedCriteria} />
 
 
                              <Separator />

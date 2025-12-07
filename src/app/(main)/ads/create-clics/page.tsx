@@ -23,6 +23,7 @@ import { doc, serverTimestamp } from 'firebase/firestore';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import AudienceEstimator from '@/components/ads/audience-estimator';
 
 
 const targetingCriterionSchema = z.object({
@@ -134,6 +135,7 @@ export default function CreateAdPage() {
     
     const clickBudgetValue = form.watch('clickBudget');
     const totalCost = (clickBudgetValue || 0) * CPC;
+    const watchedCriteria = form.watch('targetingCriteria');
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-12">
@@ -259,6 +261,8 @@ export default function CreateAdPage() {
                         )}
                         <FormMessage>{form.formState.errors.targetingCriteria?.message || form.formState.errors.targetingCriteria?.root?.message}</FormMessage>
                     </div>
+
+                    <AudienceEstimator criteria={watchedCriteria} />
                     
                     <Separator />
 
