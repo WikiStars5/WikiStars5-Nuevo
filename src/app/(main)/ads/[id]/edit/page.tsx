@@ -128,13 +128,22 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
             ? (data.clickBudget || 0) * CPC 
             : ((data.impressionBudget || 0) / 1000) * CPM;
 
-        const updatedData = {
-            ...campaign,
+        const updatedData: Omit<AdCampaignData, 'clickBudget' | 'impressionBudget'> & { clickBudget?: number; impressionBudget?: number } = {
             ...data,
+            id: campaign.id,
+            type: campaign.type,
+            status: campaign.status,
             budget: newBudget,
+            spent: campaign.spent,
+            results: isCpc ? data.clickBudget || 0 : data.impressionBudget || 0,
             updatedAt: serverTimestamp(),
-            results: isCpc ? data.clickBudget : data.impressionBudget,
         };
+
+        if (isCpc) {
+            delete updatedData.impressionBudget;
+        } else {
+            delete updatedData.clickBudget;
+        }
 
         setDocumentNonBlocking(campaignDocRef, updatedData, { merge: true });
         
@@ -365,3 +374,4 @@ export default function EditCampaignPage() {
     return <EditAdCampaignPageContent campaignId={campaignId} />;
   }
   
+    
