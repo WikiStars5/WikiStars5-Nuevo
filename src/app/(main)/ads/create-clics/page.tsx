@@ -17,6 +17,7 @@ import FigureSearchInput from '@/components/figure/figure-search-input';
 import type { Figure } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { v4 as uuidv4 } from 'uuid';
 
 const adCampaignSchema = z.object({
   campaignName: z.string().min(5, 'El nombre debe tener al menos 5 caracteres.'),
@@ -34,6 +35,7 @@ const adCampaignSchema = z.object({
 type AdCampaignFormValues = z.infer<typeof adCampaignSchema>;
 
 const CPC = 0.15; // Costo Por Clic en S/
+const CAMPAIGNS_STORAGE_KEY = 'wikistars5-ad-campaigns';
 
 export default function CreateAdPage() {
     const { toast } = useToast();
@@ -79,12 +81,36 @@ export default function CreateAdPage() {
     
     const handleSaveDraft = () => {
         const data = form.getValues();
-        console.log('Guardando borrador:', data);
-        toast({
-            title: 'Borrador Guardado',
-            description: `La campaña "${data.campaignName || 'sin nombre'}" ha sido guardada.`,
-        });
-        router.push('/ads');
+        
+        try {
+            const savedCampaigns = JSON.parse(localStorage.getItem(CAMPAIGNS_STORAGE_KEY) || '[]');
+            const newCampaign = {
+                id: uuidv4(),
+                name: data.campaignName || 'Campaña sin nombre',
+                status: 'draft',
+                delivery: 'Borrador',
+                results: 'N/A',
+                costPerResult: 'N/A',
+                budget: `S/ ${(data.clickBudget * CPC).toFixed(2)}`,
+                spent: 'S/0.00',
+                ...data
+            };
+            const updatedCampaigns = [...savedCampaigns, newCampaign];
+            localStorage.setItem(CAMPAIGNS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
+
+            toast({
+                title: 'Borrador Guardado',
+                description: `La campaña "${data.campaignName || 'sin nombre'}" ha sido guardada.`,
+            });
+            router.push('/ads');
+        } catch (error) {
+            console.error("Failed to save draft to localStorage", error);
+            toast({
+                title: 'Error al Guardar',
+                description: 'No se pudo guardar el borrador en el almacenamiento local.',
+                variant: 'destructive'
+            });
+        }
     };
     
     const clickBudgetValue = form.watch('clickBudget');

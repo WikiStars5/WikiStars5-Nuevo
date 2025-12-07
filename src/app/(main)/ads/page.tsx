@@ -46,16 +46,44 @@ const initialCampaigns = [
   },
 ];
 
+const CAMPAIGNS_STORAGE_KEY = 'wikistars5-ad-campaigns';
+
 export default function AdsDashboardPage() {
   const [campaigns, setCampaigns] = React.useState(initialCampaigns);
   const { toast } = useToast();
+  
+  React.useEffect(() => {
+    try {
+      const savedCampaigns = localStorage.getItem(CAMPAIGNS_STORAGE_KEY);
+      if (savedCampaigns) {
+        setCampaigns(JSON.parse(savedCampaigns));
+      }
+    } catch (error) {
+      console.error("Failed to load campaigns from localStorage", error);
+      // Fallback to initial data if localStorage is corrupt or unavailable
+      setCampaigns(initialCampaigns);
+    }
+  }, []);
+
 
   const handleDeleteCampaign = (campaignId: string) => {
-    setCampaigns((prev) => prev.filter((c) => c.id !== campaignId));
-    toast({
-      title: 'Campaña eliminada',
-      description: 'La campaña ha sido eliminada con éxito.',
-    });
+    const updatedCampaigns = campaigns.filter((c) => c.id !== campaignId);
+    setCampaigns(updatedCampaigns);
+    
+    try {
+        localStorage.setItem(CAMPAIGNS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
+        toast({
+          title: 'Campaña eliminada',
+          description: 'La campaña ha sido eliminada con éxito.',
+        });
+    } catch (error) {
+        console.error("Failed to save campaigns to localStorage after deletion", error);
+        toast({
+            title: 'Error de almacenamiento',
+            description: 'No se pudo guardar el cambio en el almacenamiento local.',
+            variant: 'destructive'
+        });
+    }
   };
 
   return (
