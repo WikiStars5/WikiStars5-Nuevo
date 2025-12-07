@@ -171,7 +171,9 @@ export default function AdsDashboardPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/ads/${campaign.id}/edit`}>Editar</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCampaign(campaign.id)}>
                             <Trash2 className="mr-2 h-4 w-4" />
                             Eliminar
