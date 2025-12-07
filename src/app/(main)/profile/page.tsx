@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useAuth } from '@/firebase';
+import { useUser, useFirestore, useAuth, useAdmin } from '@/firebase';
 import { doc, getDoc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2 } from "lucide-react";
+import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
@@ -62,6 +62,7 @@ function ProfilePageContent() {
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
     const [isLinking, setIsLinking] = useState(false);
+    const { isAdmin } = useAdmin();
 
     const { t } = useLanguage();
 
@@ -258,6 +259,7 @@ function ProfilePageContent() {
     }
     
     const displayName = userData?.username || user.displayName || t('ProfilePage.guestUser');
+    const isGoogleUser = user.providerData.some(p => p.providerId === 'google.com');
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
@@ -428,6 +430,24 @@ function ProfilePageContent() {
                             </CardContent>
                         </Card>
                        )}
+                       {(isGoogleUser || isAdmin) && (
+                         <Card className="mt-6">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Megaphone />
+                                    Panel de Anuncios
+                                </CardTitle>
+                                <CardDescription>Crea y gestiona tus campañas publicitarias en WikiStars5.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Button asChild className="w-full">
+                                    <Link href="/ads">
+                                        Crear Campaña de Anuncios
+                                    </Link>
+                                </Button>
+                            </CardContent>
+                         </Card>
+                       )}
                     </TabsContent>
                     <TabsContent value="activity" className="mt-4">
                         <UserActivity userId={user.uid} />
@@ -443,3 +463,5 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
+
+    
