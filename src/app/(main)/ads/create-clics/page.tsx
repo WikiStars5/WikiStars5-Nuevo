@@ -51,6 +51,8 @@ export default function CreateAdPage() {
             campaignName: '',
             targetFigureId: '',
             targetFigureName: '',
+            targetType: 'attitude',
+            targetValue: '',
             adTitle: '',
             adDescription: '',
             adImageUrl: '',
@@ -292,3 +294,4 @@ export default function CreateAdPage() {
     </div>
   );
 }
+    
