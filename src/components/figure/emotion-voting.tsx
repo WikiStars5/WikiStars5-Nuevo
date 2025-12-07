@@ -3,13 +3,13 @@
 
 import { useState, useContext, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc } from 'firebase/firestore'; 
+import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc, getDoc } from 'firebase/firestore'; 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { Figure, EmotionVote, GlobalSettings } from '@/lib/types';
+import type { Figure, EmotionVote, GlobalSettings, User as AppUser } from '@/lib/types';
 import Image from 'next/image';
 import { signInAnonymously } from 'firebase/auth';
 import { ShareButton } from '../shared/ShareButton';
@@ -137,14 +137,19 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     // --- End Optimistic Update ---
 
     try {
+      const userProfileRef = doc(firestore, 'users', currentUser.uid);
       const publicVoteRef = doc(firestore, `figures/${figure.id}/emotionVotes`, currentUser.uid);
       const privateVoteRef = doc(firestore, `users/${currentUser.uid}/emotionVotes`, figure.id);
       const figureRef = doc(firestore, `figures/${figure.id}`);
 
       await runTransaction(firestore, async (transaction) => {
-        const privateVoteDoc = await transaction.get(privateVoteRef);
+        const [privateVoteDoc, userProfileDoc] = await Promise.all([
+          transaction.get(privateVoteRef),
+          transaction.get(userProfileRef),
+        ]);
+        
         const dbPreviousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as EmotionVote).vote : null;
-
+        const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : null;
         const isDbRetracting = dbPreviousVote === vote;
         
         const updates: any = {
@@ -155,6 +160,8 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
         const denormalizedData = {
             figureName: figure.name,
             figureImageUrl: figure.imageUrl,
+            userCountry: userProfileData?.country || null,
+            userGender: userProfileData?.gender || null,
         };
 
         if (isDbRetracting) {
@@ -173,7 +180,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             };
 
             if (dbPreviousVote) {
-                transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() }, { merge: true });
+                transaction.set(publicVoteRef, voteData, { merge: true });
                 transaction.set(privateVoteRef, voteData, { merge: true });
 
                 updates[`emotion.${dbPreviousVote}`] = increment(-1);
@@ -181,7 +188,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                 toast({ title: t('AttitudeVoting.voteToast.updated') });
             
             } else {
-                transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() });
+                transaction.set(publicVoteRef, voteData);
                 transaction.set(privateVoteRef, voteData);
                 
                 updates[`emotion.${vote}`] = increment(1);
@@ -288,4 +295,3 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
       </div>
   );
 }
-

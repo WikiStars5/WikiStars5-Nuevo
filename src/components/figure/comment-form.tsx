@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle, User as UserIcon } from 'lucide-react';
 import StarInput from './star-input';
-import { Comment, Streak, GlobalSettings, Figure } from '@/lib/types';
+import { Comment, Streak, GlobalSettings, Figure, User as AppUser } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import Image from 'next/image';
@@ -76,7 +76,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userProfileRef);
 
   const needsIdentity = !user || (user.isAnonymous && !userProfile);
 
@@ -128,7 +128,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
     setIsSubmitting(true);
     let transactionError: string | null = null;
     let finalDisplayName = '';
-    let finalUserProfileData: any = {};
+    let finalUserProfileData: Partial<AppUser> = {};
 
     try {
       await runTransaction(firestore, async (transaction) => {
@@ -141,9 +141,12 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
           transactionError = t('CommentForm.toast.alreadyCommented');
           return; // Abort transaction
         }
+
+        const userRef = doc(firestore, 'users', currentUser!.uid);
+        const userProfileSnap = await transaction.get(userRef);
+        finalUserProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
         
-        finalDisplayName = userProfile?.username || currentUser?.displayName || `${t('ProfilePage.guestUser')}_${currentUser!.uid.substring(0,4)}`;
-        finalUserProfileData = userProfile || {};
+        finalDisplayName = finalUserProfileData.username || currentUser?.displayName || `${t('ProfilePage.guestUser')}_${currentUser!.uid.substring(0,4)}`;
 
         if (needsIdentity && data.username) {
             const newUsername = data.username;
@@ -158,13 +161,13 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
             transaction.set(newUsernameRef, { userId: currentUser!.uid });
             
             finalDisplayName = newUsername; // Set the final display name here
-            finalUserProfileData = {
+            const newUserProfileData = {
                 username: newUsername,
                 usernameLower: newUsernameLower,
                 createdAt: serverTimestamp(),
             };
-            const userRef = doc(firestore, 'users', currentUser!.uid);
-            transaction.set(userRef, finalUserProfileData);
+            transaction.set(userRef, newUserProfileData);
+            finalUserProfileData = newUserProfileData; // update for comment payload
         }
         
         const updates: { [key: string]: any } = { updatedAt: serverTimestamp() };
@@ -406,4 +409,3 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
       </Card>
   );
 }
-

@@ -11,6 +11,8 @@ export interface User {
   referralCount?: number;
   visitCount?: number;
   lastVisit?: Timestamp;
+  country?: string | null;
+  gender?: 'Masculino' | 'Femenino' | 'Otro' | 'Prefiero no decirlo' | null;
 }
 
 export interface GlobalSettings {
@@ -106,8 +108,10 @@ export interface AttitudeVote {
     vote: 'neutral' | 'fan' | 'simp' | 'hater';
     createdAt: any; // Firestore Timestamp
     // Denormalized data
-    figureName: string;
-    figureImageUrl: string;
+    figureName?: string;
+    figureImageUrl?: string;
+    userCountry?: string | null;
+    userGender?: string | null;
 }
 
 export interface EmotionVote {
@@ -117,8 +121,10 @@ export interface EmotionVote {
     vote: 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
     createdAt: any; // Firestore Timestamp
     // Denormalized data
-    figureName: string;
-    figureImageUrl: string;
+    figureName?: string;
+    figureImageUrl?: string;
+    userCountry?: string | null;
+    userGender?: string | null;
 }
 
 export interface Comment {

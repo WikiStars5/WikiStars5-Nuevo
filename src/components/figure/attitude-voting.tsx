@@ -3,14 +3,14 @@
 
 import { useState, useContext, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc } from 'firebase/firestore'; 
+import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc, getDoc } from 'firebase/firestore'; 
 import { onAuthStateChanged, User as FirebaseUser, Auth, signInAnonymously } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, Lock, ArrowDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { Figure, AttitudeVote, GlobalSettings } from '@/lib/types';
+import type { Figure, AttitudeVote, GlobalSettings, User as AppUser } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { ShareButton } from '../shared/ShareButton';
@@ -147,14 +147,19 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     // --- End Optimistic Update ---
 
     try {
+      const userProfileRef = doc(firestore, 'users', currentUser.uid);
       const publicVoteRef = doc(firestore, `figures/${figure.id}/attitudeVotes`, currentUser.uid);
       const privateVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figure.id);
       const figureRef = doc(firestore, `figures/${figure.id}`);
 
       await runTransaction(firestore, async (transaction) => {
-        const privateVoteDoc = await transaction.get(privateVoteRef);
-        const dbPreviousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as AttitudeVote).vote : null;
+        const [privateVoteDoc, userProfileDoc] = await Promise.all([
+          transaction.get(privateVoteRef),
+          transaction.get(userProfileRef),
+        ]);
         
+        const dbPreviousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as AttitudeVote).vote : null;
+        const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : null;
         const isDbRetracting = dbPreviousVote === vote;
         
         const updates: any = {
@@ -165,6 +170,8 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         const denormalizedData = {
             figureName: figure.name,
             figureImageUrl: figure.imageUrl,
+            userCountry: userProfileData?.country || null,
+            userGender: userProfileData?.gender || null,
         };
 
         if (isDbRetracting) {
@@ -183,13 +190,13 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
             };
 
             if (dbPreviousVote) {
-                transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() }, { merge: true });
+                transaction.set(publicVoteRef, voteData, { merge: true });
                 transaction.set(privateVoteRef, voteData, { merge: true });
                 updates[`attitude.${dbPreviousVote}`] = increment(-1);
                 updates[`attitude.${vote}`] = increment(1);
                 toast({ title: t('AttitudeVoting.voteToast.updated') });
             } else {
-                transaction.set(publicVoteRef, { vote: vote, createdAt: serverTimestamp() });
+                transaction.set(publicVoteRef, voteData);
                 transaction.set(privateVoteRef, voteData);
                 updates[`attitude.${vote}`] = increment(1);
                 toast({ title: t('AttitudeVoting.voteToast.registered') });
