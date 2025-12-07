@@ -75,7 +75,7 @@ export default function AdsDashboardPage() {
                 <DropdownMenuLabel>Elige un objetivo</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/ads/create">
+                  <Link href="/ads/create-clics">
                     Clics
                   </Link>
                 </DropdownMenuItem>
