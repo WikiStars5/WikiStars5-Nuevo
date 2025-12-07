@@ -37,7 +37,7 @@ export default function AudienceEstimator({ criteria }: AudienceEstimatorProps) 
 
   useEffect(() => {
     const calculateAudience = async () => {
-      if (!firestore || criteria.length === 0) {
+      if (!firestore || !criteria || criteria.length === 0) {
         setEstimatedSize(0);
         return;
       }
