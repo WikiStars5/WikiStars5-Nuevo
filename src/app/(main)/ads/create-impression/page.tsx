@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Target, Image as ImageIcon, HandCoins, Sparkles, XCircle, ArrowLeft, Save, Send, Trash2, X } from 'lucide-react';
+import { Eye, Target, Image as ImageIcon, HandCoins, Sparkles, XCircle, ArrowLeft, Save, Send, Trash2, X, Plus } from 'lucide-react';
 import FigureSearchInput from '@/components/figure/figure-search-input';
 import type { Figure } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +20,10 @@ import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+
 
 const targetingCriterionSchema = z.object({
     figureId: z.string().min(1, 'Debes seleccionar una figura.'),
@@ -49,6 +53,12 @@ export default function CreateImpressionAdPage() {
     const { user } = useUser();
     const firestore = useFirestore();
 
+    const [newCriterion, setNewCriterion] = useState<{figure: Figure | null, type: 'attitude' | 'emotion', value: string}>({
+        figure: null,
+        type: 'attitude',
+        value: ''
+    });
+
     const form = useForm<AdCampaignFormValues>({
         resolver: zodResolver(adCampaignSchema),
         defaultValues: {
@@ -67,8 +77,21 @@ export default function CreateImpressionAdPage() {
         name: "targetingCriteria",
     });
     
-    const watchTargetingType = (index: number) => form.watch(`targetingCriteria.${index}.type`);
-    const watchTargetingFigure = (index: number) => form.watch(`targetingCriteria.${index}`);
+    const handleAddCriterion = () => {
+        if (!newCriterion.figure || !newCriterion.value) {
+            toast({ title: "Criterio incompleto", description: "Por favor, selecciona una figura y un valor.", variant: "destructive" });
+            return;
+        }
+        append({
+            figureId: newCriterion.figure.id,
+            figureName: newCriterion.figure.name,
+            figureImageUrl: newCriterion.figure.imageUrl,
+            type: newCriterion.type,
+            value: newCriterion.value,
+        });
+        // Reset the form for the new criterion
+        setNewCriterion({ figure: null, type: 'attitude', value: '' });
+    };
 
 
     const saveCampaign = (status: 'draft' | 'pending_review') => {
@@ -93,7 +116,7 @@ export default function CreateImpressionAdPage() {
             ...data,
             budget: (data.impressionBudget / 1000) * CPM,
             spent: 0,
-            results: 0,
+            results: data.impressionBudget,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
@@ -156,78 +179,85 @@ export default function CreateImpressionAdPage() {
 
                     <div className="space-y-4">
                         <h3 className="font-semibold text-lg flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Segmentación del Público</h3>
-                        {fields.map((field, index) => {
-                             const selectedFigure = watchTargetingFigure(index);
-                             return (
-                                <Card key={field.id} className="p-4 relative bg-muted/50">
-                                    <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => remove(index)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                    <div className="space-y-4">
-                                        {!selectedFigure.figureId ? (
-                                            <FigureSearchInput onFigureSelect={(figure) => {
-                                                form.setValue(`targetingCriteria.${index}.figureId`, figure.id);
-                                                form.setValue(`targetingCriteria.${index}.figureName`, figure.name);
-                                                form.setValue(`targetingCriteria.${index}.figureImageUrl`, figure.imageUrl);
-                                            }} />
-                                        ) : (
-                                            <div className="flex items-center justify-between rounded-lg border p-2 bg-background">
-                                                <div className="flex items-center gap-3">
-                                                    <Image src={selectedFigure.figureImageUrl || ''} alt={selectedFigure.figureName} width={40} height={50} className="rounded-md object-cover aspect-[4/5]" />
-                                                    <p className="font-semibold">{selectedFigure.figureName}</p>
-                                                </div>
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => form.setValue(`targetingCriteria.${index}.figureId`, '')}>
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        )}
+                         <div className="p-4 border rounded-lg space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div className="md:col-span-2">
+                                    <Label>Figura Pública</Label>
+                                    <FigureSearchInput onFigureSelect={(figure) => setNewCriterion(prev => ({...prev, figure}))} />
+                                </div>
+                                <div>
+                                    <Label>Tipo</Label>
+                                    <Select value={newCriterion.type} onValueChange={(v: 'attitude' | 'emotion') => setNewCriterion(prev => ({...prev, type: v, value: ''}))}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="attitude">Por Actitud</SelectItem>
+                                            <SelectItem value="emotion">Por Emoción</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                    <div>
+                                    <Label>Valor</Label>
+                                    <Select value={newCriterion.value} onValueChange={(v) => setNewCriterion(prev => ({...prev, value: v}))} >
+                                            <SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger>
+                                        <SelectContent>
+                                            {newCriterion.type === 'attitude' && (<>
+                                                <SelectItem value="fan">Fan</SelectItem>
+                                                <SelectItem value="hater">Hater</SelectItem>
+                                                <SelectItem value="simp">Simp</SelectItem>
+                                                <SelectItem value="neutral">Neutral</SelectItem>
+                                            </>)}
+                                            {newCriterion.type === 'emotion' && (<>
+                                                <SelectItem value="alegria">Alegría</SelectItem>
+                                                <SelectItem value="furia">Furia</SelectItem>
+                                                <SelectItem value="envidia">Envidia</SelectItem>
+                                                <SelectItem value="tristeza">Tristeza</SelectItem>
+                                                <SelectItem value="miedo">Miedo</SelectItem>
+                                                <SelectItem value="desagrado">Desagrado</SelectItem>
+                                            </>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <Button type="button" variant="outline" onClick={handleAddCriterion}><Plus className="mr-2 h-4 w-4" /> Añadir Criterio</Button>
+                        </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <FormField control={form.control} name={`targetingCriteria.${index}.type`} render={({ field: typeField }) => (
-                                                <FormItem>
-                                                    <FormLabel>Tipo</FormLabel>
-                                                    <Select onValueChange={typeField.onChange} defaultValue={typeField.value}>
-                                                        <FormControl><SelectTrigger><SelectValue placeholder="Elige un tipo" /></SelectTrigger></FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="attitude">Por Actitud</SelectItem>
-                                                            <SelectItem value="emotion">Por Emoción</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={form.control} name={`targetingCriteria.${index}.value`} render={({ field: valueField }) => (
-                                                <FormItem>
-                                                    <FormLabel>Valor</FormLabel>
-                                                    <Select onValueChange={valueField.onChange} defaultValue={valueField.value} disabled={!watchTargetingType(index)}>
-                                                        <FormControl><SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger></FormControl>
-                                                        <SelectContent>
-                                                            {watchTargetingType(index) === 'attitude' && (<>
-                                                                <SelectItem value="fan">Fan</SelectItem>
-                                                                <SelectItem value="hater">Hater</SelectItem>
-                                                                <SelectItem value="simp">Simp</SelectItem>
-                                                                <SelectItem value="neutral">Neutral</SelectItem>
-                                                            </>)}
-                                                            {watchTargetingType(index) === 'emotion' && (<>
-                                                                <SelectItem value="alegria">Alegría</SelectItem>
-                                                                <SelectItem value="furia">Furia</SelectItem>
-                                                                <SelectItem value="envidia">Envidia</SelectItem>
-                                                                <SelectItem value="tristeza">Tristeza</SelectItem>
-                                                                <SelectItem value="miedo">Miedo</SelectItem>
-                                                                <SelectItem value="desagrado">Desagrado</SelectItem>
-                                                            </>)}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormItem>
-                                            )} />
-                                        </div>
-                                    </div>
-                                </Card>
-                            )
-                        })}
-                        <Button type="button" variant="outline" onClick={() => append({ figureId: '', figureName: '', figureImageUrl: '', type: 'attitude', value: '' })}>
-                            Añadir criterio de segmentación
-                        </Button>
-                        <FormMessage>{form.formState.errors.targetingCriteria?.message}</FormMessage>
+                        {fields.length > 0 && (
+                            <div className="border rounded-lg overflow-hidden">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Figura</TableHead>
+                                            <TableHead>Tipo</TableHead>
+                                            <TableHead>Valor</TableHead>
+                                            <TableHead className="text-right"></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {fields.map((field, index) => (
+                                            <TableRow key={field.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Avatar className="h-8 w-8">
+                                                            <AvatarImage src={field.figureImageUrl || undefined} />
+                                                            <AvatarFallback>{field.figureName.charAt(0)}</AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="font-medium text-sm">{field.figureName}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="capitalize">{field.type}</TableCell>
+                                                <TableCell className="capitalize">{field.value}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                        <FormMessage>{form.formState.errors.targetingCriteria?.message || form.formState.errors.targetingCriteria?.root?.message}</FormMessage>
                     </div>
                     
                     <Separator />
