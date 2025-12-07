@@ -84,14 +84,14 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
 
-      // Users can manage their own private votes, streaks, and notifications
-      // Admins can list them for the dashboard
+      // Users can manage their own private data
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
       match /user_achievements/{achievementId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /adCampaigns/{campaignId} { allow read, write: if isOwner(userId) || isAdmin(); }
     }
 
     
@@ -252,5 +252,3 @@ service cloud.firestore {
     match /settings/{settingId} { allow get: if true; allow write: if isAdmin(); }
   }
 }
-
-    
