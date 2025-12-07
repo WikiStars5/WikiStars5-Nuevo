@@ -233,7 +233,10 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                         <div className="md:col-span-2">
                                             <Label>Figura Pública</Label>
-                                            <FigureSearchInput onFigureSelect={(figure) => setNewCriterion(prev => ({...prev, figure}))} />
+                                            <FigureSearchInput 
+                                                onFigureSelect={(figure) => setNewCriterion(prev => ({ ...prev, figure }))} 
+                                                initialQuery={newCriterion.figure?.name}
+                                            />
                                         </div>
                                         <div>
                                             <Label>Tipo</Label>

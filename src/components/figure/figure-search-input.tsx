@@ -31,10 +31,11 @@ function correctMalformedUrl(url: string | undefined | null): string {
 interface FigureSearchInputProps {
   onFigureSelect: (figure: Figure) => void;
   className?: string;
+  initialQuery?: string | null;
 }
 
-export default function FigureSearchInput({ onFigureSelect, className }: FigureSearchInputProps) {
-  const [currentQuery, setCurrentQuery] = useState('');
+export default function FigureSearchInput({ onFigureSelect, className, initialQuery = null }: FigureSearchInputProps) {
+  const [currentQuery, setCurrentQuery] = useState(initialQuery || '');
   const [figureResults, setFigureResults] = useState<Figure[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -42,6 +43,10 @@ export default function FigureSearchInput({ onFigureSelect, className }: FigureS
   const inputRef = useRef<HTMLInputElement>(null);
   const firestore = useFirestore();
   const { t } = useLanguage();
+  
+  useEffect(() => {
+    setCurrentQuery(initialQuery || '');
+  }, [initialQuery]);
 
   const searchFigures = async (searchTerm: string): Promise<Figure[]> => {
     if (searchTerm.trim().length < 1 || !firestore) return [];
@@ -66,7 +71,8 @@ export default function FigureSearchInput({ onFigureSelect, className }: FigureS
 
   const handleResultClick = (figure: Figure) => {
     onFigureSelect(figure);
-    clearSearch();
+    setCurrentQuery(figure.name);
+    setIsDropdownOpen(false);
   };
 
   const debouncedSearch = useCallback(
