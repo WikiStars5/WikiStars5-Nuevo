@@ -80,7 +80,7 @@ export default function AdsDashboardPage() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/ads/create">
+                  <Link href="/ads/create-impression">
                     Impresiones
                   </Link>
                 </DropdownMenuItem>
