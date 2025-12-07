@@ -133,9 +133,9 @@ export default function CreateAdPage() {
                 <Megaphone className="h-8 w-8 text-primary" />
             </div>
             <div>
-                <CardTitle className="text-3xl font-headline">Crear Nueva Campaña</CardTitle>
+                <CardTitle className="text-3xl font-headline">Crear Nueva Campaña de Clics</CardTitle>
                 <CardDescription className="text-muted-foreground">
-                    Define tu público, crea tu anuncio y establece un presupuesto.
+                    Define tu público, crea tu anuncio y establece un presupuesto para generar tráfico.
                 </CardDescription>
             </div>
           </div>
@@ -293,3 +293,4 @@ export default function CreateAdPage() {
     </div>
   );
 }
+    
