@@ -24,6 +24,7 @@ import FigureSearchInput from '@/components/figure/figure-search-input';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
 
 
 const targetingCriterionSchema = z.object({
