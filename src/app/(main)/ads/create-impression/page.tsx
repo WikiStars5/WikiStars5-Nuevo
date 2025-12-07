@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ const CPM = 5.00; // Costo Por Mil Impresiones en S/
 
 export default function CreateImpressionAdPage() {
     const { toast } = useToast();
+    const router = useRouter();
     const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
 
     const form = useForm<AdCampaignFormValues>({
@@ -71,6 +73,16 @@ export default function CreateImpressionAdPage() {
             title: 'Formulario Enviado (Simulación)',
             description: 'Los datos de la campaña se han registrado en la consola.',
         });
+    };
+
+    const handleSaveDraft = () => {
+        const data = form.getValues();
+        console.log('Guardando borrador:', data);
+        toast({
+            title: 'Borrador Guardado',
+            description: `La campaña "${data.campaignName || 'sin nombre'}" ha sido guardada.`,
+        });
+        router.push('/ads');
     };
     
     const impressionBudgetValue = form.watch('impressionBudget');
@@ -237,7 +249,7 @@ export default function CreateImpressionAdPage() {
                     </div>
                     
                     <div className="flex justify-end gap-4 pt-4">
-                        <Button type="button" variant="outline">
+                        <Button type="button" variant="outline" onClick={handleSaveDraft}>
                             <Save className="mr-2 h-4 w-4" />
                             Guardar Borrador
                         </Button>
