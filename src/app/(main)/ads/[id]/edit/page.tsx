@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useParams } from 'next/navigation';
@@ -17,19 +17,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye, Target, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye, Target, Image as ImageIcon, Sparkles, Trash2 } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import FigureSearchInput from '@/components/figure/figure-search-input';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
+const targetingCriterionSchema = z.object({
+    figureId: z.string().min(1, 'Debes seleccionar una figura.'),
+    figureName: z.string(),
+    figureImageUrl: z.string().url().optional().nullable(),
+    type: z.enum(['attitude', 'emotion']),
+    value: z.string().min(1, 'Debes seleccionar un valor.'),
+});
+
 const adCampaignSchema = z.object({
   campaignName: z.string().min(5, 'El nombre debe tener al menos 5 caracteres.'),
-  targetFigureId: z.string().min(1, 'Debes seleccionar una figura pública.'),
-  targetFigureName: z.string(),
-  targetType: z.enum(['attitude', 'emotion']),
-  targetValue: z.string().min(1, 'Debes seleccionar un valor de segmentación.'),
+  targetingCriteria: z.array(targetingCriterionSchema).min(1, 'Debes añadir al menos un criterio de segmentación.'),
   adTitle: z.string().min(5, 'El título es obligatorio.'),
   adDescription: z.string().max(100, 'Máximo 100 caracteres.'),
   adImageUrl: z.string().url('Debe ser una URL de imagen válida.'),
@@ -59,7 +64,6 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
     const { user } = useUser();
     const firestore = useFirestore();
     
-    const [selectedFigure, setSelectedFigure] = React.useState<Figure | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
     const campaignDocRef = useMemoFirebase(() => {
@@ -73,41 +77,18 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
         resolver: zodResolver(adCampaignSchema),
     });
 
+    const { fields, append, remove } = useFieldArray({
+        control: form.control,
+        name: "targetingCriteria",
+    });
+
     React.useEffect(() => {
         if (campaign) {
-            const defaultValues: Partial<AdCampaignFormValues> = {
-                ...campaign,
-            };
-             if (campaign.type === 'cpc') {
-                defaultValues.clickBudget = campaign.clickBudget;
-            } else {
-                defaultValues.impressionBudget = campaign.impressionBudget;
-            }
-            form.reset(defaultValues);
-
-            if (campaign.targetFigureId && campaign.targetFigureName) {
-                // We don't fetch the full figure object here, just create a partial one for display
-                 setSelectedFigure({
-                    id: campaign.targetFigureId,
-                    name: campaign.targetFigureName,
-                    imageUrl: campaign.adImageUrl, // This is a stand-in, but works for the placeholder
-                } as Figure);
-            }
+            form.reset(campaign);
         }
     }, [campaign, form]);
     
-    const handleFigureSelect = (figure: Figure) => {
-        setSelectedFigure(figure);
-        form.setValue('targetFigureId', figure.id);
-        form.setValue('targetFigureName', figure.name);
-    };
-
-    const handleClearFigure = () => {
-        setSelectedFigure(null);
-        form.resetField('targetFigureId');
-        form.resetField('targetFigureName');
-        form.resetField('targetValue');
-    };
+    const watchTargetingType = (index: number) => form.watch(`targetingCriteria.${index}.type`);
 
     const onSubmit = (data: AdCampaignFormValues) => {
         if (!campaignDocRef || !campaign) return;
@@ -200,65 +181,71 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
 
                             <div className="space-y-4">
                                 <h3 className="font-semibold text-lg flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Segmentación del Público</h3>
-                                <FormItem>
-                                    <FormLabel>Figura Pública Objetivo</FormLabel>
-                                    {selectedFigure ? (
-                                        <div className="flex items-center justify-between rounded-lg border p-3">
-                                            <div className="flex items-center gap-3">
-                                                <Image src={selectedFigure.imageUrl} alt={selectedFigure.name} width={40} height={50} className="rounded-md object-cover aspect-[4/5]" />
-                                                <p className="font-semibold">{selectedFigure.name}</p>
-                                            </div>
-                                            <Button type="button" variant="ghost" size="icon" onClick={handleClearFigure}><XCircle className="h-4 w-4" /></Button>
-                                        </div>
-                                    ) : (
-                                        <FigureSearchInput onFigureSelect={handleFigureSelect} />
-                                    )}
-                                    <FormMessage>{form.formState.errors.targetFigureId?.message}</FormMessage>
-                                </FormItem>
+                                {fields.map((field, index) => (
+                                    <Card key={field.id} className="p-4 relative bg-muted/50">
+                                        <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => remove(index)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                        <div className="space-y-4">
+                                            <FormField control={form.control} name={`targetingCriteria.${index}.figureId`} render={({ field: formField }) => (
+                                                <FormItem>
+                                                    <FormLabel>Figura Pública</FormLabel>
+                                                    <FigureSearchInput onFigureSelect={(figure) => {
+                                                        form.setValue(`targetingCriteria.${index}.figureId`, figure.id);
+                                                        form.setValue(`targetingCriteria.${index}.figureName`, figure.name);
+                                                        form.setValue(`targetingCriteria.${index}.figureImageUrl`, figure.imageUrl);
+                                                    }} />
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
 
-                                {selectedFigure && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <FormField name="targetType" control={form.control} render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Tipo de Segmentación</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder="Elige un tipo" /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="attitude">Por Actitud</SelectItem>
-                                                        <SelectItem value="emotion">Por Emoción</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )} />
-                                        <FormField name="targetValue" control={form.control} render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Valor a Segmentar</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!form.watch('targetType')}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        {form.watch('targetType') === 'attitude' && (<>
-                                                            <SelectItem value="fan">Fan</SelectItem>
-                                                            <SelectItem value="hater">Hater</SelectItem>
-                                                            <SelectItem value="simp">Simp</SelectItem>
-                                                            <SelectItem value="neutral">Neutral</SelectItem>
-                                                        </>)}
-                                                        {form.watch('targetType') === 'emotion' && (<>
-                                                            <SelectItem value="alegria">Alegría</SelectItem>
-                                                            <SelectItem value="furia">Furia</SelectItem>
-                                                            <SelectItem value="envidia">Envidia</SelectItem>
-                                                            <SelectItem value="tristeza">Tristeza</SelectItem>
-                                                            <SelectItem value="miedo">Miedo</SelectItem>
-                                                            <SelectItem value="desagrado">Desagrado</SelectItem>
-                                                        </>)}
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}/>
-                                    </div>
-                                )}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <FormField control={form.control} name={`targetingCriteria.${index}.type`} render={({ field: typeField }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Tipo</FormLabel>
+                                                        <Select onValueChange={typeField.onChange} defaultValue={typeField.value}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder="Elige un tipo" /></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="attitude">Por Actitud</SelectItem>
+                                                                <SelectItem value="emotion">Por Emoción</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={form.control} name={`targetingCriteria.${index}.value`} render={({ field: valueField }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Valor</FormLabel>
+                                                        <Select onValueChange={valueField.onChange} defaultValue={valueField.value} disabled={!watchTargetingType(index)}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                {watchTargetingType(index) === 'attitude' && (<>
+                                                                    <SelectItem value="fan">Fan</SelectItem>
+                                                                    <SelectItem value="hater">Hater</SelectItem>
+                                                                    <SelectItem value="simp">Simp</SelectItem>
+                                                                    <SelectItem value="neutral">Neutral</SelectItem>
+                                                                </>)}
+                                                                {watchTargetingType(index) === 'emotion' && (<>
+                                                                    <SelectItem value="alegria">Alegría</SelectItem>
+                                                                    <SelectItem value="furia">Furia</SelectItem>
+                                                                    <SelectItem value="envidia">Envidia</SelectItem>
+                                                                    <SelectItem value="tristeza">Tristeza</SelectItem>
+                                                                    <SelectItem value="miedo">Miedo</SelectItem>
+                                                                    <SelectItem value="desagrado">Desagrado</SelectItem>
+                                                                </>)}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                        </div>
+                                    </Card>
+                                ))}
+                                <Button type="button" variant="outline" onClick={() => append({ figureId: '', figureName: '', figureImageUrl: '', type: 'attitude', value: '' })}>
+                                    Añadir criterio de segmentación
+                                </Button>
+                                <FormMessage>{form.formState.errors.targetingCriteria?.message}</FormMessage>
                             </div>
+
 
                              <Separator />
 
