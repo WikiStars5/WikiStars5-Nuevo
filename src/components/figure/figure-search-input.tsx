@@ -141,7 +141,7 @@ export default function FigureSearchInput({ onFigureSelect, className }: FigureS
           onFocus={() => { 
             if (currentQuery.trim().length > 0) setIsDropdownOpen(true);
           }}
-          className="text-sm h-10 flex-grow pl-10 pr-10 rounded-full shadow-sm border-border/60 focus:ring-1 focus:ring-primary/50"
+          className="text-sm h-10 flex-grow pl-10 pr-10 rounded-md shadow-sm border-border/60 focus:ring-1 focus:ring-primary/50"
         />
         {isLoading && currentQuery.length >= 1 && (
            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-muted-foreground" />

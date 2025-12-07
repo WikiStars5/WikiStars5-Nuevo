@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Megaphone, Users, Target, Image as ImageIcon, Link as LinkIcon, HandCoins, Sparkles, XCircle, ArrowLeft, Save, Send, Trash2 } from 'lucide-react';
+import { Megaphone, Users, Target, Image as ImageIcon, Link as LinkIcon, HandCoins, Sparkles, XCircle, ArrowLeft, Save, Send, Trash2, X } from 'lucide-react';
 import FigureSearchInput from '@/components/figure/figure-search-input';
 import type { Figure } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -68,6 +68,8 @@ export default function CreateAdPage() {
     });
 
     const watchTargetingType = (index: number) => form.watch(`targetingCriteria.${index}.type`);
+    const watchTargetingFigure = (index: number) => form.watch(`targetingCriteria.${index}`);
+
 
     const saveCampaign = (status: 'draft' | 'pending_review') => {
         if (!user || !firestore) {
@@ -154,65 +156,74 @@ export default function CreateAdPage() {
 
                     <div className="space-y-4">
                         <h3 className="font-semibold text-lg flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Segmentación del Público</h3>
-                        {fields.map((field, index) => (
-                            <Card key={field.id} className="p-4 relative bg-muted/50">
-                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => remove(index)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                                <div className="space-y-4">
-                                     <FormField control={form.control} name={`targetingCriteria.${index}.figureId`} render={({ field: formField }) => (
-                                         <FormItem>
-                                            <FormLabel>Figura Pública</FormLabel>
-                                             <FigureSearchInput onFigureSelect={(figure) => {
+                        {fields.map((field, index) => {
+                            const selectedFigure = watchTargetingFigure(index);
+                            return (
+                                <Card key={field.id} className="p-4 relative bg-muted/50">
+                                    <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => remove(index)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                    <div className="space-y-4">
+                                        {!selectedFigure.figureId ? (
+                                            <FigureSearchInput onFigureSelect={(figure) => {
                                                 form.setValue(`targetingCriteria.${index}.figureId`, figure.id);
                                                 form.setValue(`targetingCriteria.${index}.figureName`, figure.name);
                                                 form.setValue(`targetingCriteria.${index}.figureImageUrl`, figure.imageUrl);
                                             }} />
-                                            <FormMessage />
-                                         </FormItem>
-                                     )} />
+                                        ) : (
+                                            <div className="flex items-center justify-between rounded-lg border p-2 bg-background">
+                                                <div className="flex items-center gap-3">
+                                                    <Image src={selectedFigure.figureImageUrl || ''} alt={selectedFigure.figureName} width={40} height={50} className="rounded-md object-cover aspect-[4/5]" />
+                                                    <p className="font-semibold">{selectedFigure.figureName}</p>
+                                                </div>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => form.setValue(`targetingCriteria.${index}.figureId`, '')}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        )}
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FormField control={form.control} name={`targetingCriteria.${index}.type`} render={({ field: typeField }) => (
-                                            <FormItem>
-                                                <FormLabel>Tipo</FormLabel>
-                                                <Select onValueChange={typeField.onChange} defaultValue={typeField.value}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder="Elige un tipo" /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="attitude">Por Actitud</SelectItem>
-                                                        <SelectItem value="emotion">Por Emoción</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </FormItem>
-                                        )} />
-                                        <FormField control={form.control} name={`targetingCriteria.${index}.value`} render={({ field: valueField }) => (
-                                            <FormItem>
-                                                <FormLabel>Valor</FormLabel>
-                                                <Select onValueChange={valueField.onChange} defaultValue={valueField.value} disabled={!watchTargetingType(index)}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        {watchTargetingType(index) === 'attitude' && (<>
-                                                            <SelectItem value="fan">Fan</SelectItem>
-                                                            <SelectItem value="hater">Hater</SelectItem>
-                                                            <SelectItem value="simp">Simp</SelectItem>
-                                                            <SelectItem value="neutral">Neutral</SelectItem>
-                                                        </>)}
-                                                        {watchTargetingType(index) === 'emotion' && (<>
-                                                            <SelectItem value="alegria">Alegría</SelectItem>
-                                                            <SelectItem value="furia">Furia</SelectItem>
-                                                            <SelectItem value="envidia">Envidia</SelectItem>
-                                                            <SelectItem value="tristeza">Tristeza</SelectItem>
-                                                            <SelectItem value="miedo">Miedo</SelectItem>
-                                                            <SelectItem value="desagrado">Desagrado</SelectItem>
-                                                        </>)}
-                                                    </SelectContent>
-                                                </Select>
-                                            </FormItem>
-                                        )} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField control={form.control} name={`targetingCriteria.${index}.type`} render={({ field: typeField }) => (
+                                                <FormItem>
+                                                    <FormLabel>Tipo</FormLabel>
+                                                    <Select onValueChange={typeField.onChange} defaultValue={typeField.value}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Elige un tipo" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="attitude">Por Actitud</SelectItem>
+                                                            <SelectItem value="emotion">Por Emoción</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name={`targetingCriteria.${index}.value`} render={({ field: valueField }) => (
+                                                <FormItem>
+                                                    <FormLabel>Valor</FormLabel>
+                                                    <Select onValueChange={valueField.onChange} defaultValue={valueField.value} disabled={!watchTargetingType(index)}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            {watchTargetingType(index) === 'attitude' && (<>
+                                                                <SelectItem value="fan">Fan</SelectItem>
+                                                                <SelectItem value="hater">Hater</SelectItem>
+                                                                <SelectItem value="simp">Simp</SelectItem>
+                                                                <SelectItem value="neutral">Neutral</SelectItem>
+                                                            </>)}
+                                                            {watchTargetingType(index) === 'emotion' && (<>
+                                                                <SelectItem value="alegria">Alegría</SelectItem>
+                                                                <SelectItem value="furia">Furia</SelectItem>
+                                                                <SelectItem value="envidia">Envidia</SelectItem>
+                                                                <SelectItem value="tristeza">Tristeza</SelectItem>
+                                                                <SelectItem value="miedo">Miedo</SelectItem>
+                                                                <SelectItem value="desagrado">Desagrado</SelectItem>
+                                                            </>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </FormItem>
+                                            )} />
+                                        </div>
                                     </div>
-                                </div>
-                            </Card>
-                        ))}
+                                </Card>
+                            );
+                        })}
                         <Button type="button" variant="outline" onClick={() => append({ figureId: '', figureName: '', figureImageUrl: '', type: 'attitude', value: '' })}>
                             Añadir criterio de segmentación
                         </Button>
