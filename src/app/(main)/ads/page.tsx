@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Search } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -22,9 +22,17 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 
 // Placeholder data - replace with real data from Firestore later
-const campaigns = [
+const initialCampaigns = [
   {
     id: '1',
     name: 'wiki5',
@@ -38,6 +46,17 @@ const campaigns = [
 ];
 
 export default function AdsDashboardPage() {
+  const [campaigns, setCampaigns] = React.useState(initialCampaigns);
+  const { toast } = useToast();
+
+  const handleDeleteCampaign = (campaignId: string) => {
+    setCampaigns((prev) => prev.filter((c) => c.id !== campaignId));
+    toast({
+      title: 'Campaña eliminada',
+      description: 'La campaña ha sido eliminada con éxito.',
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -72,6 +91,9 @@ export default function AdsDashboardPage() {
                 <TableHead>Costo por resultado</TableHead>
                 <TableHead>Presupuesto</TableHead>
                 <TableHead>Importe gastado</TableHead>
+                <TableHead>
+                    <span className="sr-only">Acciones</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,6 +112,28 @@ export default function AdsDashboardPage() {
                   <TableCell>{campaign.costPerResult}</TableCell>
                   <TableCell>{campaign.budget}</TableCell>
                   <TableCell>{campaign.spent}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          aria-haspopup="true"
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Toggle menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                        <DropdownMenuItem>Editar</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteCampaign(campaign.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
