@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -160,7 +159,24 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         
         const dbPreviousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as AttitudeVote).vote : null;
         const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : null;
+        const country = userProfileData?.country || 'unknown';
+        const gender = userProfileData?.gender || 'unknown';
         const isDbRetracting = dbPreviousVote === vote;
+
+        // --- Aggregation Logic ---
+        if (dbPreviousVote) {
+          // Decrement old stat if changing vote or retracting
+          const oldStatId = `${country}_${gender}_${dbPreviousVote}`;
+          const oldStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, oldStatId);
+          transaction.set(oldStatRef, { count: increment(-1) }, { merge: true });
+        }
+        if (!isDbRetracting) {
+          // Increment new stat if not retracting
+          const newStatId = `${country}_${gender}_${vote}`;
+          const newStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, newStatId);
+          transaction.set(newStatRef, { count: increment(1) }, { merge: true });
+        }
+        // --- End Aggregation Logic ---
         
         const updates: any = {
           __oldVote: dbPreviousVote,
@@ -170,8 +186,8 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         const denormalizedData = {
             figureName: figure.name,
             figureImageUrl: figure.imageUrl,
-            userCountry: userProfileData?.country || null,
-            userGender: userProfileData?.gender || null,
+            userCountry: country,
+            userGender: gender,
         };
 
         if (isDbRetracting) {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -150,7 +149,22 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
         
         const dbPreviousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as EmotionVote).vote : null;
         const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : null;
+        const country = userProfileData?.country || 'unknown';
+        const gender = userProfileData?.gender || 'unknown';
         const isDbRetracting = dbPreviousVote === vote;
+
+        // --- Aggregation Logic ---
+        if (dbPreviousVote) {
+          const oldStatId = `${country}_${gender}_${dbPreviousVote}`;
+          const oldStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, oldStatId);
+          transaction.set(oldStatRef, { count: increment(-1) }, { merge: true });
+        }
+        if (!isDbRetracting) {
+          const newStatId = `${country}_${gender}_${vote}`;
+          const newStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, newStatId);
+          transaction.set(newStatRef, { count: increment(1) }, { merge: true });
+        }
+        // --- End Aggregation Logic ---
         
         const updates: any = {
           __oldVote: dbPreviousVote,
@@ -160,8 +174,8 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
         const denormalizedData = {
             figureName: figure.name,
             figureImageUrl: figure.imageUrl,
-            userCountry: userProfileData?.country || null,
-            userGender: userProfileData?.gender || null,
+            userCountry: country,
+            userGender: gender,
         };
 
         if (isDbRetracting) {
