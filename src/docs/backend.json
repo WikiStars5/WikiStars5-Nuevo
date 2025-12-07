@@ -24,6 +24,10 @@
           "description": "User's email address. Only applicable for registered users.",
           "format": "email"
         },
+        "profilePhotoUrl": {
+          "type": "string",
+          "description": "URL for the user's profile picture."
+        },
         "country": {
           "type": "string",
           "description": "User's country of origin."
@@ -49,6 +53,15 @@
         "referralCount": {
           "type": "number",
           "description": "The total number of users this user has successfully referred."
+        },
+        "visitCount": {
+            "type": "number",
+            "description": "The total number of unique days the user has visited the site."
+        },
+        "lastVisit": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp of the user's last recorded daily visit."
         }
       },
       "required": [
@@ -91,6 +104,33 @@
         "createdAt"
       ]
     },
+     "AdCampaign": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AdCampaign",
+      "type": "object",
+      "description": "Represents a single advertising campaign created by a user.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the campaign." },
+        "userId": { "type": "string", "description": "The ID of the user who created the campaign." },
+        "campaignName": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "pending_review", "active", "paused", "rejected", "completed"] },
+        "type": { "type": "string", "enum": ["cpc", "cpm"] },
+        "targetFigureId": { "type": "string" },
+        "targetFigureName": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["attitude", "emotion"] },
+        "targetValue": { "type": "string" },
+        "adTitle": { "type": "string" },
+        "adDescription": { "type": "string" },
+        "adImageUrl": { "type": "string", "format": "uri" },
+        "adLinkUrl": { "type": "string", "format": "uri" },
+        "budget": { "type": "number", "description": "Total monetary budget for the campaign." },
+        "spent": { "type": "number", "description": "Amount of the budget already spent." },
+        "results": { "type": "number", "description": "Number of results achieved (clicks or impressions)." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "campaignName", "status", "type"]
+    },
     "PublicFigure": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PublicFigure",
@@ -100,6 +140,11 @@
         "id": {
           "type": "string",
           "description": "Unique identifier for the public figure entity."
+        },
+        "profileType": {
+            "type": "string",
+            "enum": ["figure", "page"],
+            "description": "Determines if the profile is for a public figure or a brand/topic page."
         },
         "name": {
           "type": "string",
@@ -112,6 +157,13 @@
         "socialMediaLinks": {
           "type": "array",
           "description": "Links to the public figure's social media profiles.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "Tags associated with the public figure.",
           "items": {
             "type": "string"
           }
@@ -192,17 +244,6 @@
               "type": "number"
             }
           }
-        },
-        "shareCounts": {
-            "type": "object",
-            "description": "Aggregated share counts for the public figure's profile.",
-            "properties": {
-                "profile": { "type": "number" },
-                "goat": { "type": "number" },
-                "attitude": { "type": "number" },
-                "emotion": { "type": "number" },
-                "rating": { "type": "number" }
-            }
         }
       },
       "required": [
@@ -553,6 +594,18 @@
               "name": "userId",
               "description": "The unique identifier of the user."
             }
+          ]
+        }
+      },
+       {
+        "path": "/users/{userId}/adCampaigns/{campaignId}",
+        "definition": {
+          "entityName": "AdCampaign",
+          "schema": { "$ref": "#/backend/entities/AdCampaign" },
+          "description": "Stores advertising campaigns created by a user.",
+          "params": [
+            { "name": "userId", "description": "The user's unique ID." },
+            { "name": "campaignId", "description": "The unique ID for the ad campaign." }
           ]
         }
       },

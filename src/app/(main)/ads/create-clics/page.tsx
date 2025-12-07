@@ -18,10 +18,12 @@ import type { Figure } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
+import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { doc, serverTimestamp } from 'firebase/firestore';
 
 const adCampaignSchema = z.object({
   campaignName: z.string().min(5, 'El nombre debe tener al menos 5 caracteres.'),
-  targetFigureId: z.string(),
+  targetFigureId: z.string().min(1, 'Debes seleccionar una figura pública.'),
   targetFigureName: z.string(),
   targetType: z.enum(['attitude', 'emotion']),
   targetValue: z.string().min(1, 'Debes seleccionar un valor de segmentación.'),
@@ -35,12 +37,13 @@ const adCampaignSchema = z.object({
 type AdCampaignFormValues = z.infer<typeof adCampaignSchema>;
 
 const CPC = 0.15; // Costo Por Clic en S/
-const CAMPAIGNS_STORAGE_KEY = 'wikistars5-ad-campaigns';
 
 export default function CreateAdPage() {
     const { toast } = useToast();
     const router = useRouter();
     const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
+    const { user } = useUser();
+    const firestore = useFirestore();
 
     const form = useForm<AdCampaignFormValues>({
         resolver: zodResolver(adCampaignSchema),
@@ -69,49 +72,44 @@ export default function CreateAdPage() {
         form.resetField('targetValue');
     };
 
-    const onSubmit = (data: AdCampaignFormValues) => {
-        // Por ahora, solo mostraremos los datos en la consola.
-        // El siguiente paso será guardar esto en Firestore.
-        console.log('Datos de la campaña:', data);
-        toast({
-            title: 'Formulario Enviado (Simulación)',
-            description: 'Los datos de la campaña se han registrado en la consola.',
-        });
-    };
-    
-    const handleSaveDraft = () => {
-        const data = form.getValues();
-        
-        try {
-            const savedCampaigns = JSON.parse(localStorage.getItem(CAMPAIGNS_STORAGE_KEY) || '[]');
-            const newCampaign = {
-                id: uuidv4(),
-                name: data.campaignName || 'Campaña sin nombre',
-                status: 'draft',
-                delivery: 'Borrador',
-                results: 'N/A',
-                costPerResult: 'N/A',
-                budget: `S/ ${(data.clickBudget * CPC).toFixed(2)}`,
-                spent: 'S/0.00',
-                ...data
-            };
-            const updatedCampaigns = [...savedCampaigns, newCampaign];
-            localStorage.setItem(CAMPAIGNS_STORAGE_KEY, JSON.stringify(updatedCampaigns));
-
+    const saveCampaign = (status: 'draft' | 'pending_review') => {
+        if (!user || !firestore) {
             toast({
-                title: 'Borrador Guardado',
-                description: `La campaña "${data.campaignName || 'sin nombre'}" ha sido guardada.`,
+                title: 'Error de autenticación',
+                description: 'Debes iniciar sesión para crear una campaña.',
+                variant: 'destructive',
             });
-            router.push('/ads');
-        } catch (error) {
-            console.error("Failed to save draft to localStorage", error);
-            toast({
-                title: 'Error al Guardar',
-                description: 'No se pudo guardar el borrador en el almacenamiento local.',
-                variant: 'destructive'
-            });
+            return;
         }
-    };
+
+        const data = form.getValues();
+        const campaignId = uuidv4();
+        const campaignRef = doc(firestore, 'users', user.uid, 'adCampaigns', campaignId);
+        
+        const campaignData = {
+            id: campaignId,
+            userId: user.uid,
+            status,
+            type: 'cpc',
+            ...data,
+            budget: data.clickBudget * CPC,
+            spent: 0,
+            results: 0,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        };
+
+        setDocumentNonBlocking(campaignRef, campaignData);
+
+        toast({
+            title: status === 'draft' ? 'Borrador Guardado' : 'Campaña Enviada a Revisión',
+            description: `La campaña "${data.campaignName || 'sin nombre'}" ha sido guardada.`,
+        });
+        router.push('/ads');
+    }
+
+    const onSubmit = () => saveCampaign('pending_review');
+    const handleSaveDraft = () => saveCampaign('draft');
     
     const clickBudgetValue = form.watch('clickBudget');
     const totalCost = (clickBudgetValue || 0) * CPC;
@@ -182,6 +180,7 @@ export default function CreateAdPage() {
                             ) : (
                                 <FigureSearchInput onFigureSelect={handleFigureSelect} />
                             )}
+                             <FormMessage>{form.formState.errors.targetFigureId?.message}</FormMessage>
                         </FormItem>
 
                         {selectedFigure && (
@@ -293,4 +292,3 @@ export default function CreateAdPage() {
     </div>
   );
 }
-    
