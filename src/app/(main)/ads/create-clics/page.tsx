@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Megaphone, Users, Target, Image as ImageIcon, Link as LinkIcon, DollarSign, HandCoins, Pointer, Sparkles, XCircle, ArrowLeft } from 'lucide-react';
+import { Megaphone, Users, Target, Image as ImageIcon, Link as LinkIcon, HandCoins, Sparkles, XCircle, ArrowLeft, Save, Send } from 'lucide-react';
 import FigureSearchInput from '@/components/figure/figure-search-input';
 import type { Figure } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -238,10 +238,14 @@ export default function CreateAdPage() {
                          </div>
                     </div>
                     
-                    <div className="flex justify-end pt-4">
+                    <div className="flex justify-end gap-4 pt-4">
+                        <Button type="button" variant="outline">
+                            <Save className="mr-2 h-4 w-4" />
+                            Guardar Borrador
+                        </Button>
                         <Button type="submit">
-                            <DollarSign className="mr-2 h-4 w-4" />
-                            Proceder al Pago y Activar Campaña
+                            <Send className="mr-2 h-4 w-4" />
+                            Mandar para Revisión
                         </Button>
                     </div>
                 </form>
