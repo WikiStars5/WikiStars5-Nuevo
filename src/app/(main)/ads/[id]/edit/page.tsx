@@ -44,6 +44,9 @@ interface AdCampaignData extends AdCampaignFormValues {
     id: string;
     type: 'cpc' | 'cpm';
     status: 'draft' | 'pending_review' | 'active' | 'paused' | 'rejected' | 'completed';
+    budget: number;
+    spent: number;
+    results: number;
 }
 
 
@@ -72,7 +75,16 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
 
     React.useEffect(() => {
         if (campaign) {
-            form.reset(campaign);
+            const defaultValues: Partial<AdCampaignFormValues> = {
+                ...campaign,
+            };
+            if (campaign.type === 'cpc') {
+                defaultValues.clickBudget = campaign.clickBudget;
+            } else {
+                defaultValues.impressionBudget = campaign.impressionBudget;
+            }
+            form.reset(defaultValues);
+
             if (campaign.targetFigureId && campaign.targetFigureName) {
                 // We don't fetch the full figure object here, just create a partial one for display
                  setSelectedFigure({
@@ -310,5 +322,3 @@ export default function EditCampaignPage() {
     return <EditAdCampaignPageContent campaignId={campaignId} />;
   }
   
-
-    
