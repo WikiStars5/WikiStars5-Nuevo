@@ -27,6 +27,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
@@ -63,12 +64,28 @@ export default function AdsDashboardPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Campañas</CardTitle>
-            <Button asChild>
-              <Link href="/ads/create">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Crear campaña
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Crear campaña
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Elige un objetivo</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/ads/create">
+                    Clics
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/ads/create">
+                    Impresiones
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <CardDescription>
             Gestiona y analiza el rendimiento de tus campañas publicitarias.
