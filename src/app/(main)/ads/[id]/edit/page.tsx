@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye, Target, Image as ImageIcon, Sparkles, Trash2, X, Plus } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye, Target, Image as ImageIcon, Sparkles, Trash2, X, Plus, Send } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import FigureSearchInput from '@/components/figure/figure-search-input';
@@ -119,41 +119,39 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
         setNewCriterion({ figure: null, type: 'attitude', value: '' });
     };
 
-    const onSubmit = (data: AdCampaignFormValues) => {
+    const processAndSave = (status: AdCampaignData['status']) => {
         if (!campaignDocRef || !campaign) return;
         setIsSubmitting(true);
         
+        const data = form.getValues();
         const isCpc = campaign.type === 'cpc';
         const newBudget = isCpc 
             ? (data.clickBudget || 0) * CPC 
             : ((data.impressionBudget || 0) / 1000) * CPM;
 
-        const updatedData: Omit<AdCampaignData, 'clickBudget' | 'impressionBudget'> & { clickBudget?: number; impressionBudget?: number } = {
+        const updatedData = {
             ...data,
             id: campaign.id,
             type: campaign.type,
-            status: campaign.status,
+            status, // Use the passed status
             budget: newBudget,
             spent: campaign.spent,
             results: isCpc ? data.clickBudget || 0 : data.impressionBudget || 0,
             updatedAt: serverTimestamp(),
         };
 
-        if (isCpc) {
-            delete updatedData.impressionBudget;
-        } else {
-            delete updatedData.clickBudget;
-        }
-
         setDocumentNonBlocking(campaignDocRef, updatedData, { merge: true });
         
         toast({
-            title: 'Campaña Actualizada',
+            title: status === 'pending_review' ? 'Campaña Enviada a Revisión' : 'Campaña Actualizada',
             description: 'Los cambios en tu campaña han sido guardados.',
         });
         
         router.push('/ads');
     }
+
+    const onSubmit = () => processAndSave(campaign?.status || 'draft');
+    const handleSendForReview = () => processAndSave('pending_review');
     
     if (isLoading) {
         return (
@@ -349,6 +347,12 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                     Guardar Cambios
                                 </Button>
+                                {campaign.status === 'draft' && (
+                                    <Button type="button" onClick={handleSendForReview} disabled={isSubmitting}>
+                                        <Send className="mr-2 h-4 w-4" />
+                                        Enviar para Revisión
+                                    </Button>
+                                )}
                             </div>
                         </form>
                     </Form>
@@ -374,4 +378,3 @@ export default function EditCampaignPage() {
     return <EditAdCampaignPageContent campaignId={campaignId} />;
   }
   
-    
