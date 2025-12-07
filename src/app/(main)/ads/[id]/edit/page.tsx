@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye, Target, Image as ImageIcon, Sparkles, Trash2, X, Plus, Send } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye, Target, Image as ImageIcon, Sparkles, Trash2, X, Plus, Send, Users, MapPin, PersonStanding } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import FigureSearchInput from '@/components/figure/figure-search-input';
@@ -26,6 +26,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import AudienceEstimator from '@/components/ads/audience-estimator';
+import MultiCountrySelector from '@/components/shared/country-combobox';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const targetingCriterionSchema = z.object({
@@ -38,6 +40,8 @@ const targetingCriterionSchema = z.object({
 
 const adCampaignSchema = z.object({
   campaignName: z.string().min(5, 'El nombre debe tener al menos 5 caracteres.'),
+  locations: z.array(z.string()).optional(),
+  genders: z.array(z.string()).optional(),
   targetingCriteria: z.array(targetingCriterionSchema).min(1, 'Debes añadir al menos un criterio de segmentación.'),
   adTitle: z.string().min(5, 'El título es obligatorio.'),
   adDescription: z.string().max(100, 'Máximo 100 caracteres.'),
@@ -61,6 +65,12 @@ interface AdCampaignData extends AdCampaignFormValues {
 
 const CPC = 0.15;
 const CPM = 5.00;
+
+const GENDER_OPTIONS = [
+  { id: 'Masculino', label: 'Masculino' },
+  { id: 'Femenino', label: 'Femenino' },
+]
+
 
 function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
     const { toast } = useToast();
@@ -186,7 +196,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
     const isCpc = campaign.type === 'cpc';
     const budgetValue = isCpc ? form.watch('clickBudget') : form.watch('impressionBudget');
     const totalCost = isCpc ? (budgetValue || 0) * CPC : ((budgetValue || 0) / 1000) * CPM;
-    const watchedCriteria = form.watch('targetingCriteria');
+    const watchedCriteria = form.watch();
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-12">
@@ -228,9 +238,73 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                             </div>
 
                             <Separator />
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-lg flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> Segmentación Demográfica</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <FormField
+                                        control={form.control}
+                                        name="locations"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="flex items-center gap-2"><MapPin className="h-4 w-4"/> Ubicaciones</FormLabel>
+                                                <MultiCountrySelector
+                                                    selected={field.value || []}
+                                                    onChange={field.onChange}
+                                                />
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="genders"
+                                        render={() => (
+                                            <FormItem>
+                                                <FormLabel className="flex items-center gap-2"><PersonStanding className="h-4 w-4"/> Sexo</FormLabel>
+                                                <div className="flex items-center space-x-4 pt-2">
+                                                    {GENDER_OPTIONS.map((item) => (
+                                                        <FormField
+                                                            key={item.id}
+                                                            control={form.control}
+                                                            name="genders"
+                                                            render={({ field }) => {
+                                                                return (
+                                                                <FormItem
+                                                                    key={item.id}
+                                                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                                                >
+                                                                    <FormControl>
+                                                                    <Checkbox
+                                                                        checked={field.value?.includes(item.id)}
+                                                                        onCheckedChange={(checked) => {
+                                                                        return checked
+                                                                            ? field.onChange([...(field.value || []), item.id])
+                                                                            : field.onChange(
+                                                                                field.value?.filter(
+                                                                                (value) => value !== item.id
+                                                                                )
+                                                                            )
+                                                                        }}
+                                                                    />
+                                                                    </FormControl>
+                                                                    <FormLabel className="font-normal">
+                                                                    {item.label}
+                                                                    </FormLabel>
+                                                                </FormItem>
+                                                                )
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
 
                            <div className="space-y-4">
-                                <h3 className="font-semibold text-lg flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Segmentación del Público</h3>
+                                <h3 className="font-semibold text-lg flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Segmentación por Intereses</h3>
                                 
                                 <div className="p-4 border rounded-lg space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -340,7 +414,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                                 <FormMessage>{form.formState.errors.targetingCriteria?.message || form.formState.errors.targetingCriteria?.root?.message}</FormMessage>
                             </div>
 
-                            <AudienceEstimator criteria={watchedCriteria} />
+                            <AudienceEstimator criteria={watchedCriteria.targetingCriteria} locations={watchedCriteria.locations} genders={watchedCriteria.genders} />
 
 
                              <Separator />
@@ -416,4 +490,3 @@ export default function EditCampaignPage() {
   
     return <EditAdCampaignPageContent campaignId={campaignId} />;
   }
-  

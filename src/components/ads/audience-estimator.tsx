@@ -1,19 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFirestore } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import type { Figure } from '@/lib/types';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import type { Figure, User } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Info, Users, Loader2 } from 'lucide-react';
 
 interface AudienceEstimatorProps {
-  criteria: {
+  criteria?: {
     figureId: string;
     type: 'attitude' | 'emotion';
     value: string;
   }[];
+  locations?: string[];
+  genders?: string[];
 }
 
 const fetchFigureData = async (firestore: any, figureId: string): Promise<Figure | null> => {
@@ -30,7 +32,16 @@ const fetchFigureData = async (firestore: any, figureId: string): Promise<Figure
   }
 };
 
-export default function AudienceEstimator({ criteria }: AudienceEstimatorProps) {
+const fetchVoterIds = async (firestore: any, criterion: AudienceEstimatorProps['criteria'][0]): Promise<string[]> => {
+    const votesQuery = query(
+        collection(firestore, `figures/${criterion.figureId}/${criterion.type}Votes`),
+        where('vote', '==', criterion.value)
+    );
+    const snapshot = await getDocs(votesQuery);
+    return snapshot.docs.map(doc => doc.id);
+};
+
+export default function AudienceEstimator({ criteria, locations, genders }: AudienceEstimatorProps) {
   const firestore = useFirestore();
   const [estimatedSize, setEstimatedSize] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,26 +54,39 @@ export default function AudienceEstimator({ criteria }: AudienceEstimatorProps) 
       }
       
       setIsLoading(true);
-      let total = 0;
       
-      const figurePromises = criteria.map(c => fetchFigureData(firestore, c.figureId));
-      const figures = await Promise.all(figurePromises);
+      // 1. Get all unique user IDs based on attitude/emotion criteria
+      const voterIdPromises = criteria.map(c => fetchVoterIds(firestore, c));
+      const userIdsByCriterion = await Promise.all(voterIdPromises);
+      const uniqueUserIds = [...new Set(userIdsByCriterion.flat())];
+      
+      if (uniqueUserIds.length === 0) {
+          setEstimatedSize(0);
+          setIsLoading(false);
+          return;
+      }
+      
+      // 2. Fetch user profiles for the unique IDs
+      const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', uniqueUserIds));
+      const usersSnapshot = await getDocs(usersQuery);
+      let users = usersSnapshot.docs.map(doc => doc.data() as User);
 
-      criteria.forEach((criterion, index) => {
-        const figure = figures[index];
-        if (figure) {
-          const dataGroup = criterion.type === 'attitude' ? figure.attitude : figure.emotion;
-          const count = dataGroup?.[criterion.value as keyof typeof dataGroup] ?? 0;
-          total += count;
-        }
-      });
+      // 3. Filter users by location and gender
+      if (locations && locations.length > 0) {
+          users = users.filter(user => user.country && locations.includes(user.country));
+      }
+      if (genders && genders.length > 0) {
+          users = users.filter(user => user.gender && genders.includes(user.gender));
+      }
       
-      setEstimatedSize(total);
+      setEstimatedSize(users.length);
       setIsLoading(false);
     };
 
-    calculateAudience();
-  }, [criteria, firestore]);
+    const timeoutId = setTimeout(calculateAudience, 500); // Debounce calculation
+    return () => clearTimeout(timeoutId);
+
+  }, [criteria, locations, genders, firestore]);
 
   const getAudienceLevel = (size: number): { level: 'Acotado' | 'Medio' | 'Amplio'; progress: number; color: string } => {
     if (size < 1000) return { level: 'Acotado', progress: 33, color: 'bg-destructive' };

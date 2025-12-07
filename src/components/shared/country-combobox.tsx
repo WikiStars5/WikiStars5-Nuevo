@@ -1,8 +1,7 @@
-
 'use client';
 
 import * as React from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, X } from 'lucide-react';
 import Image from 'next/image';
 
 import { cn } from '@/lib/utils';
@@ -20,15 +19,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
 import { countries } from '@/lib/countries';
 import { useLanguage } from '@/context/LanguageContext';
 
-interface CountryComboboxProps {
-  value?: string;
-  onChange: (value: string) => void;
+interface MultiCountrySelectorProps {
+  selected: string[];
+  onChange: (value: string[]) => void;
+  className?: string;
 }
 
-export default function CountryCombobox({ value, onChange }: CountryComboboxProps) {
+export default function MultiCountrySelector({ selected, onChange, className }: MultiCountrySelectorProps) {
   const [open, setOpen] = React.useState(false);
   const { t } = useLanguage();
 
@@ -39,96 +40,86 @@ export default function CountryCombobox({ value, onChange }: CountryComboboxProp
     })).sort((a, b) => a.name.localeCompare(b.name));
   }, [t]);
 
-  const selectedCountry = value !== 'all' ? translatedCountries.find(
-    (country) => t(`countries.${country.key}`) === value
-  ) : null;
-
+  const handleSelect = (countryName: string) => {
+    const newSelected = selected.includes(countryName)
+      ? selected.filter((name) => name !== countryName)
+      : [...selected, countryName];
+    onChange(newSelected);
+  };
+  
+  const handleRemove = (countryName: string) => {
+    onChange(selected.filter((name) => name !== countryName));
+  };
+  
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between"
-        >
-          {selectedCountry ? (
-            <div className="flex items-center gap-2">
-              <Image
-                src={`https://flagcdn.com/w20/${selectedCountry.code.toLowerCase()}.png`}
-                alt={`${selectedCountry.name} flag`}
-                width={20}
-                height={15}
-                className="object-contain"
-              />
-              <span className="truncate">{selectedCountry.name}</span>
-            </div>
-          ) : (
-            t('countries.all') || 'Todos los países'
-          )}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder={t('EditFigure.countrySelector.searchPlaceholder')} />
-          <CommandList>
-            <CommandEmpty>{t('EditFigure.countrySelector.noResults')}</CommandEmpty>
-            <CommandGroup>
-                <CommandItem
-                    key="all-countries"
-                    value={t('countries.all') || 'Todos los países'}
-                    onSelect={() => {
-                        onChange('all');
-                        setOpen(false);
-                    }}
-                >
-                     <Check
-                        className={cn(
+    <div className={cn('space-y-2', className)}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between"
+          >
+            {selected.length > 0
+              ? `${selected.length} países seleccionados`
+              : 'Seleccionar países...'}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Buscar país..." />
+            <CommandList>
+              <CommandEmpty>No se encontró el país.</CommandEmpty>
+              <CommandGroup>
+                {translatedCountries.map((country) => (
+                  <CommandItem
+                    key={country.key}
+                    value={country.name}
+                    onSelect={() => handleSelect(country.name)}
+                  >
+                    <Check
+                      className={cn(
                         'mr-2 h-4 w-4',
-                        value === 'all'
-                            ? 'opacity-100'
-                            : 'opacity-0'
-                        )}
+                        selected.includes(country.name) ? 'opacity-100' : 'opacity-0'
+                      )}
                     />
-                    {t('countries.all') || 'Todos los países'}
-                </CommandItem>
-              {translatedCountries.map((country) => (
-                <CommandItem
-                  key={country.code}
-                  value={country.name}
-                  onSelect={(currentValue) => {
-                    const originalCountry = translatedCountries.find(c => c.name.toLowerCase() === currentValue.toLowerCase());
-                    onChange(
-                      originalCountry ? t(`countries.${originalCountry.key}`) : 'all'
-                    );
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      value === country.name
-                        ? 'opacity-100'
-                        : 'opacity-0'
-                    )}
-                  />
-                  <div className="flex items-center gap-2">
-                     <Image
+                    <div className="flex items-center gap-2">
+                      <Image
                         src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
                         alt={`${country.name} flag`}
                         width={20}
                         height={15}
                         className="object-contain"
                       />
+                      <span>{country.name}</span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      <div className="flex flex-wrap gap-1">
+        {selected.map((countryName) => {
+            const country = translatedCountries.find(c => c.name === countryName);
+            if (!country) return null;
+            return (
+                <Badge key={country.key} variant="secondary" className="flex items-center gap-1">
                     <span>{country.name}</span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+                    <button
+                        type="button"
+                        className="rounded-full hover:bg-muted-foreground/20"
+                        onClick={() => handleRemove(country.name)}
+                    >
+                        <X className="h-3 w-3" />
+                    </button>
+                </Badge>
+            )
+        })}
+      </div>
+    </div>
   );
 }
