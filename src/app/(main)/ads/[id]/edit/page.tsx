@@ -78,7 +78,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
             const defaultValues: Partial<AdCampaignFormValues> = {
                 ...campaign,
             };
-            if (campaign.type === 'cpc') {
+             if (campaign.type === 'cpc') {
                 defaultValues.clickBudget = campaign.clickBudget;
             } else {
                 defaultValues.impressionBudget = campaign.impressionBudget;
@@ -110,12 +110,18 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
     };
 
     const onSubmit = (data: AdCampaignFormValues) => {
-        if (!campaignDocRef) return;
+        if (!campaignDocRef || !campaign) return;
         setIsSubmitting(true);
         
+        const isCpc = campaign.type === 'cpc';
+        const newBudget = isCpc 
+            ? (data.clickBudget || 0) * CPC 
+            : ((data.impressionBudget || 0) / 1000) * CPM;
+
         const updatedData = {
             ...campaign,
             ...data,
+            budget: newBudget,
             updatedAt: serverTimestamp(),
         };
 
