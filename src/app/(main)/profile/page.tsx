@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -442,7 +441,7 @@ function ProfilePageContent() {
                             <CardContent>
                                 <Button asChild className="w-full">
                                     <Link href="/ads">
-                                        Crear Campaña de Anuncios
+                                        Ir al Panel de Anuncios
                                     </Link>
                                 </Button>
                             </CardContent>
@@ -463,5 +462,3 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
-
-    
