@@ -119,11 +119,10 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
         setNewCriterion({ figure: null, type: 'attitude', value: '' });
     };
 
-    const processAndSave = (status: AdCampaignData['status']) => {
+    const processAndSave = (data: AdCampaignFormValues, status: AdCampaignData['status']) => {
         if (!campaignDocRef || !campaign) return;
         setIsSubmitting(true);
         
-        const data = form.getValues();
         const isCpc = campaign.type === 'cpc';
         const newBudget = isCpc 
             ? (data.clickBudget || 0) * CPC 
@@ -138,10 +137,10 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
         
         if (isCpc) {
             updatedData.results = data.clickBudget || 0;
-            delete updatedData.impressionBudget;
+            delete (updatedData as any).impressionBudget;
         } else {
             updatedData.results = data.impressionBudget || 0;
-            delete updatedData.clickBudget;
+            delete (updatedData as any).clickBudget;
         }
 
         setDocumentNonBlocking(campaignDocRef, updatedData, { merge: true });
@@ -154,8 +153,14 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
         router.push('/ads');
     }
 
-    const onSubmit = () => processAndSave(campaign?.status || 'draft');
-    const handleSendForReview = () => processAndSave('pending_review');
+    const handleSaveDraft = () => {
+        const data = form.getValues();
+        processAndSave(data, 'draft');
+    }
+    
+    const handleSendForReview = (data: AdCampaignFormValues) => {
+        processAndSave(data, 'pending_review');
+    };
     
     if (isLoading) {
         return (
@@ -206,7 +211,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                        <form onSubmit={form.handleSubmit(handleSendForReview)} className="space-y-8">
 
                              <div className="space-y-4">
                                 <h3 className="font-semibold text-lg flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> Información de la Campaña</h3>
@@ -347,12 +352,12 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                              </div>
                             
                             <div className="flex justify-end gap-4 pt-4">
-                                <Button type="submit" disabled={isSubmitting}>
+                                <Button type="button" variant="outline" onClick={handleSaveDraft} disabled={isSubmitting}>
                                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                     Guardar Borrador
                                 </Button>
                                 {campaign.status === 'draft' && (
-                                    <Button type="button" onClick={handleSendForReview} disabled={isSubmitting}>
+                                    <Button type="submit" disabled={isSubmitting}>
                                         <Send className="mr-2 h-4 w-4" />
                                         Enviar para Revisión
                                     </Button>
