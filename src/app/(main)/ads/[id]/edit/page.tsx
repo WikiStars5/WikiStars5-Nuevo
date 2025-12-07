@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useParams } from 'next/navigation';
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye, Target, Image as ImageIcon, Sparkles } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import FigureSearchInput from '@/components/figure/figure-search-input';
@@ -74,10 +74,11 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
         if (campaign) {
             form.reset(campaign);
             if (campaign.targetFigureId && campaign.targetFigureName) {
-                setSelectedFigure({
+                // We don't fetch the full figure object here, just create a partial one for display
+                 setSelectedFigure({
                     id: campaign.targetFigureId,
                     name: campaign.targetFigureName,
-                    imageUrl: campaign.adImageUrl, // We don't have the real figure image here, but this is ok for display
+                    imageUrl: campaign.adImageUrl, // This is a stand-in, but works for the placeholder
                 } as Figure);
             }
         }
@@ -119,7 +120,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
     if (isLoading) {
         return (
             <div className="container mx-auto max-w-4xl px-4 py-12">
-                 <Skeleton className="h-96 w-full" />
+                 <Skeleton className="h-[600px] w-full" />
             </div>
         )
     }
@@ -165,8 +166,93 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                             {/* Other sections like campaign info, targeting, ad content would go here */}
-                             {/* For brevity, showing only the budget section which differs */}
+
+                             <div className="space-y-4">
+                                <h3 className="font-semibold text-lg flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> Información de la Campaña</h3>
+                                <FormField name="campaignName" control={form.control} render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nombre de la Campaña</FormLabel>
+                                        <FormControl><Input placeholder="Ej: Campaña de Verano para Fans" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-lg flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Segmentación del Público</h3>
+                                <FormItem>
+                                    <FormLabel>Figura Pública Objetivo</FormLabel>
+                                    {selectedFigure ? (
+                                        <div className="flex items-center justify-between rounded-lg border p-3">
+                                            <div className="flex items-center gap-3">
+                                                <Image src={selectedFigure.imageUrl} alt={selectedFigure.name} width={40} height={50} className="rounded-md object-cover aspect-[4/5]" />
+                                                <p className="font-semibold">{selectedFigure.name}</p>
+                                            </div>
+                                            <Button type="button" variant="ghost" size="icon" onClick={handleClearFigure}><XCircle className="h-4 w-4" /></Button>
+                                        </div>
+                                    ) : (
+                                        <FigureSearchInput onFigureSelect={handleFigureSelect} />
+                                    )}
+                                    <FormMessage>{form.formState.errors.targetFigureId?.message}</FormMessage>
+                                </FormItem>
+
+                                {selectedFigure && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField name="targetType" control={form.control} render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Tipo de Segmentación</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Elige un tipo" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="attitude">Por Actitud</SelectItem>
+                                                        <SelectItem value="emotion">Por Emoción</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                        <FormField name="targetValue" control={form.control} render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Valor a Segmentar</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!form.watch('targetType')}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        {form.watch('targetType') === 'attitude' && (<>
+                                                            <SelectItem value="fan">Fan</SelectItem>
+                                                            <SelectItem value="hater">Hater</SelectItem>
+                                                            <SelectItem value="simp">Simp</SelectItem>
+                                                            <SelectItem value="neutral">Neutral</SelectItem>
+                                                        </>)}
+                                                        {form.watch('targetType') === 'emotion' && (<>
+                                                            <SelectItem value="alegria">Alegría</SelectItem>
+                                                            <SelectItem value="furia">Furia</SelectItem>
+                                                            <SelectItem value="envidia">Envidia</SelectItem>
+                                                            <SelectItem value="tristeza">Tristeza</SelectItem>
+                                                            <SelectItem value="miedo">Miedo</SelectItem>
+                                                            <SelectItem value="desagrado">Desagrado</SelectItem>
+                                                        </>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}/>
+                                    </div>
+                                )}
+                            </div>
+
+                             <Separator />
+
+                             <div className="space-y-4">
+                                 <h3 className="font-semibold text-lg flex items-center gap-2"><ImageIcon className="h-5 w-5 text-primary" /> Contenido del Anuncio</h3>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField name="adTitle" control={form.control} render={({field}) => (<FormItem><FormLabel>Título</FormLabel><FormControl><Input {...field} placeholder="¡Oferta Especial!" /></FormControl><FormMessage/></FormItem>)} />
+                                    <FormField name="adDescription" control={form.control} render={({field}) => (<FormItem><FormLabel>Descripción Corta</FormLabel><FormControl><Input {...field} placeholder="Solo por tiempo limitado" /></FormControl><FormMessage/></FormItem>)} />
+                                    <FormField name="adImageUrl" control={form.control} render={({field}) => (<FormItem><FormLabel>URL de la Imagen</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage/></FormItem>)} />
+                                    <FormField name="adLinkUrl" control={form.control} render={({field}) => (<FormItem><FormLabel>URL de Destino</FormLabel><FormControl><Input {...field} placeholder="https://mi-tienda.com" /></FormControl><FormMessage/></FormItem>)} />
+                                 </div>
+                             </div>
 
                              <Separator />
 
@@ -224,3 +310,5 @@ export default function EditCampaignPage() {
     return <EditAdCampaignPageContent campaignId={campaignId} />;
   }
   
+
+    
