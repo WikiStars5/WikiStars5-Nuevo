@@ -129,21 +129,25 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
             ? (data.clickBudget || 0) * CPC 
             : ((data.impressionBudget || 0) / 1000) * CPM;
 
-        const updatedData = {
+        const updatedData: Partial<AdCampaignData> = {
             ...data,
-            id: campaign.id,
-            type: campaign.type,
-            status, // Use the passed status
+            status,
             budget: newBudget,
-            spent: campaign.spent,
-            results: isCpc ? data.clickBudget || 0 : data.impressionBudget || 0,
-            updatedAt: serverTimestamp(),
+            updatedAt: serverTimestamp() as any,
         };
+        
+        if (isCpc) {
+            updatedData.results = data.clickBudget || 0;
+            delete updatedData.impressionBudget;
+        } else {
+            updatedData.results = data.impressionBudget || 0;
+            delete updatedData.clickBudget;
+        }
 
         setDocumentNonBlocking(campaignDocRef, updatedData, { merge: true });
         
         toast({
-            title: status === 'pending_review' ? 'Campaña Enviada a Revisión' : 'Campaña Actualizada',
+            title: status === 'pending_review' ? 'Campaña Enviada a Revisión' : 'Borrador de Campaña Actualizado',
             description: 'Los cambios en tu campaña han sido guardados.',
         });
         
@@ -345,7 +349,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                             <div className="flex justify-end gap-4 pt-4">
                                 <Button type="submit" disabled={isSubmitting}>
                                     {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                    Guardar Cambios
+                                    Guardar Borrador
                                 </Button>
                                 {campaign.status === 'draft' && (
                                     <Button type="button" onClick={handleSendForReview} disabled={isSubmitting}>
