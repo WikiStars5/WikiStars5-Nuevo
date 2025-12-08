@@ -165,16 +165,16 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
         // --- Aggregation Logic ---
         if (dbPreviousVote) {
-          // Decrement old stat if changing vote or retracting
-          const oldStatId = `${country}_${gender}_${dbPreviousVote}`;
-          const oldStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, oldStatId);
-          transaction.set(oldStatRef, { count: increment(-1) }, { merge: true });
+            // Decrement the old stat if the user is changing their vote or retracting it.
+            const oldStatId = `${country}_${gender}_${dbPreviousVote}`;
+            const oldStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, oldStatId);
+            transaction.set(oldStatRef, { count: increment(-1) }, { merge: true });
         }
         if (!isDbRetracting) {
-          // Increment new stat if not retracting
-          const newStatId = `${country}_${gender}_${vote}`;
-          const newStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, newStatId);
-          transaction.set(newStatRef, { count: increment(1) }, { merge: true });
+            // Increment the new stat if it's a new vote or a changed vote.
+            const newStatId = `${country}_${gender}_${vote}`;
+            const newStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, newStatId);
+            transaction.set(newStatRef, { count: increment(1) }, { merge: true });
         }
         // --- End Aggregation Logic ---
         

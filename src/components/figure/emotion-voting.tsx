@@ -155,14 +155,14 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
         // --- Aggregation Logic ---
         if (dbPreviousVote) {
-          const oldStatId = `${country}_${gender}_${dbPreviousVote}`;
-          const oldStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, oldStatId);
-          transaction.set(oldStatRef, { count: increment(-1) }, { merge: true });
+            const oldStatId = `${country}_${gender}_${dbPreviousVote}`;
+            const oldStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, oldStatId);
+            transaction.set(oldStatRef, { count: increment(-1) }, { merge: true });
         }
         if (!isDbRetracting) {
-          const newStatId = `${country}_${gender}_${vote}`;
-          const newStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, newStatId);
-          transaction.set(newStatRef, { count: increment(1) }, { merge: true });
+            const newStatId = `${country}_${gender}_${vote}`;
+            const newStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, newStatId);
+            transaction.set(newStatRef, { count: increment(1) }, { merge: true });
         }
         // --- End Aggregation Logic ---
         
