@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -62,7 +63,11 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
                   if (docSnap.exists()) {
                       const statsData = docSnap.data();
                       const targetCountries = (locations && locations.length > 0)
-                          ? locations.map(loc => countries.find(c => c.name === loc)?.key).filter(Boolean) as string[]
+                          ? locations.map(locName => {
+                              // Find the country object by the translated name to get its key
+                              const country = countries.find(c => t(`countries.${c.key}`) === locName);
+                              return country ? country.key : null;
+                            }).filter(Boolean) as string[]
                           : Object.keys(statsData);
                       
                        for (const countryKey of targetCountries) {
@@ -89,7 +94,10 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
               if (docSnap.exists()) {
                   const statsData = docSnap.data();
                   const targetCountries = (locations && locations.length > 0)
-                      ? locations.map(loc => countries.find(c => c.name === loc)?.key).filter(Boolean) as string[]
+                      ? locations.map(locName => {
+                          const country = countries.find(c => t(`countries.${c.key}`) === locName);
+                          return country ? country.key : null;
+                        }).filter(Boolean) as string[]
                       : Object.keys(statsData);
                   
                   for (const countryKey of targetCountries) {
@@ -161,3 +169,4 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
     </Card>
   );
 }
+
