@@ -184,10 +184,16 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
             const country = finalUserProfileData.country || 'unknown';
             const gender = finalUserProfileData.gender || 'unknown';
             const ratingStatRef = doc(firestore, `figures/${figureId}/ratingStats`, String(newRating));
-            const statUpdates: {[key: string]: any} = {};
-            statUpdates[`${country}.total`] = increment(1);
-            statUpdates[`${country}.${gender}`] = increment(1);
-            transaction.set(ratingStatRef, statUpdates, { merge: true });
+            
+            const statDoc = await transaction.get(ratingStatRef);
+            const statData = statDoc.exists() ? statDoc.data() : {};
+            
+            const countryData = statData[country] || { total: 0, Masculino: 0, Femenino: 0, Otro: 0 };
+            countryData.total = (countryData.total || 0) + 1;
+            countryData[gender] = (countryData[gender] || 0) + 1;
+            
+            statData[country] = countryData;
+            transaction.set(ratingStatRef, statData);
         }
         
         const newCommentRef = doc(commentsColRef);
