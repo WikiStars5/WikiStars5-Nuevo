@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -129,12 +128,12 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
     let transactionError: string | null = null;
     let finalDisplayName = '';
     let finalUserProfileData: Partial<AppUser> = {};
+    const newRating = isRatingEnabled ? data.rating : -1;
 
     try {
       await runTransaction(firestore, async (transaction) => {
         const figureRef = doc(firestore, 'figures', figureId);
         const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-        const newRating = isRatingEnabled ? data.rating : -1;
         
         const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser!.uid), limit(1)));
         if (!existingCommentSnap.empty) {
@@ -180,6 +179,15 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
             updates.__totalRating_delta = newRating;
             
             transaction.update(figureRef, updates);
+
+            // Update ratingStats
+            const country = finalUserProfileData.country || 'unknown';
+            const gender = finalUserProfileData.gender || 'unknown';
+            const ratingStatRef = doc(firestore, `figures/${figureId}/ratingStats`, String(newRating));
+            const statUpdates: {[key: string]: any} = {};
+            statUpdates[`${country}.total`] = increment(1);
+            statUpdates[`${country}.${gender}`] = increment(1);
+            transaction.set(ratingStatRef, statUpdates, { merge: true });
         }
         
         const newCommentRef = doc(commentsColRef);

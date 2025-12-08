@@ -13,7 +13,7 @@ import { countries } from '@/lib/countries';
 interface AudienceEstimatorProps {
   criteria?: {
     figureId: string;
-    type: 'attitude' | 'emotion';
+    type: 'attitude' | 'emotion' | 'rating';
     value: string;
   }[];
   locations?: string[];
@@ -37,32 +37,31 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
       let totalAudience = 0;
 
       for (const criterion of criteria) {
-          const statsDocRef = doc(firestore, `figures/${criterion.figureId}/${criterion.type}Stats`, criterion.value);
+          const statsCollectionName = `${criterion.type}Stats`;
+          const statsDocRef = doc(firestore, `figures/${criterion.figureId}/${statsCollectionName}`, criterion.value);
           const docSnap = await getDoc(statsDocRef);
 
           if (docSnap.exists()) {
               const statsData = docSnap.data();
               let audienceForCriterion = 0;
 
-              const targetCountries = (locations && locations.length > 0) 
-                ? locations 
-                : Object.keys(statsData).map(key => {
-                    const country = countries.find(c => c.key === key);
-                    return country ? t(`countries.${country.key}`) : key;
-                });
+              const targetCountries = (locations && locations.length > 0)
+                  ? locations
+                  : Object.keys(statsData);
+              
+              const isGlobalSearch = !(locations && locations.length > 0);
 
-              for (const countryName of targetCountries) {
-                  // Normalize the country name from the filter to match the Firestore key format (lowercase)
-                  const countryInfo = countries.find(c => t(`countries.${c.key}`) === countryName);
-                  const countryKey = countryInfo ? countryInfo.key : countryName.toLowerCase().replace(/ /g, '_');
+              for (const countryIdentifier of targetCountries) {
+                  const countryKey = isGlobalSearch 
+                    ? countryIdentifier 
+                    : countries.find(c => t(`countries.${c.key}`) === countryIdentifier)?.key || countryIdentifier.toLowerCase().replace(/ /g, '_');
+                  
                   const countryData = statsData[countryKey];
                   
                   if (countryData) {
-                       // If no gender filter is applied, we take the country's total.
                        if (!genders || genders.length === 0) {
                            audienceForCriterion += countryData.total || 0;
                        } else {
-                           // If there is a gender filter, sum up only the selected genders.
                            genders.forEach(gender => {
                                audienceForCriterion += countryData[gender] || 0;
                            });

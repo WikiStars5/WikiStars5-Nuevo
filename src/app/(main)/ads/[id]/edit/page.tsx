@@ -34,7 +34,7 @@ const targetingCriterionSchema = z.object({
     figureId: z.string().min(1, 'Debes seleccionar una figura.'),
     figureName: z.string(),
     figureImageUrl: z.string().url().optional().nullable(),
-    type: z.enum(['attitude', 'emotion']),
+    type: z.enum(['attitude', 'emotion', 'rating']),
     value: z.string().min(1, 'Debes seleccionar un valor.'),
 });
 
@@ -81,7 +81,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
     // State for the new criterion form
-    const [newCriterion, setNewCriterion] = React.useState<{figure: Figure | null, type: 'attitude' | 'emotion', value: string}>({
+    const [newCriterion, setNewCriterion] = React.useState<{figure: Figure | null, type: 'attitude' | 'emotion' | 'rating', value: string}>({
         figure: null,
         type: 'attitude',
         value: ''
@@ -341,11 +341,12 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                                         </div>
                                         <div>
                                             <Label>Tipo</Label>
-                                            <Select value={newCriterion.type} onValueChange={(v: 'attitude' | 'emotion') => setNewCriterion(prev => ({...prev, type: v, value: ''}))}>
+                                            <Select value={newCriterion.type} onValueChange={(v: 'attitude' | 'emotion' | 'rating') => setNewCriterion(prev => ({...prev, type: v, value: ''}))}>
                                                 <SelectTrigger><SelectValue/></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="attitude">Por Actitud</SelectItem>
                                                     <SelectItem value="emotion">Por Emoción</SelectItem>
+                                                    <SelectItem value="rating">Por Calificación</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -367,6 +368,14 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                                                         <SelectItem value="tristeza">Tristeza</SelectItem>
                                                         <SelectItem value="miedo">Miedo</SelectItem>
                                                         <SelectItem value="desagrado">Desagrado</SelectItem>
+                                                    </>)}
+                                                    {newCriterion.type === 'rating' && (<>
+                                                        <SelectItem value="5">5 Estrellas</SelectItem>
+                                                        <SelectItem value="4">4 Estrellas</SelectItem>
+                                                        <SelectItem value="3">3 Estrellas</SelectItem>
+                                                        <SelectItem value="2">2 Estrellas</SelectItem>
+                                                        <SelectItem value="1">1 Estrella</SelectItem>
+                                                        <SelectItem value="0">0 Estrellas</SelectItem>
                                                     </>)}
                                                 </SelectContent>
                                             </Select>
