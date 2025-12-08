@@ -259,7 +259,6 @@ function ProfilePageContent() {
     }
     
     const displayName = userData?.username || user.displayName || t('ProfilePage.guestUser');
-    const isGoogleUser = user.providerData.some(p => p.providerId === 'google.com');
 
     return (
         <div className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
@@ -432,7 +431,7 @@ function ProfilePageContent() {
                             </CardContent>
                         </Card>
                        )}
-                       {(isGoogleUser || isAdmin) && (
+                       {isAdmin && (
                          <Card className="mt-6">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
