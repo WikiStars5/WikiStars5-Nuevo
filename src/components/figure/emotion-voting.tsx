@@ -155,14 +155,32 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
         // --- Aggregation Logic ---
         if (dbPreviousVote) {
-            const oldStatId = `${country}_${gender}_${dbPreviousVote}`;
-            const oldStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, oldStatId);
-            transaction.set(oldStatRef, { count: increment(-1) }, { merge: true });
+            const oldStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, dbPreviousVote);
+            const oldStatDoc = await transaction.get(oldStatRef);
+            const oldStatData = oldStatDoc.exists() ? oldStatDoc.data() : {};
+            const countryStats = oldStatData[country] || { total: 0, Masculino: 0, Femenino: 0, Otro: 0 };
+            
+            transaction.set(oldStatRef, {
+                [country]: {
+                    ...countryStats,
+                    total: increment(-1),
+                    [gender]: increment(-1)
+                }
+            }, { merge: true });
         }
         if (!isDbRetracting) {
-            const newStatId = `${country}_${gender}_${vote}`;
-            const newStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, newStatId);
-            transaction.set(newStatRef, { count: increment(1) }, { merge: true });
+            const newStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, vote);
+            const newStatDoc = await transaction.get(newStatRef);
+            const newStatData = newStatDoc.exists() ? newStatDoc.data() : {};
+            const countryStats = newStatData[country] || { total: 0, Masculino: 0, Femenino: 0, Otro: 0 };
+            
+            transaction.set(newStatRef, {
+                [country]: {
+                    ...countryStats,
+                    total: increment(1),
+                    [gender]: increment(1)
+                }
+            }, { merge: true });
         }
         // --- End Aggregation Logic ---
         

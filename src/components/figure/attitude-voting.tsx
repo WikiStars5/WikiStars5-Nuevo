@@ -165,16 +165,32 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
 
         // --- Aggregation Logic ---
         if (dbPreviousVote) {
-            // Decrement the old stat if the user is changing their vote or retracting it.
-            const oldStatId = `${country}_${gender}_${dbPreviousVote}`;
-            const oldStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, oldStatId);
-            transaction.set(oldStatRef, { count: increment(-1) }, { merge: true });
+            const oldStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, dbPreviousVote);
+            const oldStatDoc = await transaction.get(oldStatRef);
+            const oldStatData = oldStatDoc.exists() ? oldStatDoc.data() : {};
+            const countryStats = oldStatData[country] || { total: 0, Masculino: 0, Femenino: 0, Otro: 0 };
+            
+            transaction.set(oldStatRef, {
+                [country]: {
+                    ...countryStats,
+                    total: increment(-1),
+                    [gender]: increment(-1)
+                }
+            }, { merge: true });
         }
         if (!isDbRetracting) {
-            // Increment the new stat if it's a new vote or a changed vote.
-            const newStatId = `${country}_${gender}_${vote}`;
-            const newStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, newStatId);
-            transaction.set(newStatRef, { count: increment(1) }, { merge: true });
+            const newStatRef = doc(firestore, `figures/${figure.id}/attitudeStats`, vote);
+            const newStatDoc = await transaction.get(newStatRef);
+            const newStatData = newStatDoc.exists() ? newStatDoc.data() : {};
+            const countryStats = newStatData[country] || { total: 0, Masculino: 0, Femenino: 0, Otro: 0 };
+
+            transaction.set(newStatRef, {
+                [country]: {
+                    ...countryStats,
+                    total: increment(1),
+                    [gender]: increment(1)
+                }
+            }, { merge: true });
         }
         // --- End Aggregation Logic ---
         
