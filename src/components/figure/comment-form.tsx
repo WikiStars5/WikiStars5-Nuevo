@@ -162,8 +162,8 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         }
 
         const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
-        const country = userProfileData.country || 'unknown';
-        const gender = userProfileData.gender || 'unknown';
+        const country = userProfileData.country || null;
+        const gender = userProfileData.gender || null;
         const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
 
         // --- Figure Document Updates ---
@@ -176,14 +176,16 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
             };
             updateDocumentNonBlocking(figureRef, figureUpdates);
             
-            const ratingStatRef = doc(firestore, `figures/${figureId}/ratingStats`, String(newRating));
-            const ratingStatUpdates = {
-                [country]: {
-                    total: increment(1),
-                    [gender]: increment(1)
-                }
-            };
-            setDocumentNonBlocking(ratingStatRef, ratingStatUpdates, { merge: true });
+            if(country){
+              const ratingStatRef = doc(firestore, `figures/${figureId}/ratingStats`, String(newRating));
+              const ratingStatUpdates = {
+                  [country]: {
+                      total: increment(1),
+                      [gender || 'unknown']: increment(1)
+                  }
+              };
+              setDocumentNonBlocking(ratingStatRef, ratingStatUpdates, { merge: true });
+            }
         }
       
         // --- Create Comment Document ---

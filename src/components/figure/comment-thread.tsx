@@ -30,6 +30,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
+import { formatDateDistance } from '@/lib/utils';
+
 
 interface CommentItemProps {
   comment: CommentType, 
@@ -45,7 +47,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -66,7 +68,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
 
     const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user });
 
-    const country = countries.find(c => t(`countries.${c.key}`) === comment.userCountry);
+    const country = countries.find(c => c.key === comment.userCountry);
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
         if (!firestore || !user || isVoting) return;
@@ -509,4 +511,3 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
-
