@@ -2,7 +2,7 @@
 
 import { useState, useContext, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc, getDoc } from 'firebase/firestore'; 
+import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore'; 
 import { onAuthStateChanged, User as FirebaseUser, Auth, signInAnonymously } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,6 +14,7 @@ import Image from 'next/image';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
+import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -67,7 +68,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     return doc(firestore, `users/${user.uid}/attitudeVotes`, figure.id);
   }, [firestore, user, figure.id]);
 
-  const { data: userVote, isLoading: isVoteLoading } = useDoc<AttitudeVote>(userVoteRef);
+  const { data: userVote, isLoading: isVoteLoading, refetch } = useDoc<AttitudeVote>(userVoteRef);
   
   const isGoatCandidate = figure?.name === 'Lionel Messi' || figure?.name === 'Cristiano Ronaldo';
 
@@ -112,129 +113,94 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
         return;
     }
 
-
     setIsVoting(vote);
     
     const previousVote = optimisticVote?.vote;
     const isRetracting = previousVote === vote;
-    const previousOptimisticFigure = { ...optimisticFigure };
-    const previousOptimisticVote = optimisticVote;
+    const isChanging = previousVote && !isRetracting;
 
     // --- Optimistic Update ---
-    if (isRetracting) {
-        setOptimisticVote(null);
-        onVote(null);
-    } else {
-        setOptimisticVote({ vote } as AttitudeVote); // Dummy object for selection
-        onVote(vote);
-    }
-    setOptimisticFigure(prevFigure => {
-      const newAttitude = { ...(prevFigure.attitude || {}) };
-      if (isRetracting) {
-        newAttitude[vote] = (newAttitude[vote] || 1) - 1;
-      } else {
-        if (previousVote) {
-          newAttitude[previousVote] = (newAttitude[previousVote] || 1) - 1;
+    onVote(isRetracting ? null : vote);
+    setOptimisticFigure(prev => {
+        const newAttitude = { ...(prev.attitude || {}) };
+        if (isRetracting) {
+            newAttitude[vote] = Math.max(0, (newAttitude[vote] || 1) - 1);
+        } else {
+            if (previousVote) {
+                newAttitude[previousVote] = Math.max(0, (newAttitude[previousVote] || 1) - 1);
+            }
+            newAttitude[vote] = (newAttitude[vote] || 0) + 1;
         }
-        newAttitude[vote] = (newAttitude[vote] || 0) + 1;
-      }
-      return { ...prevFigure, attitude: newAttitude };
+        return { ...prev, attitude: newAttitude };
     });
+     setOptimisticVote(isRetracting ? null : { vote } as AttitudeVote);
     // --- End Optimistic Update ---
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const figureRef = doc(firestore, `figures/${figure.id}`);
-            const userProfileRef = doc(firestore, 'users', currentUser!.uid);
-            const privateVoteRef = doc(firestore, `users/${currentUser!.uid}/attitudeVotes`, figure.id);
+        const figureRef = doc(firestore, `figures/${figure.id}`);
+        const userProfileRef = doc(firestore, 'users', currentUser.uid);
+        const privateVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figure.id);
+        const attitudeStatsRef = (v: string) => doc(firestore, `figures/${figure.id}/attitudeStats`, v);
 
-            // Fetch all necessary docs
-            const [userProfileDoc, privateVoteDoc, figureDoc] = await Promise.all([
-                transaction.get(userProfileRef),
-                transaction.get(privateVoteRef),
-                transaction.get(figureRef),
-            ]);
-
-             if (!figureDoc.exists()) {
-                throw new Error("Figure document does not exist.");
+        const userProfileSnap = await getDoc(userProfileRef);
+        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
+        const country = userProfileData.country || 'unknown';
+        const gender = userProfileData.gender || 'unknown';
+        
+        // --- Figure document main counters ---
+        const figureUpdates: { [key: string]: any } = {};
+        if (isRetracting) {
+            figureUpdates[`attitude.${vote}`] = increment(-1);
+        } else {
+            if (isChanging) {
+                figureUpdates[`attitude.${previousVote}`] = increment(-1);
             }
+            figureUpdates[`attitude.${vote}`] = increment(1);
+        }
+        updateDocumentNonBlocking(figureRef, figureUpdates);
 
-            const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : null;
-            const country = userProfileData?.country || 'unknown';
-            const gender = userProfileData?.gender || 'unknown';
-            
-            const dbPreviousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as AttitudeVote).vote : null;
-            const isDbRetracting = dbPreviousVote === vote;
-
-            // --- Main Figure Document Update ---
-            const figureUpdates: { [key: string]: any } = {
-                '__newVote': isDbRetracting ? null : vote,
-                '__oldVote': dbPreviousVote,
-                updatedAt: serverTimestamp(),
-            };
-
-            // This part is for the general counters on the main figure document
-            if (isDbRetracting) {
-                figureUpdates[`attitude.${vote}`] = increment(-1);
-            } else {
-                if (dbPreviousVote) {
-                    figureUpdates[`attitude.${dbPreviousVote}`] = increment(-1);
+        // --- Detailed demographic stats ---
+        if (isChanging) {
+            const oldStatRef = attitudeStatsRef(previousVote!);
+            updateDocumentNonBlocking(oldStatRef, {
+                [`${country}.total`]: increment(-1),
+                [`${country}.${gender}`]: increment(-1)
+            });
+        }
+        if (isRetracting) {
+            const oldStatRef = attitudeStatsRef(vote);
+             updateDocumentNonBlocking(oldStatRef, {
+                [`${country}.total`]: increment(-1),
+                [`${country}.${gender}`]: increment(-1)
+            });
+        } else { // New vote or changing vote
+             const newStatRef = attitudeStatsRef(vote);
+             setDocumentNonBlocking(newStatRef, {
+                [country]: {
+                    total: increment(1),
+                    [gender]: increment(1)
                 }
-                figureUpdates[`attitude.${vote}`] = increment(1);
-            }
-             transaction.update(figureRef, figureUpdates);
-            
+            }, { merge: true });
+        }
 
-            // --- User's Private Vote Document ---
-            if (isDbRetracting) {
-                transaction.delete(privateVoteRef);
-            } else {
-                const voteData = {
-                    userId: currentUser!.uid,
-                    figureId: figure.id,
-                    vote: vote,
-                    createdAt: serverTimestamp(),
-                    figureName: figure.name,
-                    figureImageUrl: figure.imageUrl,
-                    userCountry: country,
-                    userGender: gender,
-                };
-                transaction.set(privateVoteRef, voteData, { merge: true });
-            }
 
-            // --- Detailed Statistics Update ---
-            const attitudeStatsRef = (voteType: string) => doc(firestore, `figures/${figure.id}/attitudeStats`, voteType);
+        // --- User's private vote record ---
+        if (isRetracting) {
+            deleteDocumentNonBlocking(privateVoteRef);
+        } else {
+            const voteData = {
+                userId: currentUser.uid, figureId: figure.id, vote: vote,
+                createdAt: serverTimestamp(), figureName: figure.name, figureImageUrl: figure.imageUrl,
+                userCountry: country, userGender: gender,
+            };
+            setDocumentNonBlocking(privateVoteRef, voteData);
+        }
 
-            // Decrement old stat if changing vote
-            if (dbPreviousVote) {
-                const oldStatRef = attitudeStatsRef(dbPreviousVote);
-                transaction.set(oldStatRef, {
-                    [country]: {
-                        total: increment(-1),
-                        [gender]: increment(-1)
-                    }
-                }, { merge: true });
-            }
-
-            // Increment new stat if not retracting
-            if (!isDbRetracting) {
-                const newStatRef = attitudeStatsRef(vote);
-                transaction.set(newStatRef, {
-                    [country]: {
-                        total: increment(1),
-                        [gender]: increment(1)
-                    }
-                }, { merge: true });
-            }
-        });
-
+        refetch();
         toast({ title: isRetracting ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
 
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
-      // Revert optimistic update on error
-      setOptimisticFigure(previousOptimisticFigure);
-      setOptimisticVote(previousOptimisticVote);
       toast({
         variant: 'destructive',
         title: t('AttitudeVoting.errorToast.title'),

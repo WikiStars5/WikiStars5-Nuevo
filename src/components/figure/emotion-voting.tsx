@@ -2,7 +2,7 @@
 
 import { useState, useContext, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc, getDoc } from 'firebase/firestore'; 
+import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore'; 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Loader2, Lock } from 'lucide-react';
@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { signInAnonymously } from 'firebase/auth';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
+import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
 type EmotionOption = 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
@@ -64,7 +65,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     return doc(firestore, `users/${user.uid}/emotionVotes`, figure.id);
   }, [firestore, user, figure.id]);
 
-  const { data: userVote, isLoading: isVoteLoading } = useDoc<EmotionVote>(userVoteRef);
+  const { data: userVote, isLoading: isVoteLoading, refetch } = useDoc<EmotionVote>(userVoteRef);
 
   useEffect(() => {
     if (userVote) {
@@ -109,119 +110,82 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     
     const previousVote = optimisticVote?.vote;
     const isRetracting = previousVote === vote;
-    const previousOptimisticFigure = { ...optimisticFigure };
-    const previousOptimisticVote = optimisticVote;
+    const isChanging = previousVote && !isRetracting;
 
     // --- Optimistic Update ---
-    if (isRetracting) {
-        setOptimisticVote(null);
-    } else {
-        setOptimisticVote({ vote } as EmotionVote);
-    }
-    setOptimisticFigure(prevFigure => {
-      const newEmotion = { ...(prevFigure.emotion || {}) };
-      if (isRetracting) {
-        newEmotion[vote] = (newEmotion[vote] || 1) - 1;
-      } else {
-        if (previousVote) {
-          newEmotion[previousVote] = (newEmotion[previousVote] || 1) - 1;
+    setOptimisticFigure(prev => {
+        const newEmotion = { ...(prev.emotion || {}) };
+        if (isRetracting) {
+            newEmotion[vote] = Math.max(0, (newEmotion[vote] || 1) - 1);
+        } else {
+            if (previousVote) {
+                newEmotion[previousVote] = Math.max(0, (newEmotion[previousVote] || 1) - 1);
+            }
+            newEmotion[vote] = (newEmotion[vote] || 0) + 1;
         }
-        newEmotion[vote] = (newEmotion[vote] || 0) + 1;
-      }
-      return { ...prevFigure, emotion: newEmotion };
+        return { ...prev, emotion: newEmotion };
     });
+    setOptimisticVote(isRetracting ? null : { vote } as EmotionVote);
     // --- End Optimistic Update ---
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const figureRef = doc(firestore, `figures/${figure.id}`);
-            const userProfileRef = doc(firestore, 'users', currentUser!.uid);
-            const privateVoteRef = doc(firestore, `users/${currentUser!.uid}/emotionVotes`, figure.id);
+        const figureRef = doc(firestore, `figures/${figure.id}`);
+        const userProfileRef = doc(firestore, 'users', currentUser.uid);
+        const privateVoteRef = doc(firestore, `users/${currentUser.uid}/emotionVotes`, figure.id);
+        const emotionStatsRef = (v: string) => doc(firestore, `figures/${figure.id}/emotionStats`, v);
 
-            const [userProfileDoc, privateVoteDoc, figureDoc] = await Promise.all([
-                transaction.get(userProfileRef),
-                transaction.get(privateVoteRef),
-                transaction.get(figureRef),
-            ]);
+        const userProfileSnap = await getDoc(userProfileRef);
+        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
+        const country = userProfileData.country || 'unknown';
+        const gender = userProfileData.gender || 'unknown';
 
-            if (!figureDoc.exists()) {
-                throw new Error("Figure document does not exist.");
+        const figureUpdates: { [key: string]: any } = {};
+        if (isRetracting) {
+            figureUpdates[`emotion.${vote}`] = increment(-1);
+        } else {
+            if (isChanging) {
+                figureUpdates[`emotion.${previousVote}`] = increment(-1);
             }
+            figureUpdates[`emotion.${vote}`] = increment(1);
+        }
+        updateDocumentNonBlocking(figureRef, figureUpdates);
+        
+        if (isChanging) {
+            const oldStatRef = emotionStatsRef(previousVote!);
+            updateDocumentNonBlocking(oldStatRef, {
+                [`${country}.total`]: increment(-1),
+                [`${country}.${gender}`]: increment(-1)
+            });
+        }
+        if (isRetracting) {
+            const oldStatRef = emotionStatsRef(vote);
+            updateDocumentNonBlocking(oldStatRef, {
+                [`${country}.total`]: increment(-1),
+                [`${country}.${gender}`]: increment(-1)
+            });
+        } else {
+            const newStatRef = emotionStatsRef(vote);
+            setDocumentNonBlocking(newStatRef, {
+                [country]: { total: increment(1), [gender]: increment(1) }
+            }, { merge: true });
+        }
 
-            const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : null;
-            const country = userProfileData?.country || 'unknown';
-            const gender = userProfileData?.gender || 'unknown';
-            
-            const dbPreviousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as EmotionVote).vote : null;
-            const isDbRetracting = dbPreviousVote === vote;
-
-             // --- Main Figure Document Update ---
-             const figureUpdates: { [key: string]: any } = {
-                '__newVote': isDbRetracting ? null : vote,
-                '__oldVote': dbPreviousVote,
-                updatedAt: serverTimestamp(),
+        if (isRetracting) {
+            deleteDocumentNonBlocking(privateVoteRef);
+        } else {
+            const voteData = {
+                userId: currentUser.uid, figureId: figure.id, vote: vote,
+                createdAt: serverTimestamp(), figureName: figure.name, figureImageUrl: figure.imageUrl,
+                userCountry: country, userGender: gender,
             };
-
-            if (isDbRetracting) {
-                figureUpdates[`emotion.${vote}`] = increment(-1);
-            } else {
-                if (dbPreviousVote) {
-                    figureUpdates[`emotion.${dbPreviousVote}`] = increment(-1);
-                }
-                figureUpdates[`emotion.${vote}`] = increment(1);
-            }
-            transaction.update(figureRef, figureUpdates);
-
-            // --- User's Private Vote Document ---
-            if (isDbRetracting) {
-                transaction.delete(privateVoteRef);
-            } else {
-                const voteData = {
-                    userId: currentUser!.uid,
-                    figureId: figure.id,
-                    vote: vote,
-                    createdAt: serverTimestamp(),
-                    figureName: figure.name,
-                    figureImageUrl: figure.imageUrl,
-                    userCountry: country,
-                    userGender: gender,
-                };
-                transaction.set(privateVoteRef, voteData, { merge: true });
-            }
-
-            // --- Detailed Statistics Update ---
-            const emotionStatsRef = (voteType: string) => doc(firestore, `figures/${figure.id}/emotionStats`, voteType);
-
-            // Decrement old stat if changing vote
-            if (dbPreviousVote) {
-                const oldStatRef = emotionStatsRef(dbPreviousVote);
-                transaction.set(oldStatRef, {
-                    [country]: {
-                        total: increment(-1),
-                        [gender]: increment(-1)
-                    }
-                }, { merge: true });
-            }
-
-            // Increment new stat if not retracting
-            if (!isDbRetracting) {
-                const newStatRef = emotionStatsRef(vote);
-                transaction.set(newStatRef, {
-                    [country]: {
-                        total: increment(1),
-                        [gender]: increment(1)
-                    }
-                }, { merge: true });
-            }
-        });
-
+            setDocumentNonBlocking(privateVoteRef, voteData);
+        }
+        
+        refetch();
         toast({ title: isRetracting ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
 
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
-      // Revert optimistic update
-      setOptimisticFigure(previousOptimisticFigure);
-      setOptimisticVote(previousOptimisticVote);
       toast({
         variant: 'destructive',
         title: t('AttitudeVoting.errorToast.title'),

@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
-import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useCollection, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -125,146 +125,108 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
     }
     
     setIsSubmitting(true);
-    let transactionError: string | null = null;
-    let finalDisplayName = '';
-    let finalUserProfileData: Partial<AppUser> = {};
-    const newRating = isRatingEnabled ? data.rating : -1;
 
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const figureRef = doc(firestore, 'figures', figureId);
         const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-        
-        const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser!.uid), limit(1)));
+        const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
         if (!existingCommentSnap.empty) {
-          transactionError = t('CommentForm.toast.alreadyCommented');
-          return; // Abort transaction
+            toast({ title: 'Error', description: t('CommentForm.toast.alreadyCommented'), variant: 'destructive' });
+            setIsSubmitting(false);
+            return;
         }
 
-        const userRef = doc(firestore, 'users', currentUser!.uid);
-        const userProfileSnap = await transaction.get(userRef);
-        finalUserProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
-        
-        finalDisplayName = finalUserProfileData.username || currentUser?.displayName || `${t('ProfilePage.guestUser')}_${currentUser!.uid.substring(0,4)}`;
+        const userRef = doc(firestore, 'users', currentUser.uid);
+        let userProfileSnap = await getDoc(userRef);
+        let finalDisplayName = userProfileSnap.exists() ? userProfileSnap.data().username : currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
 
         if (needsIdentity && data.username) {
             const newUsername = data.username;
             const newUsernameLower = normalizeText(newUsername);
             const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
-            const usernameDoc = await transaction.get(newUsernameRef);
+            const usernameDoc = await getDoc(newUsernameRef);
             
             if (usernameDoc.exists()) {
-                transactionError = t('CommentForm.toast.usernameInUse');
-                return; // Abort transaction
+                form.setError('username', { type: 'manual', message: t('CommentForm.toast.usernameInUse') });
+                setIsSubmitting(false);
+                return;
             }
-            transaction.set(newUsernameRef, { userId: currentUser!.uid });
-            
-            finalDisplayName = newUsername; // Set the final display name here
+            await setDoc(newUsernameRef, { userId: currentUser.uid });
+            finalDisplayName = newUsername;
             const newUserProfileData = {
                 username: newUsername,
                 usernameLower: newUsernameLower,
                 createdAt: serverTimestamp(),
             };
-            transaction.set(userRef, newUserProfileData);
-            finalUserProfileData = newUserProfileData; // update for comment payload
+            await setDoc(userRef, newUserProfileData);
+            userProfileSnap = await getDoc(userRef); // re-fetch to get fresh data
         }
-        
-        const updates: { [key: string]: any } = { updatedAt: serverTimestamp() };
 
-        if (isRatingEnabled && typeof newRating === 'number' && newRating >= 0) {
-            updates.ratingCount = increment(1);
-            updates.totalRating = increment(newRating);
-            updates[`ratingsBreakdown.${newRating}`] = increment(1);
-            updates.__ratingCount_delta = 1;
-            updates.__totalRating_delta = newRating;
+        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
+        const country = userProfileData.country || 'unknown';
+        const gender = userProfileData.gender || 'unknown';
+        const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
+
+        // --- Figure Document Updates ---
+        if (newRating >= 0) {
+            const figureRef = doc(firestore, 'figures', figureId);
+            const figureUpdates = {
+                ratingCount: increment(1),
+                totalRating: increment(newRating),
+                [`ratingsBreakdown.${newRating}`]: increment(1),
+            };
+            updateDocumentNonBlocking(figureRef, figureUpdates);
             
-            transaction.update(figureRef, updates);
-
-            // Update ratingStats
-            const country = finalUserProfileData.country || 'unknown';
-            const gender = finalUserProfileData.gender || 'unknown';
             const ratingStatRef = doc(firestore, `figures/${figureId}/ratingStats`, String(newRating));
-            
-            const statDoc = await transaction.get(ratingStatRef);
-            const statData = statDoc.exists() ? statDoc.data() : {};
-            
-            const countryData = statData[country] || { total: 0, Masculino: 0, Femenino: 0, Otro: 0 };
-            countryData.total = (countryData.total || 0) + 1;
-            countryData[gender] = (countryData[gender] || 0) + 1;
-            
-            statData[country] = countryData;
-            transaction.set(ratingStatRef, statData);
+            const ratingStatUpdates = {
+                [country]: {
+                    total: increment(1),
+                    [gender]: increment(1)
+                }
+            };
+            setDocumentNonBlocking(ratingStatRef, ratingStatUpdates, { merge: true });
         }
-        
-        const newCommentRef = doc(commentsColRef);
-        const newCommentPayload: Omit<Comment, 'id' | 'createdAt'> & { createdAt: any } = {
-            threadId: newCommentRef.id,
-            figureId: figureId,
-            userId: currentUser!.uid,
-            text: data.text || '', // Ensure text is at least an empty string
-            rating: (isRatingEnabled && typeof data.rating === 'number') ? data.rating : -1,
-            createdAt: serverTimestamp(),
-            userDisplayName: finalDisplayName, // Use finalDisplayName
-            userPhotoURL: currentUser!.isAnonymous ? null : currentUser!.photoURL,
-            userCountry: finalUserProfileData.country || null,
-            userGender: finalUserProfileData.gender || null,
-            likes: 0,
-            dislikes: 0,
-            parentId: null,
-            replyCount: 0,
-        };
-        transaction.set(newCommentRef, newCommentPayload);
-      });
-
-      if (transactionError) {
-        if (transactionError === t('CommentForm.toast.usernameInUse')) {
-          form.setError('username', { type: 'manual', message: transactionError });
-        } else {
-          toast({ title: 'Error', description: transactionError, variant: 'destructive' });
-        }
-        setIsSubmitting(false);
-        return;
-      }
-
-      const streakResult = await updateStreak({
-        firestore,
-        figureId,
-        figureName,
-        userId: currentUser.uid,
-        userDisplayName: finalDisplayName,
-        userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
-        isAnonymous: currentUser.isAnonymous,
-        userCountry: finalUserProfileData.country || null,
-        userGender: finalUserProfileData.gender || null,
-      });
-
-      if (streakResult?.streakGained) {
-        showStreakAnimation(streakResult.newStreakCount);
-      }
-
-      if (isRatingEnabled && typeof data.rating === 'number' && ratingSounds[data.rating]) {
-        const audio = new Audio(ratingSounds[data.rating]);
-        audio.play();
-      }
-
-      toast({
-        title: t('CommentForm.toast.opinionPosted'),
-        description: t('CommentForm.toast.thanks'),
-      });
       
-      form.reset({text: '', rating: null as any, username: '' });
-      onCommentPosted(); // Call the refetch callback
-      refetchExistingComment(); // Refetch the check for existing comments
+        // --- Create Comment Document ---
+        const newCommentRef = doc(commentsColRef);
+        const newCommentPayload = {
+            threadId: newCommentRef.id, figureId: figureId, userId: currentUser.uid,
+            text: data.text || '', rating: newRating,
+            createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+            userDisplayName: finalDisplayName, userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
+            userCountry: country, userGender: gender,
+            likes: 0, dislikes: 0, parentId: null, replyCount: 0,
+        };
+        setDocumentNonBlocking(newCommentRef, newCommentPayload);
 
+        // --- Post-Operation Actions ---
+        const streakResult = await updateStreak({
+            firestore, figureId, figureName, userId: currentUser.uid,
+            userDisplayName: finalDisplayName, userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
+            isAnonymous: currentUser.isAnonymous, userCountry: country, userGender: gender,
+        });
+
+        if (streakResult?.streakGained) {
+            showStreakAnimation(streakResult.newStreakCount);
+        }
+
+        if (newRating >= 0 && ratingSounds[newRating]) {
+            const audio = new Audio(ratingSounds[newRating]);
+            audio.play();
+        }
+
+        toast({ title: t('CommentForm.toast.opinionPosted'), description: t('CommentForm.toast.thanks') });
+        form.reset({ text: '', rating: null as any, username: '' });
+        onCommentPosted();
+        refetchExistingComment();
     } catch (error: any) {
-      console.error('Error al publicar comentario:', error);
-      toast({
-        variant: 'destructive',
-        title: t('CommentForm.toast.errorPostingTitle'),
-        description: t('CommentForm.toast.errorPostingDescription'),
-      });
+        console.error('Error al publicar comentario:', error);
+        toast({
+            variant: 'destructive',
+            title: t('CommentForm.toast.errorPostingTitle'),
+            description: t('CommentForm.toast.errorPostingDescription'),
+        });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
   };
   
