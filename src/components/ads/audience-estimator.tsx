@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Info, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { countries } from '@/lib/countries';
+
 
 interface AudienceEstimatorProps {
   criteria?: {
@@ -42,12 +44,18 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
               const statsData = docSnap.data();
               let audienceForCriterion = 0;
 
-              const targetCountries = (locations && locations.length > 0) ? locations : Object.keys(statsData);
-              const targetGenders = (genders && genders.length > 0) ? genders : ['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo'];
+              const targetCountries = (locations && locations.length > 0) 
+                ? locations 
+                : Object.keys(statsData).map(key => {
+                    const country = countries.find(c => c.key === key);
+                    return country ? t(`countries.${country.key}`) : key;
+                });
 
               for (const countryName of targetCountries) {
-                  const countryKey = countryName.toLowerCase().replace(/ /g, '_'); // Normalize if needed, though keys should be consistent
-                  const countryData = Object.entries(statsData).find(([key]) => key.toLowerCase() === countryKey.toLowerCase())?.[1] as any;
+                  // Normalize the country name from the filter to match the Firestore key format (lowercase)
+                  const countryInfo = countries.find(c => t(`countries.${c.key}`) === countryName);
+                  const countryKey = countryInfo ? countryInfo.key : countryName.toLowerCase().replace(/ /g, '_');
+                  const countryData = statsData[countryKey];
                   
                   if (countryData) {
                        // If no gender filter is applied, we take the country's total.
@@ -72,7 +80,7 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
     const timeoutId = setTimeout(calculateAudience, 700); // Debounce calculation
     return () => clearTimeout(timeoutId);
 
-  }, [criteria, locations, genders, firestore]);
+  }, [criteria, locations, genders, firestore, t]);
 
   const getAudienceLevel = (size: number): { level: string; progress: number; color: string } => {
     if (size < 1000) return { level: 'Acotado', progress: 33, color: 'bg-destructive' };
