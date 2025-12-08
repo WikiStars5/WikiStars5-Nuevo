@@ -68,7 +68,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
 
     const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user });
 
-    const country = countries.find(c => c.key === comment.userCountry);
+    const country = comment.userCountry ? countries.find(c => c.key === comment.userCountry) : null;
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
         if (!firestore || !user || isVoting) return;
@@ -232,6 +232,9 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
         return <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-1">{comment.text}</p>;
     };
 
+    const wasEdited = comment.updatedAt && comment.createdAt && comment.updatedAt.toMillis() > comment.createdAt.toMillis() + 1000;
+
+
     return (
       <div id={`comment-${comment.id}`} className="space-y-2">
         <div className="flex items-start gap-4">
@@ -256,7 +259,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                             title={country.name}
                         />
                     )}
-                    {comment.updatedAt && (
+                    {wasEdited && (
                          <p className="text-xs text-italic text-muted-foreground">{t('CommentThread.edited')}</p>
                     )}
                 </div>
@@ -511,3 +514,4 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
+

@@ -138,7 +138,8 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         const userRef = doc(firestore, 'users', currentUser.uid);
         let userProfileSnap = await getDoc(userRef);
         let finalDisplayName = userProfileSnap.exists() ? userProfileSnap.data().username : currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
-
+        let userProfileData: Partial<AppUser> = userProfileSnap.exists() ? userProfileSnap.data() : {};
+        
         if (needsIdentity && data.username) {
             const newUsername = data.username;
             const newUsernameLower = normalizeText(newUsername);
@@ -152,16 +153,15 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
             }
             await setDoc(newUsernameRef, { userId: currentUser.uid });
             finalDisplayName = newUsername;
-            const newUserProfileData = {
+            userProfileData = {
+                ...userProfileData,
                 username: newUsername,
                 usernameLower: newUsernameLower,
                 createdAt: serverTimestamp(),
             };
-            await setDoc(userRef, newUserProfileData);
-            userProfileSnap = await getDoc(userRef); // re-fetch to get fresh data
+            await setDoc(userRef, userProfileData, { merge: true });
         }
-
-        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
+        
         const country = userProfileData.country || null;
         const gender = userProfileData.gender || null;
         const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
