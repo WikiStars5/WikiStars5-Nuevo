@@ -47,16 +47,22 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
               const statsCollectionName = 'streakStats';
               
               const min = criterion.minValue;
-              const max = criterion.maxValue || min; // If no max, assume we're targeting just the min value
+              // If no max is set, or it's less than min, we only target the min value.
+              const max = criterion.maxValue && criterion.maxValue >= min ? criterion.maxValue : min;
 
+              // Create an array of promises to fetch all required day stats in parallel
+              const statPromises = [];
               for (let day = min; day <= max; day++) {
                   const statsDocRef = doc(firestore, `figures/${criterion.figureId}/${statsCollectionName}`, String(day));
-                  const docSnap = await getDoc(statsDocRef);
+                  statPromises.push(getDoc(statsDocRef));
+              }
+              const statSnapshots = await Promise.all(statPromises);
 
+              for (const docSnap of statSnapshots) {
                   if (docSnap.exists()) {
                       const statsData = docSnap.data();
                       const targetCountries = (locations && locations.length > 0)
-                          ? locations.map(loc => countries.find(c => t(`countries.${c.key}`) === loc)?.key).filter(Boolean) as string[]
+                          ? locations.map(loc => countries.find(c => c.name === loc)?.key).filter(Boolean) as string[]
                           : Object.keys(statsData);
                       
                        for (const countryKey of targetCountries) {
@@ -83,7 +89,7 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
               if (docSnap.exists()) {
                   const statsData = docSnap.data();
                   const targetCountries = (locations && locations.length > 0)
-                      ? locations.map(loc => countries.find(c => t(`countries.${c.key}`) === loc)?.key).filter(Boolean) as string[]
+                      ? locations.map(loc => countries.find(c => c.name === loc)?.key).filter(Boolean) as string[]
                       : Object.keys(statsData);
                   
                   for (const countryKey of targetCountries) {
