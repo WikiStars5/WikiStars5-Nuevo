@@ -33,8 +33,19 @@ const targetingCriterionSchema = z.object({
     figureName: z.string(),
     figureImageUrl: z.string().url().optional().nullable(),
     type: z.enum(['attitude', 'emotion', 'rating', 'streak']),
-    value: z.string().min(1, 'Debes seleccionar un valor.'),
+    value: z.string().optional(),
+    minValue: z.coerce.number().optional(),
+    maxValue: z.coerce.number().optional(),
+}).refine(data => {
+    if (data.type === 'streak') {
+        return data.minValue !== undefined && data.minValue > 0;
+    }
+    return !!data.value;
+}, {
+    message: 'Debes seleccionar un valor.',
+    path: ['value'], // Keep error on a consistent path
 });
+
 
 const adCampaignSchema = z.object({
   campaignName: z.string().min(5, 'El nombre debe tener al menos 5 caracteres.'),
@@ -63,10 +74,11 @@ export default function CreateAdPage() {
     const { user } = useUser();
     const firestore = useFirestore();
 
-    const [newCriterion, setNewCriterion] = useState<{figure: Figure | null, type: 'attitude' | 'emotion' | 'rating' | 'streak', value: string}>({
+    const [newCriterion, setNewCriterion] = useState<{figure: Figure | null, type: 'attitude' | 'emotion' | 'rating' | 'streak', value: string, minValue?: number, maxValue?: number}>({
         figure: null,
         type: 'attitude',
-        value: ''
+        value: '',
+        minValue: 1
     });
     const [searchInputQuery, setSearchInputQuery] = useState('');
 
@@ -91,21 +103,40 @@ export default function CreateAdPage() {
     });
 
      const handleAddCriterion = () => {
-        if (!newCriterion.figure || !newCriterion.value) {
-            toast({ title: "Criterio incompleto", description: "Por favor, selecciona una figura y un valor.", variant: "destructive" });
+        if (!newCriterion.figure) {
+            toast({ title: "Criterio incompleto", description: "Por favor, selecciona una figura.", variant: "destructive" });
             return;
         }
-        append({
+
+        const dataToAdd: any = {
             figureId: newCriterion.figure.id,
             figureName: newCriterion.figure.name,
             figureImageUrl: newCriterion.figure.imageUrl,
             type: newCriterion.type,
-            value: newCriterion.value,
-        });
+        };
+
+        if (newCriterion.type === 'streak') {
+            if (!newCriterion.minValue || newCriterion.minValue < 1) {
+                toast({ title: "Criterio de racha incompleto", description: "El valor mínimo de racha debe ser al menos 1.", variant: "destructive" });
+                return;
+            }
+            dataToAdd.minValue = newCriterion.minValue;
+            dataToAdd.maxValue = newCriterion.maxValue;
+        } else {
+            if (!newCriterion.value) {
+                toast({ title: "Criterio incompleto", description: "Por favor, selecciona un valor.", variant: "destructive" });
+                return;
+            }
+            dataToAdd.value = newCriterion.value;
+        }
+        
+        append(dataToAdd);
+
         // Reset the form for the new criterion
-        setNewCriterion({ figure: null, type: 'attitude', value: '' });
+        setNewCriterion({ figure: null, type: 'attitude', value: '', minValue: 1, maxValue: undefined });
         setSearchInputQuery('');
     };
+
 
     const saveCampaign = (status: 'draft' | 'pending_review') => {
         if (!user || !firestore) {
@@ -261,8 +292,8 @@ export default function CreateAdPage() {
                         <h3 className="font-semibold text-lg flex items-center gap-2"><Target className="h-5 w-5 text-primary" /> Segmentación por Intereses</h3>
                         
                         <div className="p-4 border rounded-lg space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                <div className="md:col-span-2 space-y-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
                                     <Label>Figura Pública</Label>
                                      <FigureSearchInput 
                                         onFigureSelect={(figure) => {
@@ -293,9 +324,9 @@ export default function CreateAdPage() {
                                         </div>
                                     )}
                                 </div>
-                                <div>
+                                <div className="space-y-2">
                                     <Label>Tipo</Label>
-                                    <Select value={newCriterion.type} onValueChange={(v: 'attitude' | 'emotion' | 'rating' | 'streak') => setNewCriterion(prev => ({...prev, type: v, value: v === 'streak' ? '1' : ''}))}>
+                                    <Select value={newCriterion.type} onValueChange={(v: 'attitude' | 'emotion' | 'rating' | 'streak') => setNewCriterion(prev => ({...prev, type: v, value: ''}))}>
                                         <SelectTrigger><SelectValue/></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="attitude">Por Actitud</SelectItem>
@@ -305,47 +336,58 @@ export default function CreateAdPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div>
-                                    <Label>Valor</Label>
-                                    {newCriterion.type === 'streak' ? (
+                            </div>
+
+                             <div>
+                                <Label>Valor</Label>
+                                {newCriterion.type === 'streak' ? (
+                                    <div className="grid grid-cols-2 gap-2">
                                         <Input
                                             type="number"
                                             min="1"
-                                            placeholder="Días de racha"
-                                            value={newCriterion.value}
-                                            onChange={(e) => setNewCriterion(prev => ({...prev, value: e.target.value}))}
+                                            placeholder="Mínimo"
+                                            value={newCriterion.minValue}
+                                            onChange={(e) => setNewCriterion(prev => ({...prev, minValue: Number(e.target.value)}))}
                                         />
-                                    ) : (
-                                        <Select value={newCriterion.value} onValueChange={(v) => setNewCriterion(prev => ({...prev, value: v}))} >
-                                            <SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger>
-                                            <SelectContent>
-                                                {newCriterion.type === 'attitude' && (<>
-                                                    <SelectItem value="fan">Fan</SelectItem>
-                                                    <SelectItem value="hater">Hater</SelectItem>
-                                                    <SelectItem value="simp">Simp</SelectItem>
-                                                    <SelectItem value="neutral">Neutral</SelectItem>
-                                                </>)}
-                                                {newCriterion.type === 'emotion' && (<>
-                                                    <SelectItem value="alegria">Alegría</SelectItem>
-                                                    <SelectItem value="furia">Furia</SelectItem>
-                                                    <SelectItem value="envidia">Envidia</SelectItem>
-                                                    <SelectItem value="tristeza">Tristeza</SelectItem>
-                                                    <SelectItem value="miedo">Miedo</SelectItem>
-                                                    <SelectItem value="desagrado">Desagrado</SelectItem>
-                                                </>)}
-                                                {newCriterion.type === 'rating' && (<>
-                                                    <SelectItem value="5">5 Estrellas</SelectItem>
-                                                    <SelectItem value="4">4 Estrellas</SelectItem>
-                                                    <SelectItem value="3">3 Estrellas</SelectItem>
-                                                    <SelectItem value="2">2 Estrellas</SelectItem>
-                                                    <SelectItem value="1">1 Estrella</SelectItem>
-                                                    <SelectItem value="0">0 Estrellas</SelectItem>
-                                                </>)}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                </div>
+                                        <Input
+                                            type="number"
+                                            min={newCriterion.minValue || 1}
+                                            placeholder="Máximo (opcional)"
+                                            value={newCriterion.maxValue}
+                                            onChange={(e) => setNewCriterion(prev => ({...prev, maxValue: Number(e.target.value) || undefined}))}
+                                        />
+                                    </div>
+                                ) : (
+                                    <Select value={newCriterion.value} onValueChange={(v) => setNewCriterion(prev => ({...prev, value: v}))} >
+                                        <SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger>
+                                        <SelectContent>
+                                            {newCriterion.type === 'attitude' && (<>
+                                                <SelectItem value="fan">Fan</SelectItem>
+                                                <SelectItem value="hater">Hater</SelectItem>
+                                                <SelectItem value="simp">Simp</SelectItem>
+                                                <SelectItem value="neutral">Neutral</SelectItem>
+                                            </>)}
+                                            {newCriterion.type === 'emotion' && (<>
+                                                <SelectItem value="alegria">Alegría</SelectItem>
+                                                <SelectItem value="furia">Furia</SelectItem>
+                                                <SelectItem value="envidia">Envidia</SelectItem>
+                                                <SelectItem value="tristeza">Tristeza</SelectItem>
+                                                <SelectItem value="miedo">Miedo</SelectItem>
+                                                <SelectItem value="desagrado">Desagrado</SelectItem>
+                                            </>)}
+                                            {newCriterion.type === 'rating' && (<>
+                                                <SelectItem value="5">5 Estrellas</SelectItem>
+                                                <SelectItem value="4">4 Estrellas</SelectItem>
+                                                <SelectItem value="3">3 Estrellas</SelectItem>
+                                                <SelectItem value="2">2 Estrellas</SelectItem>
+                                                <SelectItem value="1">1 Estrella</SelectItem>
+                                                <SelectItem value="0">0 Estrellas</SelectItem>
+                                            </>)}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             </div>
+
                             <Button type="button" variant="outline" onClick={handleAddCriterion}><Plus className="mr-2 h-4 w-4" /> Añadir Criterio</Button>
                         </div>
                         
@@ -373,7 +415,11 @@ export default function CreateAdPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="capitalize">{field.type}</TableCell>
-                                                <TableCell className="capitalize">{field.type === 'streak' ? `${field.value}+ días` : field.value}</TableCell>
+                                                 <TableCell className="capitalize">
+                                                  {field.type === 'streak' 
+                                                    ? `${field.minValue}${field.maxValue ? ` - ${field.maxValue}` : '+'} días` 
+                                                    : field.value}
+                                                </TableCell>
                                                 <TableCell className="text-right">
                                                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
                                                         <Trash2 className="h-4 w-4 text-destructive" />

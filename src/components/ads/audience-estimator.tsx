@@ -14,7 +14,9 @@ interface AudienceEstimatorProps {
   criteria?: {
     figureId: string;
     type: 'attitude' | 'emotion' | 'rating' | 'streak';
-    value: string;
+    value?: string;
+    minValue?: number;
+    maxValue?: number;
   }[];
   locations?: string[];
   genders?: string[];
@@ -40,17 +42,32 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
           let audienceForCriterion = 0;
 
           if (criterion.type === 'streak') {
-              const streakValue = parseInt(criterion.value, 10);
-              if (isNaN(streakValue)) continue;
-
-              const streaksQuery = query(
+              if (!criterion.minValue) continue;
+              
+              let streaksQuery = query(
                   collection(firestore, `figures/${criterion.figureId}/streaks`),
-                  where('currentStreak', '>=', streakValue)
+                  where('currentStreak', '>=', criterion.minValue)
               );
+              if (criterion.maxValue) {
+                  streaksQuery = query(streaksQuery, where('currentStreak', '<=', criterion.maxValue));
+              }
+
+              // Apply demographic filters for streaks
+              if (locations && locations.length > 0) {
+                  const countryKeys = locations.map(loc => countries.find(c => t(`countries.${c.key}`) === loc)?.key).filter(Boolean);
+                  if (countryKeys.length > 0) {
+                    streaksQuery = query(streaksQuery, where('userCountry', 'in', countryKeys));
+                  }
+              }
+              if (genders && genders.length > 0) {
+                   streaksQuery = query(streaksQuery, where('userGender', 'in', genders));
+              }
+              
               const snapshot = await getDocs(streaksQuery);
-              audienceForCriterion = snapshot.size; // Simple count for now
+              audienceForCriterion = snapshot.size;
 
           } else {
+              if(!criterion.value) continue;
               const statsCollectionName = `${criterion.type}Stats`;
               const statsDocRef = doc(firestore, `figures/${criterion.figureId}/${statsCollectionName}`, criterion.value);
               const docSnap = await getDoc(statsDocRef);
@@ -66,11 +83,11 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
                   for (const countryIdentifier of targetCountries) {
                       const countryKey = isGlobalSearch 
                         ? countryIdentifier 
-                        : countries.find(c => t(`countries.${c.key}`) === countryIdentifier)?.key;
+                        : countries.find(c => t(`countries.${c.key}`) === countryIdentifier)?.key?.toLowerCase().replace(/ /g, '_');
 
                       if (countryKey && statsData[countryKey]) {
                           const countryData = statsData[countryKey];
-                           if (!genders || genders.length === 0) {
+                           if (!genders || genders.length === 0 || genders.length === 2) {
                                audienceForCriterion += countryData.total || 0;
                            } else {
                                genders.forEach(gender => {
