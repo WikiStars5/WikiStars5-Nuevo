@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFirestore } from '@/firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Info, Loader2 } from 'lucide-react';
@@ -13,7 +13,7 @@ import { countries } from '@/lib/countries';
 interface AudienceEstimatorProps {
   criteria?: {
     figureId: string;
-    type: 'attitude' | 'emotion' | 'rating';
+    type: 'attitude' | 'emotion' | 'rating' | 'streak';
     value: string;
   }[];
   locations?: string[];
@@ -37,38 +37,51 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
       let totalAudience = 0;
 
       for (const criterion of criteria) {
-          const statsCollectionName = `${criterion.type}Stats`;
-          const statsDocRef = doc(firestore, `figures/${criterion.figureId}/${statsCollectionName}`, criterion.value);
-          const docSnap = await getDoc(statsDocRef);
+          let audienceForCriterion = 0;
 
-          if (docSnap.exists()) {
-              const statsData = docSnap.data();
-              let audienceForCriterion = 0;
+          if (criterion.type === 'streak') {
+              const streakValue = parseInt(criterion.value, 10);
+              if (isNaN(streakValue)) continue;
 
-              const targetCountries = (locations && locations.length > 0)
-                  ? locations
-                  : Object.keys(statsData);
-              
-              const isGlobalSearch = !(locations && locations.length > 0);
+              const streaksQuery = query(
+                  collection(firestore, `figures/${criterion.figureId}/streaks`),
+                  where('currentStreak', '>=', streakValue)
+              );
+              const snapshot = await getDocs(streaksQuery);
+              audienceForCriterion = snapshot.size; // Simple count for now
 
-              for (const countryIdentifier of targetCountries) {
-                  const countryKey = isGlobalSearch 
-                    ? countryIdentifier 
-                    : countries.find(c => t(`countries.${c.key}`) === countryIdentifier)?.key;
+          } else {
+              const statsCollectionName = `${criterion.type}Stats`;
+              const statsDocRef = doc(firestore, `figures/${criterion.figureId}/${statsCollectionName}`, criterion.value);
+              const docSnap = await getDoc(statsDocRef);
 
-                  if (countryKey && statsData[countryKey]) {
-                      const countryData = statsData[countryKey];
-                       if (!genders || genders.length === 0) {
-                           audienceForCriterion += countryData.total || 0;
-                       } else {
-                           genders.forEach(gender => {
-                               audienceForCriterion += countryData[gender] || 0;
-                           });
-                       }
+              if (docSnap.exists()) {
+                  const statsData = docSnap.data();
+                  const targetCountries = (locations && locations.length > 0)
+                      ? locations
+                      : Object.keys(statsData);
+                  
+                  const isGlobalSearch = !(locations && locations.length > 0);
+
+                  for (const countryIdentifier of targetCountries) {
+                      const countryKey = isGlobalSearch 
+                        ? countryIdentifier 
+                        : countries.find(c => t(`countries.${c.key}`) === countryIdentifier)?.key;
+
+                      if (countryKey && statsData[countryKey]) {
+                          const countryData = statsData[countryKey];
+                           if (!genders || genders.length === 0) {
+                               audienceForCriterion += countryData.total || 0;
+                           } else {
+                               genders.forEach(gender => {
+                                   audienceForCriterion += countryData[gender] || 0;
+                               });
+                           }
+                      }
                   }
               }
-              totalAudience += audienceForCriterion;
           }
+          totalAudience += audienceForCriterion;
       }
       
       setEstimatedSize(totalAudience);
@@ -109,14 +122,14 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
              </div>
              <div className="border-t pt-4">
                 <div className="flex items-center justify-between font-semibold">
-                    <span>Tamaño de público estimado:</span>
+                    <span>Alcance Potencial Estimado:</span>
                     <div className="flex items-center gap-2">
                        {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                       <span>{estimatedSize.toLocaleString()}</span>
+                       <span>~{estimatedSize.toLocaleString()} impresiones</span>
                     </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                    Los tamaños de público son una estimación.
+                    *Esta es una estimación del número total de veces que tu anuncio podría mostrarse, no necesariamente el número de personas únicas.
                 </p>
              </div>
         </CardContent>

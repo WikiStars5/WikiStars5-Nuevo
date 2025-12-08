@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useParams } from 'next/navigation';
 import { useFirestore, useDoc, useMemoFirebase, useUser } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye, Target, Image as ImageIcon, Sparkles, Trash2, X, Plus, Send, Users, MapPin, PersonStanding } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, XCircle, Megaphone, Eye, Target, Image as ImageIcon, Sparkles, Trash2, X, Plus, Send, Users, MapPin, PersonStanding, Flame } from 'lucide-react';
 import type { Figure } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import FigureSearchInput from '@/components/figure/figure-search-input';
@@ -28,13 +28,14 @@ import { Label } from '@/components/ui/label';
 import AudienceEstimator from '@/components/ads/audience-estimator';
 import MultiCountrySelector from '@/components/shared/country-combobox';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 
 
 const targetingCriterionSchema = z.object({
     figureId: z.string().min(1, 'Debes seleccionar una figura.'),
     figureName: z.string(),
     figureImageUrl: z.string().url().optional().nullable(),
-    type: z.enum(['attitude', 'emotion', 'rating']),
+    type: z.enum(['attitude', 'emotion', 'rating', 'streak']),
     value: z.string().min(1, 'Debes seleccionar un valor.'),
 });
 
@@ -81,7 +82,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
     // State for the new criterion form
-    const [newCriterion, setNewCriterion] = React.useState<{figure: Figure | null, type: 'attitude' | 'emotion' | 'rating', value: string}>({
+    const [newCriterion, setNewCriterion] = React.useState<{figure: Figure | null, type: 'attitude' | 'emotion' | 'rating' | 'streak', value: string}>({
         figure: null,
         type: 'attitude',
         value: ''
@@ -341,44 +342,56 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                                         </div>
                                         <div>
                                             <Label>Tipo</Label>
-                                            <Select value={newCriterion.type} onValueChange={(v: 'attitude' | 'emotion' | 'rating') => setNewCriterion(prev => ({...prev, type: v, value: ''}))}>
+                                            <Select value={newCriterion.type} onValueChange={(v: 'attitude' | 'emotion' | 'rating' | 'streak') => setNewCriterion(prev => ({...prev, type: v, value: v === 'streak' ? '1' : ''}))}>
                                                 <SelectTrigger><SelectValue/></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="attitude">Por Actitud</SelectItem>
                                                     <SelectItem value="emotion">Por Emoción</SelectItem>
                                                     <SelectItem value="rating">Por Calificación</SelectItem>
+                                                    <SelectItem value="streak">Por Racha</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                         <div>
+                                        <div>
                                             <Label>Valor</Label>
-                                            <Select value={newCriterion.value} onValueChange={(v) => setNewCriterion(prev => ({...prev, value: v}))} >
-                                                 <SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {newCriterion.type === 'attitude' && (<>
-                                                        <SelectItem value="fan">Fan</SelectItem>
-                                                        <SelectItem value="hater">Hater</SelectItem>
-                                                        <SelectItem value="simp">Simp</SelectItem>
-                                                        <SelectItem value="neutral">Neutral</SelectItem>
-                                                    </>)}
-                                                    {newCriterion.type === 'emotion' && (<>
-                                                        <SelectItem value="alegria">Alegría</SelectItem>
-                                                        <SelectItem value="furia">Furia</SelectItem>
-                                                        <SelectItem value="envidia">Envidia</SelectItem>
-                                                        <SelectItem value="tristeza">Tristeza</SelectItem>
-                                                        <SelectItem value="miedo">Miedo</SelectItem>
-                                                        <SelectItem value="desagrado">Desagrado</SelectItem>
-                                                    </>)}
-                                                    {newCriterion.type === 'rating' && (<>
-                                                        <SelectItem value="5">5 Estrellas</SelectItem>
-                                                        <SelectItem value="4">4 Estrellas</SelectItem>
-                                                        <SelectItem value="3">3 Estrellas</SelectItem>
-                                                        <SelectItem value="2">2 Estrellas</SelectItem>
-                                                        <SelectItem value="1">1 Estrella</SelectItem>
-                                                        <SelectItem value="0">0 Estrellas</SelectItem>
-                                                    </>)}
-                                                </SelectContent>
-                                            </Select>
+                                            {newCriterion.type === 'streak' ? (
+                                                <div className="flex items-center gap-2 pt-2">
+                                                    <Slider
+                                                        min={1} max={30} step={1}
+                                                        value={[parseInt(newCriterion.value, 10) || 1]}
+                                                        onValueChange={(val) => setNewCriterion(prev => ({...prev, value: String(val[0])}))}
+                                                    />
+                                                    <span className="text-sm font-semibold w-12 text-center">{newCriterion.value}+ días</span>
+                                                </div>
+                                            ) : (
+                                                <Select value={newCriterion.value} onValueChange={(v) => setNewCriterion(prev => ({...prev, value: v}))} >
+                                                    <SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {newCriterion.type === 'attitude' && (<>
+                                                            <SelectItem value="fan">Fan</SelectItem>
+                                                            <SelectItem value="hater">Hater</SelectItem>
+                                                            <SelectItem value="simp">Simp</SelectItem>
+                                                            <SelectItem value="neutral">Neutral</SelectItem>
+                                                        </>)}
+                                                        {newCriterion.type === 'emotion' && (<>
+                                                            <SelectItem value="alegria">Alegría</SelectItem>
+                                                            <SelectItem value="furia">Furia</SelectItem>
+                                                            <SelectItem value="envidia">Envidia</SelectItem>
+                                                            <SelectItem value="tristeza">Tristeza</SelectItem>
+                                                            <SelectItem value="miedo">Miedo</SelectItem>
+                                                            <SelectItem value="desagrado">Desagrado</SelectItem>
+                                                        </>)}
+                                                        {newCriterion.type === 'rating' && (<>
+                                                            <SelectItem value="5">5 Estrellas</SelectItem>
+                                                            <SelectItem value="4">4 Estrellas</SelectItem>
+                                                            <SelectItem value="3">3 Estrellas</SelectItem>
+                                                            <SelectItem value="2">2 Estrellas</SelectItem>
+                                                            <SelectItem value="1">1 Estrella</SelectItem>
+                                                            <SelectItem value="0">0 Estrellas</SelectItem>
+                                                        </>)}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
                                         </div>
                                     </div>
                                     <Button type="button" variant="outline" onClick={handleAddCriterion}><Plus className="mr-2 h-4 w-4" /> Añadir Criterio</Button>
@@ -408,7 +421,7 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                                                             </div>
                                                         </TableCell>
                                                         <TableCell className="capitalize">{field.type}</TableCell>
-                                                        <TableCell className="capitalize">{field.value}</TableCell>
+                                                        <TableCell className="capitalize">{field.type === 'streak' ? `${field.value}+ días` : field.value}</TableCell>
                                                         <TableCell className="text-right">
                                                             <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(index)}>
                                                                 <Trash2 className="h-4 w-4 text-destructive" />
