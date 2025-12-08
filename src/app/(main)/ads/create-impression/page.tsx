@@ -386,7 +386,30 @@ export default function CreateImpressionAdPage() {
                     <div className="space-y-4">
                          <h3 className="font-semibold text-lg flex items-center gap-2"><HandCoins className="h-5 w-5 text-primary" /> Presupuesto</h3>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                            <FormField name="impressionBudget" control={form.control} render={({field}) => (<FormItem><FormLabel>Cantidad de Impresiones</FormLabel><FormControl><Input type="number" min="1000" step="1000" {...field} /></FormControl><FormMessage/></FormItem>)} />
+                            <FormField
+                                name="impressionBudget"
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Cantidad de Impresiones</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="text"
+                                                value={field.value ? Number(field.value).toLocaleString('en-US') : ''}
+                                                onChange={(e) => {
+                                                    const value = e.target.value.replace(/,/g, '');
+                                                    if (!isNaN(Number(value))) {
+                                                        field.onChange(Number(value));
+                                                    }
+                                                }}
+                                                min="1000"
+                                                step="1000"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <Card className="bg-muted">
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-center text-sm text-muted-foreground">

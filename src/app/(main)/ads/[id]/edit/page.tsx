@@ -437,7 +437,30 @@ function EditAdCampaignPageContent({ campaignId }: { campaignId: string }) {
                                      {isCpc ? (
                                         <FormField name="clickBudget" control={form.control} render={({field}) => (<FormItem><FormLabel>Cantidad de Clics</FormLabel><FormControl><Input type="number" min="10" {...field} /></FormControl><FormMessage/></FormItem>)} />
                                      ) : (
-                                        <FormField name="impressionBudget" control={form.control} render={({field}) => (<FormItem><FormLabel>Cantidad de Impresiones</FormLabel><FormControl><Input type="number" min="1000" step="1000" {...field} /></FormControl><FormMessage/></FormItem>)} />
+                                        <FormField
+                                            name="impressionBudget"
+                                            control={form.control}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Cantidad de Impresiones</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="text"
+                                                            value={field.value ? Number(field.value).toLocaleString('en-US') : ''}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value.replace(/,/g, '');
+                                                                if (!isNaN(Number(value))) {
+                                                                    field.onChange(Number(value));
+                                                                }
+                                                            }}
+                                                            min="1000"
+                                                            step="1000"
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                      )}
                                      <Card className="bg-muted">
                                         <CardContent className="p-4">
