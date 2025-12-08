@@ -44,35 +44,35 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
           if (criterion.type === 'streak') {
               if (!criterion.minValue) continue;
               
-              // Calculate the start of yesterday to filter for active streaks.
-              const today = new Date();
-              const yesterday = new Date(today);
-              yesterday.setDate(today.getDate() - 1);
-              yesterday.setHours(0, 0, 0, 0); // Set to the beginning of yesterday.
+              const statsCollectionName = 'streakStats';
+              
+              const min = criterion.minValue;
+              const max = criterion.maxValue || min; // If no max, assume we're targeting just the min value
 
-              let streaksQuery = query(
-                  collection(firestore, `figures/${criterion.figureId}/streaks`),
-                  where('currentStreak', '>=', criterion.minValue),
-                  where('lastCommentDate', '>=', yesterday) // Filter for active streaks
-              );
+              for (let day = min; day <= max; day++) {
+                  const statsDocRef = doc(firestore, `figures/${criterion.figureId}/${statsCollectionName}`, String(day));
+                  const docSnap = await getDoc(statsDocRef);
 
-              if (criterion.maxValue) {
-                  streaksQuery = query(streaksQuery, where('currentStreak', '<=', criterion.maxValue));
-              }
-
-              // Apply demographic filters for streaks
-              if (locations && locations.length > 0) {
-                  const countryKeys = locations.map(loc => countries.find(c => t(`countries.${c.key}`) === loc)?.key).filter(Boolean);
-                  if (countryKeys.length > 0) {
-                    streaksQuery = query(streaksQuery, where('userCountry', 'in', countryKeys));
+                  if (docSnap.exists()) {
+                      const statsData = docSnap.data();
+                      const targetCountries = (locations && locations.length > 0)
+                          ? locations.map(loc => countries.find(c => t(`countries.${c.key}`) === loc)?.key).filter(Boolean) as string[]
+                          : Object.keys(statsData);
+                      
+                       for (const countryKey of targetCountries) {
+                           if (statsData[countryKey]) {
+                               const countryData = statsData[countryKey];
+                               if (!genders || genders.length === 0 || genders.length === 2) { // "All genders" case
+                                   audienceForCriterion += countryData.total || 0;
+                               } else {
+                                   genders.forEach(gender => {
+                                       audienceForCriterion += countryData[gender] || 0;
+                                   });
+                               }
+                           }
+                       }
                   }
               }
-              if (genders && genders.length > 0) {
-                   streaksQuery = query(streaksQuery, where('userGender', 'in', genders));
-              }
-              
-              const snapshot = await getDocs(streaksQuery);
-              audienceForCriterion = snapshot.size;
 
           } else {
               if(!criterion.value) continue;
@@ -83,18 +83,12 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
               if (docSnap.exists()) {
                   const statsData = docSnap.data();
                   const targetCountries = (locations && locations.length > 0)
-                      ? locations
+                      ? locations.map(loc => countries.find(c => t(`countries.${c.key}`) === loc)?.key).filter(Boolean) as string[]
                       : Object.keys(statsData);
                   
-                  const isGlobalSearch = !(locations && locations.length > 0);
-
-                  for (const countryIdentifier of targetCountries) {
-                       const countryKey = isGlobalSearch 
-                          ? countryIdentifier
-                          : countries.find(c => c.name === countryIdentifier)?.key;
-                      
-                      if (countryKey && statsData[countryKey]) {
-                          const countryData = statsData[countryKey];
+                  for (const countryKey of targetCountries) {
+                       if (statsData[countryKey]) {
+                           const countryData = statsData[countryKey];
                            if (!genders || genders.length === 0 || genders.length === 2) {
                                audienceForCriterion += countryData.total || 0;
                            } else {
@@ -102,7 +96,7 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
                                    audienceForCriterion += countryData[gender] || 0;
                                });
                            }
-                      }
+                       }
                   }
               }
           }

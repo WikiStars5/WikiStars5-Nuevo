@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -10,7 +9,8 @@ import {
     Timestamp,
     writeBatch,
     collection,
-    addDoc
+    addDoc,
+    setDoc
 } from 'firebase/firestore';
 import type { Streak } from '@/lib/types';
 
@@ -61,73 +61,84 @@ export async function updateStreak({
     ...denormalizedUserData
 }: UpdateStreakParams): Promise<StreakUpdateResult | null> {
     
-    // Path for the user's private copy of the streak
     const privateStreakRef = doc(firestore, `users/${userId}/streaks`, figureId);
-    
-    // Path for the public-readable streak data for the figure's leaderboard
     const publicStreakRef = doc(firestore, `figures/${figureId}/streaks`, userId);
     
     try {
-        const batch = writeBatch(firestore);
         let newStreakCount = 1;
         let streakGained = false;
 
-        const privateStreakDoc = await runTransaction(firestore, async (transaction) => {
-            const doc = await transaction.get(privateStreakRef);
-            return doc;
-        });
-
-        const now = new Date();
-
-        if (!privateStreakDoc.exists()) {
-            // Rule 1: No existing streak, create a new one.
-            newStreakCount = 1;
-            streakGained = true;
-        } else {
-            const streakData = privateStreakDoc.data() as Streak;
-            const lastCommentDate = streakData.lastCommentDate.toDate();
-
-            if (isSameDay(lastCommentDate, now)) {
-                // Rule 3: Last comment was today. Just update timestamp.
-                newStreakCount = streakData.currentStreak;
-                streakGained = false;
-            } else if (isYesterday(lastCommentDate, now)) {
-                // Rule 2: Last comment was yesterday, continue the streak.
-                newStreakCount = (streakData.currentStreak || 0) + 1;
-                streakGained = true;
+        await runTransaction(firestore, async (transaction) => {
+            const privateStreakDoc = await transaction.get(privateStreakRef);
+            const now = new Date();
+            let oldStreakCount = 0;
+            let streakData: Streak | null = null;
+    
+            if (privateStreakDoc.exists()) {
+                streakData = privateStreakDoc.data() as Streak;
+                oldStreakCount = streakData.currentStreak || 0;
+                const lastCommentDate = streakData.lastCommentDate.toDate();
+    
+                if (isSameDay(lastCommentDate, now)) {
+                    newStreakCount = oldStreakCount;
+                    streakGained = false; // No change in streak
+                } else if (isYesterday(lastCommentDate, now)) {
+                    newStreakCount = oldStreakCount + 1;
+                    streakGained = true;
+                } else {
+                    newStreakCount = 1;
+                    streakGained = true;
+                }
             } else {
-                // Rule 4: Last comment was before yesterday, reset the streak.
+                // First time commenting, new streak
                 newStreakCount = 1;
                 streakGained = true;
+                oldStreakCount = 0;
             }
-        }
-        
-        // Prepare the data payload for both documents.
-        const streakPayload: Omit<Streak, 'id'> = {
-            userId,
-            figureId,
-            currentStreak: newStreakCount,
-            lastCommentDate: Timestamp.now(),
-            userDisplayName: denormalizedUserData.userDisplayName,
-            userPhotoURL: denormalizedUserData.userPhotoURL,
-            userCountry: denormalizedUserData.userCountry ?? null,
-            userGender: denormalizedUserData.userGender ?? null,
-            figureName: figureName,
-            figureImageUrl: figureImageUrl ?? null,
-        };
 
-        // Add both set/update operations to the batch.
-        batch.set(privateStreakRef, streakPayload, { merge: true });
-        batch.set(publicStreakRef, streakPayload, { merge: true });
+             const streakPayload: Omit<Streak, 'id'> = {
+                userId, figureId, currentStreak: newStreakCount,
+                lastCommentDate: Timestamp.now(), userDisplayName: denormalizedUserData.userDisplayName,
+                userPhotoURL: denormalizedUserData.userPhotoURL, userCountry: denormalizedUserData.userCountry ?? null,
+                userGender: denormalizedUserData.userGender ?? null, figureName: figureName, figureImageUrl: figureImageUrl ?? null,
+            };
 
-        // Commit the batch to write both documents atomically.
-        await batch.commit();
+            // Write to both private and public streak documents
+            transaction.set(privateStreakRef, streakPayload, { merge: true });
+            transaction.set(publicStreakRef, streakPayload, { merge: true });
+            
+            // Handle streakStats aggregation if the streak count changed
+            if (streakGained && oldStreakCount !== newStreakCount) {
+                const country = denormalizedUserData.userCountry || 'unknown';
+                const gender = denormalizedUserData.userGender || 'unknown';
+
+                // Decrement old streak stat if it existed
+                if (oldStreakCount > 0) {
+                    const oldStatRef = doc(firestore, `figures/${figureId}/streakStats`, String(oldStreakCount));
+                     transaction.set(oldStatRef, {
+                        [country]: {
+                            total: increment(-1),
+                            [gender]: increment(-1)
+                        }
+                    }, { merge: true });
+                }
+                
+                // Increment new streak stat
+                const newStatRef = doc(firestore, `figures/${figureId}/streakStats`, String(newStreakCount));
+                transaction.set(newStatRef, {
+                    [country]: {
+                        total: increment(1),
+                        [gender]: increment(1)
+                    }
+                }, { merge: true });
+            }
+        });
+
 
         return { streakGained, newStreakCount };
         
     } catch (error) {
-        console.error("Error updating streak with dual-write:", error);
-        // We can choose to not throw an error to the user for a background task like this.
+        console.error("Error updating streak and stats:", error);
         return null;
     }
 }
