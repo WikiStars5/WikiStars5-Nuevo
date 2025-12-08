@@ -342,14 +342,14 @@ export default function CreateImpressionAdPage() {
                                         <Input
                                             type="number"
                                             min="1"
-                                            placeholder="Mínimo"
+                                            placeholder="Desde"
                                             value={newCriterion.minValue}
                                             onChange={(e) => setNewCriterion(prev => ({...prev, minValue: Number(e.target.value)}))}
                                         />
                                         <Input
                                             type="number"
                                             min={newCriterion.minValue || 1}
-                                            placeholder="Máximo (opcional)"
+                                            placeholder="Hasta"
                                             value={newCriterion.maxValue}
                                             onChange={(e) => setNewCriterion(prev => ({...prev, maxValue: Number(e.target.value) || undefined}))}
                                         />
@@ -507,3 +507,5 @@ export default function CreateImpressionAdPage() {
     </div>
   );
 }
+
+    
