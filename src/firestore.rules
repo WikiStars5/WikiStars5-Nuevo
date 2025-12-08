@@ -157,6 +157,7 @@ service cloud.firestore {
       // Allow write access to aggregation subcollections for any signed-in user
       match /attitudeStats/{statId} { allow read, list, write: if isSignedIn(); }
       match /emotionStats/{statId} { allow read, list, write: if isSignedIn(); }
+      match /ratingStats/{rating} { allow read, list, write: if isSignedIn(); }
       
       match /comments/{commentId} {
         allow get, list: if true;
@@ -256,5 +257,7 @@ service cloud.firestore {
     match /settings/{settingId} { allow get: if true; allow write: if isAdmin(); }
   }
 }
+
+    
 
     
