@@ -132,20 +132,7 @@ service cloud.firestore {
           
           // P4: Rating update logic from comments
           (
-            (
-                // Case A: Adding a new rating
-                request.resource.data.__ratingCount_delta == 1 &&
-                request.resource.data.ratingCount == resource.data.ratingCount + 1 &&
-                request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta &&
-                request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] == (resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] != null ? resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta)] : 0) + 1
-            ) ||
-            (
-                // Case C: Removing a rating
-                request.resource.data.__ratingCount_delta == -1 &&
-                request.resource.data.ratingCount == resource.data.ratingCount - 1 &&
-                request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta &&
-                request.resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] == (resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] != null ? resource.data.ratingsBreakdown[string(request.resource.data.__totalRating_delta * -1)] : 0) - 1
-            )
+            request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown'])
           )
         )
       );
@@ -158,6 +145,7 @@ service cloud.firestore {
       match /attitudeStats/{statId} { allow read, list, write: if isSignedIn(); }
       match /emotionStats/{statId} { allow read, list, write: if isSignedIn(); }
       match /ratingStats/{rating} { allow read, list, write: if isSignedIn(); }
+      match /streakStats/{day} { allow read, list, write: if isSignedIn(); }
       
       match /comments/{commentId} {
         allow get, list: if true;
