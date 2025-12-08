@@ -54,11 +54,10 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
               for (const countryIdentifier of targetCountries) {
                   const countryKey = isGlobalSearch 
                     ? countryIdentifier 
-                    : countries.find(c => t(`countries.${c.key}`) === countryIdentifier)?.key || countryIdentifier.toLowerCase().replace(/ /g, '_');
-                  
-                  const countryData = statsData[countryKey];
-                  
-                  if (countryData) {
+                    : countries.find(c => t(`countries.${c.key}`) === countryIdentifier)?.key;
+
+                  if (countryKey && statsData[countryKey]) {
+                      const countryData = statsData[countryKey];
                        if (!genders || genders.length === 0) {
                            audienceForCriterion += countryData.total || 0;
                        } else {
