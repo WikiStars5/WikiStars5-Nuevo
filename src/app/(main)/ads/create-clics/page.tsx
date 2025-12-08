@@ -26,7 +26,6 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import AudienceEstimator from '@/components/ads/audience-estimator';
 import MultiCountrySelector from '@/components/shared/country-combobox';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
 
 
 const targetingCriterionSchema = z.object({
@@ -309,14 +308,13 @@ export default function CreateAdPage() {
                                 <div>
                                     <Label>Valor</Label>
                                     {newCriterion.type === 'streak' ? (
-                                        <div className="flex items-center gap-2 pt-2">
-                                            <Slider
-                                                min={1} max={30} step={1}
-                                                value={[parseInt(newCriterion.value, 10) || 1]}
-                                                onValueChange={(val) => setNewCriterion(prev => ({...prev, value: String(val[0])}))}
-                                            />
-                                            <span className="text-sm font-semibold w-12 text-center">{newCriterion.value}+ días</span>
-                                        </div>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            placeholder="Días de racha"
+                                            value={newCriterion.value}
+                                            onChange={(e) => setNewCriterion(prev => ({...prev, value: e.target.value}))}
+                                        />
                                     ) : (
                                         <Select value={newCriterion.value} onValueChange={(v) => setNewCriterion(prev => ({...prev, value: v}))} >
                                             <SelectTrigger><SelectValue placeholder="Elige un valor" /></SelectTrigger>
