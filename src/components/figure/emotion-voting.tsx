@@ -138,10 +138,15 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             const userProfileRef = doc(firestore, 'users', currentUser!.uid);
             const privateVoteRef = doc(firestore, `users/${currentUser!.uid}/emotionVotes`, figure.id);
 
-            const [userProfileDoc, privateVoteDoc] = await Promise.all([
+            const [userProfileDoc, privateVoteDoc, figureDoc] = await Promise.all([
                 transaction.get(userProfileRef),
-                transaction.get(privateVoteRef)
+                transaction.get(privateVoteRef),
+                transaction.get(figureRef),
             ]);
+
+            if (!figureDoc.exists()) {
+                throw new Error("Figure document does not exist.");
+            }
 
             const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : null;
             const country = userProfileData?.country || 'unknown';
@@ -150,50 +155,27 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             const dbPreviousVote = privateVoteDoc.exists() ? (privateVoteDoc.data() as EmotionVote).vote : null;
             const isDbRetracting = dbPreviousVote === vote;
 
-            // --- Update Aggregation Stats ---
-            if (dbPreviousVote) {
-                const oldStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, dbPreviousVote);
-                const oldStatDoc = await transaction.get(oldStatRef);
-                const oldStatData = oldStatDoc.exists() ? oldStatDoc.data() : {};
-                const countryStats = oldStatData[country] || { total: 0, Masculino: 0, Femenino: 0, Otro: 0 };
-                
-                transaction.set(oldStatRef, {
-                    [country]: {
-                        ...countryStats,
-                        total: increment(-1),
-                        [gender]: increment(-1)
-                    }
-                }, { merge: true });
-            }
-
-            if (!isDbRetracting) {
-                const newStatRef = doc(firestore, `figures/${figure.id}/emotionStats`, vote);
-                 const newStatDoc = await transaction.get(newStatRef);
-                const newStatData = newStatDoc.exists() ? newStatDoc.data() : {};
-                const countryStats = newStatData[country] || { total: 0, Masculino: 0, Femenino: 0, Otro: 0 };
-
-                transaction.set(newStatRef, {
-                    [country]: {
-                        ...countryStats,
-                        total: increment(1),
-                        [gender]: increment(1)
-                    }
-                }, { merge: true });
-            }
-            // --- End Aggregation Stats ---
-
-            // --- Update Main Figure Document and User's Vote ---
-            const figureUpdates: { [key: string]: any } = {};
+             // --- Main Figure Document Update ---
+             const figureUpdates: { [key: string]: any } = {
+                '__newVote': isDbRetracting ? null : vote,
+                '__oldVote': dbPreviousVote,
+                updatedAt: serverTimestamp(),
+            };
 
             if (isDbRetracting) {
-                transaction.delete(privateVoteRef);
                 figureUpdates[`emotion.${vote}`] = increment(-1);
             } else {
                 if (dbPreviousVote) {
                     figureUpdates[`emotion.${dbPreviousVote}`] = increment(-1);
                 }
                 figureUpdates[`emotion.${vote}`] = increment(1);
-                
+            }
+            transaction.update(figureRef, figureUpdates);
+
+            // --- User's Private Vote Document ---
+            if (isDbRetracting) {
+                transaction.delete(privateVoteRef);
+            } else {
                 const voteData = {
                     userId: currentUser!.uid,
                     figureId: figure.id,
@@ -206,8 +188,31 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                 };
                 transaction.set(privateVoteRef, voteData, { merge: true });
             }
-            
-            transaction.update(figureRef, figureUpdates);
+
+            // --- Detailed Statistics Update ---
+            const emotionStatsRef = (voteType: string) => doc(firestore, `figures/${figure.id}/emotionStats`, voteType);
+
+            // Decrement old stat if changing vote
+            if (dbPreviousVote) {
+                const oldStatRef = emotionStatsRef(dbPreviousVote);
+                transaction.set(oldStatRef, {
+                    [country]: {
+                        total: increment(-1),
+                        [gender]: increment(-1)
+                    }
+                }, { merge: true });
+            }
+
+            // Increment new stat if not retracting
+            if (!isDbRetracting) {
+                const newStatRef = emotionStatsRef(vote);
+                transaction.set(newStatRef, {
+                    [country]: {
+                        total: increment(1),
+                        [gender]: increment(1)
+                    }
+                }, { merge: true });
+            }
         });
 
         toast({ title: isRetracting ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
