@@ -39,27 +39,26 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
           const docSnap = await getDoc(statsDocRef);
 
           if (docSnap.exists()) {
-              const data = docSnap.data();
+              const statsData = docSnap.data();
               let audienceForCriterion = 0;
 
-              // If no location or gender filters, sum up all totals.
-              if ((!locations || locations.length === 0) && (!genders || genders.length === 0)) {
-                  audienceForCriterion = Object.values(data).reduce((sum: number, countryData: any) => sum + (countryData.total || 0), 0);
-              } else {
-                  // Apply filters
-                  const targetCountries = locations && locations.length > 0 ? locations : Object.keys(data);
+              const targetCountries = (locations && locations.length > 0) ? locations : Object.keys(statsData);
+              const targetGenders = (genders && genders.length > 0) ? genders : ['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo'];
+
+              for (const countryName of targetCountries) {
+                  const countryKey = countryName.toLowerCase().replace(/ /g, '_'); // Normalize if needed, though keys should be consistent
+                  const countryData = Object.entries(statsData).find(([key]) => key.toLowerCase() === countryKey.toLowerCase())?.[1] as any;
                   
-                  for (const country of targetCountries) {
-                      if (data[country]) {
-                           const countryData = data[country];
-                           if (!genders || genders.length === 0) {
-                               audienceForCriterion += countryData.total || 0;
-                           } else {
-                               genders.forEach(gender => {
-                                   audienceForCriterion += countryData[gender] || 0;
-                               });
-                           }
-                      }
+                  if (countryData) {
+                       // If no gender filter is applied, we take the country's total.
+                       if (!genders || genders.length === 0) {
+                           audienceForCriterion += countryData.total || 0;
+                       } else {
+                           // If there is a gender filter, sum up only the selected genders.
+                           genders.forEach(gender => {
+                               audienceForCriterion += countryData[gender] || 0;
+                           });
+                       }
                   }
               }
               totalAudience += audienceForCriterion;
