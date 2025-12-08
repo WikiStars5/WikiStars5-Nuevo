@@ -44,10 +44,18 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
           if (criterion.type === 'streak') {
               if (!criterion.minValue) continue;
               
+              // Calculate the start of yesterday to filter for active streaks.
+              const today = new Date();
+              const yesterday = new Date(today);
+              yesterday.setDate(today.getDate() - 1);
+              yesterday.setHours(0, 0, 0, 0); // Set to the beginning of yesterday.
+
               let streaksQuery = query(
                   collection(firestore, `figures/${criterion.figureId}/streaks`),
-                  where('currentStreak', '>=', criterion.minValue)
+                  where('currentStreak', '>=', criterion.minValue),
+                  where('lastCommentDate', '>=', yesterday) // Filter for active streaks
               );
+
               if (criterion.maxValue) {
                   streaksQuery = query(streaksQuery, where('currentStreak', '<=', criterion.maxValue));
               }
@@ -81,10 +89,10 @@ export default function AudienceEstimator({ criteria, locations, genders }: Audi
                   const isGlobalSearch = !(locations && locations.length > 0);
 
                   for (const countryIdentifier of targetCountries) {
-                      const countryKey = isGlobalSearch 
-                        ? countryIdentifier 
-                        : countries.find(c => t(`countries.${c.key}`) === countryIdentifier)?.key?.toLowerCase().replace(/ /g, '_');
-
+                       const countryKey = isGlobalSearch 
+                          ? countryIdentifier
+                          : countries.find(c => c.name === countryIdentifier)?.key;
+                      
                       if (countryKey && statsData[countryKey]) {
                           const countryData = statsData[countryKey];
                            if (!genders || genders.length === 0 || genders.length === 2) {
