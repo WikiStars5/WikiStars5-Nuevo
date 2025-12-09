@@ -203,9 +203,16 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>URL de Imagen de Perfil</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="https://..." {...field} value={field.value || ''}/>
-                                        </FormControl>
+                                        <div className="relative">
+                                            <FormControl>
+                                                <Input placeholder="https://..." {...field} value={field.value || ''} className="pr-10"/>
+                                            </FormControl>
+                                            {field.value && (
+                                                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => form.setValue('imageUrl', '')}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -216,9 +223,16 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>URL de Imagen de Portada</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="https://..." {...field} value={field.value || ''}/>
-                                        </FormControl>
+                                        <div className="relative">
+                                            <FormControl>
+                                                <Input placeholder="https://..." {...field} value={field.value || ''} className="pr-10"/>
+                                            </FormControl>
+                                            {field.value && (
+                                                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => form.setValue('coverPhotoUrl', '')}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}
