@@ -26,12 +26,12 @@ const emotionOptions: {
   textColorClass: string;
   selectedClass: string;
 }[] = [
-  { id: 'alegria', labelKey: 'EmotionVoting.labels.alegria', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Falegria.png?alt=media&token=c6ea80e2-b3f9-463c-be2a-d7499053eeba', colorClass: 'border-yellow-400', textColorClass: 'text-yellow-400', selectedClass: 'bg-yellow-400/20 border-yellow-300' },
-  { id: 'envidia', labelKey: 'EmotionVoting.labels.envidia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fenvidia.png?alt=media&token=8c596bec-ad23-4b32-9b31-f9e79a9006b4', colorClass: 'border-green-500', textColorClass: 'text-green-500', selectedClass: 'bg-green-500/20 border-green-400' },
-  { id: 'tristeza', labelKey: 'EmotionVoting.labels.tristeza', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Ftrizteza.png?alt=media&token=84884715-cd24-4bb9-9e66-a838cb4b7264', colorClass: 'border-blue-500', textColorClass: 'text-blue-500', selectedClass: 'bg-blue-500/20 border-blue-400' },
-  { id: 'miedo', labelKey: 'EmotionVoting.labels.miedo', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fmiedo.png?alt=media&token=904c948b-2b47-4b73-abda-ff9906598cc3', colorClass: 'border-purple-500', textColorClass: 'text-purple-500', selectedClass: 'bg-purple-500/20 border-purple-400' },
-  { id: 'desagrado', labelKey: 'EmotionVoting.labels.desagrado', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fdesagrado.png?alt=media&token=88161fe7-a756-4d4c-ba27-f831682da537', colorClass: 'border-lime-600', textColorClass: 'text-lime-600', selectedClass: 'bg-lime-600/20 border-lime-500' },
-  { id: 'furia', labelKey: 'EmotionVoting.labels.furia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Ffuria.png?alt=media&token=69a8a540-82a9-457b-8993-2076902475d6', colorClass: 'border-red-500', textColorClass: 'text-red-500', selectedClass: 'bg-red-500/20 border-red-400' },
+  { id: 'alegria', labelKey: 'EmotionVoting.labels.alegria', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Falegria.png?alt=media&token=c6ea80e2-b3f9-463c-be2a-d7499053eeba', colorClass: 'border-transparent', textColorClass: 'text-yellow-400', selectedClass: 'bg-yellow-400/20 border-yellow-300' },
+  { id: 'envidia', labelKey: 'EmotionVoting.labels.envidia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fenvidia.png?alt=media&token=8c596bec-ad23-4b32-9b31-f9e79a9006b4', colorClass: 'border-transparent', textColorClass: 'text-green-500', selectedClass: 'bg-green-500/20 border-green-400' },
+  { id: 'tristeza', labelKey: 'EmotionVoting.labels.tristeza', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Ftrizteza.png?alt=media&token=84884715-cd24-4bb9-9e66-a838cb4b7264', colorClass: 'border-transparent', textColorClass: 'text-blue-500', selectedClass: 'bg-blue-500/20 border-blue-400' },
+  { id: 'miedo', labelKey: 'EmotionVoting.labels.miedo', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fmiedo.png?alt=media&token=904c948b-2b47-4b73-abda-ff9906598cc3', colorClass: 'border-transparent', textColorClass: 'text-purple-500', selectedClass: 'bg-purple-500/20 border-purple-400' },
+  { id: 'desagrado', labelKey: 'EmotionVoting.labels.desagrado', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fdesagrado.png?alt=media&token=88161fe7-a756-4d4c-ba27-f831682da537', colorClass: 'border-transparent', textColorClass: 'text-lime-600', selectedClass: 'bg-lime-600/20 border-lime-500' },
+  { id: 'furia', labelKey: 'EmotionVoting.labels.furia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Ffuria.png?alt=media&token=69a8a540-82a9-457b-8993-2076902475d6', colorClass: 'border-transparent', textColorClass: 'text-red-500', selectedClass: 'bg-red-500/20 border-red-400' },
 ];
 
 interface EmotionVotingProps {
@@ -237,14 +237,15 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {emotionOptions.map(({ id, labelKey, gifUrl, colorClass, selectedClass, textColorClass }) => {
             const isSelected = optimisticVote?.vote === id;
+            const showDetails = !!optimisticVote;
             return (
               <Button
                 key={id}
                 variant="outline"
                 className={cn(
                 'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
-                'dark:bg-black border-border',
-                isSelected ? `scale-105 border-4 ${selectedClass}` : 'border-2',
+                'dark:bg-black',
+                isSelected ? `scale-105 border-4 ${selectedClass}` : `border-2 ${colorClass}`,
                 isVoting === id ? 'cursor-not-allowed' : ''
                 )}
                 onClick={() => handleVote(id)}
@@ -259,9 +260,11 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                         </div>
                         <div>
                             <span className="font-semibold text-sm">{t(labelKey)}</span>
-                            <span className="block text-lg font-bold">
-                            {(optimisticFigure.emotion?.[id] ?? 0).toLocaleString()}
-                            </span>
+                             {showDetails && (
+                              <span className="block text-lg font-bold">
+                                {(optimisticFigure.emotion?.[id] ?? 0).toLocaleString()}
+                              </span>
+                            )}
                         </div>
                     </div>
                 )}
@@ -269,11 +272,13 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             );
           })}
         </div>
-        <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">
-                {t('EmotionVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
-            </p>
-        </div>
+        {!!optimisticVote && (
+          <div className="mt-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                  {t('EmotionVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
+              </p>
+          </div>
+        )}
       </div>
   );
 }

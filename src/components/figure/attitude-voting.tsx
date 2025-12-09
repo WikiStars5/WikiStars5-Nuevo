@@ -26,10 +26,10 @@ const allAttitudeOptions: {
   colorClass: string;
   selectedClass: string;
 }[] = [
-  { id: 'neutral', labelKey: 'AttitudeVoting.labels.neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=aac1fe00-4e42-49d1-98a2-3dab605987d3', colorClass: 'border-gray-400', selectedClass: 'bg-gray-500/20 border-gray-400' },
-  { id: 'fan', labelKey: 'AttitudeVoting.labels.fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=a937aee9-04b6-48e8-bf37-25eef5f28e90', colorClass: 'border-yellow-300', selectedClass: 'bg-yellow-400/20 border-yellow-300' },
-  { id: 'simp', labelKey: 'AttitudeVoting.labels.simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-pink-300', selectedClass: 'bg-pink-400/20 border-pink-300' },
-  { id: 'hater', labelKey: 'AttitudeVoting.labels.hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', colorClass: 'border-red-400', selectedClass: 'bg-red-500/20 border-red-400' },
+  { id: 'neutral', labelKey: 'AttitudeVoting.labels.neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=aac1fe00-4e42-49d1-98a2-3dab605987d3', colorClass: 'border-transparent', selectedClass: 'bg-gray-500/20 border-gray-400' },
+  { id: 'fan', labelKey: 'AttitudeVoting.labels.fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=a937aee9-04b6-48e8-bf37-25eef5f28e90', colorClass: 'border-transparent', selectedClass: 'bg-yellow-400/20 border-yellow-300' },
+  { id: 'simp', labelKey: 'AttitudeVoting.labels.simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-transparent', selectedClass: 'bg-pink-400/20 border-pink-300' },
+  { id: 'hater', labelKey: 'AttitudeVoting.labels.hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', colorClass: 'border-transparent', selectedClass: 'bg-red-500/20 border-red-400' },
 ];
 
 interface AttitudeVotingProps {
@@ -253,15 +253,15 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
       <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
           {attitudeOptions.map(({ id, labelKey, gifUrl, colorClass, selectedClass }) => {
           const isSelected = optimisticVote?.vote === id;
+          const showDetails = !!optimisticVote;
           return (
           <Button
               key={id}
               variant="outline"
               className={cn(
               'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
-              'dark:bg-black border-border',
-              isSelected ? `scale-105 border-4 ${selectedClass}` : `border-2`,
-              isVoting === id ? 'cursor-not-allowed' : ''
+              'dark:bg-black',
+              isSelected ? `scale-105 border-4 ${selectedClass}` : `border-2 ${colorClass}`
               )}
               onClick={() => handleVote(id)}
               disabled={!!isVoting}
@@ -275,20 +275,24 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
                       </div>
                       <div>
                           <span className="font-semibold text-sm">{t(labelKey)}</span>
-                          <span className="block text-lg font-bold">
-                          {(optimisticFigure.attitude?.[id] ?? 0).toLocaleString()}
-                          </span>
+                          {showDetails && (
+                            <span className="block text-lg font-bold">
+                              {(optimisticFigure.attitude?.[id] ?? 0).toLocaleString()}
+                            </span>
+                          )}
                       </div>
                   </div>
               )}
           </Button>
           )})}
       </div>
-      <div className="mt-4 text-center">
-          <p className="text-sm text-muted-foreground">
-              {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
-          </p>
-      </div>
+      {!!optimisticVote && (
+        <div className="mt-4 text-center">
+            <p className="text-sm text-muted-foreground">
+                {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
+            </p>
+        </div>
+      )}
     </div>
   );
 }
