@@ -24,7 +24,7 @@ import { countries } from '@/lib/countries';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface MultiCountrySelectorProps {
-  selected: string[];
+  selected: string[] | undefined;
   onChange: (value: string[]) => void;
   className?: string;
 }
@@ -41,16 +41,19 @@ export default function MultiCountrySelector({ selected, onChange, className }: 
   }, [t]);
 
   const handleSelect = (countryName: string) => {
-    const newSelected = selected.includes(countryName)
-      ? selected.filter((name) => name !== countryName)
-      : [...selected, countryName];
+    const currentSelected = selected || [];
+    const newSelected = currentSelected.includes(countryName)
+      ? currentSelected.filter((name) => name !== countryName)
+      : [...currentSelected, countryName];
     onChange(newSelected);
   };
   
   const handleRemove = (countryName: string) => {
-    onChange(selected.filter((name) => name !== countryName));
+    onChange((selected || []).filter((name) => name !== countryName));
   };
   
+  const safeSelected = selected || [];
+
   return (
     <div className={cn('space-y-2', className)}>
       <Popover open={open} onOpenChange={setOpen}>
@@ -61,8 +64,8 @@ export default function MultiCountrySelector({ selected, onChange, className }: 
             aria-expanded={open}
             className="w-full justify-between"
           >
-            {selected.length > 0
-              ? `${selected.length} países seleccionados`
+            {safeSelected.length > 0
+              ? `${safeSelected.length} países seleccionados`
               : 'Seleccionar países...'}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -82,7 +85,7 @@ export default function MultiCountrySelector({ selected, onChange, className }: 
                     <Check
                       className={cn(
                         'mr-2 h-4 w-4',
-                        selected.includes(country.name) ? 'opacity-100' : 'opacity-0'
+                        safeSelected.includes(country.name) ? 'opacity-100' : 'opacity-0'
                       )}
                     />
                     <div className="flex items-center gap-2">
@@ -103,7 +106,7 @@ export default function MultiCountrySelector({ selected, onChange, className }: 
         </PopoverContent>
       </Popover>
       <div className="flex flex-wrap gap-1">
-        {selected.map((countryName) => {
+        {safeSelected.map((countryName) => {
             const country = translatedCountries.find(c => c.name === countryName);
             if (!country) return null;
             return (

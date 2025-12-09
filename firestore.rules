@@ -1,15 +1,12 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Global Helper Functions (Se mejoró el manejo de Nulos) ---
-    
     function isSignedIn() {
       return request.auth != null;
     }
-    
+
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
@@ -17,14 +14,12 @@ service cloud.firestore {
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
-    
+
     function isIncrement(field, count) {
-      let nextValue = request.resource.data[field];
-      let prevValue = resource.data[field];
-      // ✅ MEJORA: Maneja correctamente el caso inicial (prevValue es null)
-      return nextValue == prevValue + count || (prevValue == null && nextValue == count); 
+      return (resource.data[field] == null && request.resource.data[field] == count) || 
+             (request.resource.data[field] == resource.data[field] + count);
     }
-    
+
     function getGlobalSettings() {
       return get(/databases/$(database)/documents/settings/global).data;
     }
@@ -41,26 +36,20 @@ service cloud.firestore {
       return getGlobalSettings().isRatingEnabled == true;
     }
 
-
-    // --- Figure Vote Helper Functions (¡Reforzadas contra null para evitar fallos!) ---
-
     function isVoteIncrement(voteType, voteField) {
         let nextVoteMap = request.resource.data[voteType];
-        // ✅ MEJORA: Maneja nulos en el mapa previo.
         let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {}; 
         let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
-        
-        return nextVoteMap[voteField] == prevCount + 1 &&
-               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+        return request.resource.data[voteType][voteField] == prevCount + 1 &&
+               request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
     
     function isVoteDecrement(voteType, voteField) {
         let nextVoteMap = request.resource.data[voteType];
         let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
         let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
-        
-        return nextVoteMap[voteField] == prevCount - 1 &&
-               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+        return request.resource.data[voteType][voteField] == prevCount - 1 &&
+               request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
 
     function isChangingVote(voteType, oldVoteField, newVoteField) {
@@ -68,23 +57,18 @@ service cloud.firestore {
         let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
         let prevOldCount = prevVoteMap[oldVoteField] != null ? prevVoteMap[oldVoteField] : 0;
         let prevNewCount = prevVoteMap[newVoteField] != null ? prevVoteMap[newVoteField] : 0;
-        
-        return nextVoteMap[oldVoteField] == prevOldCount - 1 &&
-               nextVoteMap[newVoteField] == prevNewCount + 1 &&
-               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
+        return request.resource.data[voteType][oldVoteField] == prevOldCount - 1 &&
+               request.resource.data[voteType][newVoteField] == prevNewCount + 1 &&
+               request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
     }
-    
-    // --- User Data Collections ---
 
     match /users/{userId} {
       allow get: if (isSignedIn() && isOwner(userId)) || isAdmin();
       allow list: if isAdmin();
-      // Allow creation for any signed-in user, including anonymous, for their own profile
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
 
-      // Users can manage their own private data
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
@@ -94,30 +78,23 @@ service cloud.firestore {
       match /adCampaigns/{campaignId} { allow read, write: if isOwner(userId) || isAdmin(); }
     }
 
-    
     match /usernames/{username} {
       allow get: if true; 
       allow list: if false;
-      // Allow any signed-in user (including anonymous) to create a username document
       allow create: if isSignedIn(); 
       allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
       allow update: if false;
     }
 
-    // --- Figure Data Collections ---
-
     match /figures/{figureId} {
       allow get, list: if true;
-      // Allow any signed-in user (including anonymous) to create a figure profile
       allow create: if isSignedIn();
       allow delete: if isAdmin();
       
       allow update: if isAdmin() || (
         isSignedIn() && (
-          // P1: Wiki field edits by any signed-in user
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'nationality', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
           
-          // P2 & P3: Voting is allowed for any signed-in user (including anonymous)
           (request.resource.data.__newVote != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) && (
             (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) ||
             (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) ||
@@ -130,83 +107,74 @@ service cloud.firestore {
             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
           )) ||
           
-          // P4: Rating update logic from comments
           (
             request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown'])
           )
         )
       );
       
-      // Allow any signed-in user to cast their vote
-      match /attitudeVotes/{userId} { allow get, write: if isOwner(userId); }
-      match /emotionVotes/{userId} { allow get, write: if isOwner(userId); }
+      match /attitudeVotes/{userId} { allow get, write: if isOwner(userId); allow list: if isAdmin(); }
+      match /emotionVotes/{userId} { allow get, write: if isOwner(userId); allow list: if isAdmin(); }
 
-      // Allow write access to aggregation subcollections for any signed-in user
-      match /attitudeStats/{statId} { allow read, list, write: if isSignedIn(); }
-      match /emotionStats/{statId} { allow read, list, write: if isSignedIn(); }
-      match /ratingStats/{rating} { allow read, list, write: if isSignedIn(); }
-      match /streakStats/{day} { allow read, list, write: if isSignedIn(); }
+      match /attitudeStats/{statId} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+      match /emotionStats/{statId} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+      match /ratingStats/{rating} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+      match /streakStats/{day} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
       
       match /comments/{commentId} {
         allow get, list: if true;
         
         allow create: if (isAdmin()) || (isSignedIn() && request.resource.data.userId == request.auth.uid && (
-            // A) Si los comentarios de texto están habilitados, el texto no puede estar vacío.
             (areCommentsEnabled() && request.resource.data.text is string && request.resource.data.text.size() > 0) ||
-            // B) Si solo las calificaciones están habilitadas (y los comentarios no), permite crear si hay una calificación válida.
             (!areCommentsEnabled() && areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5)
         ));
         
         allow update: if isSignedIn() && (
-            // Owner can edit text
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) || 
-            // Any signed-in user can update votes
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) ||
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
-             // Allow incrementing replyCount when a reply is added
             (isIncrement('replyCount', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount']))
         );
         
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
-        // Allow any signed-in user to vote on comments
         match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
 
         match /replies/{replyId} {
           allow get, list: if true;
-          allow create: if (isAdmin()) || (isSignedIn() && areRepliesEnabled() && request.resource.data.userId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0);
+          
+          allow create: if (isAdmin()) || (
+            isSignedIn() && 
+            areRepliesEnabled() && 
+            request.resource.data.userId == request.auth.uid && 
+            request.resource.data.text is string && 
+            request.resource.data.text.size() > 0
+          );
+          
           allow update: if isSignedIn() && (
-             // Owner can edit text
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
-            // Any signed-in user can update votes
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) ||
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']))
           );
+          
           allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
-          // Allow any signed-in user to vote on replies
+          
           match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
         }
       }
 
-      // Public streaks are readable by all, writable only by the owner (or admin for maintenance)
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
     }
     
-    // --- Collection Group Rules ---
-    
-    // Allow admins to query across all comments for analytics
     match /{path=**}/comments/{commentId} {
       allow get: if isAdmin();
       allow list: if isAdmin();
     }
     
-    // --- Other Root-Level Collections ---
-
     match /achievements/{achievementId} { allow get, list: if true; allow write: if isAdmin(); }
     
-    // Only signed-in (non-anonymous) users can manage relations
     match /related_figures/{relatedFigureId} { 
       allow get, list: if true; 
       allow create, delete: if isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
@@ -216,7 +184,7 @@ service cloud.firestore {
     match /goat_battles/{battleId} {
         allow get, list: if true;
         allow create, delete: if isAdmin();
-        // Allow any signed-in user (including anonymous) to update vote counts
+        
         allow update: if (
             isAdmin() || (
                 isSignedIn() && (
@@ -226,7 +194,6 @@ service cloud.firestore {
                 )
             )
         );
-        // Allow any signed-in user (including anonymous) to cast their personal vote
         match /votes/{userId} { 
           allow get: if isOwner(userId) || isAdmin(); 
           allow write: if isOwner(userId); 
@@ -235,15 +202,12 @@ service cloud.firestore {
     }
     
     match /roles_admin/{userId} {
-      // Only the user themselves can check if they are an admin
       allow get: if isSignedIn() && isOwner(userId);
-      // Only admins can grant admin roles
       allow write: if isAdmin();
-      // Listing admin roles is not allowed for security reasons
       allow list: if false;
     }
-    match /settings/{settingId} { allow get: if true; allow write: if isAdmin(); }
+    
+    match /settings/{settingId} { allow read: if true; allow write: if isAdmin(); }
   }
 }
-
     
