@@ -41,8 +41,20 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
   const isGoatTab = searchParams.get('tab') === 'goat';
 
   return (
-    <Card className="overflow-hidden shadow-md dark:bg-black">
-      <CardContent className="relative p-6 md:p-8">
+    <Card className="overflow-hidden shadow-md dark:bg-black border-0 md:border md:rounded-lg">
+       <div className="relative h-48 md:h-64 bg-muted">
+          {figure.coverPhotoUrl && (
+              <Image
+                  src={figure.coverPhotoUrl}
+                  alt={`Foto de portada de ${figure.name}`}
+                  fill
+                  className="object-cover"
+              />
+          )}
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+       </div>
+
+      <CardContent className="relative p-6 md:p-8 pt-0">
          <div className="absolute top-4 right-4 z-10">
           <ShareButton 
             figureId={figureId} 
@@ -51,7 +63,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
             showText={false}
           />
         </div>
-        <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
+        <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8 -mt-16 md:-mt-20">
           <div className="relative flex-shrink-0">
             <Dialog>
               <DialogTrigger asChild>

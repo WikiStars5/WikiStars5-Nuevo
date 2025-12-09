@@ -51,6 +51,7 @@ const urlSchema = (domain: string, message: string) => z.string().url("URL invá
 
 const editFormSchema = z.object({
   imageUrl: z.string().optional(),
+  coverPhotoUrl: z.string().optional(),
   gender: z.enum(['Femenino', 'Masculino']).optional(),
   birthDate: z.string().optional(),
   deathDate: z.string().optional(),
@@ -85,8 +86,8 @@ const isValidImageUrl = (url: string | undefined | null): boolean => {
     if (!url) return false;
     try {
         const urlObject = new URL(url);
-        return urlObject.protocol === 'https:' && 
-               (urlObject.hostname === 'upload.wikimedia.org' || urlObject.hostname === 'i.pinimg.com');
+        // Allow more general image domains, but still require HTTPS
+        return urlObject.protocol === 'https:';
     } catch (e) {
         return false; 
     }
@@ -103,6 +104,7 @@ const getSanitizedDefaultValues = (figure: Figure): Omit<EditFormValues, 'name'>
 
     return {
       imageUrl: figure.imageUrl || '',
+      coverPhotoUrl: figure.coverPhotoUrl || '',
       gender: figure.gender || undefined,
       birthDate: figure.birthDate || '',
       deathDate: figure.deathDate || '',
@@ -126,6 +128,7 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
   });
   
   const imageUrlWatcher = form.watch('imageUrl');
+  const coverPhotoUrlWatcher = form.watch('coverPhotoUrl');
   const heightWatcher = form.watch('height');
 
   const onSubmit = async (data: EditFormValues) => {
@@ -190,49 +193,55 @@ export default function EditInformationForm({ figure, onFormClose }: EditInforma
                         <span className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M20.4 14.5c0-1.6-1.3-3-3-3s-3 1.3-3 3c0 .8.3 1.5.8 2.1l-2.7 2.7c-.4.4-.4 1 0 1.4.2.2.5.3.7.3s.5-.1.7-.3l2.7-2.7c.6.5 1.3.8 2.1.8 1.7 0 3-1.4 3-3Z"/></svg>
                         </span>
-                        {t('EditFigure.profileImage.title')}
+                        Imágenes
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                        <div className="md:col-span-2 space-y-2">
-                             <FormField
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                         <div className="space-y-4">
+                            <FormField
                                 control={form.control}
                                 name="imageUrl"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('EditFigure.profileImage.urlLabel')}</FormLabel>
+                                        <FormLabel>URL de Imagen de Perfil</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="https://upload.wikimedia.org/..." {...field} value={field.value || ''}/>
+                                            <Input placeholder="https://..." {...field} value={field.value || ''}/>
                                         </FormControl>
-                                        <div className="flex items-center justify-between pt-1">
-                                            <p className="text-xs text-muted-foreground">
-                                                {t('EditFigure.profileImage.urlHint')}
-                                            </p>
-                                            {field.value && (
-                                                <Button
-                                                    type="button"
-                                                    variant="link"
-                                                    size="sm"
-                                                    className="h-auto p-0 text-xs text-destructive"
-                                                    onClick={() => form.setValue('imageUrl', '')}
-                                                >
-                                                    <Trash2 className="mr-1 h-3 w-3" />
-                                                    {t('EditFigure.profileImage.removeLink')}
-                                                </Button>
-                                            )}
-                                        </div>
                                         <FormMessage />
                                     </FormItem>
                                 )}
-                                />
-                        </div>
-                        <div className="space-y-2">
-                             <Label>{t('EditFigure.profileImage.preview')}</Label>
-                             <div className="aspect-square relative w-full max-w-[150px] rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
-                                {isValidImageUrl(imageUrlWatcher) ? (
-                                    <Image src={imageUrlWatcher!} alt="Vista previa" fill objectFit="cover" />
-                                ) : (
-                                    <span className="text-xs text-muted-foreground p-2 text-center">URL inválida o vacía</span>
+                            />
+                            <FormField
+                                control={form.control}
+                                name="coverPhotoUrl"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>URL de Imagen de Portada</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="https://..." {...field} value={field.value || ''}/>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
                                 )}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                             <Label>Vista Previa</Label>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div className="aspect-square relative w-full rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
+                                    {isValidImageUrl(imageUrlWatcher) ? (
+                                        <Image src={imageUrlWatcher!} alt="Vista previa de perfil" fill objectFit="cover" />
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground p-2 text-center">Perfil</span>
+                                    )}
+                                </div>
+                                <div className="aspect-video relative w-full rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
+                                    {isValidImageUrl(coverPhotoUrlWatcher) ? (
+                                        <Image src={coverPhotoUrlWatcher!} alt="Vista previa de portada" fill objectFit="cover" />
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground p-2 text-center">Portada</span>
+                                    )}
+                                </div>
                              </div>
                         </div>
                     </div>

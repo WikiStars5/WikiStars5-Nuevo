@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export interface User {
@@ -55,6 +56,7 @@ export interface Figure {
   name: string;
   imageUrl: string;
   imageHint?: string;
+  coverPhotoUrl?: string;
   nationality: string;
   nameKeywords: string[];
   approved: boolean;
