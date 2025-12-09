@@ -42,17 +42,36 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
 
   return (
     <Card className="overflow-hidden shadow-md dark:bg-black border-0 md:border md:rounded-lg">
-       <div className="relative h-48 md:h-64 bg-muted">
-          {figure.coverPhotoUrl && (
+      <Dialog>
+        <DialogTrigger asChild>
+          <div className="relative h-48 md:h-64 bg-muted cursor-pointer">
+            {figure.coverPhotoUrl && (
+                <Image
+                    src={figure.coverPhotoUrl}
+                    alt={`Foto de portada de ${figure.name}`}
+                    fill
+                    className="object-cover"
+                />
+            )}
+              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+          </div>
+        </DialogTrigger>
+        <DialogContent className="p-2 bg-transparent border-0 max-w-5xl h-screen flex items-center justify-center">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Imagen de portada de {figure.name}</DialogTitle>
+              <DialogDescription>Una vista ampliada de la imagen de portada.</DialogDescription>
+            </DialogHeader>
+            <div className="relative w-full h-full max-h-[90vh]">
               <Image
-                  src={figure.coverPhotoUrl}
+                  src={figure.coverPhotoUrl || `https://placehold.co/1200x600?text=${encodeURIComponent(figure.name)}`}
                   alt={`Foto de portada de ${figure.name}`}
                   fill
-                  className="object-cover"
+                  className="rounded-lg object-contain"
               />
-          )}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-       </div>
+            </div>
+        </DialogContent>
+      </Dialog>
+
 
       <CardContent className="relative p-6 md:p-8 pt-0">
          <div className="absolute top-4 right-4 z-10">
