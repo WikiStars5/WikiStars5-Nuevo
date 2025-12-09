@@ -104,6 +104,45 @@
         "createdAt"
       ]
     },
+     "AdCampaign": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AdCampaign",
+      "type": "object",
+      "description": "Represents a single advertising campaign created by a user.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the campaign." },
+        "userId": { "type": "string", "description": "The ID of the user who created the campaign." },
+        "campaignName": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "pending_review", "active", "paused", "rejected", "completed"] },
+        "type": { "type": "string", "enum": ["cpc", "cpm"] },
+        "targetingCriteria": {
+          "type": "array",
+          "description": "An array of targeting rules for the audience.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "figureId": { "type": "string" },
+              "figureName": { "type": "string" },
+              "figureImageUrl": { "type": "string", "format": "uri" },
+              "type": { "type": "string", "enum": ["attitude", "emotion", "rating", "streak"] },
+              "value": { "type": "string" }
+            },
+            "required": ["figureId", "type", "value"]
+          }
+        },
+        "adTitle": { "type": "string" },
+        "adDescription": { "type": "string" },
+        "adImageUrl": { "type": "string", "format": "uri" },
+        "adLinkUrl": { "type": "string", "format": "uri" },
+        "callToAction": { "type": "string", "description": "Text for the ad's call-to-action button." },
+        "budget": { "type": "number", "description": "Total monetary budget for the campaign." },
+        "spent": { "type": "number", "description": "Amount of the budget already spent." },
+        "results": { "type": "number", "description": "Number of results achieved (clicks or impressions)." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "campaignName", "status", "type", "targetingCriteria", "callToAction"]
+    },
     "PublicFigure": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "PublicFigure",
@@ -567,6 +606,18 @@
               "name": "userId",
               "description": "The unique identifier of the user."
             }
+          ]
+        }
+      },
+       {
+        "path": "/users/{userId}/adCampaigns/{campaignId}",
+        "definition": {
+          "entityName": "AdCampaign",
+          "schema": { "$ref": "#/backend/entities/AdCampaign" },
+          "description": "Stores advertising campaigns created by a user.",
+          "params": [
+            { "name": "userId", "description": "The user's unique ID." },
+            { "name": "campaignId", "description": "The unique ID for the ad campaign." }
           ]
         }
       },

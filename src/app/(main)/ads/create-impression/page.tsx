@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Target, Image as ImageIcon, HandCoins, Sparkles, XCircle, ArrowLeft, Save, Send, Trash2, X, Plus, Users, MapPin, PersonStanding, Flame } from 'lucide-react';
+import { Eye, Target, Image as ImageIcon, HandCoins, Sparkles, XCircle, ArrowLeft, Save, Send, Trash2, X, Plus, Users, MapPin, PersonStanding, Flame, SquareArrowOutUpRight } from 'lucide-react';
 import FigureSearchInput from '@/components/figure/figure-search-input';
 import type { Figure } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +26,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import AudienceEstimator from '@/components/ads/audience-estimator';
 import MultiCountrySelector from '@/components/shared/country-combobox';
 import { Checkbox } from '@/components/ui/checkbox';
+import AdPreview from '@/components/ads/ad-preview';
 
 
 const targetingCriterionSchema = z.object({
@@ -53,7 +54,8 @@ const adCampaignSchema = z.object({
   targetingCriteria: z.array(targetingCriterionSchema).min(1, 'Debes añadir al menos un criterio de segmentación.'),
   adTitle: z.string().min(5, 'El título es obligatorio.'),
   adDescription: z.string().max(100, 'Máximo 100 caracteres.'),
-  adImageUrl: z.string().url('Debe ser una URL de imagen válida.'),
+  callToAction: z.string().min(3, 'Mínimo 3 caracteres.').max(20, 'Máximo 20 caracteres.'),
+  adImageUrl: z.string().url('Debe ser una URL de imagen válida.').optional().or(z.literal('')),
   adLinkUrl: z.string().url('Debe ser una URL de destino válida.'),
   impressionBudget: z.coerce.number().min(1000, 'El mínimo de impresiones es 1000.'),
 });
@@ -90,6 +92,7 @@ export default function CreateImpressionAdPage() {
             targetingCriteria: [],
             adTitle: '',
             adDescription: '',
+            callToAction: 'Saber más',
             adImageUrl: '',
             adLinkUrl: '',
             impressionBudget: 10000,
@@ -178,7 +181,7 @@ export default function CreateImpressionAdPage() {
     
     const impressionBudgetValue = form.watch('impressionBudget');
     const totalCost = (impressionBudgetValue / 1000) * CPM;
-    const watchedCriteria = form.watch();
+    const watchedForm = form.watch();
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-12">
@@ -431,18 +434,24 @@ export default function CreateImpressionAdPage() {
                         <FormMessage>{form.formState.errors.targetingCriteria?.message || form.formState.errors.targetingCriteria?.root?.message}</FormMessage>
                     </div>
 
-                    <AudienceEstimator criteria={watchedCriteria.targetingCriteria} locations={watchedCriteria.locations} genders={watchedCriteria.genders}/>
+                    <AudienceEstimator criteria={watchedForm.targetingCriteria} locations={watchedForm.locations} genders={watchedForm.genders}/>
                     
                     <Separator />
 
                     <div className="space-y-4">
-                         <h3 className="font-semibold text-lg flex items-center gap-2"><ImageIcon className="h-5 w-5 text-primary" /> Contenido del Anuncio</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField name="adTitle" control={form.control} render={({field}) => (<FormItem><FormLabel>Título</FormLabel><FormControl><Input {...field} placeholder="¡Nueva Colección!" /></FormControl><FormMessage/></FormItem>)} />
-                            <FormField name="adDescription" control={form.control} render={({field}) => (<FormItem><FormLabel>Descripción Corta</FormLabel><FormControl><Input {...field} placeholder="Descubre lo nuevo" /></FormControl><FormMessage/></FormItem>)} />
-                            <FormField name="adImageUrl" control={form.control} render={({field}) => (<FormItem><FormLabel>URL de la Imagen</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage/></FormItem>)} />
-                            <FormField name="adLinkUrl" control={form.control} render={({field}) => (<FormItem><FormLabel>URL de Destino</FormLabel><FormControl><Input {...field} placeholder="https://mi-tienda.com" /></FormControl><FormMessage/></FormItem>)} />
-                         </div>
+                        <h3 className="font-semibold text-lg flex items-center gap-2"><ImageIcon className="h-5 w-5 text-primary" /> Contenido del Anuncio</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <FormField name="adTitle" control={form.control} render={({field}) => (<FormItem><FormLabel>Título</FormLabel><FormControl><Input {...field} placeholder="¡Nueva Colección!" /></FormControl><FormMessage/></FormItem>)} />
+                                <FormField name="adDescription" control={form.control} render={({field}) => (<FormItem><FormLabel>Descripción Corta</FormLabel><FormControl><Input {...field} placeholder="Descubre lo nuevo" /></FormControl><FormMessage/></FormItem>)} />
+                                <FormField name="callToAction" control={form.control} render={({field}) => (<FormItem><FormLabel>Llamado a la Acción</FormLabel><FormControl><Input {...field} placeholder="Comprar ahora" /></FormControl><FormMessage/></FormItem>)} />
+                                <FormField name="adLinkUrl" control={form.control} render={({field}) => (<FormItem><FormLabel>URL de Destino</FormLabel><FormControl><Input {...field} placeholder="https://mi-tienda.com" /></FormControl><FormMessage/></FormItem>)} />
+                                <FormField name="adImageUrl" control={form.control} render={({field}) => (<FormItem className="sm:col-span-2"><FormLabel>URL de la Imagen</FormLabel><FormControl><Input {...field} placeholder="https://..." value={field.value || ''}/></FormControl><FormMessage/></FormItem>)} />
+                            </div>
+                             <div className="md:col-span-2">
+                                <AdPreview {...watchedForm} />
+                            </div>
+                        </div>
                     </div>
 
                     <Separator />
@@ -507,5 +516,3 @@ export default function CreateImpressionAdPage() {
     </div>
   );
 }
-
-    

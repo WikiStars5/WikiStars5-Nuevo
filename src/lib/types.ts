@@ -1,4 +1,3 @@
-
 import type { Timestamp } from 'firebase/firestore';
 
 export interface User {
@@ -20,6 +19,35 @@ export interface GlobalSettings {
   isVotingEnabled?: boolean;
   isCommentingEnabled?: boolean;
   isReplyEnabled?: boolean;
+}
+
+export interface AdCampaign {
+  id: string;
+  userId: string;
+  campaignName: string;
+  status: 'draft' | 'pending_review' | 'active' | 'paused' | 'rejected' | 'completed';
+  type: 'cpc' | 'cpm';
+  targetingCriteria: {
+    figureId: string;
+    figureName: string;
+    figureImageUrl?: string | null;
+    type: 'attitude' | 'emotion' | 'rating' | 'streak';
+    value?: string;
+    minValue?: number;
+    maxValue?: number;
+  }[];
+  locations?: string[];
+  genders?: string[];
+  adTitle: string;
+  adDescription: string;
+  adImageUrl: string;
+  adLinkUrl: string;
+  callToAction: string;
+  budget: number;
+  spent: number;
+  results: number; // For CPC, this is clicks. For CPM, this is impressions.
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface Figure {
