@@ -246,8 +246,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-sm">{comment.userDisplayName}</span>
                     
-                    {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title={t('ProfilePage.genderMale')}>♂</span>}
-                    {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title={t('ProfilePage.genderFemale')}>♀</span>}
+                    {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
+                    {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
 
                     {country && (
                         <Image
@@ -263,6 +263,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                          <p className="text-xs text-italic text-muted-foreground">{t('CommentThread.edited')}</p>
                     )}
                 </div>
+
+                {!isReply && comment.title && (
+                    <h4 className="font-bold text-lg mt-2">{comment.title}</h4>
+                )}
 
                 {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && (
                   <StarRating rating={comment.rating} starClassName="h-4 w-4 mt-1" />
@@ -514,4 +518,3 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
-
