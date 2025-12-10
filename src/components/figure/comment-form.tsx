@@ -278,7 +278,14 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
       <Card className="dark:bg-black">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-primary" />
+            <Image
+                src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
+                alt="Racha"
+                width={24}
+                height={24}
+                unoptimized
+                className="h-6 w-6"
+            />
             {t('CommentForm.title')}
           </CardTitle>
           <CardDescription>{t('CommentForm.description')}</CardDescription>
