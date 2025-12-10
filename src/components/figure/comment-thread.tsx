@@ -271,13 +271,15 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                     )}
                 </div>
 
-                {!isReply && comment.title && (
-                    <h4 className="font-bold text-lg mt-2">{comment.title}</h4>
-                )}
+                <div className="flex justify-between items-start gap-2 mt-2">
+                    {!isReply && comment.title && (
+                        <h4 className="font-bold text-lg">{comment.title}</h4>
+                    )}
+                     {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && (
+                      <StarRating rating={comment.rating} starClassName="h-4 w-4" />
+                    )}
+                </div>
 
-                {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && (
-                  <StarRating rating={comment.rating} starClassName="h-4 w-4 mt-1" />
-                )}
 
                 {isEditing ? (
                     <div className="mt-2 space-y-2">
