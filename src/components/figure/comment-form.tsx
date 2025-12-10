@@ -278,110 +278,87 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
       <Card className="dark:bg-black">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-              <Image
-                src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
-                alt="Racha"
-                width={28}
-                height={28}
-                unoptimized
-              />
-              {t('CommentForm.title')}
+            <MessageSquare className="h-6 w-6 text-primary" />
+            Deja tu Opinión y Calificación
           </CardTitle>
-          <CardDescription>{t('CommentForm.description')}</CardDescription>
+          <CardDescription>Tu reseña es importante. ¡Gana rachas por comentar!</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {isRatingEnabled && (
-                <div className='space-y-4'>
-                    <h3 className="font-semibold flex items-center gap-2 text-primary"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>{t('CommentForm.step1')}</span> {t('CommentForm.rateLabel')}</h3>
-                    <FormField
-                        control={form.control}
-                        name="rating"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormControl>
-                                <StarInput 
-                                    value={field.value}
-                                    onChange={field.onChange}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-              )}
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="space-y-4">
+                {isRatingEnabled && (
+                  <FormField
+                    control={form.control}
+                    name="rating"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <StarInput 
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
-               {needsIdentity && (
-                 <div className='space-y-4'>
-                    <h3 className="font-semibold flex items-center gap-2"><span className='flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground text-sm font-bold'>{isRatingEnabled ? t('CommentForm.step2') : t('CommentForm.step1')}</span>{t('CommentForm.identityLabel')}</h3>
-                     <FormField
-                        control={form.control}
-                        name="username"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('CommentForm.usernameLabel')}</FormLabel>
-                                <FormControl>
-                                    <Input {...field} placeholder={t('CommentForm.usernamePlaceholder')} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                 </div>
-               )}
+                {isCommentingEnabled && (
+                  <FormField
+                    control={form.control}
+                    name="text"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            placeholder={`¿Qué opinas de ${figureName}?`}
+                            className="resize-none"
+                            rows={4}
+                            maxLength={500}
+                            {...field}
+                          />
+                        </FormControl>
+                        <div className="flex justify-end items-center pt-1">
+                          <FormMessage />
+                          <div className="text-xs text-muted-foreground ml-auto">
+                            {textValue.length} / 500
+                          </div>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
 
-              {isCommentingEnabled && (
-                <div className='space-y-4'>
-                    <h3 className={cn(
-                    "font-semibold flex items-center gap-2"
-                    )}>
-                    <span className={cn(
-                        'flex items-center justify-center h-6 w-6 rounded-full text-sm font-bold',
-                        'bg-primary text-primary-foreground'
-                    )}>
-                        {isRatingEnabled ? (needsIdentity ? t('CommentForm.step3') : t('CommentForm.step2')) : (needsIdentity ? t('CommentForm.step2') : t('CommentForm.step1'))}
-                    </span>
-                    {t('CommentForm.opinionLabel')}
-                    </h3>
-                    <FormField
-                        control={form.control}
-                        name="text"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormControl>
-                                <Textarea
-                                placeholder={t('CommentForm.opinionPlaceholder').replace('{name}', figureName)}
-                                className="resize-none"
-                                rows={4}
-                                maxLength={500}
-                                {...field}
-                                />
-                            </FormControl>
-                            <div className="flex justify-between items-center pt-1">
-                                <FormMessage />
-                                <div className="text-xs text-muted-foreground ml-auto">
-                                {textValue.length} / 500
-                                </div>
-                            </div>
-                            </FormItem>
-                        )}
-                    />
-                </div>
+              {needsIdentity && (
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('CommentForm.usernameLabel')}</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder={t('CommentForm.usernamePlaceholder')} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
 
               <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                  <Loader2 className="animate-spin" />
-                  ) : (
-                  <Send />
-                  )}
-                  {t('CommentForm.submitButton')}
-              </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                    <Loader2 className="animate-spin" />
+                    ) : (
+                    <Send />
+                    )}
+                    {t('CommentForm.submitButton')}
+                </Button>
               </div>
-          </form>
+            </form>
           </Form>
         </CardContent>
       </Card>
