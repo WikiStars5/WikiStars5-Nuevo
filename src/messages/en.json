@@ -236,7 +236,7 @@
       "description": "The administrator has temporarily disabled attitude voting."
     },
     "labels": {
-      "neutral": "Neutral",
+      "neutral": "Spectator",
       "fan": "Fan",
       "simp": "Simp",
       "hater": "Hater"

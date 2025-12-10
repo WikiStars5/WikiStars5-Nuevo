@@ -236,7 +236,7 @@
       "description": "O administrador desativou temporariamente a votação de atitude."
     },
     "labels": {
-      "neutral": "Neutro",
+      "neutral": "Espectador",
       "fan": "Fã",
       "simp": "Simp",
       "hater": "Hater"
