@@ -279,9 +279,9 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-6 w-6 text-primary" />
-            Deja tu Opinión y Calificación
+            {t('CommentForm.title')}
           </CardTitle>
-          <CardDescription>Tu reseña es importante. ¡Gana rachas por comentar!</CardDescription>
+          <CardDescription>{t('CommentForm.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -313,7 +313,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                       <FormItem>
                         <FormControl>
                           <Textarea
-                            placeholder={`¿Qué opinas de ${figureName}?`}
+                            placeholder={`${t('CommentForm.opinionPlaceholder', {name: figureName})}`}
                             className="resize-none"
                             rows={4}
                             maxLength={500}
