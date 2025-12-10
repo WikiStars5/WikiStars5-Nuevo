@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -33,6 +34,7 @@ const createCommentSchema = (isRatingEnabled: boolean, isCommentingEnabled: bool
   username: needsIdentity 
     ? z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.')
     : z.string().optional(),
+  title: z.string().max(80, 'El título no puede superar los 80 caracteres.').optional(),
   text: isCommentingEnabled
     ? z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.')
     : z.string().optional(),
@@ -81,7 +83,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, isCommentingEnabled, needsIdentity)),
-    defaultValues: { text: '', rating: null, username: '' },
+    defaultValues: { text: '', rating: null, username: '', title: '' },
   });
 
   const existingCommentQuery = useMemoFirebase(() => {
@@ -192,6 +194,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         const newCommentRef = doc(commentsColRef);
         const newCommentPayload = {
             threadId: newCommentRef.id, figureId: figureId, userId: currentUser.uid,
+            title: data.title || '',
             text: data.text || '', rating: newRating,
             createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
             userDisplayName: finalDisplayName, userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
@@ -217,7 +220,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         }
 
         toast({ title: t('CommentForm.toast.opinionPosted'), description: t('CommentForm.toast.thanks') });
-        form.reset({ text: '', rating: null as any, username: '' });
+        form.reset({ text: '', rating: null as any, username: '', title: '' });
         onCommentPosted();
         refetchExistingComment();
     } catch (error: any) {
@@ -292,8 +295,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 {isRatingEnabled && (
                   <FormField
                     control={form.control}
@@ -313,31 +315,44 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                 )}
 
                 {isCommentingEnabled && (
-                  <FormField
-                    control={form.control}
-                    name="text"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Textarea
-                            placeholder={`${t('CommentForm.opinionPlaceholder', {name: figureName})}`}
-                            className="resize-none"
-                            rows={4}
-                            maxLength={500}
-                            {...field}
-                          />
-                        </FormControl>
-                        <div className="flex justify-end items-center pt-1">
-                          <FormMessage />
-                          <div className="text-xs text-muted-foreground ml-auto">
-                            {textValue.length} / 500
+                  <div className="space-y-2">
+                     <FormField
+                        control={form.control}
+                        name="title"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormControl>
+                                <Input placeholder="Título de tu opinión (opcional)" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    <FormField
+                      control={form.control}
+                      name="text"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Textarea
+                              placeholder={`${t('CommentForm.opinionPlaceholder', {name: figureName})}...`}
+                              className="resize-none"
+                              rows={3}
+                              maxLength={500}
+                              {...field}
+                            />
+                          </FormControl>
+                          <div className="flex justify-end items-center pt-1">
+                            <FormMessage />
+                            <div className="text-xs text-muted-foreground ml-auto">
+                              {textValue.length} / 500
+                            </div>
                           </div>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 )}
-              </div>
 
               {needsIdentity && (
                 <FormField
