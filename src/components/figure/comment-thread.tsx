@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { formatDateDistance } from '@/lib/utils';
+import { commentTags } from '@/lib/tags';
 
 
 interface CommentItemProps {
@@ -69,6 +70,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user });
 
     const country = comment.userCountry ? countries.find(c => c.key === comment.userCountry) : null;
+    const tag = comment.tag ? commentTags.find(t => t.id === comment.tag) : null;
+
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
         if (!firestore || !user || isVoting) return;
@@ -245,7 +248,11 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
             <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-sm">{comment.userDisplayName}</span>
-                    
+                    {tag && (
+                        <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full border", tag.color)}>
+                            {tag.emoji} {tag.label}
+                        </span>
+                    )}
                     {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
                     {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
 

@@ -26,6 +26,7 @@ import { normalizeText } from '@/lib/keywords';
 import { cn } from '@/lib/utils';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { useLanguage } from '@/context/LanguageContext';
+import { commentTags, type CommentTagId } from '@/lib/tags';
 
 const createCommentSchema = (isRatingEnabled: boolean, isCommentingEnabled: boolean, needsIdentity: boolean) => z.object({
   rating: isRatingEnabled
@@ -38,6 +39,7 @@ const createCommentSchema = (isRatingEnabled: boolean, isCommentingEnabled: bool
   text: isCommentingEnabled
     ? z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.')
     : z.string().optional(),
+  tag: z.custom<CommentTagId>().optional(),
 });
 
 type CommentFormValues = z.infer<ReturnType<typeof createCommentSchema>>;
@@ -83,7 +85,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, isCommentingEnabled, needsIdentity)),
-    defaultValues: { text: '', rating: null, username: '', title: '' },
+    defaultValues: { text: '', rating: null, username: '', title: '', tag: undefined },
   });
 
   const existingCommentQuery = useMemoFirebase(() => {
@@ -105,6 +107,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
 
 
   const textValue = form.watch('text', '');
+  const selectedTag = form.watch('tag');
 
   const onSubmit = async (data: CommentFormValues) => {
     let currentUser = user;
@@ -195,7 +198,9 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         const newCommentPayload = {
             threadId: newCommentRef.id, figureId: figureId, userId: currentUser.uid,
             title: data.title || '',
-            text: data.text || '', rating: newRating,
+            text: data.text || '', 
+            tag: data.tag || null,
+            rating: newRating,
             createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
             userDisplayName: finalDisplayName, userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
             userCountry: country, userGender: gender,
@@ -207,7 +212,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         const streakResult = await updateStreak({
             firestore, figureId, figureName, userId: currentUser.uid,
             userDisplayName: finalDisplayName, userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
-            isAnonymous: currentUser.isAnonymous, userCountry: country, userGender: gender,
+            isAnonymous: currentUser.isAnonymous,
         });
 
         if (streakResult?.streakGained) {
@@ -220,7 +225,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         }
 
         toast({ title: t('CommentForm.toast.opinionPosted'), description: t('CommentForm.toast.thanks') });
-        form.reset({ text: '', rating: null as any, username: '', title: '' });
+        form.reset({ text: '', rating: null as any, username: '', title: '', tag: undefined });
         onCommentPosted();
         refetchExistingComment();
     } catch (error: any) {
@@ -313,6 +318,29 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                     )}
                   />
                 )}
+
+                 <FormField
+                    control={form.control}
+                    name="tag"
+                    render={({ field }) => (
+                        <FormItem>
+                            <div className="flex flex-wrap gap-2">
+                                {commentTags.map(tag => (
+                                    <Button
+                                        key={tag.id}
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className={cn("transition-all", selectedTag === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
+                                        onClick={() => field.onChange(selectedTag === tag.id ? undefined : tag.id)}
+                                    >
+                                        <span className="mr-1.5">{tag.emoji}</span> {tag.label}
+                                    </Button>
+                                ))}
+                            </div>
+                        </FormItem>
+                    )}
+                />
 
                 {isCommentingEnabled && (
                   <div className="space-y-2">

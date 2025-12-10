@@ -1,5 +1,6 @@
 
 import type { Timestamp } from 'firebase/firestore';
+import type { CommentTagId } from './tags';
 
 export interface User {
   id: string;
@@ -164,6 +165,7 @@ export interface Comment {
   title?: string;
   text: string;
   rating: number; // Star rating from 0-5 associated with the comment. -1 for replies or when ratings are disabled.
+  tag?: CommentTagId;
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   likes?: number;

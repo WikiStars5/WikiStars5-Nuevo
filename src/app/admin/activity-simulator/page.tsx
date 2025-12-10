@@ -29,12 +29,17 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { StarRating } from '@/components/shared/star-rating';
 import { Separator } from '@/components/ui/separator';
 import { updateStreak } from '@/firebase/streaks';
+import { commentTags, type CommentTagId } from '@/lib/tags';
+import { cn } from '@/lib/utils';
+
 
 const simulatorSchema = z.object({
   virtualUsername: z.string().min(3, 'El nombre de usuario virtual es obligatorio.'),
   virtualAvatarUrl: z.string().url('Debe ser una URL de imagen válida.').optional().or(z.literal('')),
   commentText: z.string().min(1, 'El comentario no puede estar vacío.'),
   rating: z.number().min(0).max(5),
+  title: z.string().max(80, 'El título no puede superar los 80 caracteres.').optional(),
+  tag: z.custom<CommentTagId>().optional(),
 });
 
 type SimulatorFormValues = z.infer<typeof simulatorSchema>;
@@ -178,8 +183,12 @@ export default function ActivitySimulatorPage() {
       virtualAvatarUrl: '',
       commentText: '',
       rating: 0,
+      title: '',
+      tag: undefined,
     },
   });
+
+  const selectedTag = form.watch('tag');
 
   const onSubmit = async (data: SimulatorFormValues) => {
     if (!firestore || !selectedFigure) {
@@ -201,8 +210,10 @@ export default function ActivitySimulatorPage() {
             const newComment: Omit<Comment, 'id'> = {
                 userId: virtualUserId,
                 figureId: selectedFigure.id,
+                title: data.title || '',
                 text: data.commentText,
                 rating: data.rating,
+                tag: data.tag || null,
                 createdAt: serverTimestamp() as any,
                 userDisplayName: data.virtualUsername,
                 userPhotoURL: data.virtualAvatarUrl || null,
@@ -260,6 +271,8 @@ export default function ActivitySimulatorPage() {
             ...form.getValues(),
             commentText: '',
             rating: 0,
+            title: '',
+            tag: undefined
         });
 
     } catch (error) {
@@ -357,6 +370,42 @@ export default function ActivitySimulatorPage() {
                                             />
                                         </FormControl>
                                     <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="tag"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Etiqueta (Opcional)</FormLabel>
+                                        <div className="flex flex-wrap gap-2">
+                                            {commentTags.map(tag => (
+                                                <Button
+                                                    key={tag.id}
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className={cn("transition-all", selectedTag === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
+                                                    onClick={() => field.onChange(selectedTag === tag.id ? undefined : tag.id)}
+                                                >
+                                                    <span className="mr-1.5">{tag.emoji}</span> {tag.label}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="title"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Título del Comentario (Opcional)</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} placeholder="Un titular llamativo..." />
+                                        </FormControl>
+                                        <FormMessage />
                                     </FormItem>
                                 )}
                             />
