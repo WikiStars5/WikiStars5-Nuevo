@@ -32,6 +32,7 @@ import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { formatDateDistance } from '@/lib/utils';
 import { commentTags } from '@/lib/tags';
+import { Input } from '../ui/input';
 
 
 interface CommentItemProps {
@@ -53,6 +54,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(comment.text);
+    const [editTitle, setEditTitle] = useState(comment.title || '');
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [isReplying, setIsReplying] = useState(false);
 
@@ -181,7 +183,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     };
 
     const handleUpdate = async () => {
-        if (!firestore || !isOwner || editText.trim() === '') return;
+        if (!firestore || !isOwner || (editText.trim() === '' && editTitle.trim() === '')) return;
         setIsSavingEdit(true);
 
          const commentPath = isReply
@@ -191,6 +193,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
 
         try {
             await updateDoc(commentRef, {
+                title: editTitle || '',
                 text: editText,
                 updatedAt: serverTimestamp() 
             });
@@ -259,7 +262,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                     {country && (
                         <Image
                             src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                            alt={country.name || country.code}
+                            alt={country.name}
                             width={20}
                             height={15}
                             className="object-contain"
@@ -272,10 +275,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 </div>
 
                 <div className="flex justify-between items-start gap-2 mt-2">
-                    {!isReply && comment.title && (
+                    {!isReply && comment.title && !isEditing && (
                         <h4 className="font-bold text-lg">{comment.title}</h4>
                     )}
-                     {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && (
+                     {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && !isEditing && (
                       <StarRating rating={comment.rating} starClassName="h-4 w-4" />
                     )}
                 </div>
@@ -283,6 +286,14 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
 
                 {isEditing ? (
                     <div className="mt-2 space-y-2">
+                        {!isReply && (
+                            <Input 
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                placeholder="Título (opcional)"
+                                className="font-bold text-lg"
+                            />
+                        )}
                         <Textarea 
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
