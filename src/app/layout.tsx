@@ -27,7 +27,7 @@ const sourceCodePro = Source_Code_Pro({
 
 
 export const metadata: Metadata = {
-  title: 'WikiStars5 - Percepción de Figuras Públicas',
+  title: 'WikiStars5: Gana el debate, Vota y Pelea',
   description: 'Explora, califica y debate sobre figuras públicas. Tu centro de opinión para saber qué piensa el mundo.',
   manifest: '/manifest.json',
 };
