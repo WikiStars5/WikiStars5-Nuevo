@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "User": {
@@ -124,7 +125,7 @@
               "figureId": { "type": "string" },
               "figureName": { "type": "string" },
               "figureImageUrl": { "type": "string", "format": "uri" },
-              "type": { "type": "string", "enum": ["attitude", "emotion"] },
+              "type": { "type": "string", "enum": ["attitude", "emotion", "rating", "streak"] },
               "value": { "type": "string" }
             },
             "required": ["figureId", "type", "value"]
@@ -134,13 +135,14 @@
         "adDescription": { "type": "string" },
         "adImageUrl": { "type": "string", "format": "uri" },
         "adLinkUrl": { "type": "string", "format": "uri" },
+        "callToAction": { "type": "string", "description": "Text for the ad's call-to-action button." },
         "budget": { "type": "number", "description": "Total monetary budget for the campaign." },
         "spent": { "type": "number", "description": "Amount of the budget already spent." },
         "results": { "type": "number", "description": "Number of results achieved (clicks or impressions)." },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "userId", "campaignName", "status", "type", "targetingCriteria"]
+      "required": ["id", "userId", "campaignName", "status", "type", "targetingCriteria", "callToAction"]
     },
     "PublicFigure": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -151,6 +153,10 @@
         "id": {
           "type": "string",
           "description": "Unique identifier for the public figure entity."
+        },
+        "coverPhotoUrl": {
+          "type": "string",
+          "description": "URL for the figure's cover picture."
         },
         "profileType": {
             "type": "string",
@@ -284,6 +290,16 @@
         "parentId": {
           "type": "string",
           "description": "Reference to the parent comment, if this is a reply. Null if it's a top-level comment. (Relationship: Comment 1:N Comment)"
+        },
+        "title": {
+          "type": "string",
+          "description": "The optional title of the comment.",
+          "maxLength": 80
+        },
+        "tag": {
+            "type": "string",
+            "description": "An optional tag to categorize the comment's sentiment.",
+            "enum": ["clown", "overrated", "my_religion", "my_love", "goat", "defender", "facts", "cinema"]
         },
         "depth": {
           "type": "number",

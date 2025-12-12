@@ -324,14 +324,14 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                     name="tag"
                     render={({ field }) => (
                         <FormItem>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="grid grid-cols-4 gap-2">
                                 {commentTags.map(tag => (
                                     <Button
                                         key={tag.id}
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        className={cn("transition-all", selectedTag === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
+                                        className={cn("transition-all h-10 text-xs", selectedTag === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
                                         onClick={() => field.onChange(selectedTag === tag.id ? undefined : tag.id)}
                                     >
                                         <span className="mr-1.5">{tag.emoji}</span> {tag.label}
