@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -348,12 +349,12 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                                             <Button
                                                 variant="outline"
                                                 role="combobox"
-                                                className={cn("w-[150px] justify-between", !field.value && "text-muted-foreground")}
+                                                className={cn("w-auto justify-start", !field.value && "w-10 px-3 justify-center text-muted-foreground")}
                                             >
                                                 {selectedTag ? (
                                                     <span className="flex items-center gap-2">{selectedTag.emoji} {selectedTag.label}</span>
                                                 ) : (
-                                                    <span className="flex items-center gap-2"><Tag className="h-4 w-4"/>Añadir Etiqueta</span>
+                                                    <Tag className="h-4 w-4"/>
                                                 )}
                                             </Button>
                                         </FormControl>
