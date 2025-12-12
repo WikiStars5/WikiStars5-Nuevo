@@ -506,7 +506,7 @@
     },
     "toast": {
       "blockedTitle": "Profile Creation Blocked",
-      "blockedDescription": "Creation of profiles for this figure is restricted.",
+      "blockedDescription": "This figure is not part of the WikiStars5 categories (Entertainment, Sports, Showbiz). Please search for an influencer or celebrity.",
       "duplicateTitle": "Duplicate Profile",
       "duplicateDescription": "A profile for \"{name}\" already exists.",
       "duplicateDescriptionRedirect": "A profile for {name} already exists. Redirecting...",
@@ -875,5 +875,3 @@
     "zimbabwe": "Zimbabwe"
   }
 }
-
-    

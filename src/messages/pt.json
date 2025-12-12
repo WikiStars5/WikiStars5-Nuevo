@@ -467,9 +467,9 @@
     },
     "FamousBirthdays": {
       "planBTitle": "Plano B: Verificação Manual",
-      "planBDescription": "Não encontrado na Wikipédia. Cole o link do perfil em en.famousbirthdays.com para verificar manualmente.",
+      "planBDescription": "Não encontrado na Wikipédia. Cole o link do perfil em pt.famousbirthdays.com para verificar manualmente.",
       "urlLabel": "URL do FamousBirthdays.com",
-      "placeholder": "https://www.famousbirthdays.com/people/...",
+      "placeholder": "https://pt.famousbirthdays.com/people/...",
       "verifyButton": "Verificar com URL",
       "toast": {
         "noNameError": "Por favor, insira um nome no campo da Wikipédia primeiro.",
@@ -506,7 +506,7 @@
     },
     "toast": {
       "blockedTitle": "Criação de Perfil Bloqueada",
-      "blockedDescription": "A criação de perfis para esta figura é restrita.",
+      "blockedDescription": "Esta figura não faz parte das categorias do WikiStars5 (Entretenimento, Esportes, Famosos). Por favor, procure por um influenciador ou celebridade.",
       "duplicateTitle": "Perfil Duplicado",
       "duplicateDescription": "Já existe um perfil para \"{name}\".",
       "duplicateDescriptionRedirect": "Já existe um perfil para {name}. Redirecionando...",
@@ -604,7 +604,7 @@
       "Mantenha a discussão focada na figura pública. As discussões devem ser sobre suas ações, carreira e percepção pública, não sobre outros usuários.",
       "Não publique informações privadas (doxing) de nenhuma pessoa, seja uma figura pública ou um usuário.",
       "Evite spam e autopromoção. Os comentários devem agregar valor à discussão.",
-      "Não manipule votos. O uso de bots, scripts ou várias contas para alterar resultados não é permitido.",
+      "Não manipule votos. O uso de bots, scripts или várias contas para alterar resultados não é permitido.",
       "Conteúdo sexualmente explícito, violento ou ilegal é estritamente proibido.",
       "Respeite os direitos autorais. Não publique conteúdo que você não possui sem a devida atribuição."
     ],
@@ -875,5 +875,3 @@
     "zimbabwe": "Zimbábue"
   }
 }
-
-    

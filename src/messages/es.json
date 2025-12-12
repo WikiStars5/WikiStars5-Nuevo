@@ -511,7 +511,7 @@
     },
     "toast": {
       "blockedTitle": "Creación de Perfil Bloqueada",
-      "blockedDescription": "La creación de perfis para esta figura está restringida.",
+      "blockedDescription": "Esta figura no forma parte de las categorías de WikiStars5 (Entretenimiento, Deportes, Farándula). Busca un influencer o celebridad.",
       "duplicateTitle": "Perfil Duplicado",
       "duplicateDescription": "Ya existe un perfil para \"{name}\".",
       "duplicateDescriptionRedirect": "Ya existe un perfil para {name}. Redirigiendo...",
@@ -880,5 +880,3 @@
     "zimbabwe": "Zimbabue"
   }
 }
-
-    
