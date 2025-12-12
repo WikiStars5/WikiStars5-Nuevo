@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, writeBatch, serverTimestamp, increment, query, where, runTransaction, getDoc, deleteDoc } from 'firebase/firestore';
-import { Loader2, ArrowLeft, Bot, User, Image as ImageIcon, Send, XCircle, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Bot, User, Image as ImageIcon, Send, XCircle, Trash2, Tag } from 'lucide-react';
 import type { Figure, Comment } from '@/lib/types';
 import FigureSearchInput from '@/components/figure/figure-search-input';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { updateStreak } from '@/firebase/streaks';
 import { commentTags, type CommentTagId } from '@/lib/tags';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 
 const simulatorSchema = z.object({
@@ -175,6 +176,8 @@ export default function ActivitySimulatorPage() {
   const { toast } = useToast();
   const [selectedFigure, setSelectedFigure] = React.useState<Figure | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isTagPopoverOpen, setIsTagPopoverOpen] = React.useState(false);
+
 
   const form = useForm<SimulatorFormValues>({
     resolver: zodResolver(simulatorSchema),
@@ -188,7 +191,8 @@ export default function ActivitySimulatorPage() {
     },
   });
 
-  const selectedTag = form.watch('tag');
+  const selectedTagId = form.watch('tag');
+  const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
 
   const onSubmit = async (data: SimulatorFormValues) => {
     if (!firestore || !selectedFigure) {
@@ -373,42 +377,69 @@ export default function ActivitySimulatorPage() {
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="tag"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Etiqueta (Opcional)</FormLabel>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {commentTags.map(tag => (
-                                                <Button
-                                                    key={tag.id}
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className={cn("transition-all h-10 text-xs", selectedTag === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
-                                                    onClick={() => field.onChange(selectedTag === tag.id ? undefined : tag.id)}
-                                                >
-                                                    <span className="mr-1.5">{tag.emoji}</span> {tag.label}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="title"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Título del Comentario (Opcional)</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} placeholder="Un titular llamativo..." />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+
+                            <div className="flex items-center gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="title"
+                                    render={({ field }) => (
+                                        <FormItem className="flex-1">
+                                            <FormLabel>Título del Comentario (Opcional)</FormLabel>
+                                            <FormControl>
+                                                <Input {...field} placeholder="Un titular llamativo..." />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={form.control}
+                                    name="tag"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col gap-2">
+                                            <FormLabel>Etiqueta (Opcional)</FormLabel>
+                                            <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            className={cn("w-[150px] justify-between", !field.value && "text-muted-foreground")}
+                                                        >
+                                                            {selectedTag ? (
+                                                                <span className="flex items-center gap-2">{selectedTag.emoji} {selectedTag.label}</span>
+                                                            ) : (
+                                                                <span className="flex items-center gap-2"><Tag className="h-4 w-4"/>Añadir Etiqueta</span>
+                                                            )}
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[300px] p-0">
+                                                    <div className="grid grid-cols-2 gap-2 p-2">
+                                                        {commentTags.map(tag => (
+                                                            <Button
+                                                                key={tag.id}
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className={cn("transition-all h-10 text-xs justify-start", selectedTagId === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
+                                                                onClick={() => {
+                                                                    field.onChange(selectedTagId === tag.id ? undefined : tag.id);
+                                                                    setIsTagPopoverOpen(false);
+                                                                }}
+                                                            >
+                                                                <span className="mr-1.5">{tag.emoji}</span> {tag.label}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            
                             <FormField
                                 control={form.control}
                                 name="commentText"

@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, setDoc } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useCollection, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle, User as UserIcon } from 'lucide-react';
+import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle, User as UserIcon, Tag } from 'lucide-react';
 import StarInput from './star-input';
 import { Comment, Streak, GlobalSettings, Figure, User as AppUser } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
@@ -27,6 +26,8 @@ import { cn } from '@/lib/utils';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { useLanguage } from '@/context/LanguageContext';
 import { commentTags, type CommentTagId } from '@/lib/tags';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+
 
 const createCommentSchema = (isRatingEnabled: boolean, isCommentingEnabled: boolean, needsIdentity: boolean) => z.object({
   rating: isRatingEnabled
@@ -67,6 +68,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showStreakAnimation } = useContext(StreakAnimationContext);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   const { t } = useLanguage();
 
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -107,7 +109,9 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
 
 
   const textValue = form.watch('text', '');
-  const selectedTag = form.watch('tag');
+  const selectedTagId = form.watch('tag');
+  const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
+
 
   const onSubmit = async (data: CommentFormValues) => {
     let currentUser = user;
@@ -318,37 +322,13 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                     )}
                   />
                 )}
-
-                 <FormField
-                    control={form.control}
-                    name="tag"
-                    render={({ field }) => (
-                        <FormItem>
-                            <div className="grid grid-cols-4 gap-2">
-                                {commentTags.map(tag => (
-                                    <Button
-                                        key={tag.id}
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className={cn("transition-all h-10 text-xs", selectedTag === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
-                                        onClick={() => field.onChange(selectedTag === tag.id ? undefined : tag.id)}
-                                    >
-                                        <span className="mr-1.5">{tag.emoji}</span> {tag.label}
-                                    </Button>
-                                ))}
-                            </div>
-                        </FormItem>
-                    )}
-                />
-
-                {isCommentingEnabled && (
-                  <div className="space-y-2">
-                     <FormField
+                
+                <div className="flex items-center gap-4">
+                    <FormField
                         control={form.control}
                         name="title"
                         render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="flex-1">
                             <FormControl>
                                 <Input placeholder="Título de tu opinión (opcional)" {...field} />
                             </FormControl>
@@ -356,6 +336,57 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                             </FormItem>
                         )}
                         />
+
+                    <FormField
+                        control={form.control}
+                        name="tag"
+                        render={({ field }) => (
+                            <FormItem>
+                                <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
+                                    <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className={cn("w-[150px] justify-between", !field.value && "text-muted-foreground")}
+                                            >
+                                                {selectedTag ? (
+                                                    <span className="flex items-center gap-2">{selectedTag.emoji} {selectedTag.label}</span>
+                                                ) : (
+                                                    <span className="flex items-center gap-2"><Tag className="h-4 w-4"/>Añadir Etiqueta</span>
+                                                )}
+                                            </Button>
+                                        </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[300px] p-0">
+                                        <div className="grid grid-cols-2 gap-2 p-2">
+                                            {commentTags.map(tag => (
+                                                <Button
+                                                    key={tag.id}
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className={cn("transition-all h-10 text-xs justify-start", selectedTagId === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
+                                                    onClick={() => {
+                                                        field.onChange(selectedTagId === tag.id ? undefined : tag.id);
+                                                        setIsTagPopoverOpen(false);
+                                                    }}
+                                                >
+                                                    <span className="mr-1.5">{tag.emoji}</span> {tag.label}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+              
+
+                {isCommentingEnabled && (
+                  <div className="space-y-2">
                     <FormField
                       control={form.control}
                       name="text"
