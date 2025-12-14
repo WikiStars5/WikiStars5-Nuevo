@@ -234,6 +234,8 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
     );
   }
 
+  const showDetails = true;
+
   return (
     <div className="w-full relative">
       {optimisticVote?.vote && (
@@ -253,7 +255,6 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
       <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
           {attitudeOptions.map(({ id, labelKey, gifUrl, colorClass, selectedClass }) => {
           const isSelected = optimisticVote?.vote === id;
-          const showDetails = !!optimisticVote;
           return (
           <Button
               key={id}
@@ -286,7 +287,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
           </Button>
           )})}
       </div>
-      {!!optimisticVote && (
+      {showDetails && (
         <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
                 {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}

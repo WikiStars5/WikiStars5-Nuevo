@@ -218,6 +218,8 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     );
   }
 
+  const showDetails = true;
+
   return (
       <div className="w-full relative">
         {optimisticVote?.vote && (
@@ -237,7 +239,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {emotionOptions.map(({ id, labelKey, gifUrl, colorClass, selectedClass, textColorClass }) => {
             const isSelected = optimisticVote?.vote === id;
-            const showDetails = !!optimisticVote;
             return (
               <Button
                 key={id}
@@ -272,7 +273,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             );
           })}
         </div>
-        {!!optimisticVote && (
+        {showDetails && (
           <div className="mt-4 text-center">
               <p className="text-sm text-muted-foreground">
                   {t('EmotionVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
