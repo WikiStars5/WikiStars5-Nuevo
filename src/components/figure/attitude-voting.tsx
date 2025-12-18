@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, Lock, ArrowDown, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, formatCompactNumber } from '@/lib/utils';
 import type { Figure, AttitudeVote, GlobalSettings, User as AppUser } from '@/lib/types';
 import Image from 'next/image';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
@@ -250,66 +250,25 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
   if (variant === 'header') {
     return (
       <div className="w-full">
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-            <div className="flex items-center gap-2">
-                {attitudeOptions.map(({ id, labelKey, selectedClass }) => {
-                    const isSelected = optimisticVote?.vote === id;
-                    return (
-                    <Button
-                        key={id}
-                        variant={'outline'}
-                        size="sm"
-                        className={cn("h-8 px-3 text-xs border-2", isSelected ? selectedClass : 'border-transparent')}
-                        onClick={() => handleVote(id)}
-                        disabled={!!isVoting}
-                    >
-                        {isVoting === id ? <Loader2 className="h-4 w-4 animate-spin" /> : t(labelKey)}
-                    </Button>
-                    )
-                })}
-            </div>
-           <Popover>
-            <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <BarChart3 className="h-4 w-4" />
+        <div className="flex flex-wrap items-start justify-center md:justify-start gap-4">
+          {attitudeOptions.map(({ id, labelKey, selectedClass }) => {
+            const isSelected = optimisticVote?.vote === id;
+            const votes = optimisticFigure.attitude?.[id] ?? 0;
+            return (
+              <div key={id} className="flex flex-col items-center gap-1">
+                <Button
+                  variant={'outline'}
+                  size="sm"
+                  className={cn("h-8 px-3 text-xs border-2", isSelected ? selectedClass : 'border-transparent')}
+                  onClick={() => handleVote(id)}
+                  disabled={!!isVoting}
+                >
+                  {isVoting === id ? <Loader2 className="h-4 w-4 animate-spin" /> : t(labelKey)}
                 </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64">
-                <div className="space-y-4">
-                    <h4 className="font-medium leading-none">Estadísticas de Actitud</h4>
-                    <div className="space-y-2">
-                    {attitudeOptions.map(({ id, labelKey }) => {
-                        const votes = optimisticFigure.attitude?.[id] ?? 0;
-                        const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
-                        return (
-                            <TooltipProvider key={id}>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="grid grid-cols-3 items-center gap-2 text-sm">
-                                            <span className="font-medium truncate">{t(labelKey)}</span>
-                                            <div className="h-2 w-full rounded-full bg-muted">
-                                                <div
-                                                    className={cn("h-full rounded-full", sentimentColors[id])}
-                                                    style={{ width: `${percentage}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-right font-mono text-muted-foreground">{votes.toLocaleString()}</span>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>{percentage.toFixed(1)}% de los votos</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        )
-                    })}
-                    </div>
-                    <div className="border-t pt-2 text-center text-xs text-muted-foreground">
-                        Total de {totalVotes.toLocaleString()} votos
-                    </div>
-                </div>
-            </PopoverContent>
-           </Popover>
+                <span className="text-xs font-bold text-muted-foreground">{formatCompactNumber(votes)}</span>
+              </div>
+            )
+          })}
         </div>
       </div>
     )
@@ -359,7 +318,7 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
                           <span className="font-semibold text-sm">{t(labelKey)}</span>
                           {showDetails && (
                             <span className="block text-lg font-bold">
-                                {(optimisticFigure.attitude?.[id] ?? 0).toLocaleString()}
+                                {formatCompactNumber(optimisticFigure.attitude?.[id] ?? 0)}
                             </span>
                           )}
                       </div>
