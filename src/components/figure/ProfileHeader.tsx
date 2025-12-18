@@ -11,17 +11,22 @@ import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useSearchParams } from 'next/navigation';
+import AttitudeVoting from './attitude-voting';
+import { useCallback, useState } from 'react';
 
 interface ProfileHeaderProps {
   figure: Figure;
   figureId: string;
 }
 
+type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
+
 const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAT2.png?alt=media&token=50973a60-0bff-4fcb-9c17-986f067d834e";
 
 export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) {
   const firestore = useFirestore();
   const searchParams = useSearchParams();
+  const [commentSortPreference, setCommentSortPreference] = useState<AttitudeOption | null>(null);
 
   const battleDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -39,6 +44,10 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
      (figure.name === 'Cristiano Ronaldo' && battleWinner === 'ronaldo'));
 
   const isGoatTab = searchParams.get('tab') === 'goat';
+  
+  const handleVote = useCallback((attitude: AttitudeOption | null) => {
+    setCommentSortPreference(attitude);
+  }, []);
 
   return (
     <Card className="overflow-hidden shadow-md dark:bg-black border-0 md:border md:rounded-lg">
@@ -58,7 +67,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
         </DialogTrigger>
         <DialogContent className="p-2 bg-transparent border-0 max-w-5xl h-screen flex items-center justify-center">
             <DialogHeader className="sr-only">
-              <DialogTitle>Imagen de portada de {figure.name}</DialogTitle>
+              <DialogTitle>Imagen de portada de ${figure.name}</DialogTitle>
               <DialogDescription>Una vista ampliada de la imagen de portada.</DialogDescription>
             </DialogHeader>
             <div className="relative w-full h-full max-h-[90vh]">
@@ -98,7 +107,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
               </DialogTrigger>
               <DialogContent className="p-2 bg-transparent border-0 max-w-4xl h-screen flex items-center justify-center">
                  <DialogHeader className="sr-only">
-                    <DialogTitle>Imagen de perfil de {figure.name}</DialogTitle>
+                    <DialogTitle>Imagen de perfil de ${figure.name}</DialogTitle>
                     <DialogDescription>Una vista ampliada de la imagen de perfil.</DialogDescription>
                  </DialogHeader>
                  <div className="relative w-full h-full max-h-[90vh]">
@@ -112,7 +121,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
               </DialogContent>
             </Dialog>
           </div>
-          <div className="flex-1 text-center md:text-left">
+          <div className="flex-1 text-center md:text-left space-y-2">
             <div className="flex items-center justify-center md:justify-start gap-3">
               <h1 className="text-3xl md:text-5xl font-bold tracking-tight font-headline">
                 {figure.name}
@@ -127,8 +136,11 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
                 />
               )}
             </div>
-            <div className="mt-2 flex justify-center md:justify-start">
+            <div className="flex justify-center md:justify-start">
               <PersonalStreak figureId={figureId} />
+            </div>
+            <div className="pt-2">
+              <AttitudeVoting figure={figure} onVote={handleVote} variant="header" />
             </div>
           </div>
         </div>

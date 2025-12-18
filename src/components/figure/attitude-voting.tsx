@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -35,9 +36,10 @@ const allAttitudeOptions: {
 interface AttitudeVotingProps {
   figure: Figure;
   onVote: (attitude: AttitudeOption | null) => void;
+  variant?: 'full' | 'header';
 }
 
-export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) {
+export default function AttitudeVoting({ figure, onVote, variant = 'full' }: AttitudeVotingProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -219,22 +221,44 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
   const isLoading = isUserLoading || (!!user && isVoteLoading);
   
   if (isLoading) {
-    return <Skeleton className="h-48 w-full" />;
+    return <Skeleton className={cn(variant === 'full' ? "h-48 w-full" : "h-10 w-full")} />;
   }
-
-  const gridColsClass = attitudeOptions.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4';
   
   if (!areVotesEnabled) {
     return (
-      <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted">
-        <Lock className="h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">{t('AttitudeVoting.locked.title')}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">{t('AttitudeVoting.locked.description')}</p>
+      <div className={cn("flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted", variant === 'header' && 'p-2')}>
+        <Lock className="h-8 w-8 text-muted-foreground" />
+        {variant === 'full' && (
+            <>
+                <h3 className="mt-4 text-lg font-semibold">{t('AttitudeVoting.locked.title')}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t('AttitudeVoting.locked.description')}</p>
+            </>
+        )}
       </div>
     );
   }
 
-  const showDetails = true;
+  if (variant === 'header') {
+    return (
+      <div className="flex items-center gap-2">
+        {attitudeOptions.map(({ id, labelKey }) => {
+          const isSelected = optimisticVote?.vote === id;
+          return (
+            <Button
+              key={id}
+              variant={isSelected ? 'default' : 'outline'}
+              size="sm"
+              className={cn("h-8 px-3 text-xs", isSelected && "bg-primary text-primary-foreground")}
+              onClick={() => handleVote(id)}
+              disabled={!!isVoting}
+            >
+              {isVoting === id ? <Loader2 className="h-4 w-4 animate-spin" /> : t(labelKey)}
+            </Button>
+          )
+        })}
+      </div>
+    )
+  }
 
   return (
     <div className="w-full relative">
@@ -252,7 +276,7 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
       <div className="mb-4 text-left">
           <h3 className="text-xl font-bold font-headline">{t('AttitudeVoting.title')}</h3>
       </div>
-      <div className={cn("grid grid-cols-2 gap-4", gridColsClass)}>
+      <div className={cn("grid grid-cols-2 gap-4", attitudeOptions.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4')}>
           {attitudeOptions.map(({ id, labelKey, gifUrl, colorClass, selectedClass }) => {
           const isSelected = optimisticVote?.vote === id;
           return (
@@ -276,24 +300,20 @@ export default function AttitudeVoting({ figure, onVote }: AttitudeVotingProps) 
                       </div>
                       <div>
                           <span className="font-semibold text-sm">{t(labelKey)}</span>
-                          {showDetails && (
-                            <span className="block text-lg font-bold">
-                              {(optimisticFigure.attitude?.[id] ?? 0).toLocaleString()}
-                            </span>
-                          )}
+                          <span className="block text-lg font-bold">
+                            {(optimisticFigure.attitude?.[id] ?? 0).toLocaleString()}
+                          </span>
                       </div>
                   </div>
               )}
           </Button>
           )})}
       </div>
-      {showDetails && (
         <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
                 {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
             </p>
         </div>
-      )}
     </div>
   );
 }
