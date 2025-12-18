@@ -16,6 +16,7 @@ import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -27,10 +28,10 @@ const allAttitudeOptions: {
   colorClass: string;
   selectedClass: string;
 }[] = [
-  { id: 'neutral', labelKey: 'AttitudeVoting.labels.neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=aac1fe00-4e42-49d1-98a2-3dab605987d3', colorClass: 'border-transparent', selectedClass: 'bg-gray-500/20 border-gray-400' },
-  { id: 'fan', labelKey: 'AttitudeVoting.labels.fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=a937aee9-04b6-48e8-bf37-25eef5f28e90', colorClass: 'border-transparent', selectedClass: 'bg-yellow-400/20 border-yellow-300' },
-  { id: 'simp', labelKey: 'AttitudeVoting.labels.simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-transparent', selectedClass: 'bg-pink-400/20 border-pink-300' },
-  { id: 'hater', labelKey: 'AttitudeVoting.labels.hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', colorClass: 'border-transparent', selectedClass: 'bg-red-500/20 border-red-400' },
+  { id: 'neutral', labelKey: 'AttitudeVoting.labels.neutral', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=aac1fe00-4e42-49d1-98a2-3dab605987d3', colorClass: 'border-transparent', selectedClass: 'border-2 border-gray-400' },
+  { id: 'fan', labelKey: 'AttitudeVoting.labels.fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=a937aee9-04b6-48e8-bf37-25eef5f28e90', colorClass: 'border-transparent', selectedClass: 'border-2 border-yellow-300' },
+  { id: 'simp', labelKey: 'AttitudeVoting.labels.simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-transparent', selectedClass: 'border-2 border-pink-300' },
+  { id: 'hater', labelKey: 'AttitudeVoting.labels.hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', colorClass: 'border-transparent', selectedClass: 'border-2 border-red-400' },
 ];
 
 interface AttitudeVotingProps {
@@ -255,7 +256,7 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
             return (
               <Button
                 key={id}
-                variant={isSelected ? 'default' : 'outline'}
+                variant={'outline'}
                 size="sm"
                 className={cn("h-8 px-3 text-xs", isSelected && selectedClass)}
                 onClick={() => handleVote(id)}
@@ -279,16 +280,25 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
                         const votes = optimisticFigure.attitude?.[id] ?? 0;
                         const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
                         return (
-                            <div key={id} className="grid grid-cols-3 items-center gap-2 text-sm">
-                                <span className="font-medium truncate">{t(labelKey)}</span>
-                                <div className="h-2 w-full rounded-full bg-muted">
-                                    <div
-                                        className={cn("h-full rounded-full", sentimentColors[id])}
-                                        style={{ width: `${percentage}%` }}
-                                    />
-                                </div>
-                                <span className="text-right font-mono text-muted-foreground">{votes.toLocaleString()}</span>
-                            </div>
+                            <TooltipProvider key={id}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="grid grid-cols-3 items-center gap-2 text-sm">
+                                            <span className="font-medium truncate">{t(labelKey)}</span>
+                                            <div className="h-2 w-full rounded-full bg-muted">
+                                                <div
+                                                    className={cn("h-full rounded-full", sentimentColors[id])}
+                                                    style={{ width: `${percentage}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-right font-mono text-muted-foreground">{votes.toLocaleString()}</span>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{percentage.toFixed(1)}% de los votos</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         )
                     })}
                     </div>
@@ -331,7 +341,7 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
               className={cn(
               'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
               'dark:bg-black',
-              isSelected ? `scale-105 border-4 ${selectedClass}` : `border-2 ${colorClass}`
+              isSelected ? `scale-105 ${selectedClass}` : `border-2 ${colorClass}`
               )}
               onClick={() => handleVote(id)}
               disabled={!!isVoting}
