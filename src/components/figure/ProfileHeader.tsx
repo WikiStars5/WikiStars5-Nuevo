@@ -121,7 +121,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
               </DialogContent>
             </Dialog>
           </div>
-          <div className="flex-1 text-center md:text-left space-y-2">
+          <div className="flex-1 w-full text-center md:text-left space-y-3">
             <div className="flex items-center justify-center md:justify-start gap-3">
               <h1 className="text-3xl md:text-5xl font-bold tracking-tight font-headline">
                 {figure.name}

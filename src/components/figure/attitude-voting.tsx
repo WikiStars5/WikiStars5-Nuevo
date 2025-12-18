@@ -16,6 +16,7 @@ import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -238,24 +239,58 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
     );
   }
 
+  const sentimentColors: Record<AttitudeOption, string> = {
+    fan: 'bg-yellow-400',
+    hater: 'bg-red-500',
+    simp: 'bg-pink-400',
+    neutral: 'bg-gray-500'
+  };
+
+
   if (variant === 'header') {
     return (
-      <div className="flex items-center gap-2">
-        {attitudeOptions.map(({ id, labelKey }) => {
-          const isSelected = optimisticVote?.vote === id;
-          return (
-            <Button
-              key={id}
-              variant={isSelected ? 'default' : 'outline'}
-              size="sm"
-              className={cn("h-8 px-3 text-xs", isSelected && "bg-primary text-primary-foreground")}
-              onClick={() => handleVote(id)}
-              disabled={!!isVoting}
-            >
-              {isVoting === id ? <Loader2 className="h-4 w-4 animate-spin" /> : t(labelKey)}
-            </Button>
-          )
-        })}
+      <div className="w-full space-y-2">
+        <div className="flex items-center gap-2">
+          {attitudeOptions.map(({ id, labelKey }) => {
+            const isSelected = optimisticVote?.vote === id;
+            return (
+              <Button
+                key={id}
+                variant={isSelected ? 'default' : 'outline'}
+                size="sm"
+                className={cn("h-8 px-3 text-xs", isSelected && "bg-primary text-primary-foreground")}
+                onClick={() => handleVote(id)}
+                disabled={!!isVoting}
+              >
+                {isVoting === id ? <Loader2 className="h-4 w-4 animate-spin" /> : t(labelKey)}
+              </Button>
+            )
+          })}
+        </div>
+        {totalVotes > 0 && (
+          <TooltipProvider>
+            <div className="flex h-2 w-full rounded-full overflow-hidden bg-muted">
+              {attitudeOptions.map(({ id }) => {
+                const votes = optimisticFigure.attitude?.[id] ?? 0;
+                const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
+                if (percentage === 0) return null;
+                return (
+                  <Tooltip key={id}>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={cn("h-full transition-all duration-300", sentimentColors[id])}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{`${t(`AttitudeVoting.labels.${id}`)}: ${percentage.toFixed(1)}% (${votes.toLocaleString()})`}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </TooltipProvider>
+        )}
       </div>
     )
   }
@@ -317,3 +352,4 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
     </div>
   );
 }
+
