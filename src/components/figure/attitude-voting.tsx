@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -251,7 +250,7 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
   if (variant === 'header') {
     return (
       <div className="w-full">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
             <div className="flex items-center gap-2">
                 {attitudeOptions.map(({ id, labelKey, selectedClass }) => {
                     const isSelected = optimisticVote?.vote === id;
@@ -260,7 +259,7 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
                         key={id}
                         variant={'outline'}
                         size="sm"
-                        className={cn("h-8 px-3 text-xs", isSelected && `border-2 ${selectedClass}`)}
+                        className={cn("h-8 px-3 text-xs border-2", isSelected ? selectedClass : 'border-transparent')}
                         onClick={() => handleVote(id)}
                         disabled={!!isVoting}
                     >
