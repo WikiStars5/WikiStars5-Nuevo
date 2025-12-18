@@ -250,14 +250,14 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
     return (
       <div className="w-full space-y-2">
         <div className="flex items-center gap-2">
-          {attitudeOptions.map(({ id, labelKey }) => {
+          {attitudeOptions.map(({ id, labelKey, selectedClass }) => {
             const isSelected = optimisticVote?.vote === id;
             return (
               <Button
                 key={id}
                 variant={isSelected ? 'default' : 'outline'}
                 size="sm"
-                className={cn("h-8 px-3 text-xs", isSelected && "bg-primary text-primary-foreground")}
+                className={cn("h-8 px-3 text-xs", isSelected && selectedClass)}
                 onClick={() => handleVote(id)}
                 disabled={!!isVoting}
               >
@@ -303,6 +303,8 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
     )
   }
 
+  const showDetails = true;
+
   return (
     <div className="w-full relative">
       {optimisticVote?.vote && (
@@ -343,20 +345,24 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
                       </div>
                       <div>
                           <span className="font-semibold text-sm">{t(labelKey)}</span>
-                          <span className="block text-lg font-bold">
-                            {(optimisticFigure.attitude?.[id] ?? 0).toLocaleString()}
-                          </span>
+                          {showDetails && (
+                            <span className="block text-lg font-bold">
+                                {(optimisticFigure.attitude?.[id] ?? 0).toLocaleString()}
+                            </span>
+                          )}
                       </div>
                   </div>
               )}
           </Button>
           )})}
       </div>
-        <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">
-                {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
-            </p>
-        </div>
+        {showDetails && (
+            <div className="mt-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                    {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
+                </p>
+            </div>
+        )}
     </div>
   );
 }
