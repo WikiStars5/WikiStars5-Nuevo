@@ -217,13 +217,13 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
                 Wiki
               </TabsTrigger>
-              <TabsTrigger value="emocion">
-              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path dM="9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
-                {t('FigurePage.tabs.emotion')}
-              </TabsTrigger>
                <TabsTrigger value="reseñas">
                 <Star className="mr-2 h-4 w-4" />
                 Reseñas
+              </TabsTrigger>
+              <TabsTrigger value="emocion">
+              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path dM="9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
+                {t('FigurePage.tabs.emotion')}
               </TabsTrigger>
               <TabsTrigger value="rachas">
                 <Image
@@ -324,16 +324,16 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 </Card>
               )}
           </TabsContent>
+          <TabsContent value="reseñas" className="mt-4 space-y-8">
+            <CommunityRatings figure={figure} />
+            <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
+          </TabsContent>
           <TabsContent value="emocion" className="mt-4">
             <Card className="dark:bg-black">
               <CardContent className="p-6">
                  <EmotionVoting figure={figure} />
               </CardContent>
             </Card>
-          </TabsContent>
-          <TabsContent value="reseñas" className="mt-4 space-y-8">
-            <CommunityRatings figure={figure} />
-            <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
           </TabsContent>
           <TabsContent value="rachas" className="mt-4">
             <TopStreaks figureId={figureId} />
