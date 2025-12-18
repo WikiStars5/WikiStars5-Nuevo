@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -7,7 +6,7 @@ import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc, get
 import { onAuthStateChanged, User as FirebaseUser, Auth, signInAnonymously } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Lock, ArrowDown } from 'lucide-react';
+import { Loader2, Lock, ArrowDown, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Figure, AttitudeVote, GlobalSettings, User as AppUser } from '@/lib/types';
@@ -16,7 +15,7 @@ import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -266,31 +265,40 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
               </Button>
             )
           })}
+           <Popover>
+            <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <BarChart3 className="h-4 w-4" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64">
+                <div className="space-y-4">
+                    <h4 className="font-medium leading-none">Estadísticas de Actitud</h4>
+                    <div className="space-y-2">
+                    {attitudeOptions.map(({ id, labelKey }) => {
+                        const votes = optimisticFigure.attitude?.[id] ?? 0;
+                        const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
+                        return (
+                            <div key={id} className="grid grid-cols-3 items-center gap-2 text-sm">
+                                <span className="font-medium truncate">{t(labelKey)}</span>
+                                <div className="h-2 w-full rounded-full bg-muted">
+                                    <div
+                                        className={cn("h-full rounded-full", sentimentColors[id])}
+                                        style={{ width: `${percentage}%` }}
+                                    />
+                                </div>
+                                <span className="text-right font-mono text-muted-foreground">{votes.toLocaleString()}</span>
+                            </div>
+                        )
+                    })}
+                    </div>
+                    <div className="border-t pt-2 text-center text-xs text-muted-foreground">
+                        Total de {totalVotes.toLocaleString()} votos
+                    </div>
+                </div>
+            </PopoverContent>
+           </Popover>
         </div>
-        {totalVotes > 0 && (
-          <TooltipProvider>
-            <div className="flex h-2 w-full rounded-full overflow-hidden bg-muted">
-              {attitudeOptions.map(({ id }) => {
-                const votes = optimisticFigure.attitude?.[id] ?? 0;
-                const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
-                if (percentage === 0) return null;
-                return (
-                  <Tooltip key={id}>
-                    <TooltipTrigger asChild>
-                      <div
-                        className={cn("h-full transition-all duration-300", sentimentColors[id])}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{`${t(`AttitudeVoting.labels.${id}`)}: ${percentage.toFixed(1)}% (${votes.toLocaleString()})`}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              })}
-            </div>
-          </TooltipProvider>
-        )}
       </div>
     )
   }
@@ -352,4 +360,3 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
     </div>
   );
 }
-
