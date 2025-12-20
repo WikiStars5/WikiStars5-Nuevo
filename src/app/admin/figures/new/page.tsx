@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -8,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { generateKeywords, normalizeText } from '@/lib/keywords';
 
 import { Button } from '@/components/ui/button';
@@ -26,8 +25,6 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { Switch } from '@/components/ui/switch';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-
 
 const SOCIAL_MEDIA_CONFIG = {
     website: { label: 'Página Web', placeholder: 'https://...' },
@@ -162,7 +159,7 @@ export default function AdminNewFigurePage() {
         ratingsBreakdown: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
       };
 
-      setDocumentNonBlocking(figureRef, figureData, { merge: false });
+      await setDoc(figureRef, figureData);
 
       toast({
         title: '¡Perfil Creado!',
@@ -341,5 +338,3 @@ export default function AdminNewFigurePage() {
     </Card>
   );
 }
-
-    
