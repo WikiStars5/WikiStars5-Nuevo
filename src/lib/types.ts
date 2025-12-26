@@ -208,6 +208,7 @@ export interface Streak {
   figureId: string; // Denormalized for querying
   currentStreak: number;
   lastCommentDate: Timestamp;
+  attitude?: 'neutral' | 'fan' | 'simp' | 'hater' | null;
   userDisplayName: string;
   userPhotoURL?: string | null;
   userCountry?: string | null;

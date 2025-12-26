@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,13 +7,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Flame, Trophy } from 'lucide-react';
-import { Streak } from '@/lib/types';
+import { Streak, AttitudeVote } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { countries } from '@/lib/countries';
 import Link from 'next/link';
 import { isDateActive } from '@/lib/streaks';
 import { useLanguage } from '@/context/LanguageContext';
+
+type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
+
+const attitudeStyles: Record<AttitudeOption, { text: string; color: string }> = {
+    fan: { text: 'Fan', color: 'text-yellow-400' },
+    hater: { text: 'Hater', color: 'text-red-500' },
+    simp: { text: 'Simp', color: 'text-pink-400' },
+    neutral: { text: 'Espectador', color: 'text-gray-500' },
+};
 
 
 interface TopStreaksProps {
@@ -94,6 +102,7 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                     <div className="space-y-1">
                         {topStreaks.map((streak, index) => {
                              const countryData = streak.userCountry ? countries.find(c => c.key === streak.userCountry.toLowerCase().replace(/ /g, '_')) : null;
+                             const attitudeStyle = streak.attitude ? attitudeStyles[streak.attitude as AttitudeOption] : null;
                             return (
                                 <div key={streak.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                                     <div className="flex items-center gap-3">
@@ -119,6 +128,9 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                                                         />
                                                     )}
                                                 </div>
+                                                {attitudeStyle && (
+                                                    <p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>
+                                                )}
                                             </div>
                                         </Link>
                                     </div>

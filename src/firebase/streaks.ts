@@ -10,7 +10,7 @@ import {
     getDoc,
     DocumentReference,
 } from 'firebase/firestore';
-import type { Streak, User } from '@/lib/types';
+import type { Streak, User, AttitudeVote } from '@/lib/types';
 
 interface UpdateStreakParams {
     firestore: Firestore;
@@ -50,6 +50,7 @@ export async function updateStreak({
     const privateStreakRef = doc(firestore, `users/${userId}/streaks`, figureId);
     const publicStreakRef = doc(firestore, `figures/${figureId}/streaks`, userId);
     const userRef = doc(firestore, 'users', userId);
+    const attitudeVoteRef = doc(firestore, `users/${userId}/attitudeVotes`, figureId);
 
     try {
         let finalStreakCount = 1;
@@ -57,9 +58,11 @@ export async function updateStreak({
         let oldStreakCount = 0;
 
         const result = await runTransaction(firestore, async (transaction) => {
-            const [privateStreakDoc, userDoc] = await Promise.all([
+            const [privateStreakDoc, userDoc, attitudeVoteDoc, figureDoc] = await Promise.all([
                 transaction.get(privateStreakRef),
-                transaction.get(userRef)
+                transaction.get(userRef),
+                transaction.get(attitudeVoteRef),
+                getDoc(doc(firestore, 'figures', figureId)) // This can be a direct get as it's read-only in this context
             ]);
 
             if (!userDoc.exists()) {
@@ -72,7 +75,9 @@ export async function updateStreak({
             const userGender = userData.gender || 'unknown';
             const userDisplayName = userData.username || 'Invitado';
             const userPhotoURL = userData.profilePhotoUrl || null;
-            const figureImageUrl = (await getDoc(doc(firestore, 'figures', figureId))).data()?.imageUrl || null;
+            const figureImageUrl = figureDoc.data()?.imageUrl || null;
+
+            const attitudeVote = attitudeVoteDoc.exists() ? (attitudeVoteDoc.data() as AttitudeVote).vote : null;
 
             const now = new Date();
 
@@ -127,6 +132,7 @@ export async function updateStreak({
                 figureId,
                 currentStreak: finalStreakCount,
                 lastCommentDate: Timestamp.now(),
+                attitude: attitudeVote,
                 userDisplayName: userDisplayName,
                 userPhotoURL: userPhotoURL,
                 userCountry: userCountry,

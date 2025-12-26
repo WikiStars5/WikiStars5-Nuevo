@@ -294,7 +294,7 @@
         "title": {
           "type": "string",
           "description": "The optional title of the comment.",
-          "maxLength": 80
+          "maxLength": 50
         },
         "tag": {
             "type": "string",
@@ -432,6 +432,11 @@
         "publicFigureId": {
           "type": "string",
           "description": "Reference to the PublicFigure the streak is for. (Relationship: PublicFigure 1:N Streak)"
+        },
+        "attitude": {
+          "type": ["string", "null"],
+          "enum": ["neutral", "fan", "simp", "hater", null],
+          "description": "The user's attitude at the time of the last streak update."
         },
         "startDate": {
           "type": "string",
