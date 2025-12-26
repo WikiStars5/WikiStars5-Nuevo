@@ -291,6 +291,16 @@
           "type": "string",
           "description": "Reference to the parent comment, if this is a reply. Null if it's a top-level comment. (Relationship: Comment 1:N Comment)"
         },
+        "title": {
+          "type": "string",
+          "description": "The optional title of the comment.",
+          "maxLength": 50
+        },
+        "tag": {
+            "type": "string",
+            "description": "An optional tag to categorize the comment's sentiment.",
+            "enum": ["clown", "overrated", "my_religion", "my_love", "goat", "defender", "facts", "cinema"]
+        },
         "depth": {
           "type": "number",
           "description": "The nesting level of the comment. 0 for top-level."

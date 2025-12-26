@@ -37,7 +37,7 @@ const createCommentSchema = (isRatingEnabled: boolean, isCommentingEnabled: bool
   username: needsIdentity 
     ? z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.')
     : z.string().optional(),
-  title: z.string().max(80, 'El título no puede superar los 80 caracteres.').optional(),
+  title: z.string().max(50, 'El título no puede superar los 50 caracteres.').optional(),
   text: isCommentingEnabled
     ? z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.')
     : z.string().optional(),
@@ -332,12 +332,12 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                         render={({ field }) => (
                             <FormItem className="flex-1">
                             <FormControl>
-                                <Input placeholder="Título de tu opinión (opcional)" {...field} maxLength={80} />
+                                <Input placeholder="Título de tu opinión (opcional)" {...field} maxLength={50} />
                             </FormControl>
                              <div className="flex justify-between items-center pt-1">
                                 <FormMessage />
                                 <div className="text-xs text-muted-foreground ml-auto">
-                                    {(titleValue || '').length} / 80
+                                    {(titleValue || '').length} / 50
                                 </div>
                             </div>
                             </FormItem>
