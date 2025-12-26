@@ -110,6 +110,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
 
 
   const textValue = form.watch('text', '');
+  const titleValue = form.watch('title', '');
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
 
@@ -331,9 +332,14 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                         render={({ field }) => (
                             <FormItem className="flex-1">
                             <FormControl>
-                                <Input placeholder="Título de tu opinión (opcional)" {...field} />
+                                <Input placeholder="Título de tu opinión (opcional)" {...field} maxLength={80} />
                             </FormControl>
-                            <FormMessage />
+                             <div className="flex justify-between items-center pt-1">
+                                <FormMessage />
+                                <div className="text-xs text-muted-foreground ml-auto">
+                                    {(titleValue || '').length} / 80
+                                </div>
+                            </div>
                             </FormItem>
                         )}
                         />
