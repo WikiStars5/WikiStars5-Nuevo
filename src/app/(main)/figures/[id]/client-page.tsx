@@ -236,6 +236,12 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 />
                 {t('FigurePage.tabs.streaks')}
               </TabsTrigger>
+              {isGoatCandidate && (
+                <TabsTrigger value="goat">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  GOAT
+                </TabsTrigger>
+              )}
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -338,23 +344,14 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           <TabsContent value="rachas" className="mt-4">
             <TopStreaks figureId={figureId} />
           </TabsContent>
+          {isGoatCandidate && (
+            <TabsContent value="goat" className="mt-4">
+                <GoatBattle />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
       
-       {isGoatCandidate && (
-        <>
-          <div className="flex flex-col items-center justify-center mt-6 text-center text-muted-foreground animate-color-pulse">
-              <p className="text-sm font-semibold">
-                {t('FigurePage.callToAction.goat')}
-              </p>
-              <ArrowDown className="h-6 w-6 animate-bounce" />
-          </div>
-          <div className="mt-2">
-              <GoatBattle />
-          </div>
-        </>
-       )}
-
        <div className="mt-8">
         <RelatedFigures figure={figure} />
       </div>
