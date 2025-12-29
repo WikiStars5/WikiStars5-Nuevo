@@ -29,7 +29,7 @@ export default function StreakAnimationOverlay() {
           unoptimized
           className="h-64 w-64"
         />
-        <p className="text-2xl font-bold text-white mt-4">¡Racha de Días!</p>
+        <p className="text-2xl font-bold text-white mt-4">¡Racha de Lealtad!</p>
         <p className="text-8xl font-extrabold text-orange-500 drop-shadow-lg">
           Día {streakCount}
         </p>
