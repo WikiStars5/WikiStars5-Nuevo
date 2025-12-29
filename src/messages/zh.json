@@ -367,7 +367,7 @@
   },
   "TopStreaks": {
     "title": "热门活跃连胜",
-    "description": "此个人资料评论连胜时间最长的用户。",
+    "description": "最忠实的用户将在此处显示。",
     "noStreaks": "尚无活跃连胜。成为第一个连续几天发表评论的人！"
   },
   "EditFigure": {
@@ -614,7 +614,7 @@
     "tabs": {
       "attitudes": "态度",
       "emotions": "情感",
-      "streaks": "连胜"
+      "streaks": "忠诚度连胜"
     },
     "noVotes": "您尚未为任何个人资料投票为“{category}”。",
     "noStreaksTitle": "您还没有活跃的连胜记录",
@@ -873,5 +873,3 @@
     "zimbabwe": "津巴布韦"
   }
 }
-
-    

@@ -367,7 +367,7 @@
   },
   "TopStreaks": {
     "title": "Top aktive Strähnen",
-    "description": "Benutzer mit den längsten Kommentarsträhnen für dieses Profil.",
+    "description": "Die treuesten Benutzer werden hier angezeigt.",
     "noStreaks": "Noch keine aktiven Strähnen. Seien Sie der Erste, der an aufeinanderfolgenden Tagen kommentiert!"
   },
   "EditFigure": {
@@ -614,7 +614,7 @@
     "tabs": {
       "attitudes": "Einstellung",
       "emotions": "Emotionen",
-      "streaks": "Strähnen"
+      "streaks": "Loyalitätssträhnen"
     },
     "noVotes": "Sie haben für kein Profil als „{category}“ abgestimmt.",
     "noStreaksTitle": "Sie haben noch keine aktiven Strähnen",
@@ -873,5 +873,3 @@
     "zimbabwe": "Simbabwe"
   }
 }
-
-    

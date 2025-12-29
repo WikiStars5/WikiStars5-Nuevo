@@ -367,7 +367,7 @@
   },
   "TopStreaks": {
     "title": "Top des séries actives",
-    "description": "Utilisateurs avec les plus longues séries de commentaires pour ce profil.",
+    "description": "Les utilisateurs les plus fidèles apparaîtront ici.",
     "noStreaks": "Aucune série active pour le moment. Soyez le premier à commenter plusieurs jours de suite !"
   },
   "EditFigure": {
@@ -614,7 +614,7 @@
     "tabs": {
       "attitudes": "Attitude",
       "emotions": "Émotions",
-      "streaks": "Séries"
+      "streaks": "Séries de fidélité"
     },
     "noVotes": "Vous n'avez voté « {category} » pour aucun profil.",
     "noStreaksTitle": "Vous n'avez pas encore de séries actives",
@@ -873,5 +873,3 @@
     "zimbabwe": "Zimbabwe"
   }
 }
-
-    

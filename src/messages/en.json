@@ -369,7 +369,7 @@
   },
   "TopStreaks": {
     "title": "Top Active Streaks",
-    "description": "Users with the longest comment streaks for this profile.",
+    "description": "The most loyal users will appear here.",
     "noStreaks": "No active streaks yet. Be the first to comment on consecutive days!"
   },
   "EditFigure": {
@@ -616,7 +616,7 @@
     "tabs": {
       "attitudes": "Attitude",
       "emotions": "Emotions",
-      "streaks": "Streaks"
+      "streaks": "Loyalty Streaks"
     },
     "noVotes": "You have not voted as '{category}' for any profile.",
     "noStreaksTitle": "You have no active streaks yet",

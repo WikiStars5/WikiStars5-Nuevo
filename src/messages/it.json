@@ -367,7 +367,7 @@
   },
   "TopStreaks": {
     "title": "Migliori Serie Attive",
-    "description": "Utenti con le serie di commenti più lunghe per questo profilo.",
+    "description": "Gli utenti più fedeli appariranno qui.",
     "noStreaks": "Nessuna serie attiva ancora. Sii il primo a commentare per più giorni consecutivi!"
   },
   "EditFigure": {
@@ -520,7 +520,7 @@
       "1_strong": "Natura del Sito:",
       "1": " WikiStars5 è una piattaforma di opinione e intrattenimento. Crediamo fermamente nella libertà di espressione, e il nostro scopo è permettere agli utenti di esprimere e discutere liberamente le loro percezioni sui personaggi pubblici. Il contenuto di questo sito, incluse valutazioni, voti e commenti, rappresenta le opinioni soggettive dei nostri utenti e non deve essere interpretato come una dichiarazione di fatto.",
       "2_strong": "Riflesso della Percezione Pubblica:",
-      "2": " Le percezioni, sia di ammirazione che di odio, riflesse su questa piattaforma sono il risultato delle azioni e della reputazione dei personaggi pubblici stessi. WikiStars5 non crea né controlla queste opinioni; agisce semplicemente come un forum per la loro espressione. La responsabilità dell'immagine pubblica ricade interamente sul personaggio pubblico, non sulla piattaforma che consente la discussione su di esso. In breve: non è colpa nostra se ti fai amare od odiare; tale responsabilità è interamente tua e non sotto il nostro controllo.",
+      "2": " Le percezioni, sia di ammirazione che di odio, riflesse su questa piattaforma sono il risultato delle azioni e della reputazione dei personaggi pubblici stessi. WikiStars5 non crea né controlla queste opinioni; agisce semplicemente come un forum per la loro espressione. La responsabilità dell'immagine pubblica ricade interamente sul personaggio pubblico, non sulla piattaforma che consente la discussione su di esso. In breve: non è colpa nostra se ti fai amare o odiare; tale responsabilità è interamente tua e non sotto il nostro controllo.",
       "3_strong": "Nessuna Affiliazione o Approvazione:",
       "3": " Questo sito web non è affiliato, associato, autorizzato, approvato da, o in alcun modo ufficialmente collegato a nessuno dei personaggi pubblici menzionati, né a nessuna delle loro sussidiarie o affiliate.",
       "4": "I nomi, così come qualsiasi immagine, marchio e diritto d'autore correlato, sono di proprietà dei rispettivi proprietari. L'uso di questi nomi e immagini è a scopo di identificazione, commento e critica, nel quadro del diritto alla libertà di espressione.",
@@ -614,7 +614,7 @@
     "tabs": {
       "attitudes": "Atteggiamento",
       "emotions": "Emozioni",
-      "streaks": "Serie"
+      "streaks": "Serie di Lealtà"
     },
     "noVotes": "Non hai votato come '{category}' per nessun profilo.",
     "noStreaksTitle": "Non hai ancora serie attive",
@@ -873,5 +873,3 @@
     "zimbabwe": "Zimbabwe"
   }
 }
-
-    

@@ -369,7 +369,7 @@
   },
   "TopStreaks": {
     "title": "Principais Sequências Ativas",
-    "description": "Usuários com as sequências de comentários mais longas para este perfil.",
+    "description": "Os usuários mais leais aparecerão aqui.",
     "noStreaks": "Nenhuma sequência ativa ainda. Seja o primeiro a comentar em dias consecutivos!"
   },
   "EditFigure": {
@@ -604,7 +604,7 @@
       "Mantenha a discussão focada na figura pública. As discussões devem ser sobre suas ações, carreira e percepção pública, não sobre outros usuários.",
       "Não publique informações privadas (doxing) de nenhuma pessoa, seja uma figura pública ou um usuário.",
       "Evite spam e autopromoção. Os comentários devem agregar valor à discussão.",
-      "Não manipule votos. O uso de bots, scripts или várias contas para alterar resultados não é permitido.",
+      "Não manipule votos. O uso de bots, scripts ou várias contas para alterar resultados não é permitido.",
       "Conteúdo sexualmente explícito, violento ou ilegal é estritamente proibido.",
       "Respeite os direitos autorais. Não publique conteúdo que você não possui sem a devida atribuição."
     ],
@@ -616,7 +616,7 @@
     "tabs": {
       "attitudes": "Atitude",
       "emotions": "Emoções",
-      "streaks": "Sequências"
+      "streaks": "Sequências de Lealdade"
     },
     "noVotes": "Você não votou como '{category}' em nenhum perfil.",
     "noStreaksTitle": "Você ainda não tem sequências ativas",

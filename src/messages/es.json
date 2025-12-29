@@ -254,7 +254,7 @@
       "envidia": "Envidia",
       "tristeza": "Tristeza",
       "miedo": "Miedo",
-      "desagrado": "Desagrado",
+      "desagrado": "Repulsa",
       "furia": "Furia"
     }
   },
@@ -374,7 +374,7 @@
   },
   "TopStreaks": {
     "title": "Top Rachas Activas",
-    "description": "Los usuarios con las rachas de comentarios más largas para este perfil.",
+    "description": "Los usuarios mas leales aparecerán aquí.",
     "noStreaks": "Aún no hay rachas activas. ¡Sé el primero en comentar varios días seguidos!"
   },
   "EditFigure": {
@@ -621,7 +621,7 @@
     "tabs": {
       "attitudes": "Actitud",
       "emotions": "Emociones",
-      "streaks": "Rachas"
+      "streaks": "Rachas de lealtad"
     },
     "noVotes": "No has votado como '{category}' por ningún perfil.",
     "noStreaksTitle": "Aún no tienes rachas activas",
