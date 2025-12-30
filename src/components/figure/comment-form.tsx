@@ -398,6 +398,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                       name="text"
                       render={({ field }) => (
                         <FormItem>
+                          <FormLabel>{t('CommentForm.opinionLabel')}</FormLabel>
                           <FormControl>
                             <Textarea
                               placeholder={`${t('CommentForm.opinionPlaceholder', {name: figureName})}...`}
