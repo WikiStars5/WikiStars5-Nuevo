@@ -6,7 +6,7 @@ import { collection, query, orderBy, getDocs, where, limit, Timestamp } from 'fi
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Flame, Trophy } from 'lucide-react';
+import { Flame, Trophy, HelpCircle } from 'lucide-react';
 import { Streak, AttitudeVote } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -14,6 +14,16 @@ import { countries } from '@/lib/countries';
 import Link from 'next/link';
 import { isDateActive } from '@/lib/streaks';
 import { useLanguage } from '@/context/LanguageContext';
+import { Button } from '../ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -90,8 +100,41 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
     return (
         <Card className="dark:bg-black">
             <CardHeader>
-                <CardTitle>{t('TopStreaks.title')}</CardTitle>
-                <CardDescription className="text-muted-foreground">{t('TopStreaks.description')}</CardDescription>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <CardTitle>{t('TopStreaks.title')}</CardTitle>
+                        <CardDescription className="text-muted-foreground">{t('TopStreaks.description')}</CardDescription>
+                    </div>
+                     <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <Flame className="text-orange-500" />
+                                    ¿Cómo se Gana una Racha de Lealtad?
+                                </DialogTitle>
+                                <DialogDescription className="pt-2 text-left">
+                                    Para ganar y mantener tu racha, debes seguir una regla simple pero importante:
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4 space-y-3 text-sm text-muted-foreground">
+                                <p>
+                                    1. <strong>Deja un comentario con texto.</strong> No basta con solo calificar con estrellas; tu opinión escrita es lo que cuenta para la racha.
+                                </p>
+                                <p>
+                                    2. <strong>Hazlo en días consecutivos.</strong> Si comentas hoy y luego mañana, tu racha aumentará. Si dejas pasar un día completo, tu racha se reiniciará a 1 la próxima vez que comentes.
+                                </p>
+                                <p className="font-semibold text-foreground">
+                                    ¡Mantén viva la conversación y demuestra tu lealtad (o tu crítica constante)!
+                                </p>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </CardHeader>
             <CardContent>
                 {isLoading ? (
