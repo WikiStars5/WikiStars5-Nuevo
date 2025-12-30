@@ -124,13 +124,15 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow get, list: if true;
         
-        allow create: if (isAdmin()) || (isSignedIn() && request.resource.data.userId == request.auth.uid && (
+        allow create: if (isAdmin()) || (
+          isSignedIn() && request.resource.data.userId == request.auth.uid && (
             (areCommentsEnabled() && request.resource.data.text is string && request.resource.data.text.size() > 0) ||
-            (!areCommentsEnabled() && areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5)
-        ));
+            (areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5)
+          )
+        );
         
         allow update: if isSignedIn() && (
-            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) || 
+            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt', 'title', 'tag'])) || 
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) ||
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
             (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
@@ -210,4 +212,3 @@ service cloud.firestore {
     match /settings/{settingId} { allow read: if true; allow write: if isAdmin(); }
   }
 }
-    

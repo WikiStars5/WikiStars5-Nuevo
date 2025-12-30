@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -38,9 +37,7 @@ const createCommentSchema = (isRatingEnabled: boolean, isCommentingEnabled: bool
     ? z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.')
     : z.string().optional(),
   title: z.string().max(50, 'El título no puede superar los 50 caracteres.').optional(),
-  text: isCommentingEnabled
-    ? z.string().min(5, 'El comentario debe tener al menos 5 caracteres.').max(500, 'El comentario no puede superar los 500 caracteres.')
-    : z.string().optional(),
+  text: z.string().max(500, 'El comentario no puede superar los 500 caracteres.').optional(),
   tag: z.custom<CommentTagId>().optional(),
 });
 
