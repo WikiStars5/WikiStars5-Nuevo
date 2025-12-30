@@ -29,7 +29,7 @@ import { commentTags, type CommentTagId } from '@/lib/tags';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 
-const createCommentSchema = (isRatingEnabled: boolean, isCommentingEnabled: boolean, needsIdentity: boolean) => z.object({
+const createCommentSchema = (isRatingEnabled: boolean, needsIdentity: boolean) => z.object({
   rating: isRatingEnabled
     ? z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.')
     : z.number().optional().nullable(),
@@ -84,7 +84,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
   const needsIdentity = !user || (user.isAnonymous && !userProfile);
 
   const form = useForm<CommentFormValues>({
-    resolver: zodResolver(createCommentSchema(isRatingEnabled, isCommentingEnabled, needsIdentity)),
+    resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
     defaultValues: { text: '', rating: null, username: '', title: '', tag: undefined },
   });
 
@@ -212,14 +212,16 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         setDocumentNonBlocking(newCommentRef, newCommentPayload);
 
         // --- Post-Operation Actions ---
-        const streakResult = await updateStreak({
-            firestore, figureId, figureName, userId: currentUser.uid,
-            userDisplayName: finalDisplayName, userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
-            isAnonymous: currentUser.isAnonymous,
-        });
+        // Only update streak if a comment text was provided
+        if (data.text && data.text.trim().length > 0) {
+            const streakResult = await updateStreak({
+                firestore, figureId, figureName, userId: currentUser.uid,
+                isAnonymous: currentUser.isAnonymous,
+            });
 
-        if (streakResult?.streakGained) {
-            showStreakAnimation(streakResult.newStreakCount);
+            if (streakResult?.streakGained) {
+                showStreakAnimation(streakResult.newStreakCount);
+            }
         }
 
         if (newRating >= 0 && ratingSounds[newRating]) {
