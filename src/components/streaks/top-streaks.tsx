@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -123,7 +124,7 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
                             </DialogHeader>
                             <div className="py-4 space-y-3 text-sm text-muted-foreground">
                                 <p>
-                                    1. <strong>Deja un comentario con texto.</strong> No basta con solo calificar con estrellas; tu opinión escrita es lo que cuenta para la racha.
+                                    1. <strong>Deja un comentario con texto o responde a uno existente.</strong> No basta con solo calificar con estrellas; tu opinión escrita es lo que cuenta para la racha.
                                 </p>
                                 <p>
                                     2. <strong>Hazlo en días consecutivos.</strong> Si comentas hoy y luego mañana, tu racha aumentará. Si dejas pasar un día completo, tu racha se reiniciará a 1 la próxima vez que comentes.

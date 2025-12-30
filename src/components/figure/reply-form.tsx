@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext } from 'react';
@@ -118,8 +119,6 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
         figureId,
         figureName,
         userId: user.uid,
-        userDisplayName: user.displayName || 'Usuario',
-        userPhotoURL: user.photoURL,
         isAnonymous: user.isAnonymous,
       });
 
