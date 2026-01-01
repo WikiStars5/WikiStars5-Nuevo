@@ -13,6 +13,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@/firebase';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -30,6 +31,7 @@ interface StarPostCardProps {
 
 export default function StarPostCard({ post }: StarPostCardProps) {
   const { language, t } = useLanguage();
+  const { user } = useUser();
 
   if (!post.figureId || !post.figureName) {
       return null;
@@ -40,6 +42,7 @@ export default function StarPostCard({ post }: StarPostCardProps) {
   const country = post.userCountry ? countries.find(c => c.key === post.userCountry?.toLowerCase()) : null;
   const attitudeStyle = post.userAttitude ? attitudeStyles[post.userAttitude] : null;
   const tag = post.tag ? commentTags.find(t => t.id === post.tag) : null;
+  const isOwner = user && user.uid === post.userId;
 
 
   return (
@@ -88,40 +91,47 @@ export default function StarPostCard({ post }: StarPostCardProps) {
                             {tag.emoji} {tag.label}
                         </div>
                     ) : <div />}
-                    {post.rating >= 0 && <StarRating rating={post.rating} starClassName="h-4 w-4" />}
+                    {typeof post.rating === 'number' && post.rating >= 0 && <StarRating rating={post.rating} starClassName="h-4 w-4" />}
                 </div>
 
                 <Link href={`/figures/${post.figureId}?thread=${post.threadId || post.id}`} className="space-y-1 block">
-                    {post.title && <h4 className="font-bold text-base uppercase">{post.title}</h4>}
+                    {post.title && <h4 className="font-bold text-lg uppercase">{post.title}</h4>}
                     {post.text && <p className="text-sm text-foreground/90 whitespace-pre-wrap">{post.text}</p>}
                 </Link>
                  
-                <div className="flex items-center gap-1 text-muted-foreground pt-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <ThumbsUp className="h-4 w-4" />
-                    </Button>
-                    <span className="text-xs font-semibold w-6 text-center">{post.likes ?? 0}</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <ThumbsDown className="h-4 w-4" />
-                    </Button>
-                    <span className="text-xs font-semibold w-6 text-center">{post.dislikes ?? 0}</span>
-                    
-                    <div className="flex-grow" />
-                    
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <FilePenLine className="h-4 w-4" />
-                    </Button>
-                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                     <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Share2 className="h-4 w-4" />
-                    </Button>
-
-                     <Button variant="ghost" size="sm" className="h-8 px-2">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Responder
-                    </Button>
+                <div className="flex flex-col gap-2 pt-2">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <ThumbsUp className="h-4 w-4" />
+                        </Button>
+                        <span className="text-xs font-semibold w-6 text-center">{post.likes ?? 0}</span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <ThumbsDown className="h-4 w-4" />
+                        </Button>
+                        <span className="text-xs font-semibold w-6 text-center">{post.dislikes ?? 0}</span>
+                        
+                        <div className="flex-grow" />
+                        
+                        {isOwner && (
+                            <>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <FilePenLine className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Share2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                     <div className="flex">
+                        <Button variant="ghost" size="sm" className="h-8 px-2">
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Responder
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
