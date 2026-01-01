@@ -50,6 +50,9 @@ const mockStarPosts: Comment[] = [
     createdAt: Timestamp.fromMillis(Date.now() - 3600000), // 1 hour ago
     replyCount: 12,
     parentId: null,
+    likes: 152,
+    dislikes: 12,
+    tag: 'goat',
     userCountry: 'argentina',
     userGender: 'Masculino',
     userAttitude: 'fan',
@@ -67,6 +70,9 @@ const mockStarPosts: Comment[] = [
     createdAt: Timestamp.fromMillis(Date.now() - 7200000), // 2 hours ago
     replyCount: 8,
     parentId: null,
+    likes: 210,
+    dislikes: 25,
+    tag: 'defender',
     userCountry: 'portugal',
     userGender: 'Masculino',
     userAttitude: 'fan',
@@ -84,6 +90,9 @@ const mockStarPosts: Comment[] = [
     createdAt: Timestamp.fromMillis(Date.now() - 10800000), // 3 hours ago
     replyCount: 5,
     parentId: null,
+    likes: 30,
+    dislikes: 45,
+    tag: 'clown',
     userCountry: 'peru',
     userGender: 'Femenino',
     userAttitude: 'hater',
@@ -101,6 +110,9 @@ const mockStarPosts: Comment[] = [
     createdAt: Timestamp.fromMillis(Date.now() - 21600000), // 6 hours ago
     replyCount: 22,
     parentId: null,
+    likes: 350,
+    dislikes: 8,
+    tag: 'my_love',
     userCountry: 'colombia',
     userGender: 'Femenino',
     userAttitude: 'simp',
