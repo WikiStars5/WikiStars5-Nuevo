@@ -4,7 +4,7 @@
 import * as React from 'react';
 import type { Comment } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
-import { collection, query, where, orderBy, limit, getDocs, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import FeaturedFigures from '@/components/shared/featured-figures';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,20 +22,19 @@ export default function HomePage() {
       let finalComments: Comment[] = [];
 
       try {
+        let personalizedFeedIsEmpty = true;
         if (user) {
-          // 1. Get the figure IDs the user has voted on
           const attitudeVotesQuery = query(collection(firestore, `users/${user.uid}/attitudeVotes`));
           const attitudeVotesSnapshot = await getDocs(attitudeVotesQuery);
           const votedFigureIds = attitudeVotesSnapshot.docs.map(doc => doc.data().figureId);
 
           if (votedFigureIds.length > 0) {
-            // 2. Fetch the latest 5 comments for each of the user's voted figures
+            // Get ONE comment from each figure the user has voted on.
             const commentPromises = votedFigureIds.map(figureId => {
               const commentsQuery = query(
                 collection(firestore, 'figures', figureId, 'comments'),
-                where('parentId', '==', null),
-                orderBy('createdAt', 'desc'),
-                limit(5)
+                where('parentId', '==', null), // Only root comments
+                limit(1) // Just get one
               );
               return getDocs(commentsQuery);
             });
@@ -47,13 +46,17 @@ export default function HomePage() {
                 finalComments.push({ id: doc.id, ...doc.data() } as Comment);
               });
             });
+
+            if (finalComments.length > 0) {
+              personalizedFeedIsEmpty = false;
+            }
           }
         }
         
-        // 3. If the personalized feed is empty, fallback to the generic feed of latest starposts
-        if (finalComments.length === 0) {
+        // If the personalized feed is empty (no votes or no comments on voted figures), fallback to the generic feed.
+        if (personalizedFeedIsEmpty) {
             const genericQuery = query(
-              collection(firestore, 'starposts'), // Correctly query the top-level 'starposts' collection
+              collection(firestore, 'starposts'),
               orderBy('createdAt', 'desc'),
               limit(10)
             );
@@ -63,7 +66,7 @@ export default function HomePage() {
             });
         }
         
-        // 4. Sort all collected comments by date and take the top 15
+        // Sort all collected comments by date and take the top 15
         finalComments.sort((a, b) => {
             const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
             const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
