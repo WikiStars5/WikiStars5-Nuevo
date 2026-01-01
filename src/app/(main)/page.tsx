@@ -1,107 +1,98 @@
-
 'use client';
 
-import type { Comment } from '@/lib/types';
+import * as React from 'react';
+import type { Comment, AttitudeVote } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
-import { Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, collectionGroup } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import FeaturedFigures from '@/components/shared/featured-figures';
-
-// Mock data to simulate Firestore response
-const mockStarPosts: Comment[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    figureId: 'lionel-messi',
-    figureName: 'Lionel Messi',
-    userDisplayName: 'LeoFan',
-    userPhotoURL: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-    title: 'El mejor de todos los tiempos',
-    text: 'Simplemente increíble. Cada partido es una clase magistral. No hay debate posible, el GOAT indiscutible. 👑',
-    rating: 5,
-    createdAt: Timestamp.fromMillis(Date.now() - 3600000), // 1 hour ago
-    replyCount: 12,
-    parentId: null,
-    likes: 152,
-    dislikes: 12,
-    tag: 'goat',
-    userCountry: 'argentina',
-    userGender: 'Masculino',
-    userAttitude: 'fan',
-  },
-  {
-    id: '2',
-    userId: 'user2',
-    figureId: 'cristiano-ronaldo',
-    figureName: 'Cristiano Ronaldo',
-    userDisplayName: 'CR7_Supporter',
-    userPhotoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-    title: 'Mentalidad de campeón',
-    text: 'La disciplina y la ambición de este hombre son de otro nivel. Un atleta perfecto y un ganador nato. ¡Siuuu!',
-    rating: 5,
-    createdAt: Timestamp.fromMillis(Date.now() - 7200000), // 2 hours ago
-    replyCount: 8,
-    parentId: null,
-    likes: 210,
-    dislikes: 25,
-    tag: 'defender',
-    userCountry: 'portugal',
-    userGender: 'Masculino',
-    userAttitude: 'fan',
-  },
-  {
-    id: '3',
-    userId: 'user3',
-    figureId: 'keiko-fujimori',
-    figureName: 'Keiko Fujimori',
-    userDisplayName: 'PoliticoAnalista',
-    userPhotoURL: 'https://images.unsplash.com/photo-1544725176-7c40e5a71c3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-    title: 'Una figura controversial',
-    text: 'Su carrera política ha estado llena de altibajos. Es innegable su influencia, pero también las polémicas que la rodean.',
-    rating: 2,
-    createdAt: Timestamp.fromMillis(Date.now() - 10800000), // 3 hours ago
-    replyCount: 5,
-    parentId: null,
-    likes: 30,
-    dislikes: 45,
-    tag: 'clown',
-    userCountry: 'peru',
-    userGender: 'Femenino',
-    userAttitude: 'hater',
-  },
-   {
-    id: '4',
-    userId: 'user4',
-    figureId: 'shakira',
-    figureName: 'Shakira',
-    userDisplayName: 'MusicLover',
-    userPhotoURL: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=100&q=80',
-    title: 'Reina Latina',
-    text: 'Desde "Pies Descalzos" hasta su última sesión con Bizarrap, Shakira nunca deja de reinventarse. ¡Una leyenda!',
-    rating: 5,
-    createdAt: Timestamp.fromMillis(Date.now() - 21600000), // 6 hours ago
-    replyCount: 22,
-    parentId: null,
-    likes: 350,
-    dislikes: 8,
-    tag: 'my_love',
-    userCountry: 'colombia',
-    userGender: 'Femenino',
-    userAttitude: 'simp',
-  },
-];
-
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function HomePage() {
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const [feedComments, setFeedComments] = React.useState<Comment[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchFeed = async () => {
+      if (!firestore) return;
+
+      setIsLoading(true);
+      let finalQuery;
+
+      try {
+        if (user) {
+          // 1. Fetch the user's attitude votes to find figures they care about.
+          const votesQuery = query(collection(firestore, `users/${user.uid}/attitudeVotes`));
+          const votesSnapshot = await getDocs(votesQuery);
+          const votedFigureIds = votesSnapshot.docs.map(doc => doc.data().figureId);
+
+          if (votedFigureIds.length > 0) {
+            // 2. Build a personalized query for comments from those figures.
+            // Firestore 'in' queries are limited to 30 items.
+            const idsForQuery = votedFigureIds.slice(0, 30);
+            finalQuery = query(
+              collectionGroup(firestore, 'comments'),
+              where('figureId', 'in', idsForQuery),
+              where('parentId', '==', null), // Ensure we only get root comments
+              orderBy('createdAt', 'desc'),
+              limit(10)
+            );
+          }
+        }
+
+        // 3. If no user or no votes, create a generic fallback query.
+        if (!finalQuery) {
+          finalQuery = query(
+            collectionGroup(firestore, 'comments'),
+            where('parentId', '==', null),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+          );
+        }
+
+        const commentsSnapshot = await getDocs(finalQuery);
+        const comments = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Comment);
+        setFeedComments(comments);
+      } catch (error) {
+        console.error("Error fetching feed comments:", error);
+        // In case of error, you might want to show an error message
+        // For now, we'll just show an empty feed.
+        setFeedComments([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeed();
+  }, [firestore, user]);
+
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
       <FeaturedFigures />
       <h2 className="text-xl font-bold tracking-tight font-headline mb-4">Mira lo que dicen en vivo sobre tus personajes favoritos</h2>
-      <div className="space-y-4">
-        {mockStarPosts.map(post => (
-            <StarPostCard key={post.id} post={post} />
-        ))}
-      </div>
+      
+      {isLoading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-48 w-full rounded-lg" />
+          <Skeleton className="h-48 w-full rounded-lg" />
+          <Skeleton className="h-48 w-full rounded-lg" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {feedComments.map(post => (
+              <StarPostCard key={post.id} post={post} />
+          ))}
+          {feedComments.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground">
+              <p>Aún no hay actividad para mostrar.</p>
+              <p className="text-sm">¡Vota por tus figuras favoritas para personalizar tu feed!</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
