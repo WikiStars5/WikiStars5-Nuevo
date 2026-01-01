@@ -95,6 +95,7 @@ export default function HomePage() {
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
       <FeaturedFigures />
+      <h2 className="text-2xl font-bold tracking-tight font-headline mb-4">Mira lo que la gente piensa</h2>
       <div className="space-y-4">
         {mockStarPosts.map(post => (
             <StarPostCard key={post.id} post={post} />
