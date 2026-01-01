@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,7 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Star, Trash2, Loader2 } from 'lucide-react';
 import type { Figure, FeaturedFigure } from '@/lib/types';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import FigureCard from '../shared/figure-card';
 import { useFirestore, useCollection, useMemoFirebase, useAdmin } from '@/firebase';
 import { collection, query, orderBy, doc, deleteDoc, writeBatch, getDocs, addDoc } from 'firebase/firestore';
