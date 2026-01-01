@@ -1,2 +1,199 @@
+rules_version = '2';
 
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    function isIncrement(field, count) {
+      return (resource.data[field] == null && request.resource.data[field] == count) || 
+             (request.resource.data[field] == resource.data[field] + count);
+    }
+
+    function getGlobalSettings() {
+      return get(/databases/$(database)/documents/settings/global).data;
+    }
+
+    function areCommentsEnabled() {
+      return getGlobalSettings().isCommentingEnabled == true;
+    }
+
+    function areRepliesEnabled() {
+      return getGlobalSettings().isReplyEnabled == true;
+    }
+
+    function areRatingsEnabled() {
+      return getGlobalSettings().isRatingEnabled == true;
+    }
+
+    function isVoteIncrement(voteType, voteField) {
+        let nextVoteMap = request.resource.data[voteType];
+        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {}; 
+        let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
+        return request.resource.data[voteType][voteField] == prevCount + 1 &&
+               request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+    }
     
+    function isVoteDecrement(voteType, voteField) {
+        let nextVoteMap = request.resource.data[voteType];
+        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+        let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
+        return request.resource.data[voteType][voteField] == prevCount - 1 &&
+               request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+    }
+
+    function isChangingVote(voteType, oldVoteField, newVoteField) {
+        let nextVoteMap = request.resource.data[voteType];
+        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+        let prevOldCount = prevVoteMap[oldVoteField] != null ? prevVoteMap[oldVoteField] : 0;
+        let prevNewCount = prevVoteMap[newVoteField] != null ? prevVoteMap[newVoteField] : 0;
+        return request.resource.data[voteType][oldVoteField] == prevOldCount - 1 &&
+               request.resource.data[voteType][newVoteField] == prevNewCount + 1 &&
+               request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
+    }
+
+    match /users/{userId} {
+      allow get: if (isSignedIn() && isOwner(userId)) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+
+      match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
+      match /user_achievements/{achievementId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
+      match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /adCampaigns/{campaignId} { allow read, write: if isOwner(userId) || isAdmin(); }
+    }
+
+    match /usernames/{username} {
+      allow get: if true; 
+      allow list: if false;
+      allow create: if isSignedIn(); 
+      allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /featured_figures/{featuredFigureId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /figures/{figureId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow delete: if isAdmin();
+      
+      allow update: if isAdmin();
+      
+      match /attitudeVotes/{userId} { allow get, write: if isOwner(userId); allow list: if isAdmin(); }
+      match /emotionVotes/{userId} { allow get, write: if isOwner(userId); allow list: if isAdmin(); }
+
+      match /attitudeStats/{statId} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+      match /emotionStats/{statId} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+      match /ratingStats/{rating} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+      match /streakStats/{day} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+      
+      match /comments/{commentId} {
+        allow get, list: if true;
+        
+        allow create: if (isAdmin()) || (
+          isSignedIn() && request.resource.data.userId == request.auth.uid && (
+            (areCommentsEnabled() && request.resource.data.text is string && request.resource.data.text.size() > 0) ||
+            (areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5)
+          )
+        );
+        
+        allow update: if isSignedIn() && (
+            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt', 'title', 'tag'])) || 
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
+            (isIncrement('replyCount', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount']))
+        );
+        
+        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+
+        match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
+
+        match /replies/{replyId} {
+          allow get, list: if true;
+          
+          allow create: if (isAdmin()) || (
+            isSignedIn() && 
+            areRepliesEnabled() && 
+            request.resource.data.userId == request.auth.uid && 
+            request.resource.data.text is string && 
+            request.resource.data.text.size() > 0
+          );
+          
+          allow update: if isSignedIn() && (
+            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes'])) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
+            (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']))
+          );
+          
+          allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
+          
+          match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
+        }
+      }
+
+      match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
+    }
+    
+    match /{path=**}/comments/{commentId} {
+      allow read;
+      allow write: if false;
+    }
+    
+    match /achievements/{achievementId} { allow get, list: if true; allow write: if isAdmin(); }
+    
+    match /related_figures/{relatedFigureId} { 
+      allow get, list: if true; 
+      allow create, delete: if isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      allow update: if false; 
+    }
+
+    match /goat_battles/{battleId} {
+        allow get, list: if true;
+        allow create, delete: if isAdmin();
+        
+        allow update: if (
+            isAdmin() || (
+                isSignedIn() && (
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && (isIncrement('messiVotes', 1) || isIncrement('messiVotes', -1))) ||
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) && (isIncrement('ronaldoVotes', 1) || isIncrement('ronaldoVotes', -1))) ||
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']) && ((isIncrement('messiVotes', 1) && isIncrement('ronaldoVotes', -1)) || (isIncrement('messiVotes', -1) && isIncrement('ronaldoVotes', 1))))
+                )
+            )
+        );
+        match /votes/{userId} { 
+          allow get: if isOwner(userId) || isAdmin(); 
+          allow write: if isOwner(userId); 
+          allow list: if isAdmin(); 
+        }
+    }
+    
+    match /roles_admin/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow write: if isAdmin();
+      allow list: if false;
+    }
+    
+    match /settings/{settingId} { allow read: if true; allow write: if isAdmin(); }
+  }
+}

@@ -122,6 +122,14 @@ export interface Figure {
   __totalRating_delta?: number;
 }
 
+export interface FeaturedFigure {
+    id: string;
+    figureId: string;
+    figureName: string;
+    figureImageUrl: string;
+    order: number;
+}
+
 export interface RelatedFigure {
   id: string;
   sourceFigureId: string;
