@@ -287,7 +287,13 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                     </div>
                 </div>
 
-                <div className="flex justify-between items-start gap-2 mt-2">
+                {tag && !isEditing && (
+                    <div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border mb-2", tag.color)}>
+                        {tag.emoji} {tag.label}
+                    </div>
+                )}
+                
+                <div className="flex justify-between items-start gap-2">
                     {!isReply && comment.title && !isEditing && (
                         <h4 className="font-bold text-lg">{comment.title}</h4>
                     )}
@@ -295,12 +301,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                       <StarRating rating={comment.rating} starClassName="h-4 w-4" />
                     )}
                 </div>
-
-                {tag && !isEditing && (
-                    <div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border my-2", tag.color)}>
-                        {tag.emoji} {tag.label}
-                    </div>
-                )}
 
 
                 {isEditing ? (
