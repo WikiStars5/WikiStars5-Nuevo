@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -281,18 +282,19 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                     </div>
                 </div>
 
-                <div className="flex justify-between items-start gap-2 mt-2">
-                    <div className="flex items-center gap-2">
-                         {tag && !isEditing && (
+                {((tag && !isEditing) || (!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && !isEditing)) && (
+                    <div className="flex w-full justify-between items-center gap-2 mt-1">
+                        {tag && !isEditing ? (
                             <div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border", tag.color)}>
                                 {tag.emoji} {tag.label}
                             </div>
-                        )}
+                        ) : <div />}
                         {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && !isEditing && (
                             <StarRating rating={comment.rating} starClassName="h-4 w-4" />
                         )}
                     </div>
-                </div>
+                )}
+                
 
                 {!isReply && comment.title && !isEditing && (
                     <h4 className="font-bold text-lg mt-1">{comment.title}</h4>
