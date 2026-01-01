@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
@@ -260,24 +259,22 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
             </Avatar>
             <div className="flex-1">
                 <div className="flex items-start justify-between">
-                    <div className="flex flex-col items-start">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-sm">{comment.userDisplayName}</span>
-                            {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                            {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
-                            {country && (
-                                <Image
-                                    src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                                    alt={country.name}
-                                    width={20}
-                                    height={15}
-                                    className="object-contain"
-                                    title={country.name}
-                                />
-                            )}
-                        </div>
-                         {attitudeStyle && !isReply && (
+                     <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm">{comment.userDisplayName}</span>
+                        {attitudeStyle && !isReply && (
                             <p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>
+                        )}
+                        {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
+                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                        {country && (
+                            <Image
+                                src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                                alt={country.name}
+                                width={20}
+                                height={15}
+                                className="object-contain"
+                                title={country.name}
+                            />
                         )}
                     </div>
 
@@ -293,7 +290,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                     </div>
                 )}
                 
-                <div className="flex justify-between items-start gap-2">
+                <div className="flex justify-between items-start gap-2 mt-2">
                     {!isReply && comment.title && !isEditing && (
                         <h4 className="font-bold text-lg">{comment.title}</h4>
                     )}
