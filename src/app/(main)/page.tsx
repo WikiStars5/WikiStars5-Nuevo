@@ -5,6 +5,7 @@ import StarPostCard from '@/components/shared/starpost-card';
 import { Timestamp } from 'firebase/firestore';
 import FigureCard from '@/components/shared/figure-card';
 import { Star } from 'lucide-react';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 // Mock data for featured figures
 const mockFeaturedFigures: Figure[] = [
@@ -105,11 +106,23 @@ export default function HomePage() {
             Figuras Destacadas
           </h2>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          {mockFeaturedFigures.map((figure) => (
-            <FigureCard key={figure.id} figure={figure} />
-          ))}
-        </div>
+        <Carousel
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent>
+            {mockFeaturedFigures.map((figure) => (
+              <CarouselItem key={figure.id} className="basis-1/2 md:basis-1/3">
+                <FigureCard figure={figure} />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="hidden sm:flex" />
+          <CarouselNext className="hidden sm:flex" />
+        </Carousel>
       </section>
       <div className="space-y-4">
         {mockStarPosts.map(post => (
