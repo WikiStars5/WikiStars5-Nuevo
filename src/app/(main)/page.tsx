@@ -7,8 +7,6 @@ import type { Comment } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export const dynamic = 'force-dynamic';
-
 export default function HomePage() {
   const firestore = useFirestore();
 

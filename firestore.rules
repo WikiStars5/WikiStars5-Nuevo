@@ -171,8 +171,8 @@ service cloud.firestore {
     }
     
     match /{path=**}/comments/{commentId} {
+      allow list: if true;
       allow get: if true;
-      allow list: if isSignedIn();
     }
     
     match /achievements/{achievementId} { allow get, list: if true; allow write: if isAdmin(); }
