@@ -1,9 +1,10 @@
+
 'use client';
 
 import * as React from 'react';
 import type { Comment } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, collectionGroup } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import FeaturedFigures from '@/components/shared/featured-figures';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,24 +19,23 @@ export default function HomePage() {
     const fetchFeed = async () => {
       if (!firestore) return;
       setIsLoading(true);
+      let finalComments: Comment[] = [];
 
       try {
-        let finalComments: Comment[] = [];
-
         if (user) {
           // 1. Get the figure IDs the user has voted on
-          const votesQuery = query(collection(firestore, `users/${user.uid}/attitudeVotes`));
-          const votesSnapshot = await getDocs(votesQuery);
-          const votedFigureIds = votesSnapshot.docs.map(doc => doc.data().figureId);
+          const attitudeVotesQuery = query(collection(firestore, `users/${user.uid}/attitudeVotes`));
+          const attitudeVotesSnapshot = await getDocs(attitudeVotesQuery);
+          const votedFigureIds = attitudeVotesSnapshot.docs.map(doc => doc.data().figureId);
 
           if (votedFigureIds.length > 0) {
-            // 2. Fetch the latest comment for each voted figure
+            // 2. Fetch the latest 5 comments for each of the user's voted figures
             const commentPromises = votedFigureIds.map(figureId => {
               const commentsQuery = query(
                 collection(firestore, 'figures', figureId, 'comments'),
                 where('parentId', '==', null),
                 orderBy('createdAt', 'desc'),
-                limit(5) // Fetch a few from each to get variety
+                limit(5)
               );
               return getDocs(commentsQuery);
             });
@@ -50,10 +50,10 @@ export default function HomePage() {
           }
         }
         
-        // 3. Fallback to generic feed if personalized one is empty
+        // 3. If the personalized feed is empty, fallback to the generic feed of latest starposts
         if (finalComments.length === 0) {
             const genericQuery = query(
-              collection(firestore, 'starposts'), // Querying the dedicated feed collection
+              collection(firestore, 'starposts'), // Correctly query the top-level 'starposts' collection
               orderBy('createdAt', 'desc'),
               limit(10)
             );
@@ -64,7 +64,11 @@ export default function HomePage() {
         }
         
         // 4. Sort all collected comments by date and take the top 15
-        finalComments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        finalComments.sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+            return dateB - dateA;
+        });
         setFeedComments(finalComments.slice(0, 15));
 
       } catch (error) {
