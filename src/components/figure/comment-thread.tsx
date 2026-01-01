@@ -282,7 +282,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                     </div>
 
                     <div className="flex-shrink-0 text-xs text-muted-foreground text-right">
-                        {formatDateDistance(comment.createdAt.toDate(), language)}
+                        {comment.createdAt?.toDate ? formatDateDistance(comment.createdAt.toDate(), language) : ''}
                         {wasEdited && <span className="italic ml-1">{t('CommentThread.edited')}</span>}
                     </div>
                 </div>
