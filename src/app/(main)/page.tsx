@@ -1,8 +1,37 @@
 'use client';
 
-import type { Comment } from '@/lib/types';
+import type { Comment, Figure } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import { Timestamp } from 'firebase/firestore';
+import FigureCard from '@/components/shared/figure-card';
+import { Star } from 'lucide-react';
+
+// Mock data for featured figures
+const mockFeaturedFigures: Figure[] = [
+  {
+    id: 'cristiano-ronaldo',
+    name: 'Cristiano Ronaldo',
+    imageUrl: 'https://images.unsplash.com/photo-1594270183369-8e43815a5286?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    imageHint: 'Cristiano Ronaldo football',
+    nationality: 'Portugal',
+    ratingCount: 1200,
+    totalRating: 5400,
+    nameKeywords: [],
+    approved: true,
+  },
+  {
+    id: 'gerald-oropeza',
+    name: 'Gerald Oropeza',
+    imageUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    imageHint: 'man portrait',
+    nationality: 'Perú',
+    ratingCount: 350,
+    totalRating: 875,
+    nameKeywords: [],
+    approved: true,
+  }
+];
+
 
 // Mock data to simulate Firestore response
 const mockStarPosts: Comment[] = [
@@ -69,6 +98,19 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
+      <section className="mb-12">
+        <div className="flex items-center gap-2 mb-4">
+          <Star className="h-6 w-6 text-yellow-400" fill="currentColor" />
+          <h2 className="text-2xl font-bold tracking-tight font-headline">
+            Figuras Destacadas
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {mockFeaturedFigures.map((figure) => (
+            <FigureCard key={figure.id} figure={figure} />
+          ))}
+        </div>
+      </section>
       <div className="space-y-4">
         {mockStarPosts.map(post => (
             <StarPostCard key={post.id} post={post} />
