@@ -282,22 +282,20 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                     </div>
                 </div>
 
-                {((tag && !isEditing) || (!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && !isEditing)) && (
-                    <div className="flex w-full justify-between items-center gap-2 mt-1">
-                        {tag && !isEditing ? (
-                            <div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border", tag.color)}>
-                                {tag.emoji} {tag.label}
-                            </div>
-                        ) : <div />}
-                        {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && !isEditing && (
-                            <StarRating rating={comment.rating} starClassName="h-4 w-4" />
-                        )}
-                    </div>
-                )}
+                <div className="flex w-full justify-between items-center gap-2 mt-2">
+                    {tag && !isEditing ? (
+                        <div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border", tag.color)}>
+                            {tag.emoji} {tag.label}
+                        </div>
+                    ) : <div />}
+                    {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && !isEditing && (
+                        <StarRating rating={comment.rating} starClassName="h-4 w-4" />
+                    )}
+                </div>
                 
 
                 {!isReply && comment.title && !isEditing && (
-                    <h4 className="font-bold text-lg mt-1">{comment.title}</h4>
+                    <h4 className="font-bold text-lg mt-1 uppercase">{comment.title}</h4>
                 )}
                 
 
@@ -308,7 +306,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                                 value={editTitle}
                                 onChange={(e) => setEditTitle(e.target.value)}
                                 placeholder="Título (opcional)"
-                                className="font-bold text-lg"
+                                className="font-bold text-lg uppercase"
                             />
                         )}
                         <Textarea 
@@ -555,3 +553,4 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
+
