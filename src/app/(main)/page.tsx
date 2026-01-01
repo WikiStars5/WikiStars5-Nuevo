@@ -3,7 +3,7 @@
 import * as React from 'react';
 import type { Comment } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
-import { collection, query, where, orderBy, limit, getDocs, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import FeaturedFigures from '@/components/shared/featured-figures';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,48 +17,58 @@ export default function HomePage() {
   React.useEffect(() => {
     const fetchFeed = async () => {
       if (!firestore) return;
-
       setIsLoading(true);
-      let comments: Comment[] = [];
 
       try {
-        // Step 1: Attempt to fetch a personalized feed if the user is logged in
+        let finalComments: Comment[] = [];
+
         if (user) {
+          // 1. Get the figure IDs the user has voted on
           const votesQuery = query(collection(firestore, `users/${user.uid}/attitudeVotes`));
           const votesSnapshot = await getDocs(votesQuery);
           const votedFigureIds = votesSnapshot.docs.map(doc => doc.data().figureId);
 
-          // Ensure we have IDs and they are less than the 30-item limit for 'in' queries
           if (votedFigureIds.length > 0) {
-            const idsForQuery = votedFigureIds.slice(0, 30);
-            const personalizedQuery = query(
-              collectionGroup(firestore, 'comments'),
-              where('figureId', 'in', idsForQuery),
-              where('parentId', '==', null),
+            // 2. Fetch the latest comment for each voted figure
+            const commentPromises = votedFigureIds.map(figureId => {
+              const commentsQuery = query(
+                collection(firestore, 'figures', figureId, 'comments'),
+                where('parentId', '==', null),
+                orderBy('createdAt', 'desc'),
+                limit(5) // Fetch a few from each to get variety
+              );
+              return getDocs(commentsQuery);
+            });
+
+            const commentSnapshots = await Promise.all(commentPromises);
+            
+            commentSnapshots.forEach(snapshot => {
+              snapshot.forEach(doc => {
+                finalComments.push({ id: doc.id, ...doc.data() } as Comment);
+              });
+            });
+          }
+        }
+        
+        // 3. Fallback to generic feed if personalized one is empty
+        if (finalComments.length === 0) {
+            const genericQuery = query(
+              collection(firestore, 'starposts'), // Querying the dedicated feed collection
               orderBy('createdAt', 'desc'),
               limit(10)
             );
-            const commentsSnapshot = await getDocs(personalizedQuery);
-            comments = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Comment);
-          }
+            const genericSnapshot = await getDocs(genericQuery);
+            genericSnapshot.forEach(doc => {
+                 finalComments.push({ id: doc.id, ...doc.data() } as Comment);
+            });
         }
+        
+        // 4. Sort all collected comments by date and take the top 15
+        finalComments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        setFeedComments(finalComments.slice(0, 15));
 
-        // Step 2: If the personalized feed is empty (or user is not logged in), fetch the generic feed
-        if (comments.length === 0) {
-          const genericQuery = query(
-            collectionGroup(firestore, 'comments'),
-            where('parentId', '==', null),
-            orderBy('createdAt', 'desc'),
-            limit(10)
-          );
-          const commentsSnapshot = await getDocs(genericQuery);
-          comments = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Comment);
-        }
-
-        setFeedComments(comments);
       } catch (error) {
         console.error("Error fetching feed comments:", error);
-        // Fallback to empty feed in case of any error
         setFeedComments([]);
       } finally {
         setIsLoading(false);
