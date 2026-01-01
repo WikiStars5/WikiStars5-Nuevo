@@ -5,7 +5,7 @@ import { useState, useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, setDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, setDoc, writeBatch } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useCollection, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -137,23 +137,29 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
 
     try {
         const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
+        const starpostsColRef = collection(firestore, 'starposts');
         const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
+        
         if (!existingCommentSnap.empty) {
             toast({ title: 'Error', description: t('CommentForm.toast.alreadyCommented'), variant: 'destructive' });
             setIsSubmitting(false);
             return;
         }
 
+        const batch = writeBatch(firestore);
         const userRef = doc(firestore, 'users', currentUser.uid);
         const attitudeVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
-
-        let [userProfileSnap, attitudeVoteSnap] = await Promise.all([
+        const figureRef = doc(firestore, 'figures', figureId);
+        
+        const [userProfileSnap, attitudeVoteSnap, figureSnap] = await Promise.all([
           getDoc(userRef),
-          getDoc(attitudeVoteRef)
+          getDoc(attitudeVoteRef),
+          getDoc(figureRef)
         ]);
 
         let finalDisplayName = userProfileSnap.exists() ? userProfileSnap.data().username : currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
         let userProfileData: Partial<AppUser> = userProfileSnap.exists() ? userProfileSnap.data() : {};
+        const figureData = figureSnap.data() as Figure | undefined;
         
         if (needsIdentity && data.username) {
             const newUsername = data.username;
@@ -166,7 +172,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                 setIsSubmitting(false);
                 return;
             }
-            await setDoc(newUsernameRef, { userId: currentUser.uid });
+            batch.set(newUsernameRef, { userId: currentUser.uid });
             finalDisplayName = newUsername;
             userProfileData = {
                 ...userProfileData,
@@ -174,7 +180,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                 usernameLower: newUsernameLower,
                 createdAt: serverTimestamp(),
             };
-            await setDoc(userRef, userProfileData, { merge: true });
+            batch.set(userRef, userProfileData, { merge: true });
         }
         
         const country = userProfileData.country || null;
@@ -182,45 +188,55 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         const attitude = attitudeVoteSnap.exists() ? (attitudeVoteSnap.data() as AttitudeVote).vote : null;
         const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
 
-        // --- Figure Document Updates ---
         if (newRating >= 0) {
-            const figureRef = doc(firestore, 'figures', figureId);
             const figureUpdates = {
                 ratingCount: increment(1),
                 totalRating: increment(newRating),
                 [`ratingsBreakdown.${newRating}`]: increment(1),
             };
-            updateDocumentNonBlocking(figureRef, figureUpdates);
+            batch.update(figureRef, figureUpdates);
             
             if(country){
               const ratingStatRef = doc(firestore, `figures/${figureId}/ratingStats`, String(newRating));
-              const ratingStatUpdates = {
+              batch.set(ratingStatRef, {
                   [country]: {
                       total: increment(1),
                       [gender || 'unknown']: increment(1)
                   }
-              };
-              setDocumentNonBlocking(ratingStatRef, ratingStatUpdates, { merge: true });
+              }, { merge: true });
             }
         }
       
-        // --- Create Comment Document ---
         const newCommentRef = doc(commentsColRef);
-        const newCommentPayload = {
-            threadId: newCommentRef.id, figureId: figureId, userId: currentUser.uid,
+        const newStarpostRef = doc(starpostsColRef, newCommentRef.id);
+
+        const sharedPayload = {
+            userId: currentUser.uid,
+            figureId: figureId,
+            figureName: figureName,
+            figureImageUrl: figureData?.imageUrl || null,
             title: data.title || '',
             text: data.text || '', 
             tag: data.tag || null,
             rating: newRating,
-            createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-            userDisplayName: finalDisplayName, userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
-            userCountry: country, userGender: gender, userAttitude: attitude,
-            likes: 0, dislikes: 0, parentId: null, replyCount: 0,
+            createdAt: serverTimestamp(), 
+            updatedAt: serverTimestamp(),
+            userDisplayName: finalDisplayName, 
+            userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
+            userCountry: country, 
+            userGender: gender, 
+            userAttitude: attitude,
+            likes: 0, 
+            dislikes: 0, 
+            parentId: null, 
+            replyCount: 0,
         };
-        setDocumentNonBlocking(newCommentRef, newCommentPayload);
 
-        // --- Post-Operation Actions ---
-        // Only update streak if a comment text was provided
+        batch.set(newCommentRef, { ...sharedPayload, threadId: newCommentRef.id });
+        batch.set(newStarpostRef, sharedPayload);
+
+        await batch.commit();
+
         if (data.text && data.text.trim().length > 0 && newRating >= 0) {
             const streakResult = await updateStreak({
                 firestore, figureId, figureName,

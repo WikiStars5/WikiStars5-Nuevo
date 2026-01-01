@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -86,11 +87,6 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    match /featured_figures/{featuredFigureId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     match /figures/{figureId} {
       allow read: if true;
       allow create: if isSignedIn();
@@ -153,6 +149,11 @@ service cloud.firestore {
       }
 
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
+    }
+    
+    match /starposts/{commentId} {
+      allow read: if true;
+      allow write: if isSignedIn(); // Allow authenticated users to create starposts via comment form
     }
     
     match /{path=**}/comments/{commentId} {

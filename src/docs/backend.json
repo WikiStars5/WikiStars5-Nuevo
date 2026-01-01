@@ -269,38 +269,6 @@
         "nameKeywords"
       ]
     },
-    "FeaturedFigure": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FeaturedFigure",
-      "type": "object",
-      "description": "Represents a figure that is featured on the homepage.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the featured figure entry."
-        },
-        "figureId": {
-          "type": "string",
-          "description": "Reference to the PublicFigure being featured."
-        },
-        "figureName": {
-          "type": "string",
-          "description": "Denormalized name of the figure for display."
-        },
-        "figureImageUrl": {
-          "type": "string",
-          "description": "Denormalized image URL of the figure for display."
-        },
-        "order": {
-          "type": "number",
-          "description": "The display order for the featured figure."
-        }
-      },
-      "required": [
-        "figureId",
-        "order"
-      ]
-    },
     "Comment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Comment",
@@ -367,6 +335,33 @@
         "text",
         "depth"
       ]
+    },
+    "StarPost": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StarPost",
+      "type": "object",
+      "description": "A denormalized copy of a root comment for the main feed.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "figureId": { "type": "string" },
+        "figureName": { "type": "string" },
+        "figureImageUrl": { "type": "string", "format": "uri" },
+        "title": { "type": "string" },
+        "text": { "type": "string" },
+        "tag": { "type": "string" },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "userDisplayName": { "type": "string" },
+        "userPhotoURL": { "type": "string", "format": "uri" },
+        "userCountry": { "type": "string" },
+        "userGender": { "type": "string" },
+        "userAttitude": { "type": "string" },
+        "likes": { "type": "number" },
+        "dislikes": { "type": "number" },
+        "replyCount": { "type": "number" }
+      },
+      "required": ["id", "userId", "figureId", "createdAt", "userDisplayName"]
     },
     "CommentVote": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -709,17 +704,6 @@
         }
       },
       {
-        "path": "/featured_figures/{featuredFigureId}",
-        "definition": {
-          "entityName": "FeaturedFigure",
-          "schema": { "$ref": "#/backend/entities/FeaturedFigure" },
-          "description": "Stores a curated list of figures to feature on the homepage, managed by admins.",
-          "params": [
-            { "name": "featuredFigureId", "description": "Unique ID for the featured figure entry." }
-          ]
-        }
-      },
-      {
         "path": "/figures/{figureId}",
         "definition": {
           "entityName": "PublicFigure",
@@ -772,6 +756,17 @@
               "name": "commentId",
               "description": "The unique identifier of the comment."
             }
+          ]
+        }
+      },
+      {
+        "path": "/starposts/{commentId}",
+        "definition": {
+          "entityName": "StarPost",
+          "schema": { "$ref": "#/backend/entities/StarPost" },
+          "description": "A collection of denormalized root comments from all figures for building the main feed.",
+          "params": [
+            { "name": "commentId", "description": "The unique ID of the original comment." }
           ]
         }
       },
@@ -955,5 +950,6 @@
     "reasoning": "The Firestore structure is designed to support the WikiStars5 application, focusing on user profiles, public figures, comments, notifications, streaks, and achievements. Key considerations include authorization independence, clarity of intent, and secure list operations. The structure utilizes path-based ownership for user-specific data and denormalization for collaborative data, ensuring that security rules can be written without complex `get()` calls.\n\n*   **Users:** User data is stored under `/users/{userId}`, providing secure and straightforward access to individual user profiles. This path-based ownership simplifies security rules. The `role` property within each user document determines administrative privileges.\n*   **Usernames:** A top-level `/usernames` collection is used to enforce unique usernames. Each document's ID is the normalized (lowercase) username, and it contains the `userId` of the owner. This allows for fast, efficient checks for username availability using a `get()` operation instead of a costly query. \n*   **Public Figures:** Public figure profiles are stored in the `/figures/{figureId}` collection.  Featuring status is stored directly in the `PublicFigure` document.\n*   **Comments:** Comments are stored in a subcollection under each `PublicFigure` at `/figures/{figureId}/comments/{commentId}`.  This structure facilitates efficient querying of comments for a specific public figure.  Denormalizing the `figureId` into the comment document itself (even though it is implicit in the path) ensures authorization independence.\n*   **Notifications:** Notifications are stored under `/users/{userId}/notifications/{notificationId}`.  This path-based approach ensures that only the user can access their notifications. No denormalization is required here.\n*   **Streaks:** Streaks, representing a user's commenting activity on a public figure, are stored under `/users/{userId}/streaks/{streakId}`. This adheres to path-based ownership. The `publicFigureId` is stored within each `Streak` document.\n*   **Related Figures:** Relationships between public figures are stored in the `/related_figures/{relatedFigureId}` collection. Each document includes `sourceFigureId` and `targetFigureId` to define the relationship.\n*   **Admin Roles:**  Admin status is checked by verifying the existence of a document in the `/roles_admin/{userId}` collection. This existence-based check is efficient and secure.\n*   **GOAT Battle:** A global `/goat_battles/{battleId}` collection stores the main battle document (e.g., `messi-vs-ronaldo`) containing aggregated vote counts. A subcollection, `votes/{userId}`, is used to track individual user votes, ensuring data integrity and preventing duplicate votes efficiently.\n\nThis structure supports the required QAPs by:\n\n*   **Authorization Independence:** Denormalizing authorization-relevant data into subcollections eliminates the need for `get()` calls in security rules.\n*   **Secure List Operations:** Segregating data based on access requirements (e.g., user-specific data under `/users/{userId}`) ensures that list operations can be secured effectively. Public figures are in a separate collection, allowing open read access while restricting write access to admins only."
   }
 }
+
 
 
