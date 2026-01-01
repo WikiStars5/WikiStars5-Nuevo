@@ -81,7 +81,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
 
     const country = comment.userCountry ? countries.find(c => c.key === comment.userCountry) : null;
     const tag = comment.tag ? commentTags.find(t => t.id === comment.tag) : null;
-    const attitudeStyle = comment.userAttitude ? attitudeStyles[comment.userAttitude] : null;
+    const attitudeStyle = comment.userAttitude ? attitudeStyles[comment.userAttitude as AttitudeOption] : null;
 
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
@@ -260,8 +260,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
             <div className="flex-1">
                 <div className="flex items-start justify-between">
                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm">{comment.userDisplayName}</span>
-                        {attitudeStyle && !isReply && (
+                        <Link href={`/u/${comment.userDisplayName}`} className="font-semibold text-sm hover:underline">
+                            {comment.userDisplayName}
+                        </Link>
+                         {attitudeStyle && !isReply && (
                             <p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>
                         )}
                         {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
@@ -277,28 +279,25 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                             />
                         )}
                     </div>
+                </div>
 
-                    <div className="flex-shrink-0 text-xs text-muted-foreground text-right">
-                        {comment.createdAt?.toDate ? formatDateDistance(comment.createdAt.toDate(), language) : ''}
-                        {wasEdited && <span className="italic ml-1">{t('CommentThread.edited')}</span>}
+                <div className="flex justify-between items-start gap-2 mt-2">
+                    <div className="flex items-center gap-2">
+                         {tag && !isEditing && (
+                            <div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border", tag.color)}>
+                                {tag.emoji} {tag.label}
+                            </div>
+                        )}
+                        {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && !isEditing && (
+                            <StarRating rating={comment.rating} starClassName="h-4 w-4" />
+                        )}
                     </div>
                 </div>
 
-                {tag && !isEditing && (
-                    <div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border mb-2", tag.color)}>
-                        {tag.emoji} {tag.label}
-                    </div>
+                {!isReply && comment.title && !isEditing && (
+                    <h4 className="font-bold text-lg mt-1">{comment.title}</h4>
                 )}
                 
-                <div className="flex justify-between items-start gap-2 mt-2">
-                    {!isReply && comment.title && !isEditing && (
-                        <h4 className="font-bold text-lg">{comment.title}</h4>
-                    )}
-                     {!isReply && comment.rating !== -1 && typeof comment.rating === 'number' && !isEditing && (
-                      <StarRating rating={comment.rating} starClassName="h-4 w-4" />
-                    )}
-                </div>
-
 
                 {isEditing ? (
                     <div className="mt-2 space-y-2">
