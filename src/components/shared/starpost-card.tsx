@@ -127,9 +127,11 @@ export default function StarPostCard({ post }: StarPostCardProps) {
                         </Button>
                     </div>
                      <div className="flex">
-                        <Button variant="ghost" size="sm" className="h-8 px-2">
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Responder
+                        <Button variant="ghost" size="sm" className="h-8 px-2" asChild>
+                            <Link href={`/figures/${post.figureId}?thread=${post.threadId || post.id}#comment-${post.id}`}>
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Responder
+                            </Link>
                         </Button>
                     </div>
                 </div>
