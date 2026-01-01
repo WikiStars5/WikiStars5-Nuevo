@@ -1,19 +1,23 @@
 
 'use client';
 
-import type { Comment } from '@/lib/types';
+import { useState } from 'react';
+import type { Comment, CommentVote } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { StarRating } from '@/components/shared/star-rating';
-import { MessageSquare, ThumbsUp, ThumbsDown, FilePenLine, Trash2, Share2 } from 'lucide-react';
-import { formatDateDistance, cn } from '@/lib/utils';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { cn, formatDateDistance } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, runTransaction, increment, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import ReplyForm from '../figure/reply-form';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -29,9 +33,87 @@ interface StarPostCardProps {
   post: Comment;
 }
 
-export default function StarPostCard({ post }: StarPostCardProps) {
+export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
   const { language, t } = useLanguage();
   const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  
+  const [post, setPost] = useState(initialPost);
+  const [isReplying, setIsReplying] = useState(false);
+  const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
+
+  // Since starposts can come from any figure, we build the path dynamically
+  const votePath = `figures/${post.figureId}/comments/${post.id}/votes`;
+        
+  const userVoteRef = useMemoFirebase(() => {
+      if (!firestore || !user) return null;
+      return doc(firestore, votePath, user.uid);
+  }, [firestore, user, votePath]);
+
+  const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user });
+
+
+  const handleVote = async (voteType: 'like' | 'dislike') => {
+    if (!firestore || !user || isVoting) return;
+    setIsVoting(voteType);
+
+    const commentRef = doc(firestore, 'figures', post.figureId, 'comments', post.id);
+    const voteRef = doc(firestore, votePath, user.uid);
+
+    // Optimistic Update
+    setPost(currentPost => {
+        const newPost = { ...currentPost };
+        const existingVote = userVote?.vote;
+
+        if (existingVote === voteType) { // Retracting vote
+            newPost[`${voteType}s`] = (newPost[`${voteType}s`] ?? 1) - 1;
+        } else if (existingVote) { // Changing vote
+            const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
+            newPost[`${voteType}s`] = (newPost[`${voteType}s`] ?? 0) + 1;
+            newPost[`${otherVoteType}s`] = (newPost[`${otherVoteType}s`] ?? 1) - 1;
+        } else { // First vote
+            newPost[`${voteType}s`] = (newPost[`${voteType}s`] ?? 0) + 1;
+        }
+        return newPost;
+    });
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const voteDoc = await transaction.get(voteRef);
+            const existingVote = voteDoc.exists() ? voteDoc.data().vote : null;
+            const updates: { [key: string]: any } = {};
+
+            if (existingVote === voteType) { // Retracting vote
+                updates[`${voteType}s`] = increment(-1);
+                transaction.delete(voteRef);
+                toast({ title: t("CommentThread.toast.voteRemoved") });
+            } else {
+                updates[`${voteType}s`] = increment(1);
+                if (existingVote) {
+                    const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
+                    updates[`${otherVoteType}s`] = increment(-1);
+                }
+                transaction.set(voteRef, { vote: voteType, createdAt: serverTimestamp() });
+                toast({ title: t("CommentThread.toast.voteRegistered") });
+            }
+            
+            transaction.update(commentRef, updates);
+        });
+        refetchVote();
+    } catch (error: any) {
+        console.error("Error al votar:", error);
+        setPost(initialPost); // Revert optimistic update on error
+        toast({
+            title: t("CommentThread.toast.voteErrorTitle"),
+            description: error.message || t("CommentThread.toast.voteErrorDescription"),
+            variant: "destructive",
+        });
+    } finally {
+        setIsVoting(null);
+    }
+  };
+
 
   if (!post.figureId || !post.figureName) {
       return null;
@@ -101,40 +183,45 @@ export default function StarPostCard({ post }: StarPostCardProps) {
                  
                 <div className="flex flex-col gap-2 pt-2">
                     <div className="flex items-center gap-1 text-muted-foreground">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ThumbsUp className="h-4 w-4" />
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={cn("h-8 w-8", userVote?.vote === 'like' && 'text-primary' )}
+                            onClick={() => handleVote('like')}
+                            disabled={!user || !!isVoting}
+                        >
+                            {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
                         </Button>
-                        <span className="text-xs font-semibold w-6 text-center">{post.likes ?? 0}</span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ThumbsDown className="h-4 w-4" />
+                        <span className="text-xs font-semibold w-6 text-center">{(post.likes ?? 0).toLocaleString()}</span>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={cn("h-8 w-8", userVote?.vote === 'dislike' && 'text-destructive' )}
+                            onClick={() => handleVote('dislike')}
+                            disabled={!user || !!isVoting}
+                        >
+                            {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
                         </Button>
-                        <span className="text-xs font-semibold w-6 text-center">{post.dislikes ?? 0}</span>
-                        
-                        <div className="flex-grow" />
-                        
-                        {isOwner && (
-                            <>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <FilePenLine className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Share2 className="h-4 w-4" />
-                        </Button>
+                        <span className="text-xs font-semibold w-6 text-center">{(post.dislikes ?? 0).toLocaleString()}</span>
                     </div>
                      <div className="flex">
-                        <Button variant="ghost" size="sm" className="h-8 px-2" asChild>
-                            <Link href={`/figures/${post.figureId}?thread=${post.threadId || post.id}#comment-${post.id}`}>
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                Responder
-                            </Link>
+                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Responder
                         </Button>
                     </div>
                 </div>
+                {isReplying && (
+                  <div className="pt-2">
+                    <ReplyForm
+                      figureId={post.figureId}
+                      figureName={post.figureName}
+                      parentComment={post}
+                      replyToComment={post}
+                      onReplySuccess={() => setIsReplying(false)}
+                    />
+                  </div>
+                )}
             </div>
         </div>
     </Card>
