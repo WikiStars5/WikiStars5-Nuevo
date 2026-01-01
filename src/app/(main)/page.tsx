@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import type { Comment, AttitudeVote } from '@/lib/types';
+import type { Comment } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import { collection, query, where, orderBy, limit, getDocs, collectionGroup } from 'firebase/firestore';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import FeaturedFigures from '@/components/shared/featured-figures';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -19,46 +19,46 @@ export default function HomePage() {
       if (!firestore) return;
 
       setIsLoading(true);
-      let finalQuery;
+      let comments: Comment[] = [];
 
       try {
+        // Step 1: Attempt to fetch a personalized feed if the user is logged in
         if (user) {
-          // 1. Fetch the user's attitude votes to find figures they care about.
           const votesQuery = query(collection(firestore, `users/${user.uid}/attitudeVotes`));
           const votesSnapshot = await getDocs(votesQuery);
           const votedFigureIds = votesSnapshot.docs.map(doc => doc.data().figureId);
 
+          // Ensure we have IDs and they are less than the 30-item limit for 'in' queries
           if (votedFigureIds.length > 0) {
-            // 2. Build a personalized query for comments from those figures.
-            // Firestore 'in' queries are limited to 30 items.
             const idsForQuery = votedFigureIds.slice(0, 30);
-            finalQuery = query(
+            const personalizedQuery = query(
               collectionGroup(firestore, 'comments'),
               where('figureId', 'in', idsForQuery),
-              where('parentId', '==', null), // Ensure we only get root comments
+              where('parentId', '==', null),
               orderBy('createdAt', 'desc'),
               limit(10)
             );
+            const commentsSnapshot = await getDocs(personalizedQuery);
+            comments = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Comment);
           }
         }
 
-        // 3. If no user or no votes, create a generic fallback query.
-        if (!finalQuery) {
-          finalQuery = query(
+        // Step 2: If the personalized feed is empty (or user is not logged in), fetch the generic feed
+        if (comments.length === 0) {
+          const genericQuery = query(
             collectionGroup(firestore, 'comments'),
             where('parentId', '==', null),
             orderBy('createdAt', 'desc'),
             limit(10)
           );
+          const commentsSnapshot = await getDocs(genericQuery);
+          comments = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Comment);
         }
 
-        const commentsSnapshot = await getDocs(finalQuery);
-        const comments = commentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Comment);
         setFeedComments(comments);
       } catch (error) {
         console.error("Error fetching feed comments:", error);
-        // In case of error, you might want to show an error message
-        // For now, we'll just show an empty feed.
+        // Fallback to empty feed in case of any error
         setFeedComments([]);
       } finally {
         setIsLoading(false);
