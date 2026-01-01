@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -77,7 +78,7 @@ export async function updateStreak({
             const userPhotoURL = userData.profilePhotoUrl || null;
             const figureImageUrl = figureDoc.data()?.imageUrl || null;
 
-            const attitudeVote = attitudeVoteDoc.exists() ? (attitudeVoteDoc.data() as AttitudeVote).vote : null;
+            const attitude = attitudeVoteDoc.exists() ? (attitudeVoteDoc.data() as AttitudeVote).vote : null;
 
             const now = new Date();
 
@@ -132,7 +133,7 @@ export async function updateStreak({
                 figureId,
                 currentStreak: finalStreakCount,
                 lastCommentDate: Timestamp.now(),
-                attitude: attitudeVote,
+                attitude: attitude,
                 userDisplayName: userDisplayName,
                 userPhotoURL: userPhotoURL,
                 userCountry: userCountry,

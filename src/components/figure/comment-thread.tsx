@@ -34,6 +34,15 @@ import { formatDateDistance } from '@/lib/utils';
 import { commentTags } from '@/lib/tags';
 import { Input } from '../ui/input';
 
+type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
+
+const attitudeStyles: Record<AttitudeOption, { text: string; color: string }> = {
+    fan: { text: 'Fan', color: 'text-yellow-400' },
+    hater: { text: 'Hater', color: 'text-red-500' },
+    simp: { text: 'Simp', color: 'text-pink-400' },
+    neutral: { text: 'Espectador', color: 'text-gray-500' },
+};
+
 
 interface CommentItemProps {
   comment: CommentType, 
@@ -73,6 +82,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
 
     const country = comment.userCountry ? countries.find(c => c.key === comment.userCountry) : null;
     const tag = comment.tag ? commentTags.find(t => t.id === comment.tag) : null;
+    const attitudeStyle = comment.userAttitude ? attitudeStyles[comment.userAttitude] : null;
 
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
@@ -249,29 +259,32 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm">{comment.userDisplayName}</span>
-                    {tag && (
-                        <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full border", tag.color)}>
-                            {tag.emoji} {tag.label}
-                        </span>
-                    )}
-                    {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                    {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                <div className="flex items-start justify-between">
+                    <div className="flex flex-col items-start">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm">{comment.userDisplayName}</span>
+                            {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
+                            {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                            {country && (
+                                <Image
+                                    src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                                    alt={country.name}
+                                    width={20}
+                                    height={15}
+                                    className="object-contain"
+                                    title={country.name}
+                                />
+                            )}
+                        </div>
+                         {attitudeStyle && !isReply && (
+                            <p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>
+                        )}
+                    </div>
 
-                    {country && (
-                        <Image
-                            src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                            alt={country.name}
-                            width={20}
-                            height={15}
-                            className="object-contain"
-                            title={country.name}
-                        />
-                    )}
-                    {wasEdited && (
-                         <p className="text-xs text-italic text-muted-foreground">{t('CommentThread.edited')}</p>
-                    )}
+                    <div className="flex-shrink-0 text-xs text-muted-foreground text-right">
+                        {formatDateDistance(comment.createdAt.toDate(), language)}
+                        {wasEdited && <span className="italic ml-1">{t('CommentThread.edited')}</span>}
+                    </div>
                 </div>
 
                 <div className="flex justify-between items-start gap-2 mt-2">
@@ -282,6 +295,12 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                       <StarRating rating={comment.rating} starClassName="h-4 w-4" />
                     )}
                 </div>
+
+                {tag && !isEditing && (
+                    <div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border my-2", tag.color)}>
+                        {tag.emoji} {tag.label}
+                    </div>
+                )}
 
 
                 {isEditing ? (

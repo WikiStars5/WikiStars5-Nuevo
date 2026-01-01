@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -15,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle, User as UserIcon, Tag } from 'lucide-react';
 import StarInput from './star-input';
-import { Comment, Streak, GlobalSettings, Figure, User as AppUser } from '@/lib/types';
+import { Comment, Streak, GlobalSettings, Figure, User as AppUser, AttitudeVote } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import Image from 'next/image';
@@ -144,7 +145,13 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         }
 
         const userRef = doc(firestore, 'users', currentUser.uid);
-        let userProfileSnap = await getDoc(userRef);
+        const attitudeVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
+
+        let [userProfileSnap, attitudeVoteSnap] = await Promise.all([
+          getDoc(userRef),
+          getDoc(attitudeVoteRef)
+        ]);
+
         let finalDisplayName = userProfileSnap.exists() ? userProfileSnap.data().username : currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
         let userProfileData: Partial<AppUser> = userProfileSnap.exists() ? userProfileSnap.data() : {};
         
@@ -172,6 +179,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         
         const country = userProfileData.country || null;
         const gender = userProfileData.gender || null;
+        const attitude = attitudeVoteSnap.exists() ? (attitudeVoteSnap.data() as AttitudeVote).vote : null;
         const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
 
         // --- Figure Document Updates ---
@@ -206,16 +214,17 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
             rating: newRating,
             createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
             userDisplayName: finalDisplayName, userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
-            userCountry: country, userGender: gender,
+            userCountry: country, userGender: gender, userAttitude: attitude,
             likes: 0, dislikes: 0, parentId: null, replyCount: 0,
         };
         setDocumentNonBlocking(newCommentRef, newCommentPayload);
 
         // --- Post-Operation Actions ---
         // Only update streak if a comment text was provided
-        if (data.text && data.text.trim().length > 0) {
+        if (data.text && data.text.trim().length > 0 && newRating >= 0) {
             const streakResult = await updateStreak({
-                firestore, figureId, figureName, userId: currentUser.uid,
+                firestore, figureId, figureName,
+                userId: currentUser.uid,
                 isAnonymous: currentUser.isAnonymous,
             });
 
@@ -393,15 +402,15 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
 
                 {isCommentingEnabled && (
                   <div className="space-y-2">
+                    <FormLabel>Escribe tu opinión (opcional)</FormLabel>
                     <FormField
                       control={form.control}
                       name="text"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('CommentForm.opinionLabel')}</FormLabel>
                           <FormControl>
                             <Textarea
-                              placeholder={`${t('CommentForm.opinionPlaceholder', {name: figureName})}...`}
+                              placeholder={`¿Qué opinas sobre ${figureName}?`}
                               className="resize-none"
                               rows={3}
                               maxLength={500}
