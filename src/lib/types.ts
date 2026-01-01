@@ -178,6 +178,7 @@ export interface Comment {
   userPhotoURL: string | null;
   userCountry?: string | null;
   userGender?: 'Masculino' | 'Femenino' | 'Otro' | 'Prefiero no decirlo' | null;
+  userAttitude?: 'neutral' | 'fan' | 'simp' | 'hater' | null;
 }
 
 export interface CommentVote {

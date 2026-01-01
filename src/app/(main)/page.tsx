@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Comment, Figure } from '@/lib/types';
@@ -49,6 +50,9 @@ const mockStarPosts: Comment[] = [
     createdAt: Timestamp.fromMillis(Date.now() - 3600000), // 1 hour ago
     replyCount: 12,
     parentId: null,
+    userCountry: 'argentina',
+    userGender: 'Masculino',
+    userAttitude: 'fan',
   },
   {
     id: '2',
@@ -63,6 +67,9 @@ const mockStarPosts: Comment[] = [
     createdAt: Timestamp.fromMillis(Date.now() - 7200000), // 2 hours ago
     replyCount: 8,
     parentId: null,
+    userCountry: 'portugal',
+    userGender: 'Masculino',
+    userAttitude: 'fan',
   },
   {
     id: '3',
@@ -77,6 +84,9 @@ const mockStarPosts: Comment[] = [
     createdAt: Timestamp.fromMillis(Date.now() - 10800000), // 3 hours ago
     replyCount: 5,
     parentId: null,
+    userCountry: 'peru',
+    userGender: 'Femenino',
+    userAttitude: 'hater',
   },
    {
     id: '4',
@@ -91,6 +101,9 @@ const mockStarPosts: Comment[] = [
     createdAt: Timestamp.fromMillis(Date.now() - 21600000), // 6 hours ago
     replyCount: 22,
     parentId: null,
+    userCountry: 'colombia',
+    userGender: 'Femenino',
+    userAttitude: 'simp',
   },
 ];
 
