@@ -359,7 +359,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                   />
                 )}
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-end gap-4">
                     <FormField
                         control={form.control}
                         name="title"
@@ -384,7 +384,6 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                         name="tag"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Etiqueta (Opcional)</FormLabel>
                                 <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
                                     <PopoverTrigger asChild>
                                         <FormControl>
