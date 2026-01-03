@@ -365,8 +365,9 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                         name="title"
                         render={({ field }) => (
                             <FormItem className="flex-1">
+                            <FormLabel>Título del Comentario (Opcional)</FormLabel>
                             <FormControl>
-                                <Input placeholder="Título de tu opinión (opcional)" {...field} maxLength={50} />
+                                <Input placeholder="Un titular llamativo..." {...field} maxLength={50} />
                             </FormControl>
                              <div className="flex justify-between items-center pt-1">
                                 <FormMessage />
@@ -383,6 +384,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                         name="tag"
                         render={({ field }) => (
                             <FormItem>
+                                <FormLabel>Etiqueta (Opcional)</FormLabel>
                                 <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
                                     <PopoverTrigger asChild>
                                         <FormControl>
