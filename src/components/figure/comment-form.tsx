@@ -287,12 +287,6 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
           <MessageCircle className="mx-auto h-8 w-8 text-muted-foreground" />
           <h3 className="font-semibold">{t('CommentForm.existingComment.title')}</h3>
           <p className="text-sm text-muted-foreground">{t('CommentForm.existingComment.description')}</p>
-           <Button asChild variant="outline">
-              <Link href={`#comment-${existingComment.id}`}>
-                <Edit className="mr-2 h-4 w-4" />
-                {t('CommentForm.existingComment.goToComment')}
-              </Link>
-           </Button>
         </CardContent>
       </Card>
     )
