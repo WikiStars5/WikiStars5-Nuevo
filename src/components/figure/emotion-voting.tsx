@@ -94,8 +94,8 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     try {
         await runTransaction(firestore, async (transaction) => {
             const figureRef = doc(firestore, 'figures', figure.id);
-            const userProfileRef = doc(firestore, 'users', currentUser.uid);
-            const privateVoteRef = doc(firestore, `users/${currentUser.uid}/emotionVotes`, figure.id);
+            const userProfileRef = doc(firestore, 'users', currentUser!.uid);
+            const privateVoteRef = doc(firestore, `users/${currentUser!.uid}/emotionVotes`, figure.id);
 
             const [figureDoc, userProfileDoc, privateVoteDoc] = await Promise.all([
                 transaction.get(figureRef),
@@ -117,20 +117,16 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             };
             if (isRetracting) {
                 updates[`emotion.${vote}`] = increment(-1);
+                transaction.delete(privateVoteRef);
             } else {
                 updates[`emotion.${vote}`] = increment(1);
                 if (isChanging) {
                     updates[`emotion.${previousVote}`] = increment(-1);
                 }
-            }
-            transaction.update(figureRef, updates);
-
-            if (isRetracting) {
-                transaction.delete(privateVoteRef);
-            } else {
+                
                 const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : {};
                 const voteData = {
-                    userId: currentUser.uid,
+                    userId: currentUser!.uid,
                     figureId: figure.id,
                     vote: vote,
                     createdAt: serverTimestamp(),
@@ -141,6 +137,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                 };
                 transaction.set(privateVoteRef, voteData);
             }
+            transaction.update(figureRef, updates);
         });
         
         toast({ title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });

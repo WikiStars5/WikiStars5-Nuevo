@@ -103,10 +103,9 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
     try {
         await runTransaction(firestore, async (transaction) => {
             const figureRef = doc(firestore, 'figures', figure.id);
-            const userProfileRef = doc(firestore, 'users', currentUser.uid);
-            const privateVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figure.id);
+            const userProfileRef = doc(firestore, 'users', currentUser!.uid);
+            const privateVoteRef = doc(firestore, `users/${currentUser!.uid}/attitudeVotes`, figure.id);
 
-            // Get all necessary documents first
             const [figureDoc, userProfileDoc, privateVoteDoc] = await Promise.all([
                 transaction.get(figureRef),
                 transaction.get(userProfileRef),
@@ -121,28 +120,23 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
             const isRetracting = previousVote === vote;
             const isChanging = previousVote && !isRetracting;
 
-            // Prepare public counter updates
             const updates: { [key: string]: any } = {
                 __oldVote: previousVote,
                 __newVote: isRetracting ? null : vote,
             };
+
             if (isRetracting) {
                 updates[`attitude.${vote}`] = increment(-1);
+                transaction.delete(privateVoteRef);
             } else {
                 updates[`attitude.${vote}`] = increment(1);
                 if (isChanging) {
                     updates[`attitude.${previousVote}`] = increment(-1);
                 }
-            }
-            transaction.update(figureRef, updates);
 
-            // Prepare private vote record
-            if (isRetracting) {
-                transaction.delete(privateVoteRef);
-            } else {
                 const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : {};
                 const voteData = {
-                    userId: currentUser.uid,
+                    userId: currentUser!.uid,
                     figureId: figure.id,
                     vote: vote,
                     createdAt: serverTimestamp(),
@@ -153,6 +147,7 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
                 };
                 transaction.set(privateVoteRef, voteData);
             }
+            transaction.update(figureRef, updates);
         });
         
         onVote(userVote?.vote === vote ? null : vote);
