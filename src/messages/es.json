@@ -254,7 +254,7 @@
       "envidia": "Envidia",
       "tristeza": "Tristeza",
       "miedo": "Miedo",
-      "desagrado": "Repulsa",
+      "desagrado": "Desagrado",
       "furia": "Furia"
     }
   },
@@ -880,3 +880,5 @@
     "zimbabwe": "Zimbabue"
   }
 }
+
+    
