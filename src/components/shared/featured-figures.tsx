@@ -16,7 +16,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import FigureCard from '../shared/figure-card';
-import { useFirestore, useCollection, useMemoFirebase, useAdmin } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useAdmin, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, deleteDoc, writeBatch, getDocs, addDoc } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -35,23 +35,38 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-function FeaturedFigureCard({ figure, onRemove }: { figure: FeaturedFigure, onRemove: (id: string) => void }) {
+function FeaturedFigureCard({ featuredFigure, onRemove }: { featuredFigure: FeaturedFigure, onRemove: (id: string) => void }) {
     const { isAdmin } = useAdmin();
     const [isDeleting, setIsDeleting] = useState(false);
+    const firestore = useFirestore();
+
+    const figureDocRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, 'figures', featuredFigure.figureId);
+    }, [firestore, featuredFigure.figureId]);
+
+    const { data: figure, isLoading } = useDoc<Figure>(figureDocRef);
 
     const handleDelete = async () => {
         setIsDeleting(true);
-        await onRemove(figure.id);
-        // isDeleting will be false when component unmounts
+        await onRemove(featuredFigure.id);
+        // Component will unmount, no need to setIsDeleting(false)
+    };
+
+    if (isLoading) {
+        return (
+            <div className="space-y-2">
+                <Skeleton className="aspect-[4/5] w-full" />
+                <Skeleton className="h-5 w-3/4" />
+            </div>
+        );
     }
+
+    if (!figure) return null;
 
     return (
         <div className="group relative">
-            <FigureCard figure={{
-                id: figure.figureId,
-                name: figure.figureName,
-                imageUrl: figure.figureImageUrl,
-            } as Figure} />
+            <FigureCard figure={figure} />
              {isAdmin && (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -68,7 +83,7 @@ function FeaturedFigureCard({ figure, onRemove }: { figure: FeaturedFigure, onRe
                         <AlertDialogHeader>
                             <AlertDialogTitle>¿Eliminar de Destacados?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Esta acción eliminará a <span className="font-bold">{figure.figureName}</span> de la lista de figuras destacadas. No eliminará el perfil de la figura.
+                                Esta acción eliminará a <span className="font-bold">{featuredFigure.figureName}</span> de la lista de figuras destacadas. No eliminará el perfil de la figura.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -244,7 +259,7 @@ export default function FeaturedFigures() {
                     <CarouselContent>
                         {featured.map((figure) => (
                         <CarouselItem key={figure.id} className="basis-1/2 md:basis-1/3 lg:basis-1/4">
-                           <FeaturedFigureCard figure={figure} onRemove={handleRemove} />
+                           <FeaturedFigureCard featuredFigure={figure} onRemove={handleRemove} />
                         </CarouselItem>
                         ))}
                     </CarouselContent>
