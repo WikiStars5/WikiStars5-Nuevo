@@ -38,29 +38,41 @@ service cloud.firestore {
     }
 
     function isVoteIncrement(voteType, voteField) {
-        let nextVoteMap = request.resource.data[voteType];
         let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {}; 
         let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
-        return request.resource.data[voteType][voteField] == prevCount + 1 &&
-               request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+        let nextVoteMap = request.resource.data[voteType];
+        
+        // Check if only the target voteField is being incremented by 1
+        return nextVoteMap[voteField] == prevCount + 1 &&
+               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
     
     function isVoteDecrement(voteType, voteField) {
-        let nextVoteMap = request.resource.data[voteType];
         let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
         let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
-        return request.resource.data[voteType][voteField] == prevCount - 1 &&
-               request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+         // Ensure prevCount is not null and is a number before decrementing
+        if (prevCount == null) { return false; }
+        
+        let nextVoteMap = request.resource.data[voteType];
+        
+        // Check if only the target voteField is being decremented by 1
+        return nextVoteMap[voteField] == prevCount - 1 &&
+               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
 
     function isChangingVote(voteType, oldVoteField, newVoteField) {
-        let nextVoteMap = request.resource.data[voteType];
         let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
         let prevOldCount = prevVoteMap[oldVoteField] != null ? prevVoteMap[oldVoteField] : 0;
         let prevNewCount = prevVoteMap[newVoteField] != null ? prevVoteMap[newVoteField] : 0;
-        return request.resource.data[voteType][oldVoteField] == prevOldCount - 1 &&
-               request.resource.data[voteType][newVoteField] == prevNewCount + 1 &&
-               request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
+        let nextVoteMap = request.resource.data[voteType];
+        
+        // Ensure counts are not null
+        if (prevOldCount == null || prevNewCount == null) { return false; }
+        
+        // Check if oldVote is decremented and newVote is incremented
+        return nextVoteMap[oldVoteField] == prevOldCount - 1 &&
+               nextVoteMap[newVoteField] == prevNewCount + 1 &&
+               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
     }
 
     match /users/{userId} {
@@ -88,19 +100,47 @@ service cloud.firestore {
     }
 
     match /figures/{figureId} {
-      allow read: if true;
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow delete: if isAdmin();
       
-      allow update: if isAdmin();
+      // Allow updates only by admins OR by signed-in users under specific conditions
+      allow update: if isAdmin() || (
+        isSignedIn() && (
+          // Condition 1: Simple field edits (by anyone)
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'nationality', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
+          
+          // Condition 2: Attitude vote changes
+          (request.resource.data.__newVote != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) && (
+            (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) || // New vote
+            (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) || // Retract vote
+            (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('attitude', request.resource.data.__oldVote, request.resource.data.__newVote)) // Change vote
+          )) ||
+
+          // Condition 3: Emotion vote changes
+          (request.resource.data.__newVote != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion', 'updatedAt', '__oldVote', '__newVote']) && (
+            (request.resource.data.__oldVote == null && isVoteIncrement('emotion', request.resource.data.__newVote)) || // New vote
+            (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('emotion', request.resource.data.__oldVote)) || // Retract vote
+            (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote)) // Change vote
+          )) ||
+          
+          // Condition 4: Rating changes
+          (
+            request.resource.data.__ratingCount_delta != null &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown', '__ratingCount_delta', '__totalRating_delta']) &&
+            request.resource.data.ratingCount == resource.data.ratingCount + request.resource.data.__ratingCount_delta &&
+            request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta
+          )
+        )
+      );
       
       match /attitudeVotes/{userId} { allow get, write: if isOwner(userId); allow list: if isAdmin(); }
       match /emotionVotes/{userId} { allow get, write: if isOwner(userId); allow list: if isAdmin(); }
 
-      match /attitudeStats/{statId} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
-      match /emotionStats/{statId} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
-      match /ratingStats/{rating} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
-      match /streakStats/{day} { allow read, list: if isSignedIn(); allow write: if isAdmin(); }
+      match /attitudeStats/{statId} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
+      match /emotionStats/{statId} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
+      match /ratingStats/{rating} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
+      match /streakStats/{day} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
       
       match /comments/{commentId} {
         allow get, list: if true;

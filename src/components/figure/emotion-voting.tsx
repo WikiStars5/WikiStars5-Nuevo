@@ -13,8 +13,6 @@ import Image from 'next/image';
 import { signInAnonymously } from 'firebase/auth';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
-import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-
 
 type EmotionOption = 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
 
@@ -46,13 +44,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   const { t } = useLanguage();
   
   const [isVoting, setIsVoting] = useState<EmotionOption | null>(null);
-  const [optimisticFigure, setOptimisticFigure] = useState(figure);
-  const [optimisticVote, setOptimisticVote] = useState<EmotionVote | null>(null);
-
-  useEffect(() => {
-    setOptimisticFigure(figure);
-  }, [figure]);
-
 
   // Fetch global settings
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -66,14 +57,6 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   }, [firestore, user, figure.id]);
 
   const { data: userVote, isLoading: isVoteLoading, refetch } = useDoc<EmotionVote>(userVoteRef);
-
-  useEffect(() => {
-    if (userVote) {
-      setOptimisticVote(userVote);
-    } else {
-      setOptimisticVote(null);
-    }
-  }, [userVote]);
 
   const handleVote = async (vote: EmotionOption) => {
      if (!areVotesEnabled) {
@@ -108,88 +91,67 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
     setIsVoting(vote);
     
-    const previousVote = optimisticVote?.vote;
-    const isRetracting = previousVote === vote;
-    const isChanging = previousVote && !isRetracting;
-
-    // --- Optimistic Update ---
-    setOptimisticFigure(prev => {
-        const newEmotion = { ...(prev.emotion || {}) };
-        if (isRetracting) {
-            newEmotion[vote] = Math.max(0, (newEmotion[vote] || 1) - 1);
-        } else {
-            if (previousVote) {
-                newEmotion[previousVote] = Math.max(0, (newEmotion[previousVote] || 1) - 1);
-            }
-            newEmotion[vote] = (newEmotion[vote] || 0) + 1;
-        }
-        return { ...prev, emotion: newEmotion };
-    });
-    setOptimisticVote(isRetracting ? null : { vote } as EmotionVote);
-    // --- End Optimistic Update ---
-
     try {
-        const figureRef = doc(firestore, `figures/${figure.id}`);
-        const userProfileRef = doc(firestore, 'users', currentUser.uid);
-        const privateVoteRef = doc(firestore, `users/${currentUser.uid}/emotionVotes`, figure.id);
-        const emotionStatsRef = (v: string) => doc(firestore, `figures/${figure.id}/emotionStats`, v);
+        await runTransaction(firestore, async (transaction) => {
+            const figureRef = doc(firestore, 'figures', figure.id);
+            const userProfileRef = doc(firestore, 'users', currentUser.uid);
+            const privateVoteRef = doc(firestore, `users/${currentUser.uid}/emotionVotes`, figure.id);
 
-        const userProfileSnap = await getDoc(userProfileRef);
-        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
-        const country = userProfileData.country || 'unknown';
-        const gender = userProfileData.gender || 'unknown';
+            const [figureDoc, userProfileDoc, privateVoteDoc] = await Promise.all([
+                transaction.get(figureRef),
+                transaction.get(userProfileRef),
+                transaction.get(privateVoteRef)
+            ]);
 
-        const figureUpdates: { [key: string]: any } = {};
-        if (isRetracting) {
-            figureUpdates[`emotion.${vote}`] = increment(-1);
-        } else {
-            if (isChanging) {
-                figureUpdates[`emotion.${previousVote}`] = increment(-1);
+            if (!figureDoc.exists()) {
+                throw new Error("Figure does not exist.");
             }
-            figureUpdates[`emotion.${vote}`] = increment(1);
-        }
-        updateDocumentNonBlocking(figureRef, figureUpdates);
-        
-        if (isChanging) {
-            const oldStatRef = emotionStatsRef(previousVote!);
-            updateDocumentNonBlocking(oldStatRef, {
-                [`${country}.total`]: increment(-1),
-                [`${country}.${gender}`]: increment(-1)
-            });
-        }
-        if (isRetracting) {
-            const oldStatRef = emotionStatsRef(vote);
-            updateDocumentNonBlocking(oldStatRef, {
-                [`${country}.total`]: increment(-1),
-                [`${country}.${gender}`]: increment(-1)
-            });
-        } else {
-            const newStatRef = emotionStatsRef(vote);
-            setDocumentNonBlocking(newStatRef, {
-                [country]: { total: increment(1), [gender]: increment(1) }
-            }, { merge: true });
-        }
 
-        if (isRetracting) {
-            deleteDocumentNonBlocking(privateVoteRef);
-        } else {
-            const voteData = {
-                userId: currentUser.uid, figureId: figure.id, vote: vote,
-                createdAt: serverTimestamp(), figureName: figure.name, figureImageUrl: figure.imageUrl,
-                userCountry: country, userGender: gender,
+            const previousVote = privateVoteDoc.exists() ? privateVoteDoc.data().vote : null;
+            const isRetracting = previousVote === vote;
+            const isChanging = previousVote && !isRetracting;
+
+            const updates: { [key: string]: any } = {
+                __oldVote: previousVote,
+                __newVote: isRetracting ? null : vote,
             };
-            setDocumentNonBlocking(privateVoteRef, voteData);
-        }
+            if (isRetracting) {
+                updates[`emotion.${vote}`] = increment(-1);
+            } else {
+                updates[`emotion.${vote}`] = increment(1);
+                if (isChanging) {
+                    updates[`emotion.${previousVote}`] = increment(-1);
+                }
+            }
+            transaction.update(figureRef, updates);
+
+            if (isRetracting) {
+                transaction.delete(privateVoteRef);
+            } else {
+                const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : {};
+                const voteData = {
+                    userId: currentUser.uid,
+                    figureId: figure.id,
+                    vote: vote,
+                    createdAt: serverTimestamp(),
+                    figureName: figure.name,
+                    figureImageUrl: figure.imageUrl,
+                    userCountry: userProfileData.country || null,
+                    userGender: userProfileData.gender || null,
+                };
+                transaction.set(privateVoteRef, voteData);
+            }
+        });
         
+        toast({ title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
         refetch();
-        toast({ title: isRetracting ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
 
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
       toast({
         variant: 'destructive',
         title: t('AttitudeVoting.errorToast.title'),
-        description: t('AttitudeVoting.errorToast.description'),
+        description: error.message || t('AttitudeVoting.errorToast.description'),
       });
     } finally {
       setIsVoting(null);
@@ -197,7 +159,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
   };
 
 
-  const totalVotes = Object.values(optimisticFigure.emotion || {}).reduce(
+  const totalVotes = Object.values(figure.emotion || {}).reduce(
     (sum, count) => sum + count,
     0
   );
@@ -218,17 +180,15 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
     );
   }
 
-  const showDetails = true;
-
   return (
       <div className="w-full relative">
-        {optimisticVote?.vote && (
+        {userVote?.vote && (
             <div className="absolute top-0 right-0 z-10">
                 <ShareButton
                     figureId={figure.id}
                     figureName={figure.name}
                     isEmotionShare={true}
-                    emotion={optimisticVote.vote}
+                    emotion={userVote.vote}
                     showText={false}
                 />
             </div>
@@ -238,7 +198,7 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {emotionOptions.map(({ id, labelKey, gifUrl, colorClass, selectedClass, textColorClass }) => {
-            const isSelected = optimisticVote?.vote === id;
+            const isSelected = userVote?.vote === id;
             return (
               <Button
                 key={id}
@@ -261,11 +221,9 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                         </div>
                         <div>
                             <span className="font-semibold text-sm">{t(labelKey)}</span>
-                             {showDetails && (
-                              <span className="block text-lg font-bold">
-                                {(optimisticFigure.emotion?.[id] ?? 0).toLocaleString()}
+                             <span className="block text-lg font-bold">
+                                {(figure.emotion?.[id] ?? 0).toLocaleString()}
                               </span>
-                            )}
                         </div>
                     </div>
                 )}
@@ -273,13 +231,11 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
             );
           })}
         </div>
-        {showDetails && (
-          <div className="mt-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                  {t('EmotionVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
-              </p>
-          </div>
-        )}
+        <div className="mt-4 text-center">
+            <p className="text-sm text-muted-foreground">
+                {t('EmotionVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
+            </p>
+        </div>
       </div>
   );
 }
