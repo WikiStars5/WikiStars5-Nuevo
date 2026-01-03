@@ -343,6 +343,22 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                   />
                 )}
                 
+                {needsIdentity && (
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('CommentForm.usernameLabel')}</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder={t('CommentForm.usernamePlaceholder')} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 <div className="flex items-center gap-4">
                     <FormField
                         control={form.control}
@@ -439,22 +455,6 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                   </div>
                 )}
 
-              {needsIdentity && (
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('CommentForm.usernameLabel')}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={t('CommentForm.usernamePlaceholder')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
               <div className="flex justify-end">
                 <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? (
@@ -462,7 +462,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
                     ) : (
                     <Send />
                     )}
-                    {t('CommentForm.submitButton')}
+                    ¡Estrellar!
                 </Button>
               </div>
             </form>
