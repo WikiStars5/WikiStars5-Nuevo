@@ -264,20 +264,20 @@
     "countdownFinished": "¡La votación ha terminado!",
     "paused": "BATALLA EN PAUSA",
     "votesLabel": "votos",
-    "callToAction": "Da tu voto por el mejor. ¿Qué opinas?",
-    "messiButton": "Votar por Messi",
-    "ronaldoButton": "Votar por Ronaldo",
-    "winnerMessage": "¡El ganador es {winner}!",
-    "tieMessage": "¡Es un empate!",
-    "calculating": "Calculando ganador...",
-    "notStarted": "El evento no ha comenzado. Vuelve más tarde.",
-    "adminNotStarted": "El administrador aún no ha iniciado la batalla.",
+    "callToAction": "Dê seu voto para o melhor. O que você acha?",
+    "messiButton": "Votar em Messi",
+    "ronaldoButton": "Votar em Ronaldo",
+    "winnerMessage": "O vencedor é {winner}!",
+    "tieMessage": "É um empate!",
+    "calculating": "Calculando vencedor...",
+    "notStarted": "O evento não começou. Volte mais tarde.",
+    "adminNotStarted": "O administrador ainda não iniciou a batalha.",
     "shareAlert": {
-      "messi": "¿Solo dejarás tu voto? Trae refuerzos si crees que Messi es el mejor.",
-      "ronaldo": "¿Solo vas a votar? La batalla se gana con números. Si crees que Cristiano es el mejor, trae refuerzos."
+      "messi": "Você vai apenas deixar seu voto? Traga reforços se você acha que Messi é o melhor.",
+      "ronaldo": "Você vai apenas votar? A batalha é vencida com números. Se você acha que Cristiano é o melhor, traga reforços."
     },
     "toast": {
-      "voted": "¡Has votado por {player}!"
+      "voted": "Você votou em {player}!"
     }
   },
   "CommunityRatings": {
@@ -297,7 +297,7 @@
     "usernamePlaceholder": "Elige un nombre único",
     "opinionLabel": "Escribe tu opinión (opcional)",
     "opinionPlaceholder": "¿Qué opinas de {name}?",
-    "submitButton": "Publicar StarPost",
+    "submitButton": "¡Estrellar!",
     "loginDialog": {
       "title": "¡Únete a la Comunidad!",
       "description": "Para realizar esta acción, necesitas una cuenta. ¡Es gratis, rápido y guarda tu progreso!",
@@ -881,4 +881,3 @@
   }
 }
 
-    
