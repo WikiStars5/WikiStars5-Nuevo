@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -128,7 +127,7 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
 
 
   return (
-    <Card className="hover:border-primary/50 transition-colors">
+    <Card className="hover:border-primary/50 transition-colors dark:bg-black">
         <div className="p-4">
              <div className="flex items-start gap-3">
                 <Link href={`/u/${post.userDisplayName}`} className="flex-shrink-0">
