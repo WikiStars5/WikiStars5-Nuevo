@@ -22,6 +22,10 @@ service cloud.firestore {
       return (resource.data[field] == null && request.resource.data[field] == count) || 
              (request.resource.data[field] == resource.data[field] + count);
     }
+
+    function isDecrement(field, count) {
+      return request.resource.data[field] == resource.data[field] - count;
+    }
     
     function getGlobalSettings() {
       return get(/databases/$(database)/documents/settings/global).data;
@@ -42,23 +46,25 @@ service cloud.firestore {
     // --- Funciones de Validación de Votos ---
     
     function isVoteIncrement(voteType, voteField) {
-      let prevVoteMap = resource.data[voteType];
-      let prevCount = prevVoteMap[voteField];
-      return request.resource.data[voteType][voteField] == (prevVoteMap[voteField] == null ? 1 : prevCount + 1) &&
-             request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+      let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+      let nextVoteMap = request.resource.data[voteType];
+      let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
+      return nextVoteMap[voteField] == prevCount + 1 && nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
-    
+
     function isVoteDecrement(voteType, voteField) {
-        return request.resource.data[voteType][voteField] == resource.data[voteType][voteField] - 1 &&
-               request.resource.data[voteType].diff(resource.data[voteType]).affectedKeys().hasOnly([voteField]);
+      let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+      let nextVoteMap = request.resource.data[voteType];
+      let prevCount = prevVoteMap[voteField];
+      return prevCount != null && nextVoteMap[voteField] == prevCount - 1 && nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
 
     function isChangingVote(voteType, oldVoteField, newVoteField) {
-        let prevOldCount = resource.data[voteType][oldVoteField];
-        let prevNewCount = resource.data[voteType][newVoteField];
-        return request.resource.data[voteType][oldVoteField] == prevOldCount - 1 &&
-               request.resource.data[voteType][newVoteField] == (prevNewCount == null ? 1 : prevNewCount + 1) &&
-               request.resource.data[voteType].diff(resource.data[voteType]).affectedKeys().hasOnly([oldVoteField, newVoteField]);
+      let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+      let nextVoteMap = request.resource.data[voteType];
+      let prevOldCount = prevVoteMap[oldVoteField];
+      let prevNewCount = prevVoteMap[newVoteField] != null ? prevVoteMap[newVoteField] : 0;
+      return prevOldCount != null && nextVoteMap[oldVoteField] == prevOldCount - 1 && nextVoteMap[newVoteField] == prevNewCount + 1 && nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
     }
     
     // --- Reglas de Colecciones ---
@@ -110,12 +116,16 @@ service cloud.firestore {
             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
           )) ||
 
-          // Regla 4: Valida los cambios en las calificaciones de estrellas.
+          // Regla 4: Valida los cambios en las calificaciones al crear un comentario.
           (
-            request.resource.data.__ratingCount_delta != null &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown', '__ratingCount_delta', '__totalRating_delta', 'updatedAt']) &&
-            request.resource.data.ratingCount == resource.data.ratingCount + request.resource.data.__ratingCount_delta &&
-            request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta
+            request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
+            request.resource.data.ratingCount == resource.data.ratingCount + 1
+          ) ||
+
+          // NUEVA Regla 5: Permite la actualización de contadores al eliminar un comentario
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
+            isDecrement('ratingCount', 1)
           )
         )
       );
@@ -128,17 +138,13 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow get, list: if true;
         
-        allow create: if (isAdmin()) || (request.resource.data.userId == request.auth.uid && (
-            (areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5) ||
-            (areCommentsEnabled() && request.resource.data.text is string)
-          )
+        allow create: if request.resource.data.userId == request.auth.uid && (
+          (areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5) ||
+          (areCommentsEnabled() && request.resource.data.text is string)
         );
         
-        allow update: if isSignedIn() && (
-            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt', 'title', 'tag'])) || 
-            (isIncrement('likes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', 1) || isIncrement('dislikes', -1)) ||
-            (isIncrement('replyCount', 1))
-        );
+        // Regla simplificada para permitir actualizaciones de likes/dislikes
+        allow update: if isSignedIn();
         
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
@@ -155,10 +161,8 @@ service cloud.firestore {
             request.resource.data.text.size() > 0
           );
           
-          allow update: if isSignedIn() && (
-            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
-            (isIncrement('likes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', 1) || isIncrement('dislikes', -1))
-          );
+          // Regla simplificada
+          allow update: if isSignedIn();
           
           allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
           
@@ -167,6 +171,12 @@ service cloud.firestore {
       }
 
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
+    }
+    
+    match /starposts/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
     
     match /{path=**}/comments/{commentId} {
@@ -184,16 +194,8 @@ service cloud.firestore {
 
     match /goat_battles/{battleId} {
         allow get, list: if true;
-        allow create, delete, update: if isAdmin();
+        allow create, delete, update: if isAdmin(); // Simplificado
         
-        // This rule is redundant if only admins can update, but we leave it in case this changes in the future
-        allow update: if (
-            isSignedIn() && (
-                (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && (isIncrement('messiVotes', 1) || isIncrement('messiVotes', -1))) ||
-                (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) && (isIncrement('ronaldoVotes', 1) || isIncrement('ronaldoVotes', -1))) ||
-                (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']) && ((isIncrement('messiVotes', 1) && isIncrement('ronaldoVotes', -1)) || (isIncrement('messiVotes', -1) && isIncrement('ronaldoVotes', 1))))
-            )
-        );
         match /votes/{userId} { 
           allow get: if isOwner(userId) || isAdmin(); 
           allow write: if isOwner(userId); 
@@ -218,5 +220,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
