@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Star, Trash2, Loader2 } from 'lucide-react';
@@ -16,7 +16,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import FigureCard from '../shared/figure-card';
-import { useFirestore, useCollection, useMemoFirebase, useAdmin, useDoc } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useAdmin, useDoc, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, doc, deleteDoc, writeBatch, getDocs, addDoc } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
@@ -154,28 +154,46 @@ function AddFeaturedDialog({ onAdd, existingIds }: { onAdd: (figure: Figure) => 
     );
 }
 
-export default function FeaturedFigures() {
+interface FeaturedFiguresProps {
+    initialFeaturedFigures: FeaturedFigure[];
+}
+
+export default function FeaturedFigures({ initialFeaturedFigures }: FeaturedFiguresProps) {
     const firestore = useFirestore();
     const { isAdmin } = useAdmin();
     const { toast } = useToast();
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-
+    
+    // Use the server-fetched data as the initial state
+    const [featured, setFeatured] = useState<FeaturedFigure[]>(initialFeaturedFigures);
+    
+    // This hook will keep the data in sync in case of client-side changes
     const featuredQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(collection(firestore, 'featured_figures'), orderBy('order'));
     }, [firestore]);
 
-    const { data: featured, isLoading, refetch } = useCollection<FeaturedFigure>(featuredQuery);
-    
+    useCollection<FeaturedFigure>(featuredQuery, {
+        onNewData: (snapshot) => {
+            const serverData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeaturedFigure));
+            setFeatured(serverData);
+        }
+    });
+
     const handleRemove = async (docId: string) => {
         if (!firestore) return;
+        
+        // Optimistic UI update
+        setFeatured(prev => prev.filter(f => f.id !== docId));
+        
         try {
-            await deleteDoc(doc(firestore, 'featured_figures', docId));
-            refetch(); // Trigger a refetch
+            await deleteDocumentNonBlocking(doc(firestore, 'featured_figures', docId));
             toast({
                 title: "Figura eliminada de destacados",
             });
         } catch (error) {
+            // Revert on error
+            setFeatured(initialFeaturedFigures);
             console.error("Error removing featured figure: ", error);
             toast({
                 title: "Error",
@@ -190,23 +208,27 @@ export default function FeaturedFigures() {
         
         const currentMaxOrder = featured?.reduce((max, fig) => fig.order > max ? fig.order : max, 0) ?? 0;
 
-        const newFeaturedFigure = {
+        const newFeaturedFigureData = {
             figureId: figure.id,
             figureName: figure.name,
             figureImageUrl: figure.imageUrl,
             order: currentMaxOrder + 1
         };
 
+        setIsAddDialogOpen(false);
         try {
-            await addDoc(collection(firestore, 'featured_figures'), newFeaturedFigure);
-            refetch();
-            setIsAddDialogOpen(false);
+            // Optimistic update
+            const tempId = `temp_${Date.now()}`;
+            setFeatured(prev => [...prev, { ...newFeaturedFigureData, id: tempId }]);
+            
+            await addDoc(collection(firestore, 'featured_figures'), newFeaturedFigureData);
             toast({
                 title: "Figura añadida",
                 description: `${figure.name} ahora está en destacados.`
             });
         } catch (error) {
              console.error("Error adding featured figure: ", error);
+             setFeatured(initialFeaturedFigures); // Revert
              toast({
                 title: "Error",
                 description: "No se pudo añadir la figura a destacados.",
@@ -240,18 +262,7 @@ export default function FeaturedFigures() {
                 )}
             </div>
             
-            {isLoading && (
-                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="space-y-2">
-                            <Skeleton className="aspect-[4/5] w-full" />
-                            <Skeleton className="h-5 w-3/4" />
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {!isLoading && featured && featured.length > 0 && (
+            {featured.length > 0 ? (
                 <Carousel
                     opts={{ align: "start", loop: featured.length > 2 }}
                     className="w-full"
@@ -266,9 +277,7 @@ export default function FeaturedFigures() {
                     <CarouselPrevious className="hidden sm:flex" />
                     <CarouselNext className="hidden sm:flex" />
                 </Carousel>
-            )}
-
-             {!isLoading && (!featured || featured.length === 0) && (
+            ) : (
                 <div className="text-center py-10 border-2 border-dashed rounded-lg">
                     <p className="text-muted-foreground">Aún no se han añadido perfiles destacados.</p>
                     {isAdmin && <p className="text-sm text-muted-foreground">Haz clic en "Añadir" para empezar.</p>}
