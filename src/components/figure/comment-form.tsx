@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, setDoc, writeBatch } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useCollection, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -60,7 +60,7 @@ const ratingSounds: { [key: number]: string } = {
 
 
 export default function CommentForm({ figureId, figureName, onCommentPosted }: CommentFormProps) {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, reloadUser } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
@@ -80,7 +80,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading, refetch: refetchProfile } = useDoc<AppUser>(userProfileRef);
 
   const needsIdentity = !user || (user.isAnonymous && !userProfile);
 
@@ -111,35 +111,76 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
   const titleValue = form.watch('title', '');
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
-
-
-  const onSubmit = async (data: CommentFormValues) => {
+  
+  const handleIdentityAndSubmit = async (data: CommentFormValues) => {
+    setIsSubmitting(true);
     let currentUser = user;
+
     if (!currentUser && auth) {
       try {
-        setIsSubmitting(true);
         const userCredential = await signInAnonymously(auth);
         currentUser = userCredential.user;
+        await reloadUser(); // This will trigger a re-render and user/userProfile update
       } catch (error) {
-        toast({ title: t('AttitudeVoting.authErrorToast.title'), description: t('AttitudeVoting.authErrorToast.description'), variant: "destructive"});
+        toast({ title: t('AttitudeVoting.authErrorToast.title'), description: t('AttitudeVoting.authErrorToast.description'), variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
     }
     
-    if (!firestore || !currentUser) {
+    if (!currentUser) {
         toast({ title: t('CommentForm.toast.errorPostingTitle'), variant: "destructive" });
         setIsSubmitting(false);
         return;
     }
-    
-    setIsSubmitting(true);
+
+    if (needsIdentity && data.username && firestore) {
+      try {
+        const newUsername = data.username;
+        const newUsernameLower = normalizeText(newUsername);
+        const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
+        const userRef = doc(firestore, 'users', currentUser.uid);
+
+        await runTransaction(firestore, async (transaction) => {
+          const usernameDoc = await transaction.get(newUsernameRef);
+          if (usernameDoc.exists()) {
+            throw new Error(t('CommentForm.toast.usernameInUse'));
+          }
+          transaction.set(newUsernameRef, { userId: currentUser!.uid });
+          transaction.set(userRef, {
+            username: newUsername,
+            usernameLower: newUsernameLower,
+            createdAt: serverTimestamp(),
+          }, { merge: true });
+        });
+        
+        await refetchProfile(); // Force reload of the user profile data
+        await postComment(data, currentUser); // Now post the comment
+      } catch (error: any) {
+        if (error.message === t('CommentForm.toast.usernameInUse')) {
+            form.setError('username', { type: 'manual', message: error.message });
+        } else {
+            console.error("Error creating identity:", error);
+            toast({ title: t('CommentForm.toast.errorPostingTitle'), variant: "destructive" });
+        }
+        setIsSubmitting(false);
+        return;
+      }
+    } else {
+        await postComment(data, currentUser);
+    }
+  }
+
+
+  const postComment = async (data: CommentFormValues, currentUser: FirebaseUser) => {
+    if (!firestore) return;
 
     try {
         const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
         const starpostsColRef = collection(firestore, 'starposts');
-        const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
         
+        // This check is now more reliable because identity creation is separate
+        const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
         if (!existingCommentSnap.empty) {
             toast({ title: 'Error', description: t('CommentForm.toast.alreadyCommented'), variant: 'destructive' });
             setIsSubmitting(false);
@@ -147,41 +188,18 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         }
 
         const batch = writeBatch(firestore);
-        const userRef = doc(firestore, 'users', currentUser.uid);
         const attitudeVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
         const figureRef = doc(firestore, 'figures', figureId);
         
         const [userProfileSnap, attitudeVoteSnap, figureSnap] = await Promise.all([
-          getDoc(userRef),
+          getDoc(doc(firestore, 'users', currentUser.uid)), // Refetch profile to be sure
           getDoc(attitudeVoteRef),
           getDoc(figureRef)
         ]);
 
-        let finalDisplayName = userProfileSnap.exists() ? userProfileSnap.data().username : currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
-        let userProfileData: Partial<AppUser> = userProfileSnap.exists() ? userProfileSnap.data() : {};
+        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
+        const finalDisplayName = userProfileData.username || currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
         const figureData = figureSnap.data() as Figure | undefined;
-        
-        if (needsIdentity && data.username) {
-            const newUsername = data.username;
-            const newUsernameLower = normalizeText(newUsername);
-            const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
-            const usernameDoc = await getDoc(newUsernameRef);
-            
-            if (usernameDoc.exists()) {
-                form.setError('username', { type: 'manual', message: t('CommentForm.toast.usernameInUse') });
-                setIsSubmitting(false);
-                return;
-            }
-            batch.set(newUsernameRef, { userId: currentUser.uid });
-            finalDisplayName = newUsername;
-            userProfileData = {
-                ...userProfileData,
-                username: newUsername,
-                usernameLower: newUsernameLower,
-                createdAt: serverTimestamp(),
-            };
-            batch.set(userRef, userProfileData, { merge: true });
-        }
         
         const country = userProfileData.country || null;
         const gender = userProfileData.gender || null;
@@ -324,7 +342,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleIdentityAndSubmit)} className="space-y-4">
                 {isRatingEnabled && (
                   <FormField
                     control={form.control}
