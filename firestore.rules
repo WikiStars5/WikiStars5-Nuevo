@@ -131,8 +131,7 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow get, list: if true;
         
-        allow create: if (isAdmin()) || (
-          isSignedIn() && request.resource.data.userId == request.auth.uid && (
+        allow create: if (isAdmin()) || (request.resource.data.userId == request.auth.uid && (
             (areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5) ||
             (areCommentsEnabled() && request.resource.data.text is string)
           )
