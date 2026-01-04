@@ -41,7 +41,6 @@ service cloud.firestore {
     
     // --- Funciones de Validación de Votos ---
     
-    // Verifica un incremento de +1 en un campo de un mapa.
     function isVoteIncrement(voteType, voteField) {
       let prevVoteMap = resource.data[voteType];
       let prevCount = prevVoteMap[voteField];
@@ -49,13 +48,11 @@ service cloud.firestore {
              request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
     
-    // Verifica un decremento de -1 en un campo de un mapa.
     function isVoteDecrement(voteType, voteField) {
         return request.resource.data[voteType][voteField] == resource.data[voteType][voteField] - 1 &&
                request.resource.data[voteType].diff(resource.data[voteType]).affectedKeys().hasOnly([voteField]);
     }
 
-    // Verifica el cambio de un voto (resta 1 del antiguo, suma 1 al nuevo).
     function isChangingVote(voteType, oldVoteField, newVoteField) {
         let prevOldCount = resource.data[voteType][oldVoteField];
         let prevNewCount = resource.data[voteType][newVoteField];
@@ -139,11 +136,8 @@ service cloud.firestore {
         
         allow update: if isSignedIn() && (
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt', 'title', 'tag'])) || 
-            (isIncrement('likes', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
-            (isIncrement('likes', -1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
-            (isIncrement('dislikes', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
-            (isIncrement('dislikes', -1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
-            (isIncrement('replyCount', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount']))
+            (isIncrement('likes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', 1) || isIncrement('dislikes', -1)) ||
+            (isIncrement('replyCount', 1))
         );
         
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
@@ -163,10 +157,7 @@ service cloud.firestore {
           
           allow update: if isSignedIn() && (
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
-            (isIncrement('likes', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
-            (isIncrement('likes', -1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
-            (isIncrement('dislikes', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
-            (isIncrement('dislikes', -1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']))
+            (isIncrement('likes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', 1) || isIncrement('dislikes', -1))
           );
           
           allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
@@ -227,3 +218,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
