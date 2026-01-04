@@ -11,6 +11,7 @@ import {
   signInWithPopup,
 } from 'firebase/auth';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore, FirestoreSettings } from 'firebase/firestore';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 
 
 // --- Singleton Pattern for Firebase Initialization ---
@@ -18,10 +19,18 @@ import { getFirestore, initializeFirestore, persistentLocalCache, persistentMult
 // 1. Initialize the App
 const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// 2. Initialize Auth
+// 2. Initialize App Check
+if (typeof window !== 'undefined') {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+
+// 3. Initialize Auth
 const auth: Auth = getAuth(app);
 
-// 3. Initialize Firestore with Modern Cache (Singleton)
+// 4. Initialize Firestore with Modern Cache (Singleton)
 let firestore: Firestore;
 
 try {
@@ -78,3 +87,4 @@ export * from './error-emitter';
 export * from './auth/use-admin';
 export * from './auth/use-user';
 export { GoogleAuthProvider, signInWithPopup };
+
