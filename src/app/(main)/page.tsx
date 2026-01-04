@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Comment, FeaturedFigure } from '@/lib/types';
@@ -19,7 +20,7 @@ function HomePageContent() {
 
   const starpostsQuery = useMemoFirebase(() => 
     firestore 
-      ? query(collection(firestore, 'starposts'), orderBy('createdAt', 'desc'), limit(15))
+      ? query(collection(firestore, 'starposts'), orderBy('createdAt', 'desc'), limit(10))
       : null
   , [firestore]);
   const { data: feedComments, isLoading: isLoadingFeed } = useCollection<Comment>(starpostsQuery);
