@@ -1,4 +1,3 @@
-
 import { getSdks } from '@/firebase/server';
 import PublicProfileClientPage from './client-page';
 import { notFound } from 'next/navigation';
@@ -60,5 +59,3 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     notFound();
   }
 }
-
-    
