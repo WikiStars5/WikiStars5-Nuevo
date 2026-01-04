@@ -1,143 +1,75 @@
-'use client';
 
 import * as React from 'react';
+import { getDocs, collection, query, orderBy, limit, DocumentSnapshot, getDoc } from 'firebase/firestore';
+import { getSdks } from '@/firebase/server';
 import type { Comment, FeaturedFigure } from '@/lib/types';
-import StarPostCard from '@/components/shared/starpost-card';
-import FeaturedFigures from '@/components/shared/featured-figures';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, getDocs, startAfter, DocumentSnapshot } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import HomePageContent from '@/app/(main)/page-client';
 
 
-const INITIAL_LOAD_LIMIT = 10;
+// --- Server-Side Data Fetching ---
 
-function HomePageContent() {
-  const firestore = useFirestore();
+async function getFeaturedFigures(): Promise<FeaturedFigure[]> {
+    const { firestore } = getSdks();
+    const featuredRef = collection(firestore, 'featured_figures');
+    const q = query(featuredRef, orderBy('order'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FeaturedFigure));
+}
 
-  const [feedComments, setFeedComments] = React.useState<Comment[]>([]);
-  const [lastVisible, setLastVisible] = React.useState<DocumentSnapshot | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
-  const [hasMore, setHasMore] = React.useState(true);
+async function getInitialStarposts(): Promise<{ posts: Comment[], lastVisible: DocumentSnapshot | null, hasMore: boolean }> {
+    const { firestore } = getSdks();
+    const starpostsRef = collection(firestore, 'starposts');
+    const q = query(starpostsRef, orderBy('createdAt', 'desc'), limit(10));
+    const snapshot = await getDocs(q);
+
+    const posts = snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Convert Firestore Timestamps to plain objects for serialization
+        return {
+            ...data,
+            id: doc.id,
+            createdAt: data.createdAt.toDate().toISOString(),
+            updatedAt: data.updatedAt?.toDate().toISOString() || null,
+        } as unknown as Comment;
+    });
+
+    const lastVisible = snapshot.docs[snapshot.docs.length - 1] || null;
+    const hasMore = snapshot.docs.length === 10;
+
+    return { posts, lastVisible, hasMore };
+}
 
 
-  const featuredQuery = useMemoFirebase(() => 
-    firestore 
-      ? query(collection(firestore, 'featured_figures'), orderBy('order')) 
-      : null
-  , [firestore]);
-  const { data: featuredFigures, isLoading: isLoadingFeatured } = useCollection<FeaturedFigure>(featuredQuery);
+// --- Server Component (Wrapper) ---
+// This component fetches the initial data on the server.
+
+export default async function HomePage() {
+  const initialFeaturedFigures = await getFeaturedFigures();
+  const { posts: initialPosts, lastVisible, hasMore } = await getInitialStarposts();
   
-  React.useEffect(() => {
-    const fetchInitialPosts = async () => {
-        if (!firestore) return;
-        setIsLoading(true);
-        try {
-            const firstBatch = query(
-                collection(firestore, 'starposts'), 
-                orderBy('createdAt', 'desc'), 
-                limit(INITIAL_LOAD_LIMIT)
-            );
-            const documentSnapshots = await getDocs(firstBatch);
-            
-            const posts = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
-            setFeedComments(posts);
-
-            const lastVisibleDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
-            setLastVisible(lastVisibleDoc);
-
-            if (documentSnapshots.docs.length < INITIAL_LOAD_LIMIT) {
-                setHasMore(false);
-            }
-
-        } catch (error) {
-            console.error("Error fetching initial starposts:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    fetchInitialPosts();
-  }, [firestore]);
-
-
-  const fetchMorePosts = async () => {
-    if (!firestore || !lastVisible) return;
-    setIsLoadingMore(true);
-
-    try {
-        const nextBatch = query(
-            collection(firestore, 'starposts'),
-            orderBy('createdAt', 'desc'),
-            startAfter(lastVisible),
-            limit(INITIAL_LOAD_LIMIT)
-        );
-
-        const documentSnapshots = await getDocs(nextBatch);
-        const newPosts = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
-
-        setFeedComments(prevPosts => [...prevPosts, ...newPosts]);
-
-        const lastVisibleDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
-        setLastVisible(lastVisibleDoc);
-        
-        if (documentSnapshots.docs.length < INITIAL_LOAD_LIMIT) {
-            setHasMore(false);
-        }
-    } catch (error) {
-         console.error("Error fetching more starposts:", error);
-    } finally {
-        setIsLoadingMore(false);
-    }
-  };
-
+  // A simple hack to serialize the DocumentSnapshot
+  const serializableLastVisible = lastVisible ? {
+    _id: lastVisible.id,
+    _data: lastVisible.data(),
+  } : null;
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
-      <FeaturedFigures initialFeaturedFigures={featuredFigures || []} />
-      <h2 className="text-xl font-bold tracking-tight font-headline mb-4">Mira lo que dicen en vivo sobre tus personajes favoritos</h2>
-      
-      <div className="space-y-4">
-        {isLoading ? (
-          <>
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-40 w-full" />
-          </>
-        ) : feedComments && feedComments.length > 0 ? (
-          feedComments.map(post => <StarPostCard key={post.id} post={post} />)
-        ) : (
-          <div className="text-center py-10 text-muted-foreground">
-            <p>Aún no hay actividad para mostrar.</p>
-            <p className="text-sm">¡Vota por tus figuras favoritas para personalizar tu feed!</p>
-          </div>
-        )}
-      </div>
-
-       {hasMore && !isLoading && (
-        <div className="mt-6 text-center">
-          <Button
-            onClick={fetchMorePosts}
-            disabled={isLoadingMore}
-            variant="outline"
-          >
-            {isLoadingMore ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Cargando...
-              </>
-            ) : (
-              'Cargar más'
-            )}
-          </Button>
-        </div>
-      )}
-    </div>
+    <HomePageContent
+      initialFeaturedFigures={initialFeaturedFigures}
+      initialPosts={initialPosts}
+      initialLastVisible={serializableLastVisible as any}
+      initialHasMore={hasMore}
+    />
   );
 }
 
-export default function HomePage() {
-  return <HomePageContent />;
+// Helper to deserialize the snapshot on the client (won't be needed if we adjust client component)
+// This is just a conceptual note; the client will need to handle this.
+function deserializeSnapshot(data: any) {
+    if (!data) return null;
+    // The client-side Firebase SDK can't "rehydrate" a server-side DocumentSnapshot.
+    // The `startAfter` function needs the actual object.
+    // For this simple pagination, we can pass the field value to start after.
+    return data;
 }
+
