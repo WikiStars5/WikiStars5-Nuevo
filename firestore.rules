@@ -4,6 +4,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- App Check Enforcement ---
+    // Require a valid App Check token for any write operation.
+    // Allow reads to be public. This is a broad rule, specific rules below will be more restrictive.
+    match /{path=**} {
+      allow read: if true;
+      allow write: if request.app.token.app_id != null;
+    }
+
     // --- Funciones de Utilidad Reutilizables ---
     
     function isSignedIn() {

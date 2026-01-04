@@ -10,6 +10,7 @@ import {
   signInWithPopup,
 } from 'firebase/auth';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore, FirestoreSettings } from 'firebase/firestore';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 
 // --- Singleton Pattern for Firebase Initialization ---
@@ -20,7 +21,27 @@ const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebas
 // 2. Initialize Auth
 const auth: Auth = getAuth(app);
 
-// 3. Initialize Firestore with Modern Cache (Singleton)
+// 3. Initialize App Check
+if (typeof window !== 'undefined') {
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  if (siteKey) {
+    try {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(siteKey),
+        // Set to true for local testing with reCAPTCHA keys.
+        // In a real production environment, you might want this to be false.
+        isTokenAutoRefreshEnabled: true
+      });
+      console.log("Firebase App Check initialized successfully.");
+    } catch (error) {
+      console.error("Error initializing Firebase App Check:", error);
+    }
+  } else {
+    console.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. Firebase App Check is not enabled.");
+  }
+}
+
+// 4. Initialize Firestore with Modern Cache (Singleton)
 let firestore: Firestore;
 
 try {
