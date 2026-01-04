@@ -43,38 +43,25 @@ service cloud.firestore {
     
     // Verifica un incremento de +1 en un campo de un mapa.
     function isVoteIncrement(voteType, voteField) {
-        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {}; 
-        let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
-        let nextVoteMap = request.resource.data[voteType];
-        
-        return nextVoteMap[voteField] == prevCount + 1 &&
-               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+      let prevVoteMap = resource.data[voteType];
+      let prevCount = prevVoteMap[voteField];
+      return request.resource.data[voteType][voteField] == (prevVoteMap[voteField] == null ? 1 : prevCount + 1) &&
+             request.resource.data[voteType].diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
     
     // Verifica un decremento de -1 en un campo de un mapa.
     function isVoteDecrement(voteType, voteField) {
-        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
-        let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
-        if (prevCount == null) { return false; }
-        
-        let nextVoteMap = request.resource.data[voteType];
-        
-        return nextVoteMap[voteField] == prevCount - 1 &&
-               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+        return request.resource.data[voteType][voteField] == resource.data[voteType][voteField] - 1 &&
+               request.resource.data[voteType].diff(resource.data[voteType]).affectedKeys().hasOnly([voteField]);
     }
 
     // Verifica el cambio de un voto (resta 1 del antiguo, suma 1 al nuevo).
     function isChangingVote(voteType, oldVoteField, newVoteField) {
-        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
-        let prevOldCount = prevVoteMap[oldVoteField] != null ? prevVoteMap[oldVoteField] : 0;
-        let prevNewCount = prevVoteMap[newVoteField] != null ? prevVoteMap[newVoteField] : 0;
-        let nextVoteMap = request.resource.data[voteType];
-        
-        if (prevOldCount == null || prevNewCount == null) { return false; }
-        
-        return nextVoteMap[oldVoteField] == prevOldCount - 1 &&
-               nextVoteMap[newVoteField] == prevNewCount + 1 &&
-               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
+        let prevOldCount = resource.data[voteType][oldVoteField];
+        let prevNewCount = resource.data[voteType][newVoteField];
+        return request.resource.data[voteType][oldVoteField] == prevOldCount - 1 &&
+               request.resource.data[voteType][newVoteField] == (prevNewCount == null ? 1 : prevNewCount + 1) &&
+               request.resource.data[voteType].diff(resource.data[voteType]).affectedKeys().hasOnly([oldVoteField, newVoteField]);
     }
     
     // --- Reglas de Colecciones ---
@@ -89,7 +76,6 @@ service cloud.firestore {
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
-      match /user_achievements/{achievementId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /adCampaigns/{campaignId} { allow read, write: if isOwner(userId) || isAdmin(); }
@@ -137,9 +123,6 @@ service cloud.firestore {
         )
       );
       
-      match /attitudeVotes/{userId} { allow get, write: if isOwner(userId); allow list: if isAdmin(); }
-      match /emotionVotes/{userId} { allow get, write: if isOwner(userId); allow list: if isAdmin(); }
-
       match /attitudeStats/{statId} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
       match /emotionStats/{statId} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
       match /ratingStats/{rating} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
@@ -213,7 +196,7 @@ service cloud.firestore {
         allow get, list: if true;
         allow create, delete, update: if isAdmin();
         
-        // Esta regla se vuelve redundante si solo los admins pueden actualizar, pero la dejamos por si se cambia en el futuro
+        // This rule is redundant if only admins can update, but we leave it in case this changes in the future
         allow update: if (
             isSignedIn() && (
                 (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && (isIncrement('messiVotes', 1) || isIncrement('messiVotes', -1))) ||
@@ -245,5 +228,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
