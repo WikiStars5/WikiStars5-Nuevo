@@ -43,26 +43,8 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
         <link rel="manifest" href="/manifest.json" />
-        {/* AdSense Code */}
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4946268254100131" crossOrigin="anonymous"></script>
-        {/* Meta Pixel Code */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              !function(f,b,e,v,n,t,s)
-              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-              n.queue=[];t=b.createElement(e);t.async=!0;
-              t.src=v;s=b.getElementsByTagName(e)[0];
-              s.parentNode.insertBefore(t,s)}(window, document,'script',
-              'https://connect.facebook.net/en_US/fbevents.js');
-              fbq('init', '815352248035468');
-              fbq('track', 'PageView');
-            `,
-          }}
-        />
-        {/* End Meta Pixel Code */}
+        {/* AdSense script is deferred below using next/script */}
+        {/* Meta Pixel script is deferred below using next/script */}
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
         {/* Meta Pixel Code (noscript) */}
@@ -90,6 +72,31 @@ export default function RootLayout({
             </LanguageProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
+         
+        {/* AdSense Code - Deferred Loading */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4946268254100131"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+
+        {/* Meta Pixel Code - Deferred Loading */}
+        <Script id="meta-pixel" strategy="afterInteractive">
+          {`
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '815352248035468');
+            fbq('track', 'PageView');
+          `}
+        </Script>
+
          <Script id="service-worker-unregister" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
