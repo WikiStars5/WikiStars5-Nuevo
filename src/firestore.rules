@@ -41,40 +41,26 @@ service cloud.firestore {
     
     // --- Funciones de Validación de Votos ---
     
-    // Verifica un incremento de +1 en un campo de un mapa.
     function isVoteIncrement(voteType, voteField) {
-        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {}; 
-        let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
-        let nextVoteMap = request.resource.data[voteType];
-        
-        return nextVoteMap[voteField] == prevCount + 1 &&
-               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
-    }
-    
-    // Verifica un decremento de -1 en un campo de un mapa.
-    function isVoteDecrement(voteType, voteField) {
-        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
-        let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
-        if (prevCount == null) { return false; }
-        
-        let nextVoteMap = request.resource.data[voteType];
-        
-        return nextVoteMap[voteField] == prevCount - 1 &&
-               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+      let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+      let nextVoteMap = request.resource.data[voteType];
+      let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
+      return nextVoteMap[voteField] == prevCount + 1 && nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
     }
 
-    // Verifica el cambio de un voto (resta 1 del antiguo, suma 1 al nuevo).
+    function isVoteDecrement(voteType, voteField) {
+      let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+      let nextVoteMap = request.resource.data[voteType];
+      let prevCount = prevVoteMap[voteField];
+      return prevCount != null && nextVoteMap[voteField] == prevCount - 1 && nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
+    }
+
     function isChangingVote(voteType, oldVoteField, newVoteField) {
-        let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
-        let prevOldCount = prevVoteMap[oldVoteField] != null ? prevVoteMap[oldVoteField] : 0;
-        let prevNewCount = prevVoteMap[newVoteField] != null ? prevVoteMap[newVoteField] : 0;
-        let nextVoteMap = request.resource.data[voteType];
-        
-        if (prevOldCount == null || prevNewCount == null) { return false; }
-        
-        return nextVoteMap[oldVoteField] == prevOldCount - 1 &&
-               nextVoteMap[newVoteField] == prevNewCount + 1 &&
-               nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
+      let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
+      let nextVoteMap = request.resource.data[voteType];
+      let prevOldCount = prevVoteMap[oldVoteField];
+      let prevNewCount = prevVoteMap[newVoteField] != null ? prevVoteMap[newVoteField] : 0;
+      return prevOldCount != null && nextVoteMap[oldVoteField] == prevOldCount - 1 && nextVoteMap[newVoteField] == prevNewCount + 1 && nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
     }
     
     // --- Reglas de Colecciones ---
@@ -126,12 +112,10 @@ service cloud.firestore {
             (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
           )) ||
 
-          // Regla 4: Valida los cambios en las calificaciones de estrellas.
+          // Regla 4: Valida los cambios en las calificaciones de estrellas al crear un comentario.
           (
-            request.resource.data.__ratingCount_delta != null &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ratingCount', 'totalRating', 'ratingsBreakdown', '__ratingCount_delta', '__totalRating_delta', 'updatedAt']) &&
-            request.resource.data.ratingCount == resource.data.ratingCount + request.resource.data.__ratingCount_delta &&
-            request.resource.data.totalRating == resource.data.totalRating + request.resource.data.__totalRating_delta
+            request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
+            request.resource.data.ratingCount == resource.data.ratingCount + 1
           )
         )
       );
@@ -144,20 +128,18 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow get, list: if true;
         
-        allow create: if (isAdmin()) || (
-          isSignedIn() && request.resource.data.userId == request.auth.uid && (
-            (areCommentsEnabled() && request.resource.data.text is string) || // Permite comentarios con texto
-            (areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5) // Permite solo calificación
+        // PERMITE CREAR un comentario si el usuario es el dueño Y (los comentarios de texto están habilitados O las calificaciones están habilitadas y se proporciona una).
+        allow create: if (isAdmin()) || (request.resource.data.userId == request.auth.uid && (
+            (areCommentsEnabled() && request.resource.data.text is string) ||
+            (areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5)
           )
         );
         
+        // PERMITE ACTUALIZAR si el usuario es el dueño (para editar texto) O CUALQUIER usuario autenticado puede actualizar likes/dislikes (SIMPLE).
         allow update: if isSignedIn() && (
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt', 'title', 'tag'])) || 
-            (isIncrement('likes', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
-            (isIncrement('likes', -1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
-            (isIncrement('dislikes', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
-            (isIncrement('dislikes', -1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
-            (isIncrement('replyCount', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount']))
+            (isIncrement('likes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', 1) || isIncrement('dislikes', -1)) ||
+            (isIncrement('replyCount', 1))
         );
         
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
@@ -175,12 +157,10 @@ service cloud.firestore {
             request.resource.data.text.size() > 0
           );
           
+          // PERMITE ACTUALIZAR si el usuario es el dueño (para editar texto) O CUALQUIER usuario autenticado puede actualizar likes/dislikes (SIMPLE).
           allow update: if isSignedIn() && (
             (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
-            (isIncrement('likes', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
-            (isIncrement('likes', -1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])) ||
-            (isIncrement('dislikes', 1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes'])) ||
-            (isIncrement('dislikes', -1) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dislikes']))
+            (isIncrement('likes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', 1) || isIncrement('dislikes', -1))
           );
           
           allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
@@ -191,10 +171,12 @@ service cloud.firestore {
 
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
     }
-
+    
+    // REGLA CLAVE FALTANTE: Permite la creación de starposts
     match /starposts/{commentId} {
       allow read: if true;
-      allow write: if isSignedIn(); // Solo los usuarios autenticados pueden crear (a través del formulario de comentarios).
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid; // Solo el dueño puede crear su propio starpost
+      allow update, delete: if isAdmin();
     }
     
     match /{path=**}/comments/{commentId} {
@@ -212,16 +194,8 @@ service cloud.firestore {
 
     match /goat_battles/{battleId} {
         allow get, list: if true;
-        allow create, delete, update: if isAdmin();
+        allow create, delete, update: if isAdmin(); // Simplificado: solo el admin gestiona la batalla
         
-        // Esta regla se vuelve redundante si solo los admins pueden actualizar, pero la dejamos por si se cambia en el futuro
-        allow update: if (
-            isSignedIn() && (
-                (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes']) && (isIncrement('messiVotes', 1) || isIncrement('messiVotes', -1))) ||
-                (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ronaldoVotes']) && (isIncrement('ronaldoVotes', 1) || isIncrement('ronaldoVotes', -1))) ||
-                (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messiVotes', 'ronaldoVotes']) && ((isIncrement('messiVotes', 1) && isIncrement('ronaldoVotes', -1)) || (isIncrement('messiVotes', -1) && isIncrement('ronaldoVotes', 1))))
-            )
-        );
         match /votes/{userId} { 
           allow get: if isOwner(userId) || isAdmin(); 
           allow write: if isOwner(userId); 
