@@ -5,8 +5,8 @@ import * as React from 'react';
 import type { Comment, FeaturedFigure } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import FeaturedFigures from '@/components/shared/featured-figures';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit, getDocs, startAfter, DocumentSnapshot } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { collection, query, orderBy, limit, getDocs, startAfter, Timestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
@@ -16,7 +16,7 @@ const INITIAL_LOAD_LIMIT = 10;
 interface HomePageContentProps {
   initialFeaturedFigures: FeaturedFigure[];
   initialPosts: Comment[];
-  initialLastVisible: any | null; // Serialized DocumentSnapshot
+  initialLastVisible: any | null; // Serialized DocumentSnapshot data
   initialHasMore: boolean;
 }
 
@@ -29,7 +29,8 @@ export default function HomePageContent({
   const firestore = useFirestore();
 
   const [feedComments, setFeedComments] = React.useState<Comment[]>(initialPosts);
-  const [lastVisible, setLastVisible] = React.useState<DocumentSnapshot | null>(initialLastVisible);
+  // The 'last visible' state now only needs to store the cursor value (the timestamp).
+  const [lastVisible, setLastVisible] = React.useState<string | null>(initialLastVisible?._data.createdAt || null);
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(initialHasMore);
 
@@ -38,20 +39,35 @@ export default function HomePageContent({
     setIsLoadingMore(true);
 
     try {
+        // Convert the ISO string timestamp back to a Firestore Timestamp for the query
+        const lastVisibleTimestamp = Timestamp.fromDate(new Date(lastVisible));
+      
         const nextBatch = query(
             collection(firestore, 'starposts'),
             orderBy('createdAt', 'desc'),
-            startAfter(lastVisible),
+            startAfter(lastVisibleTimestamp),
             limit(INITIAL_LOAD_LIMIT)
         );
 
         const documentSnapshots = await getDocs(nextBatch);
-        const newPosts = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
+        
+        // Deserialize the documents from the snapshot
+        const newPosts = documentSnapshots.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                createdAt: data.createdAt.toDate().toISOString(),
+                updatedAt: data.updatedAt?.toDate().toISOString() || null,
+            } as unknown as Comment;
+        });
 
         setFeedComments(prevPosts => [...prevPosts, ...newPosts]);
 
         const lastVisibleDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
-        setLastVisible(lastVisibleDoc);
+        if (lastVisibleDoc) {
+           setLastVisible((lastVisibleDoc.data().createdAt as Timestamp).toDate().toISOString());
+        }
         
         if (documentSnapshots.docs.length < INITIAL_LOAD_LIMIT) {
             setHasMore(false);
