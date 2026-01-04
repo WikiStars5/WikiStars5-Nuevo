@@ -13,13 +13,11 @@ function getAdminApp() {
 
   // Determine credentials based on the environment.
   // In a deployed Firebase/Google Cloud environment, GOOGLE_APPLICATION_CREDENTIALS is set automatically.
-  // Locally, you might use a service-account.json file, but for this setup, we rely on environment-based auth.
   const credential = process.env.GOOGLE_APPLICATION_CREDENTIALS
-    ? cert(process.env.GOOGLE_APPLICATION_CREDENTIALS)
-    : undefined; // Let the SDK find default credentials if the env var isn't set.
+    ? cert(JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS))
+    : undefined;
 
   // Initialize the app. If credential is 'undefined', the SDK will try to find credentials automatically.
-  // This is the standard and most secure way to initialize in Google Cloud environments.
   return initializeApp({
     credential
   });

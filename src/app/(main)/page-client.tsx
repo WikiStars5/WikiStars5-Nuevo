@@ -81,7 +81,7 @@ export default function HomePageContent({
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
-      <FeaturedFigures initialFeaturedFigures={initialFeaturedFigures} />
+      <FeaturedFigures />
       <h2 className="text-xl font-bold tracking-tight font-headline mb-4">Mira lo que dicen en vivo sobre tus personajes favoritos</h2>
       
       <div className="space-y-4">
