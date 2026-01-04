@@ -2,103 +2,164 @@
 'use client';
 
 import * as React from 'react';
-import type { Comment, FeaturedFigure } from '@/lib/types';
+import type { Comment, FeaturedFigure, AttitudeVote } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import FeaturedFigures from '@/components/shared/featured-figures';
-import { useFirestore } from '@/firebase';
-import { collection, query, orderBy, limit, getDocs, startAfter, Timestamp } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, query, where, orderBy, limit, getDocs, startAfter, Timestamp, QueryDocumentSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
-const INITIAL_LOAD_LIMIT = 10;
+const POST_LIMIT = 10;
 
 interface HomePageContentProps {
   initialFeaturedFigures: FeaturedFigure[];
-  initialPosts: Comment[];
-  initialLastVisible: any | null; // Serialized DocumentSnapshot data
-  initialHasMore: boolean;
 }
 
 export default function HomePageContent({ 
   initialFeaturedFigures, 
-  initialPosts,
-  initialLastVisible,
-  initialHasMore
 }: HomePageContentProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
 
-  const [feedComments, setFeedComments] = React.useState<Comment[]>(initialPosts);
-  // The 'last visible' state now only needs to store the cursor value (the timestamp).
-  const [lastVisible, setLastVisible] = React.useState<string | null>(initialLastVisible?._data.createdAt || null);
+  const [feedComments, setFeedComments] = React.useState<Comment[]>([]);
+  const [lastVisible, setLastVisible] = React.useState<QueryDocumentSnapshot | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
-  const [hasMore, setHasMore] = React.useState(initialHasMore);
+  const [hasMore, setHasMore] = React.useState(true);
+  const [votedFigureIds, setVotedFigureIds] = React.useState<string[] | null>(null);
 
-  const fetchMorePosts = async () => {
-    if (!firestore || !lastVisible) return;
-    setIsLoadingMore(true);
+  // Effect to determine the user's voted figures
+  React.useEffect(() => {
+    if (user && firestore) {
+      const getVotedFigures = async () => {
+        const attitudeVotesRef = collection(firestore, 'users', user.uid, 'attitudeVotes');
+        const attitudeSnapshot = await getDocs(attitudeVotesRef);
+        const figureIds = attitudeSnapshot.docs.map(doc => doc.id);
+        setVotedFigureIds(figureIds);
+      };
+      getVotedFigures();
+    } else {
+      // If there's no user, we can proceed to fetch the global feed
+      setVotedFigureIds([]);
+    }
+  }, [user, firestore]);
+  
+  const fetchPosts = React.useCallback(async (lastDoc: QueryDocumentSnapshot | null = null) => {
+    if (!firestore || votedFigureIds === null) return;
+
+    if (lastDoc) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+    }
 
     try {
-        // Convert the ISO string timestamp back to a Firestore Timestamp for the query
-        const lastVisibleTimestamp = Timestamp.fromDate(new Date(lastVisible));
-      
-        const nextBatch = query(
-            collection(firestore, 'starposts'),
-            orderBy('createdAt', 'desc'),
-            startAfter(lastVisibleTimestamp),
-            limit(INITIAL_LOAD_LIMIT)
+      let postsQuery;
+      const baseQuery = collection(firestore, 'starposts');
+
+      // If user has voted on figures, fetch posts from those figures.
+      if (votedFigureIds.length > 0) {
+        postsQuery = query(
+          baseQuery,
+          where('figureId', 'in', votedFigureIds),
+          orderBy('createdAt', 'desc'),
+          ...(lastDoc ? [startAfter(lastDoc)] : []),
+          limit(POST_LIMIT)
         );
+      } else {
+        // Otherwise, fetch the global feed.
+        postsQuery = query(
+          baseQuery,
+          orderBy('createdAt', 'desc'),
+          ...(lastDoc ? [startAfter(lastDoc)] : []),
+          limit(POST_LIMIT)
+        );
+      }
 
-        const documentSnapshots = await getDocs(nextBatch);
-        
-        // Deserialize the documents from the snapshot
-        const newPosts = documentSnapshots.docs.map(doc => {
-            const data = doc.data();
-            return {
-                ...data,
-                id: doc.id,
-                createdAt: data.createdAt.toDate().toISOString(),
-                updatedAt: data.updatedAt?.toDate().toISOString() || null,
-            } as unknown as Comment;
-        });
+      const documentSnapshots = await getDocs(postsQuery);
+      
+      const newPosts = documentSnapshots.docs.map(doc => {
+          const data = doc.data();
+          return {
+              ...data,
+              id: doc.id,
+              createdAt: data.createdAt.toDate(), // Keep as Date object for sorting
+              updatedAt: data.updatedAt?.toDate() || null,
+          } as unknown as Comment;
+      });
 
+      setHasMore(newPosts.length === POST_LIMIT);
+      
+      const newLastVisible = documentSnapshots.docs[documentSnapshots.docs.length - 1] || null;
+      setLastVisible(newLastVisible);
+
+      if (lastDoc) {
         setFeedComments(prevPosts => [...prevPosts, ...newPosts]);
+      } else {
+        setFeedComments(newPosts);
+      }
 
-        const lastVisibleDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
-        if (lastVisibleDoc) {
-           setLastVisible((lastVisibleDoc.data().createdAt as Timestamp).toDate().toISOString());
-        }
-        
-        if (documentSnapshots.docs.length < INITIAL_LOAD_LIMIT) {
-            setHasMore(false);
-        }
     } catch (error) {
-         console.error("Error fetching more starposts:", error);
+       console.error("Error fetching starposts:", error);
     } finally {
-        setIsLoadingMore(false);
+       setIsLoading(false);
+       setIsLoadingMore(false);
+    }
+  }, [firestore, votedFigureIds]);
+
+
+  // Effect to fetch initial posts once votedFigureIds is determined
+  React.useEffect(() => {
+    if (votedFigureIds !== null) {
+      fetchPosts();
+    }
+  }, [votedFigureIds, fetchPosts]);
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore && lastVisible) {
+      fetchPosts(lastVisible);
     }
   };
+  
+  const renderContent = () => {
+    if (isLoading) {
+      return Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="space-y-4 p-4 border rounded-lg">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      ));
+    }
+
+    if (feedComments.length > 0) {
+      return feedComments.map(post => <StarPostCard key={post.id} post={post} />);
+    }
+
+    return (
+      <div className="text-center py-10 text-muted-foreground">
+        <p>Aún no hay actividad para mostrar.</p>
+        <p className="text-sm">¡Vota por tus figuras favoritas para personalizar tu feed!</p>
+      </div>
+    );
+  };
+
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
-      <FeaturedFigures />
+      <FeaturedFigures initialFeaturedFigures={initialFeaturedFigures} />
       <h2 className="text-xl font-bold tracking-tight font-headline mb-4">Mira lo que dicen en vivo sobre tus personajes favoritos</h2>
       
       <div className="space-y-4">
-        {feedComments.length > 0 ? (
-          feedComments.map(post => <StarPostCard key={post.id} post={post} />)
-        ) : (
-          <div className="text-center py-10 text-muted-foreground">
-            <p>Aún no hay actividad para mostrar.</p>
-            <p className="text-sm">¡Vota por tus figuras favoritas para personalizar tu feed!</p>
-          </div>
-        )}
+        {renderContent()}
       </div>
 
-       {hasMore && (
+       {hasMore && !isLoading && (
         <div className="mt-6 text-center">
           <Button
-            onClick={fetchMorePosts}
+            onClick={handleLoadMore}
             disabled={isLoadingMore}
             variant="outline"
           >
