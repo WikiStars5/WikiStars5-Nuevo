@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 
 
 const INITIAL_LOAD_LIMIT = 10;
+const LOAD_MORE_LIMIT = 10;
 
 function HomePageContent() {
   const firestore = useFirestore();
@@ -45,8 +46,10 @@ function HomePageContent() {
             const posts = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
             setFeedComments(posts);
 
-            const lastVisibleDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
-            setLastVisible(lastVisibleDoc);
+            if (documentSnapshots.docs.length > 0) {
+              const lastVisibleDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
+              setLastVisible(lastVisibleDoc);
+            }
 
             if (documentSnapshots.docs.length < INITIAL_LOAD_LIMIT) {
                 setHasMore(false);
@@ -72,7 +75,7 @@ function HomePageContent() {
             collection(firestore, 'starposts'),
             orderBy('createdAt', 'desc'),
             startAfter(lastVisible),
-            limit(INITIAL_LOAD_LIMIT)
+            limit(LOAD_MORE_LIMIT)
         );
 
         const documentSnapshots = await getDocs(nextBatch);
@@ -80,10 +83,12 @@ function HomePageContent() {
 
         setFeedComments(prevPosts => [...prevPosts, ...newPosts]);
 
-        const lastVisibleDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
-        setLastVisible(lastVisibleDoc);
+        if (documentSnapshots.docs.length > 0) {
+            const lastVisibleDoc = documentSnapshots.docs[documentSnapshots.docs.length - 1];
+            setLastVisible(lastVisibleDoc);
+        }
         
-        if (documentSnapshots.docs.length < INITIAL_LOAD_LIMIT) {
+        if (documentSnapshots.docs.length < LOAD_MORE_LIMIT) {
             setHasMore(false);
         }
     } catch (error) {
