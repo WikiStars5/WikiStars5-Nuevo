@@ -2,20 +2,34 @@
 'use client';
 
 import * as React from 'react';
-import type { Comment, FeaturedFigure, AttitudeVote } from '@/lib/types';
+import type { Comment, AttitudeVote } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import FeaturedFigures from '@/components/shared/featured-figures';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit, getDocs, startAfter, Timestamp, QueryDocumentSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, Timestamp, QuerySnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
 const POST_LIMIT = 10;
+const POSTS_PER_FIGURE = 5; // How many recent posts to get from each figure
 
 interface HomePageContentProps {
   initialFeaturedFigures: FeaturedFigure[];
 }
+
+// Fisher-Yates shuffle algorithm
+function shuffleArray<T>(array: T[]): T[] {
+  let currentIndex = array.length,  randomIndex;
+  while (currentIndex !== 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+  return array;
+}
+
 
 export default function HomePageContent({ 
   initialFeaturedFigures, 
@@ -37,11 +51,9 @@ export default function HomePageContent({
 
   const { data: attitudeVotes, isLoading: isLoadingVotes } = useCollection<AttitudeVote>(attitudeVotesQuery, { enabled: !!user });
 
-  // Memoize the derived list of figure IDs
   const votedFigureIds = React.useMemo(() => {
     if (!attitudeVotes) return null;
-    // The figureId is the document ID in this collection
-    return attitudeVotes.map(vote => vote.id);
+    return attitudeVotes.map(vote => vote.id); // The figureId is the doc id
   }, [attitudeVotes]);
   
   const fetchPosts = React.useCallback(async (lastDoc: QueryDocumentSnapshot | null = null) => {
@@ -51,55 +63,66 @@ export default function HomePageContent({
       setIsLoadingMore(true);
     } else {
       setIsLoading(true);
-      setFeedComments([]); // Clear previous results on a new fetch
+      setFeedComments([]);
     }
 
     try {
-      const baseQuery = collection(firestore, 'starposts');
-      let postsQuery;
+        let posts: Comment[] = [];
+        let newLastVisible: QueryDocumentSnapshot | null = null;
+        let newHasMore = false;
 
-      // If user has voted on figures, fetch posts from those figures.
-      // Firestore 'in' queries are limited to 30 items.
-      if (votedFigureIds.length > 0) {
-        postsQuery = query(
-          baseQuery,
-          where('figureId', 'in', votedFigureIds.slice(0, 30)),
-          orderBy('createdAt', 'desc'),
-          ...(lastDoc ? [startAfter(lastDoc)] : []),
-          limit(POST_LIMIT)
-        );
-      } else {
-        // Otherwise (no votes or anonymous user), fetch the global feed.
-        postsQuery = query(
-          baseQuery,
-          orderBy('createdAt', 'desc'),
-          ...(lastDoc ? [startAfter(lastDoc)] : []),
-          limit(POST_LIMIT)
-        );
-      }
+        // If user has voted on figures, fetch posts from those figures.
+        if (votedFigureIds.length > 0) {
+            const postPromises = votedFigureIds.map(figureId => {
+                const figurePostsQuery = query(
+                    collection(firestore, 'starposts'),
+                    where('figureId', '==', figureId),
+                    orderBy('createdAt', 'desc'),
+                    limit(POSTS_PER_FIGURE)
+                );
+                return getDocs(figurePostsQuery);
+            });
 
-      const documentSnapshots = await getDocs(postsQuery);
-      
-      const newPosts = documentSnapshots.docs.map(doc => {
-          const data = doc.data();
-          return {
-              ...data,
-              id: doc.id,
-              // Ensure createdAt is a Date object for client-side logic
-              createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-              updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : undefined,
-          } as unknown as Comment;
-      });
-      
-      setHasMore(newPosts.length === POST_LIMIT);
-      const newLastVisible = documentSnapshots.docs.length > 0 ? documentSnapshots.docs[documentSnapshots.docs.length - 1] : null;
-      setLastVisible(newLastVisible);
+            const snapshots = await Promise.all(postPromises);
+            const allPosts = snapshots.flatMap(snapshot => 
+                snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment))
+            );
+            
+            posts = shuffleArray(allPosts);
+            newHasMore = false; // "Load More" is disabled for personalized feed for simplicity
 
-      if (lastDoc) {
-        setFeedComments(prevPosts => [...prevPosts, ...newPosts]);
-      } else {
-        setFeedComments(newPosts);
-      }
+        } else {
+            // Otherwise (no votes or anonymous user), fetch the global feed.
+            const globalQuery = query(
+              collection(firestore, 'starposts'),
+              orderBy('createdAt', 'desc'),
+              ...(lastDoc ? [startAfter(lastDoc)] : []),
+              limit(POST_LIMIT)
+            );
+            const documentSnapshots = await getDocs(globalQuery);
+            
+            posts = documentSnapshots.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    ...data,
+                    id: doc.id,
+                    createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+                    updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : undefined,
+                } as unknown as Comment;
+            });
+            
+            newHasMore = posts.length === POST_LIMIT;
+            newLastVisible = documentSnapshots.docs.length > 0 ? documentSnapshots.docs[documentSnapshots.docs.length - 1] : null;
+        }
+
+        setHasMore(newHasMore);
+        setLastVisible(newLastVisible);
+
+        if (lastDoc) {
+            setFeedComments(prevPosts => [...prevPosts, ...posts]);
+        } else {
+            setFeedComments(posts);
+        }
 
     } catch (error) {
        console.error("Error fetching starposts:", error);
@@ -112,11 +135,10 @@ export default function HomePageContent({
 
   // Effect to fetch initial posts once votedFigureIds is determined or changes.
   React.useEffect(() => {
-    // We wait until the votedFigureIds are known (even if it's an empty array)
-    if (votedFigureIds !== null) {
-      fetchPosts();
-    }
-  }, [votedFigureIds, fetchPosts]);
+    if (isLoadingVotes) return; // Wait until we know what the user has voted for.
+    fetchPosts();
+  }, [votedFigureIds, fetchPosts, isLoadingVotes]);
+
 
   const handleLoadMore = () => {
     if (!isLoadingMore && hasMore && lastVisible) {
