@@ -254,6 +254,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         if ((data.text && data.text.trim().length > 0) || (data.title && data.title.trim().length > 0)) {
             const starpostsColRef = collection(firestore, 'starposts');
             const newStarpostRef = doc(starpostsColRef, newCommentRef.id);
+            // Use the correct payload for starposts
             batch.set(newStarpostRef, sharedPayload);
         }
 
