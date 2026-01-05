@@ -5,7 +5,7 @@ import * as React from 'react';
 import type { Comment, FeaturedFigure, AttitudeVote } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import FeaturedFigures from '@/components/shared/featured-figures';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit, getDocs, startAfter, Timestamp, QueryDocumentSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -28,23 +28,21 @@ export default function HomePageContent({
   const [isLoading, setIsLoading] = React.useState(true);
   const [isLoadingMore, setIsLoadingMore] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
-  const [votedFigureIds, setVotedFigureIds] = React.useState<string[] | null>(null);
 
-  // Effect to determine the user's voted figures
-  React.useEffect(() => {
-    if (user && firestore) {
-      const getVotedFigures = async () => {
-        const attitudeVotesRef = collection(firestore, 'users', user.uid, 'attitudeVotes');
-        const attitudeSnapshot = await getDocs(attitudeVotesRef);
-        const figureIds = attitudeSnapshot.docs.map(doc => doc.id);
-        setVotedFigureIds(figureIds);
-      };
-      getVotedFigures();
-    } else {
-      // If there's no user, we can proceed to fetch the global feed
-      setVotedFigureIds([]);
-    }
+  // Use useCollection to reactively get the user's voted figures
+  const attitudeVotesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'attitudeVotes');
   }, [user, firestore]);
+
+  const { data: attitudeVotes, isLoading: isLoadingVotes } = useCollection<AttitudeVote>(attitudeVotesQuery, { enabled: !!user });
+
+  // Memoize the derived list of figure IDs
+  const votedFigureIds = React.useMemo(() => {
+    if (!attitudeVotes) return null;
+    // The figureId is the document ID in this collection
+    return attitudeVotes.map(vote => vote.id);
+  }, [attitudeVotes]);
   
   const fetchPosts = React.useCallback(async (lastDoc: QueryDocumentSnapshot | null = null) => {
     if (!firestore || votedFigureIds === null) return;
@@ -53,23 +51,25 @@ export default function HomePageContent({
       setIsLoadingMore(true);
     } else {
       setIsLoading(true);
+      setFeedComments([]); // Clear previous results on a new fetch
     }
 
     try {
-      let postsQuery;
       const baseQuery = collection(firestore, 'starposts');
+      let postsQuery;
 
       // If user has voted on figures, fetch posts from those figures.
+      // Firestore 'in' queries are limited to 30 items.
       if (votedFigureIds.length > 0) {
         postsQuery = query(
           baseQuery,
-          where('figureId', 'in', votedFigureIds),
+          where('figureId', 'in', votedFigureIds.slice(0, 30)),
           orderBy('createdAt', 'desc'),
           ...(lastDoc ? [startAfter(lastDoc)] : []),
           limit(POST_LIMIT)
         );
       } else {
-        // Otherwise, fetch the global feed.
+        // Otherwise (no votes or anonymous user), fetch the global feed.
         postsQuery = query(
           baseQuery,
           orderBy('createdAt', 'desc'),
@@ -85,14 +85,14 @@ export default function HomePageContent({
           return {
               ...data,
               id: doc.id,
-              createdAt: data.createdAt.toDate(), // Keep as Date object for sorting
-              updatedAt: data.updatedAt?.toDate() || null,
+              // Ensure createdAt is a Date object for client-side logic
+              createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+              updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : undefined,
           } as unknown as Comment;
       });
-
-      setHasMore(newPosts.length === POST_LIMIT);
       
-      const newLastVisible = documentSnapshots.docs[documentSnapshots.docs.length - 1] || null;
+      setHasMore(newPosts.length === POST_LIMIT);
+      const newLastVisible = documentSnapshots.docs.length > 0 ? documentSnapshots.docs[documentSnapshots.docs.length - 1] : null;
       setLastVisible(newLastVisible);
 
       if (lastDoc) {
@@ -110,8 +110,9 @@ export default function HomePageContent({
   }, [firestore, votedFigureIds]);
 
 
-  // Effect to fetch initial posts once votedFigureIds is determined
+  // Effect to fetch initial posts once votedFigureIds is determined or changes.
   React.useEffect(() => {
+    // We wait until the votedFigureIds are known (even if it's an empty array)
     if (votedFigureIds !== null) {
       fetchPosts();
     }
@@ -124,7 +125,8 @@ export default function HomePageContent({
   };
   
   const renderContent = () => {
-    if (isLoading) {
+    // Show loading skeleton only on the very first load
+    if (isLoading && feedComments.length === 0) {
       return Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="space-y-4 p-4 border rounded-lg">
           <Skeleton className="h-10 w-10 rounded-full" />
@@ -138,18 +140,23 @@ export default function HomePageContent({
       return feedComments.map(post => <StarPostCard key={post.id} post={post} />);
     }
 
-    return (
-      <div className="text-center py-10 text-muted-foreground">
-        <p>Aún no hay actividad para mostrar.</p>
-        <p className="text-sm">¡Vota por tus figuras favoritas para personalizar tu feed!</p>
-      </div>
-    );
+    // Show this message only after loading is complete and there are still no comments
+    if (!isLoading && feedComments.length === 0) {
+        return (
+          <div className="text-center py-10 text-muted-foreground">
+            <p>Aún no hay actividad para mostrar.</p>
+            <p className="text-sm">¡Vota por tus figuras favoritas para personalizar tu feed!</p>
+          </div>
+        );
+    }
+
+    return null; // Don't render anything while loading more or in other intermediate states
   };
 
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8 md:py-12">
-      <FeaturedFigures initialFeaturedFigures={initialFeaturedFigures} />
+      <FeaturedFigures />
       <h2 className="text-xl font-bold tracking-tight font-headline mb-4">Mira lo que dicen en vivo sobre tus personajes favoritos</h2>
       
       <div className="space-y-4">
