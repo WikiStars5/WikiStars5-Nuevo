@@ -177,7 +177,6 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
 
     try {
         const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-        const starpostsColRef = collection(firestore, 'starposts');
         
         // This check is now more reliable because identity creation is separate
         const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
@@ -226,7 +225,6 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         }
       
         const newCommentRef = doc(commentsColRef);
-        const newStarpostRef = doc(starpostsColRef, newCommentRef.id);
 
         const sharedPayload = {
             userId: currentUser.uid,
@@ -251,7 +249,13 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         };
 
         batch.set(newCommentRef, { ...sharedPayload, threadId: newCommentRef.id });
-        batch.set(newStarpostRef, sharedPayload);
+
+        // Only create a starpost if there is text or a title
+        if ((data.text && data.text.trim().length > 0) || (data.title && data.title.trim().length > 0)) {
+            const starpostsColRef = collection(firestore, 'starposts');
+            const newStarpostRef = doc(starpostsColRef, newCommentRef.id);
+            batch.set(newStarpostRef, sharedPayload);
+        }
 
         await batch.commit();
 
