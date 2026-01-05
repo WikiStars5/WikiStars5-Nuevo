@@ -71,7 +71,7 @@ export async function updateStreak({
                 transaction.set(userRef, { id: userId, createdAt: serverTimestamp() });
             }
             
-            const userData = userDoc.data() as User || {};
+            const userData = userDoc.data() as User | undefined || {};
             const userCountry = userData.country || 'unknown';
             const userGender = userData.gender || 'unknown';
             const userDisplayName = userData.username || 'Invitado';

@@ -147,8 +147,7 @@ function ProfilePageContent() {
                     username: newUsername,
                     usernameLower: newUsernameLower,
                     profilePhotoUrl: data.profilePhotoUrl || null,
-                    // Country is no longer editable by the user from this form.
-                    // It should be set programmatically elsewhere (e.g. on sign-up from IP).
+                    country: data.country || null,
                     gender: data.gender || null,
                     description: data.description || null,
                 };
@@ -376,10 +375,13 @@ function ProfilePageContent() {
                                             control={profileForm.control}
                                             name="country"
                                             render={({ field }) => (
-                                                <FormItem>
+                                                <FormItem className="flex flex-col gap-2">
                                                     <FormLabel>{t('ProfilePage.countryLabel')}</FormLabel>
                                                     <FormControl>
-                                                        <Input value={field.value || ''} disabled />
+                                                        <CountrySelector
+                                                            value={field.value || ''}
+                                                            onChange={field.onChange}
+                                                        />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
