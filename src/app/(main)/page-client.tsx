@@ -2,11 +2,11 @@
 'use client';
 
 import * as React from 'react';
-import type { Comment, AttitudeVote } from '@/lib/types';
+import type { Comment, AttitudeVote, Figure as FeaturedFigure } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import FeaturedFigures from '@/components/shared/featured-figures';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit, getDocs, Timestamp, QuerySnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, startAfter, Timestamp, QuerySnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
@@ -45,19 +45,19 @@ export default function HomePageContent({
 
   // Use useCollection to reactively get the user's voted figures
   const attitudeVotesQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!user || !firestore || user.isAnonymous) return null;
     return collection(firestore, 'users', user.uid, 'attitudeVotes');
   }, [user, firestore]);
 
-  const { data: attitudeVotes, isLoading: isLoadingVotes } = useCollection<AttitudeVote>(attitudeVotesQuery, { enabled: !!user });
+  const { data: attitudeVotes, isLoading: isLoadingVotes } = useCollection<AttitudeVote>(attitudeVotesQuery, { enabled: !!user && !user.isAnonymous });
 
   const votedFigureIds = React.useMemo(() => {
-    if (!attitudeVotes) return null;
+    if (!attitudeVotes) return [];
     return attitudeVotes.map(vote => vote.id); // The figureId is the doc id
   }, [attitudeVotes]);
   
   const fetchPosts = React.useCallback(async (lastDoc: QueryDocumentSnapshot | null = null) => {
-    if (!firestore || votedFigureIds === null) return;
+    if (!firestore) return;
 
     if (lastDoc) {
       setIsLoadingMore(true);
@@ -72,7 +72,7 @@ export default function HomePageContent({
         let newHasMore = false;
 
         // If user has voted on figures, fetch posts from those figures.
-        if (votedFigureIds.length > 0) {
+        if (user && !user.isAnonymous && votedFigureIds && votedFigureIds.length > 0) {
             const postPromises = votedFigureIds.map(figureId => {
                 const figurePostsQuery = query(
                     collection(firestore, 'starposts'),
@@ -130,12 +130,13 @@ export default function HomePageContent({
        setIsLoading(false);
        setIsLoadingMore(false);
     }
-  }, [firestore, votedFigureIds]);
+  }, [firestore, votedFigureIds, user]);
 
 
   // Effect to fetch initial posts once votedFigureIds is determined or changes.
   React.useEffect(() => {
-    if (isLoadingVotes) return; // Wait until we know what the user has voted for.
+    // We wait until we know if the user is authenticated and if we have their votes.
+    if (isLoadingVotes) return; 
     fetchPosts();
   }, [votedFigureIds, fetchPosts, isLoadingVotes]);
 
