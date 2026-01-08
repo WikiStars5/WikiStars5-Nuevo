@@ -1,8 +1,7 @@
-
 'use client';
 
 import * as React from 'react';
-import type { Comment, AttitudeVote, FeaturedFigure, Figure as FigureType } from '@/lib/types';
+import type { Comment, AttitudeVote, FeaturedFigure } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import FeaturedFigures from '@/components/shared/featured-figures';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
@@ -12,15 +11,11 @@ import {
   orderBy, 
   limit, 
   getDocs, 
-  Timestamp,
-  where
+  Timestamp 
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 
-interface HomePageContentProps {
-  initialFeaturedFigures: FeaturedFigure[];
-}
+const POSTS_PER_FIGURE = 5;
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -50,49 +45,39 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
 
   const votedFigureIds = React.useMemo(() => {
     if (!attitudeVotes) return [];
-    return attitudeVotes.map(vote => vote.id); // El ID del doc es el figureId
+    return attitudeVotes.map(vote => vote.id); 
   }, [attitudeVotes]);
   
-  const fetchPosts = React.useCallback(async (figureIds: string[]) => {
+  // 2. Función para buscar en las SUBCOLECCIONES (figures/{id}/comments)
+  const fetchFeed = React.useCallback(async (figureIds: string[]) => {
     if (!firestore) return;
     setIsLoading(true);
 
     try {
-      let queryRef;
       if (figureIds.length > 0) {
-        // --- PERSONALIZED FEED ---
-        const allFetchedPosts: Comment[] = [];
         const postPromises = figureIds.map(figureId => {
-          const commentsRef = collection(firestore, 'starposts');
-          const q = query(commentsRef, where('figureId', '==', figureId), orderBy('createdAt', 'desc'), limit(5));
+          // Usamos la ruta real de tu base de datos
+          const commentsRef = collection(firestore, 'figures', figureId, 'comments');
+          const q = query(commentsRef, orderBy('createdAt', 'desc'), limit(POSTS_PER_FIGURE));
           return getDocs(q);
         });
 
         const snapshots = await Promise.all(postPromises);
-        snapshots.forEach(snapshot => {
-          snapshot.docs.forEach(doc => {
+        
+        const allFetchedPosts = snapshots.flatMap(snapshot => 
+          snapshot.docs.map(doc => {
             const data = doc.data();
-            allFetchedPosts.push({
+            return {
               ...data,
               id: doc.id,
               createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-            } as unknown as Comment);
-          });
-        });
+            } as unknown as Comment;
+          })
+        );
+        
         setFeedComments(shuffleArray(allFetchedPosts));
       } else {
-        // --- GLOBAL FEED (for new users or users with no votes) ---
-        queryRef = query(collection(firestore, 'starposts'), orderBy('createdAt', 'desc'), limit(10));
-        const snapshot = await getDocs(queryRef);
-        const posts = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
-          } as unknown as Comment;
-        });
-        setFeedComments(posts);
+        setFeedComments([]);
       }
     } catch (error) {
       console.error("Error al armar el feed:", error);
@@ -101,16 +86,15 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
     }
   }, [firestore]);
 
+  // 3. Efecto de control igual al de la otra IA
   React.useEffect(() => {
-    // We wait until we know if the user has votes or not
     if (!isLoadingVotes) {
-      fetchPosts(votedFigureIds);
+      fetchFeed(votedFigureIds);
     }
-  }, [votedFigureIds, isLoadingVotes, fetchPosts]);
-
+  }, [votedFigureIds, isLoadingVotes, fetchFeed]);
 
   const renderContent = () => {
-    // Show a specific message for new/unvoted users instead of a loader.
+    // Aplicamos la lógica de la otra IA para el mensaje inicial
     const isReadyForFeed = !isUserLoading && !isLoadingVotes;
     
     if (!isReadyForFeed) {
@@ -122,7 +106,8 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
       );
     }
 
-    if (isLoading) {
+    // Si ya está listo pero está buscando los posts en las subcolecciones
+    if (isLoading && votedFigureIds.length > 0) {
       return Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="p-4 border rounded-lg space-y-3 animate-pulse">
           <Skeleton className="h-10 w-10 rounded-full" />
@@ -131,14 +116,16 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
       ));
     }
     
+    // Si hay comentarios encontrados
     if (feedComments.length > 0) {
       return feedComments.map(post => <StarPostCard key={post.id} post={post} />);
     }
 
+    // Mensaje final si después de cargar todo no hay nada
     return (
       <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed">
-        <p className="text-lg font-medium">¡Tu feed está vacío!</p>
-        <p className="text-sm text-muted-foreground">Vota por personajes para ver sus comentarios aquí.</p>
+        <p className="text-lg font-medium text-muted-foreground">Aún no hay actividad para mostrar.</p>
+        <p className="text-sm text-muted-foreground">¡Vota por tus figuras favoritas para personalizar tu feed!</p>
       </div>
     );
   };

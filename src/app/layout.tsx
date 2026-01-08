@@ -27,7 +27,7 @@ const sourceCodePro = Source_Code_Pro({
 
 
 export const metadata: Metadata = {
-  title: 'WikiStars5: Gana el debate, Vota y Pelea',
+  title: 'WikiStars5: Percepcion de figuras publicas',
   description: 'Ponle 1 estrella al que odias, 5 al que amas. Entra al ring: ataca, defiende y cierra la boca a los haters con tu StarPost. ¡La pelea empieza aquí!',
   manifest: '/manifest.json',
 };
