@@ -1,13 +1,14 @@
+
 'use client';
 
 import { useState } from 'react';
-import type { Comment, CommentVote } from '@/lib/types';
+import type { Comment, CommentVote, Streak } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { StarRating } from '@/components/shared/star-rating';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame } from 'lucide-react';
 import { cn, formatDateDistance } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
@@ -17,6 +18,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, runTransaction, increment, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
+import { isDateActive } from '@/lib/streaks';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -51,6 +53,13 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
   }, [firestore, user, votePath]);
 
   const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user });
+
+  const userStreakRef = useMemoFirebase(() => {
+    if (!firestore || !post.userId || !post.figureId) return null;
+    return doc(firestore, `users/${post.userId}/streaks`, post.figureId);
+  }, [firestore, post.userId, post.figureId]);
+
+  const { data: userStreak, isLoading: isStreakLoading } = useDoc<Streak>(userStreakRef);
 
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
@@ -124,7 +133,7 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
   const attitudeStyle = post.userAttitude ? attitudeStyles[post.userAttitude] : null;
   const tag = post.tag ? commentTags.find(t => t.id === post.tag) : null;
   const isOwner = user && user.uid === post.userId;
-
+  const showStreak = userStreak && userStreak.currentStreak > 0 && isDateActive(userStreak.lastCommentDate);
 
   return (
     <Card className="hover:border-primary/50 transition-colors dark:bg-black">
@@ -144,6 +153,12 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                             </Link>
                              {attitudeStyle && (
                                 <p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>
+                            )}
+                             {showStreak && (
+                                <div className="flex items-center gap-1 text-orange-500 font-bold text-xs" title={`${userStreak.currentStreak} días de racha`}>
+                                    <Flame className="h-3 w-3" />
+                                    <span>{userStreak.currentStreak}</span>
+                                </div>
                             )}
                             {post.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
                             {post.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Feminino">♀</span>}
