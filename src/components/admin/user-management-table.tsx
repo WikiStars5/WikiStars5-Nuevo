@@ -131,13 +131,13 @@ export default function UserManagementTable() {
                         {!isLoading && paginatedUsers.map(user => (
                             <TableRow key={user.id}>
                                 <TableCell>
-                                    <Link href={`/u/${user.username}`} className="flex items-center gap-3 group">
+                                    <div className="flex items-center gap-3 group">
                                         <Avatar>
                                             <AvatarImage src={user.profilePhotoUrl || undefined} />
                                             <AvatarFallback>{getAvatarFallback(user.username)}</AvatarFallback>
                                         </Avatar>
-                                        <p className="font-medium group-hover:underline">{user.username}</p>
-                                    </Link>
+                                        <p className="font-medium">{user.username}</p>
+                                    </div>
                                 </TableCell>
                                 <TableCell className="text-center font-bold">
                                     {user.attitudeVotes}
@@ -194,5 +194,3 @@ export default function UserManagementTable() {
         </Card>
     )
 }
-
-    

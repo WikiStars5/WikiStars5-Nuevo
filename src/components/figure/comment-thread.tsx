@@ -270,9 +270,9 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
             <div className="flex-1">
                 <div className="flex items-start justify-between">
                      <div className="flex items-center gap-2 flex-wrap">
-                        <Link href={`/u/${comment.userDisplayName}`} className="font-semibold text-sm hover:underline">
+                        <p className="font-semibold text-sm">
                             {comment.userDisplayName}
-                        </Link>
+                        </p>
                          {attitudeStyle && !isReply && (
                             <p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>
                         )}

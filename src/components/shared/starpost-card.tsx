@@ -148,9 +148,9 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                 <div className="flex-1">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <Link href={`/u/${post.userDisplayName}`} className="font-semibold text-sm hover:underline">
+                            <p className="font-semibold text-sm">
                                 {post.userDisplayName}
-                            </Link>
+                            </p>
                              {attitudeStyle && (
                                 <p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>
                             )}
