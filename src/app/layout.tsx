@@ -65,6 +65,21 @@ export default function RootLayout({
           </FirebaseClientProvider>
         </ThemeProvider>
          
+        {/* Google Analytics */}
+        <Script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-JPZ1R12H4D"
+            strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-JPZ1R12H4D');
+          `}
+        </Script>
+
         {/* AdSense Code - Deferred Loading */}
         <Script
           async
