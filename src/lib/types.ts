@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from 'firebase/firestore';
 import type { CommentTagId } from './tags';
 
@@ -174,6 +175,7 @@ export interface Comment {
   text: string;
   rating: number; // Star rating from 0-5 associated with the comment. -1 for replies or when ratings are disabled.
   tag?: CommentTagId | null;
+  isFeatured?: boolean; // New field for admin to feature a comment
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   likes?: number;
@@ -250,3 +252,5 @@ export interface Referral {
     sourceFigureId?: string | null;
     hasVoted?: boolean;
 }
+
+    

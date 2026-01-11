@@ -117,7 +117,12 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
         // For 'neutral' or any other case, apply the filter from the active tab.
         switch(activeFilter) {
           case 'featured':
-              tempComments.sort(hotScoreSort);
+              // Prioritize featured comments, then sort by hot score
+              tempComments.sort((a, b) => {
+                  if (a.isFeatured && !b.isFeatured) return -1;
+                  if (!a.isFeatured && b.isFeatured) return 1;
+                  return calculateHotScore(b) - calculateHotScore(a);
+              });
               break;
           case 'popular':
               tempComments.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
@@ -259,3 +264,5 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     </div>
   );
 }
+
+    

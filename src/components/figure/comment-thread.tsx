@@ -1,13 +1,14 @@
 
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking, useAdmin } from '@/firebase';
 import type { Comment as CommentType, CommentVote, GlobalSettings, Streak } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp, Share2, Lock, Flame } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp, Share2, Lock, Flame, Pin, PinOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -58,6 +59,7 @@ interface CommentItemProps {
 function CommentItem({ comment, figureId, figureName, isReply = false, onReplySuccess, areRepliesEnabled, refetchReplies }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
+    const { isAdmin } = useAdmin();
     const { toast } = useToast();
     const { t, language } = useLanguage();
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
@@ -67,6 +69,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     const [editTitle, setEditTitle] = useState(comment.title || '');
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [isReplying, setIsReplying] = useState(false);
+    const [isFeaturing, setIsFeaturing] = useState(false);
 
     const isOwner = user && user.uid === comment.userId;
     
@@ -233,6 +236,32 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
         }
     };
     
+    const handleToggleFeatured = async () => {
+        if (!firestore || !isAdmin) return;
+        setIsFeaturing(true);
+        const commentPath = isReply
+            ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
+            : `figures/${figureId}/comments/${comment.id}`;
+        const commentRef = doc(firestore, commentPath);
+
+        try {
+            await updateDoc(commentRef, { isFeatured: !comment.isFeatured });
+            toast({
+                title: comment.isFeatured ? 'Comentario Desfijado' : 'Comentario Fijado',
+            });
+            refetchReplies?.();
+        } catch (error) {
+            console.error("Error featuring comment:", error);
+            toast({
+                title: 'Error al Fijar',
+                description: 'No se pudo actualizar el estado del comentario.',
+                variant: "destructive",
+            });
+        } finally {
+            setIsFeaturing(false);
+        }
+    };
+    
     const localOnReplySuccess = () => {
         setIsReplying(false);
         onReplySuccess();
@@ -293,6 +322,12 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                                 className="object-contain"
                                 title={country.name}
                             />
+                        )}
+                         {comment.isFeatured && (
+                            <div className="flex items-center gap-1 text-primary font-bold text-xs" title="Comentario destacado">
+                                <Pin className="h-3 w-3" />
+                                <span>Destacado</span>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -404,6 +439,17 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                                     />
                                 )}
                                 </>
+                            )}
+                             {isAdmin && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn("h-8 w-8", comment.isFeatured && "text-primary")}
+                                    onClick={handleToggleFeatured}
+                                    disabled={isFeaturing}
+                                >
+                                    {isFeaturing ? <Loader2 className="h-4 w-4 animate-spin" /> : comment.isFeatured ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                                </Button>
                             )}
                         </div>
 
@@ -568,3 +614,5 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
+
+    

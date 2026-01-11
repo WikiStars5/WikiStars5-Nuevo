@@ -317,6 +317,10 @@
           "type": "number",
           "description": "The number of dislikes the comment has received."
         },
+        "isFeatured": {
+            "type": "boolean",
+            "description": "If true, this comment is featured and appears at the top of the 'featured' sort."
+        },
         "createdAt": {
           "type": "string",
           "description": "The timestamp when the comment was created.",
@@ -335,33 +339,6 @@
         "text",
         "depth"
       ]
-    },
-    "StarPost": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "StarPost",
-      "type": "object",
-      "description": "A denormalized copy of a root comment for the main feed.",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "figureId": { "type": "string" },
-        "figureName": { "type": "string" },
-        "figureImageUrl": { "type": "string", "format": "uri" },
-        "title": { "type": "string" },
-        "text": { "type": "string" },
-        "tag": { "type": "string" },
-        "rating": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "userDisplayName": { "type": "string" },
-        "userPhotoURL": { "type": "string", "format": "uri" },
-        "userCountry": { "type": "string" },
-        "userGender": { "type": "string" },
-        "userAttitude": { "type": "string" },
-        "likes": { "type": "number" },
-        "dislikes": { "type": "number" },
-        "replyCount": { "type": "number" }
-      },
-      "required": ["id", "userId", "figureId", "createdAt", "userDisplayName"]
     },
     "CommentVote": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -760,17 +737,6 @@
         }
       },
       {
-        "path": "/starposts/{commentId}",
-        "definition": {
-          "entityName": "StarPost",
-          "schema": { "$ref": "#/backend/entities/StarPost" },
-          "description": "A collection of denormalized root comments from all figures for building the main feed.",
-          "params": [
-            { "name": "commentId", "description": "The unique ID of the original comment." }
-          ]
-        }
-      },
-      {
         "path": "/figures/{figureId}/comments/{commentId}/votes/{userId}",
         "definition": {
           "entityName": "CommentVote",
@@ -951,5 +917,4 @@
   }
 }
 
-
-
+    
