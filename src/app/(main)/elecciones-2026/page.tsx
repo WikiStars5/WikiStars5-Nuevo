@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -86,6 +87,8 @@ function CandidateCard({ candidate, onRemove }: { candidate: ElectionCandidate, 
     const { isAdmin } = useAdmin();
     const [isDeleting, setIsDeleting] = useState(false);
     const firestore = useFirestore();
+
+    if (!candidate) return null;
 
     const figureDocRef = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -203,7 +206,7 @@ export default function ElectionsPage() {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-12">
-      <Card>
+      <Card className="dark:bg-black">
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
