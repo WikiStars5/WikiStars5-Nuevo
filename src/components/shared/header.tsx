@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -20,7 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider, useDoc, useMemoFirebase } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
@@ -191,12 +190,18 @@ export default function Header() {
 
                       {isAdmin && (
                           <>
-                          <DropdownMenuItem asChild>
-                              <Link href="/admin">
-                              <Gem className="mr-2 h-4 w-4" />
-                              <span>{t('Header.adminPanel')}</span>
-                              </Link>
-                          </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/admin">
+                                <Gem className="mr-2 h-4 w-4" />
+                                <span>{t('Header.adminPanel')}</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/elecciones-2026">
+                                <Vote className="mr-2 h-4 w-4" />
+                                <span>Elecciones 2026</span>
+                                </Link>
+                            </DropdownMenuItem>
                           </>
                       )}
                     </>
