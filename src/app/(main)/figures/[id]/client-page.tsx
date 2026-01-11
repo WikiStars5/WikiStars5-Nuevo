@@ -26,6 +26,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
 import { countries } from '@/lib/countries';
 import { useLanguage } from '@/context/LanguageContext';
+import FigureVersus from '@/components/figure/figure-versus';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -349,15 +350,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
             <TopStreaks figureId={figureId} />
           </TabsContent>
           <TabsContent value="versus" className="mt-4">
-            <Card className="dark:bg-black">
-                <CardHeader>
-                    <CardTitle>Versus</CardTitle>
-                    <CardDescription>Aquí puedes comparar a esta figura con otras.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground text-center">Próximamente...</p>
-                </CardContent>
-            </Card>
+            <FigureVersus figure={figure} />
           </TabsContent>
           {isGoatCandidate && (
             <TabsContent value="goat" className="mt-4">
