@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Figure } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatCompactNumber } from '@/lib/utils';
 import FigureSearchInput from './figure-search-input';
 import { Swords } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
@@ -113,11 +113,11 @@ export default function FigureVersus({ figure }: FigureVersusProps) {
                         <div className="grid grid-cols-2 gap-4 w-full max-w-2xl text-center">
                             <div className="space-y-1">
                                 <h4 className="font-bold text-lg truncate">{figure.name}</h4>
-                                <p className="text-3xl font-extrabold text-primary">{currentFigureVotes.toLocaleString()}</p>
+                                <p className="text-3xl font-extrabold text-primary">{formatCompactNumber(currentFigureVotes)}</p>
                             </div>
                             <div className="space-y-1">
                                 <h4 className="font-bold text-lg truncate">{rival.name}</h4>
-                                <p className="text-3xl font-extrabold text-secondary-foreground">{rivalVotes.toLocaleString()}</p>
+                                <p className="text-3xl font-extrabold text-secondary-foreground">{formatCompactNumber(rivalVotes)}</p>
                             </div>
                             <p className="col-span-2 text-muted-foreground font-semibold text-lg -mt-2">
                                 {METRIC_LABELS[metric]}
