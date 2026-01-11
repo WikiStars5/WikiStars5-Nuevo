@@ -10,6 +10,9 @@ import { cn } from '@/lib/utils';
 import FigureSearchInput from './figure-search-input';
 import { Swords } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
 
 type AttitudeMetric = 'fan' | 'hater' | 'simp' | 'neutral';
 
@@ -25,20 +28,27 @@ interface FigureVersusProps {
 }
 
 export default function FigureVersus({ figure }: FigureVersusProps) {
-    const [rival, setRival] = useState<Figure | null>(null);
+    const [rivalId, setRivalId] = useState<string | null>(null);
     const [metric, setMetric] = useState<AttitudeMetric>('fan');
+    const firestore = useFirestore();
 
     const handleRivalSelect = (selectedRival: Figure) => {
         if (selectedRival.id === figure.id) return;
-        setRival(selectedRival);
+        setRivalId(selectedRival.id);
     };
+
+    const rivalDocRef = useMemoFirebase(() => {
+        if (!firestore || !rivalId) return null;
+        return doc(firestore, 'figures', rivalId);
+    }, [firestore, rivalId]);
+
+    const { data: rival, isLoading: isLoadingRival } = useDoc<Figure>(rivalDocRef);
 
     const currentFigureVotes = figure.attitude?.[metric] ?? 0;
     const rivalVotes = rival?.attitude?.[metric] ?? 0;
     const totalVotes = currentFigureVotes + rivalVotes;
 
     const currentFigurePercentage = totalVotes > 0 ? (currentFigureVotes / totalVotes) * 100 : 50;
-    // The balance should rotate between -10 and 10 degrees. (50% is 0deg, 0% is -10deg, 100% is 10deg)
     const balanceRotation = totalVotes > 0 ? (currentFigurePercentage - 50) / 5 : 0;
 
     return (
@@ -68,9 +78,17 @@ export default function FigureVersus({ figure }: FigureVersusProps) {
                     </div>
                 </div>
 
-                {!rival ? (
+                {!rivalId ? (
                     <div className="text-center py-10 border-2 border-dashed rounded-lg text-muted-foreground">
                         <p>Busca y selecciona un perfil para iniciar la comparación.</p>
+                    </div>
+                ) : isLoadingRival ? (
+                    <div className="text-center py-10">
+                        <Skeleton className="h-48 w-full" />
+                    </div>
+                ) : !rival ? (
+                     <div className="text-center py-10 border-2 border-dashed rounded-lg text-destructive">
+                        <p>No se pudo cargar la información del rival.</p>
                     </div>
                 ) : (
                     <div className="flex flex-col items-center gap-8 pt-8">
