@@ -14,7 +14,7 @@ import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy, Lock, ArrowDown, Star } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy, Lock, ArrowDown, Star, Swords } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -221,6 +221,10 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 <Star className="mr-2 h-4 w-4" />
                 Reseñas
               </TabsTrigger>
+              <TabsTrigger value="versus">
+                <Swords className="mr-2 h-4 w-4" />
+                Versus
+              </TabsTrigger>
               <TabsTrigger value="emocion">
               <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path dM="9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
                 {t('FigurePage.tabs.emotion')}
@@ -333,6 +337,17 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           <TabsContent value="reseñas" className="mt-4 space-y-8">
             <CommunityRatings figure={figure} />
             <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
+          </TabsContent>
+          <TabsContent value="versus" className="mt-4">
+            <Card className="dark:bg-black">
+                <CardHeader>
+                    <CardTitle>Versus</CardTitle>
+                    <CardDescription>Aquí puedes comparar a esta figura con otras.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground text-center">Próximamente...</p>
+                </CardContent>
+            </Card>
           </TabsContent>
           <TabsContent value="emocion" className="mt-4">
             <Card className="dark:bg-black">
