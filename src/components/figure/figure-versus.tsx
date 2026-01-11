@@ -49,7 +49,9 @@ export default function FigureVersus({ figure }: FigureVersusProps) {
     const totalVotes = currentFigureVotes + rivalVotes;
 
     const currentFigurePercentage = totalVotes > 0 ? (currentFigureVotes / totalVotes) * 100 : 50;
-    const balanceRotation = totalVotes > 0 ? (currentFigurePercentage - 50) / 5 : 0;
+    // Invert the logic here so a higher percentage for the current figure results in a negative (counter-clockwise) rotation
+    const balanceRotation = totalVotes > 0 ? ((currentFigurePercentage - 50) / 5) * -1 : 0;
+
 
     return (
         <Card className="dark:bg-black">
