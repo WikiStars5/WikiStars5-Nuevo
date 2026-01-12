@@ -14,13 +14,11 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface HomePageContentProps {
-  initialFeaturedFigures: FeaturedFigure[];
-}
-
+import { Button } from '@/components/ui/button';
 
 const POSTS_PER_FIGURE = 5;
+const INITIAL_POST_COUNT = 5;
+const POST_INCREMENT = 5;
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -31,11 +29,12 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-export default function HomePageContent({ initialFeaturedFigures }: HomePageContentProps) {
+export default function HomePageContent({ initialFeaturedFigures }: any) {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const [feedComments, setFeedComments] = React.useState<Comment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [visiblePostsCount, setVisiblePostsCount] = React.useState(INITIAL_POST_COUNT);
 
   // 1. Obtener los personajes votados
   const attitudeVotesQuery = useMemoFirebase(() => {
@@ -99,6 +98,8 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
   }, [votedFigureIds, isLoadingVotes, fetchFeed]);
 
   const renderContent = () => {
+    const visibleComments = feedComments.slice(0, visiblePostsCount);
+
     // Aplicamos la lógica de la otra IA para el mensaje inicial
     const isReadyForFeed = !isUserLoading && !isLoadingVotes;
     
@@ -123,12 +124,25 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
     
     // Si hay comentarios encontrados
     if (feedComments.length > 0) {
-      return feedComments.map(post => <StarPostCard key={post.id} post={post} />);
+      return (
+        <>
+            {visibleComments.map(post => <StarPostCard key={post.id} post={post} />)}
+            {visiblePostsCount < feedComments.length && (
+                <Button 
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setVisiblePostsCount(prev => prev + POST_INCREMENT)}
+                >
+                    Ver más StarPosts
+                </Button>
+            )}
+        </>
+      );
     }
 
     // Mensaje final si después de cargar todo no hay nada
     return (
-      <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed">
+      <div className="text-center py-20 bg-slate-50 dark:bg-card/50 rounded-2xl border-2 border-dashed">
         <p className="text-lg font-medium text-muted-foreground">Aún no hay actividad para mostrar.</p>
         <p className="text-sm text-muted-foreground">¡Vota por tus figuras favoritas para personalizar tu feed!</p>
       </div>
