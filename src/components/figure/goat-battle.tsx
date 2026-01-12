@@ -80,7 +80,7 @@ export default function GoatBattle() {
     return doc(firestore, 'goat_battles', BATTLE_ID);
   }, [firestore]);
   // useDoc now uses onSnapshot, so battleData will be real-time
-  const { data: battleData, isLoading: isBattleLoading } = useDoc<GoatBattle>(battleDocRef);
+  const { data: battleData, isLoading: isBattleLoading, refetch: refetchBattle } = useDoc<GoatBattle>(battleDocRef, { realtime: true });
   
 
   // Get user's personal vote
@@ -89,7 +89,7 @@ export default function GoatBattle() {
     return doc(firestore, `goat_battles/${BATTLE_ID}/votes`, user.uid);
   }, [firestore, user]);
   // This can remain a single-read hook if we create a separate real-time hook
-  const { data: userVote, isLoading: isUserVoteLoading } = useDoc<GoatVote>(userVoteDocRef);
+  const { data: userVote, isLoading: isUserVoteLoading, refetch: refetchUserVote } = useDoc<GoatVote>(userVoteDocRef, { realtime: true });
 
   // Fetch global settings to check if voting is enabled
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -451,5 +451,3 @@ export default function GoatBattle() {
       </Card>
   );
 }
-
-    

@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Query,
   getDocs,
-  onSnapshot,
   DocumentData,
   FirestoreError,
   QuerySnapshot,
@@ -42,10 +41,11 @@ export interface InternalQuery extends Query<DocumentData> {
 
 interface UseCollectionOptions {
   onNewData?: (snapshot: QuerySnapshot<DocumentData>) => void;
+  enabled?: boolean;
 }
 
 /**
- * React hook to fetch a Firestore collection or query in real-time.
+ * React hook to fetch a Firestore collection or query ONE TIME.
  * Handles nullable references/queries.
  * 
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
@@ -59,69 +59,61 @@ interface UseCollectionOptions {
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
-    options: UseCollectionOptions = {}
+    options: UseCollectionOptions = { enabled: true }
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true); 
+  const [isLoading, setIsLoading] = useState<boolean>(options.enabled ?? true); 
   const [error, setError] = useState<FirestoreError | Error | null>(null);
   
-  // Refetch function to manually re-trigger the data fetch.
-  // We use a counter to force a re-render and re-subscription.
-  const [refetchCounter, setRefetchCounter] = useState(0);
-  const refetch = useCallback(() => setRefetchCounter(c => c + 1), []);
-
-  useEffect(() => {
-    if (!memoizedTargetRefOrQuery) {
-      setIsLoading(true);
+  const fetchData = useCallback(async () => {
+    if (!memoizedTargetRefOrQuery || (options.enabled === false)) {
+      setIsLoading(false);
       setData(null);
       setError(null);
       return;
     }
-    
+
     if (!memoizedTargetRefOrQuery.__memo) {
       console.warn('The query passed to useCollection was not properly memoized using useMemoFirebase. This can cause infinite loops and unexpected behavior.');
     }
 
     setIsLoading(true);
 
-    const unsubscribe = onSnapshot(
-      memoizedTargetRefOrQuery,
-      (snapshot) => {
-        const results: ResultItemType[] = snapshot.docs.map(doc => ({ ...(doc.data() as T), id: doc.id }));
-        setData(results);
-        setError(null);
-        setIsLoading(false);
-        options.onNewData?.(snapshot);
-      },
-      (err: FirestoreError) => {
-        let path = 'unknown';
-        try {
-          path = memoizedTargetRefOrQuery.type === 'collection'
-            ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
-        } catch (e) {
-          console.warn("Could not determine path for useCollection permission error.");
-        }
-
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path: path,
-        });
-
-        setError(contextualError);
-        setData(null);
-        setIsLoading(false);
-        errorEmitter.emit('permission-error', contextualError);
+    try {
+      const snapshot = await getDocs(memoizedTargetRefOrQuery);
+      const results: ResultItemType[] = snapshot.docs.map(doc => ({ ...(doc.data() as T), id: doc.id }));
+      setData(results);
+      setError(null);
+      options.onNewData?.(snapshot);
+    } catch (err: any) {
+      let path = 'unknown';
+      try {
+        path = memoizedTargetRefOrQuery.type === 'collection'
+          ? (memoizedTargetRefOrQuery as CollectionReference).path
+          : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+      } catch (e) {
+        console.warn("Could not determine path for useCollection permission error.");
       }
-    );
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+      const contextualError = new FirestorePermissionError({
+        operation: 'list',
+        path: path,
+      });
 
-  }, [memoizedTargetRefOrQuery, options.onNewData, refetchCounter]);
+      setError(contextualError);
+      setData(null);
+      errorEmitter.emit('permission-error', contextualError);
+    } finally {
+        setIsLoading(false);
+    }
+  }, [memoizedTargetRefOrQuery, options.enabled, options.onNewData]);
   
-  return { data, isLoading, error, refetch };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, isLoading, error, refetch: fetchData };
 }

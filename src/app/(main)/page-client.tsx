@@ -1,10 +1,11 @@
+
 'use client';
 
 import * as React from 'react';
 import type { Comment, AttitudeVote, FeaturedFigure } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import FeaturedFigures from '@/components/shared/featured-figures';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { 
   collection, 
   query, 
@@ -14,6 +15,11 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+
+interface HomePageContentProps {
+  initialFeaturedFigures: FeaturedFigure[];
+}
+
 
 const POSTS_PER_FIGURE = 5;
 
@@ -31,24 +37,37 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
   const { user, isUserLoading } = useUser();
   const [feedComments, setFeedComments] = React.useState<Comment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [attitudeVotes, setAttitudeVotes] = React.useState<AttitudeVote[]>([]);
+  const [isLoadingVotes, setIsLoadingVotes] = React.useState(true);
 
-  // 1. Obtener los personajes votados
-  const attitudeVotesQuery = useMemoFirebase(() => {
-    if (!user || !firestore || user.isAnonymous) return null;
-    return collection(firestore, 'users', user.uid, 'attitudeVotes');
+
+  React.useEffect(() => {
+    const fetchVotes = async () => {
+        if (!user || !firestore || user.isAnonymous) {
+            setIsLoadingVotes(false);
+            return;
+        }
+        setIsLoadingVotes(true);
+        try {
+            const votesQuery = collection(firestore, 'users', user.uid, 'attitudeVotes');
+            const snapshot = await getDocs(votesQuery);
+            const votes = snapshot.docs.map(doc => doc.data() as AttitudeVote);
+            setAttitudeVotes(votes);
+        } catch (error) {
+            console.error("Error fetching attitude votes:", error);
+        } finally {
+            setIsLoadingVotes(false);
+        }
+    };
+    fetchVotes();
   }, [user, firestore]);
-
-  const { data: attitudeVotes, isLoading: isLoadingVotes } = useCollection<AttitudeVote>(
-    attitudeVotesQuery, 
-    { enabled: !!user && !user.isAnonymous }
-  );
+  
 
   const votedFigureIds = React.useMemo(() => {
     if (!attitudeVotes) return [];
     return attitudeVotes.map(vote => vote.id); 
   }, [attitudeVotes]);
   
-  // 2. Función para buscar en las SUBCOLECCIONES (figures/{id}/comments)
   const fetchFeed = React.useCallback(async (figureIds: string[]) => {
     if (!firestore) return;
     setIsLoading(true);
@@ -56,7 +75,6 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
     try {
       if (figureIds.length > 0) {
         const postPromises = figureIds.map(figureId => {
-          // Usamos la ruta real de tu base de datos
           const commentsRef = collection(firestore, 'figures', figureId, 'comments');
           const q = query(commentsRef, orderBy('createdAt', 'desc'), limit(POSTS_PER_FIGURE));
           return getDocs(q);
@@ -86,7 +104,6 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
     }
   }, [firestore]);
 
-  // 3. Efecto de control igual al de la otra IA
   React.useEffect(() => {
     if (!isLoadingVotes) {
       fetchFeed(votedFigureIds);
@@ -94,7 +111,6 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
   }, [votedFigureIds, isLoadingVotes, fetchFeed]);
 
   const renderContent = () => {
-    // Aplicamos la lógica de la otra IA para el mensaje inicial
     const isReadyForFeed = !isUserLoading && !isLoadingVotes;
     
     if (!isReadyForFeed) {
@@ -106,7 +122,6 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
       );
     }
 
-    // Si ya está listo pero está buscando los posts en las subcolecciones
     if (isLoading && votedFigureIds.length > 0) {
       return Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="p-4 border rounded-lg space-y-3 animate-pulse">
@@ -116,12 +131,10 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
       ));
     }
     
-    // Si hay comentarios encontrados
     if (feedComments.length > 0) {
       return feedComments.map(post => <StarPostCard key={post.id} post={post} />);
     }
 
-    // Mensaje final si después de cargar todo no hay nada
     return (
       <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed">
         <p className="text-lg font-medium text-muted-foreground">Aún no hay actividad para mostrar.</p>
@@ -140,4 +153,3 @@ export default function HomePageContent({ initialFeaturedFigures }: HomePageCont
     </div>
   );
 }
-
