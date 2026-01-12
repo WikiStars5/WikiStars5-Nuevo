@@ -17,7 +17,7 @@ export default function FigureCard({ figure }: FigureCardProps) {
 
   return (
     <Link href={`/figures/${figure.id}`} scroll={true}>
-      <Card className="h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 duration-300 ease-in-out flex flex-col">
+      <Card className="h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 duration-300 ease-in-out flex flex-col dark:bg-black">
         <CardHeader className="p-0">
           <div className="relative aspect-[4/5] w-full">
             <Image
