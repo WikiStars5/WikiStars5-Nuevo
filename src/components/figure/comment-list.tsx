@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -65,11 +66,13 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   const { t } = useLanguage();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
+  const [loadComments, setLoadComments] = useState(false);
 
 
   // The base query now sorts by creation date by default.
   const commentsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Only prepare the query if we intend to load comments
+    if (!firestore || !loadComments) return null;
     
     let baseQuery = query(
       collection(firestore, 'figures', figureId, 'comments'),
@@ -77,7 +80,7 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     );
 
     return baseQuery;
-  }, [firestore, figureId]);
+  }, [firestore, figureId, loadComments]);
 
 
   const { data: comments, isLoading } = useCollection<Comment>(commentsQuery);
@@ -140,6 +143,14 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
       return tempComments;
 
   }, [filteredRootComments, sortPreference, activeFilter]);
+
+  if (!loadComments) {
+      return (
+          <div className="text-center py-10 border-2 border-dashed rounded-lg">
+              <Button onClick={() => setLoadComments(true)}>Ver Comentarios</Button>
+          </div>
+      );
+  }
 
   if (isLoading) {
     return (
@@ -265,4 +276,3 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   );
 }
 
-    
