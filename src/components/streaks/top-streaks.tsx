@@ -2,14 +2,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAdmin } from '@/firebase';
 import { collection, query, orderBy, getDocs, where, limit, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Flame, Trophy, HelpCircle } from 'lucide-react';
-import { Streak, AttitudeVote } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { Streak, AttitudeVote, Figure } from '@/lib/types';
+import { cn, formatCompactNumber } from '@/lib/utils';
 import Image from 'next/image';
 import { countries } from '@/lib/countries';
 import Link from 'next/link';
@@ -37,7 +37,7 @@ const attitudeStyles: Record<AttitudeOption, { text: string; color: string }> = 
 
 
 interface TopStreaksProps {
-    figureId: string;
+    figure: Figure;
 }
 
 const getTrophyColor = (rank: number) => {
@@ -61,11 +61,12 @@ const StreakItemSkeleton = () => (
     </div>
 );
 
-export default function TopStreaks({ figureId }: TopStreaksProps) {
+export default function TopStreaks({ figure }: TopStreaksProps) {
     const firestore = useFirestore();
     const { t } = useLanguage();
     const [topStreaks, setTopStreaks] = useState<Streak[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { isAdmin } = useAdmin();
 
     useEffect(() => {
         const fetchStreaks = async () => {
@@ -74,7 +75,7 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
             try {
                 // Query the new public subcollection within the figure document.
                 const streaksQuery = query(
-                    collection(firestore, `figures/${figureId}/streaks`),
+                    collection(firestore, `figures/${figure.id}/streaks`),
                     orderBy('currentStreak', 'desc')
                 );
                 
@@ -96,14 +97,19 @@ export default function TopStreaks({ figureId }: TopStreaksProps) {
         };
 
         fetchStreaks();
-    }, [firestore, figureId]);
+    }, [firestore, figure.id]);
 
     return (
         <Card className="dark:bg-black">
             <CardHeader>
                 <div className="flex items-start justify-between">
                     <div>
-                        <CardTitle>{t('TopStreaks.title')}</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            {t('TopStreaks.title')}
+                             {isAdmin && figure.activeStreakCount && (
+                                <span className="text-sm font-normal text-muted-foreground">({formatCompactNumber(figure.activeStreakCount)})</span>
+                            )}
+                        </CardTitle>
                         <CardDescription className="text-muted-foreground">{t('TopStreaks.description')}</CardDescription>
                     </div>
                      <Dialog>

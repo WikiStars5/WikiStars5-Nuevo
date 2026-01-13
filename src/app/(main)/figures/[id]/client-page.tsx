@@ -347,7 +347,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
             </Card>
           </TabsContent>
           <TabsContent value="rachas" className="mt-4">
-            <TopStreaks figureId={figureId} />
+            <TopStreaks figure={figure} />
           </TabsContent>
           <TabsContent value="versus" className="mt-4">
             <FigureVersus figure={figure} />
