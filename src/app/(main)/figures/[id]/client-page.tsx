@@ -228,7 +228,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
               </TabsTrigger>
               <TabsTrigger value="rachas">
                 <Image
-                  src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
+                  src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire%20(2)%20(3).gif?alt=media&token=ff126746-d514-4187-876e-8b2432bdd442"
                   alt={t('FigurePage.tabs.streaks')}
                   width={16}
                   height={16}
