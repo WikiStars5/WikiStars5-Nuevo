@@ -10,7 +10,7 @@ export const contentType = 'image/png'
 
 // Image generation
 export default function Icon() {
-  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6";
+  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528";
   
   return new ImageResponse(
     (
