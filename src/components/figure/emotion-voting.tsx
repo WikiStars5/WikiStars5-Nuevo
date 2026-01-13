@@ -25,7 +25,7 @@ const emotionOptions: {
   textColorClass: string;
   selectedClass: string;
 }[] = [
-  { id: 'alegria', labelKey: 'EmotionVoting.labels.alegria', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Falegria.png?alt=media&token=c6ea80e2-b3f9-463c-be2a-d7499053eeba', colorClass: 'border-transparent', textColorClass: 'text-yellow-400', selectedClass: 'bg-yellow-400/20 border-yellow-300' },
+  { id: 'alegria', labelKey: 'EmotionVoting.labels.alegria', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Falegria%20(1)%20(1).png?alt=media&token=bf477346-8f8d-4fc1-962e-c248f9c62e47', colorClass: 'border-transparent', textColorClass: 'text-yellow-400', selectedClass: 'bg-yellow-400/20 border-yellow-300' },
   { id: 'envidia', labelKey: 'EmotionVoting.labels.envidia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fenvidia.png?alt=media&token=8c596bec-ad23-4b32-9b31-f9e79a9006b4', colorClass: 'border-transparent', textColorClass: 'text-green-500', selectedClass: 'bg-green-500/20 border-green-400' },
   { id: 'tristeza', labelKey: 'EmotionVoting.labels.tristeza', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Ftrizteza.png?alt=media&token=84884715-cd24-4bb9-9e66-a838cb4b7264', colorClass: 'border-transparent', textColorClass: 'text-blue-500', selectedClass: 'bg-blue-500/20 border-blue-400' },
   { id: 'miedo', labelKey: 'EmotionVoting.labels.miedo', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3_B3n%2Fmiedo.png?alt=media&token=904c948b-2b47-4b73-abda-ff9906598cc3', colorClass: 'border-transparent', textColorClass: 'text-purple-500', selectedClass: 'bg-purple-500/20 border-purple-400' },
@@ -263,5 +263,3 @@ export default function EmotionVoting({ figure: initialFigure }: EmotionVotingPr
       </div>
   );
 }
-
-    
