@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -40,14 +41,19 @@ interface AttitudeVotingProps {
   variant?: 'full' | 'header';
 }
 
-export default function AttitudeVoting({ figure, onVote, variant = 'full' }: AttitudeVotingProps) {
+export default function AttitudeVoting({ figure: initialFigure, onVote, variant = 'full' }: AttitudeVotingProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
-
+  
+  const [figure, setFigure] = useState(initialFigure);
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
+
+  useEffect(() => {
+    setFigure(initialFigure);
+  }, [initialFigure]);
 
   // Fetch global settings
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -100,6 +106,25 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
 
     setIsVoting(vote);
     
+    // --- Optimistic UI Update ---
+    const previousVote = userVote?.vote;
+    const isRetracting = previousVote === vote;
+
+    setFigure(currentFigure => {
+        const newAttitude = { ...currentFigure.attitude };
+        if (isRetracting) {
+            newAttitude[vote] = (newAttitude[vote] || 1) - 1;
+        } else {
+            newAttitude[vote] = (newAttitude[vote] || 0) + 1;
+            if (previousVote) {
+                newAttitude[previousVote] = (newAttitude[previousVote] || 1) - 1;
+            }
+        }
+        return { ...currentFigure, attitude: newAttitude };
+    });
+    // --- End Optimistic UI Update ---
+
+
     try {
         await runTransaction(firestore, async (transaction) => {
             const figureRef = doc(firestore, 'figures', figure.id);
@@ -116,22 +141,22 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
                 throw new Error("Figure does not exist.");
             }
 
-            const previousVote = privateVoteDoc.exists() ? privateVoteDoc.data().vote : null;
-            const isRetracting = previousVote === vote;
-            const isChanging = previousVote && !isRetracting;
+            const dbPreviousVote = privateVoteDoc.exists() ? privateVoteDoc.data().vote : null;
+            const dbIsRetracting = dbPreviousVote === vote;
+            const dbIsChanging = dbPreviousVote && !dbIsRetracting;
 
             const updates: { [key: string]: any } = {
-                __oldVote: previousVote,
-                __newVote: isRetracting ? null : vote,
+                __oldVote: dbPreviousVote,
+                __newVote: dbIsRetracting ? null : vote,
             };
 
-            if (isRetracting) {
+            if (dbIsRetracting) {
                 updates[`attitude.${vote}`] = increment(-1);
                 transaction.delete(privateVoteRef);
             } else {
                 updates[`attitude.${vote}`] = increment(1);
-                if (isChanging) {
-                    updates[`attitude.${previousVote}`] = increment(-1);
+                if (dbIsChanging) {
+                    updates[`attitude.${dbPreviousVote}`] = increment(-1);
                 }
 
                 const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : {};
@@ -156,6 +181,8 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
 
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
+      // Revert optimistic update on error
+      setFigure(initialFigure);
       toast({
         variant: 'destructive',
         title: t('AttitudeVoting.errorToast.title'),
@@ -275,3 +302,5 @@ export default function AttitudeVoting({ figure, onVote, variant = 'full' }: Att
     </div>
   );
 }
+
+    

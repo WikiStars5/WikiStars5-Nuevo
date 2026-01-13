@@ -67,7 +67,7 @@ export default function GoatBattle() {
   const { t } = useLanguage();
 
   const [isVoting, setIsVoting] = useState(false);
-
+  const [battleData, setBattleData] = useState<GoatBattle | null>(null);
   const [messiData, setMessiData] = useState<PlayerData | null>(null);
   const [ronaldoData, setRonaldoData] = useState<PlayerData | null>(null);
   const [arePlayersLoading, setArePlayersLoading] = useState(true);
@@ -79,8 +79,13 @@ export default function GoatBattle() {
     if (!firestore) return null;
     return doc(firestore, 'goat_battles', BATTLE_ID);
   }, [firestore]);
-  // useDoc now uses onSnapshot, so battleData will be real-time
-  const { data: battleData, isLoading: isBattleLoading, refetch: refetchBattle } = useDoc<GoatBattle>(battleDocRef, { realtime: true });
+  const { data: initialBattleData, isLoading: isBattleLoading, refetch: refetchBattle } = useDoc<GoatBattle>(battleDocRef);
+
+  useEffect(() => {
+    if(initialBattleData) {
+      setBattleData(initialBattleData)
+    }
+  }, [initialBattleData]);
   
 
   // Get user's personal vote
@@ -88,8 +93,7 @@ export default function GoatBattle() {
     if (!firestore || !user) return null;
     return doc(firestore, `goat_battles/${BATTLE_ID}/votes`, user.uid);
   }, [firestore, user]);
-  // This can remain a single-read hook if we create a separate real-time hook
-  const { data: userVote, isLoading: isUserVoteLoading, refetch: refetchUserVote } = useDoc<GoatVote>(userVoteDocRef, { realtime: true });
+  const { data: userVote, isLoading: isUserVoteLoading, refetch: refetchUserVote } = useDoc<GoatVote>(userVoteDocRef);
 
   // Fetch global settings to check if voting is enabled
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -205,6 +209,24 @@ export default function GoatBattle() {
     
     setIsVoting(true);
 
+    const previousVote = userVote?.vote;
+    const isRetracting = previousVote === player;
+
+    setBattleData(currentBattleData => {
+        if (!currentBattleData) return null;
+        const newBattleData = { ...currentBattleData };
+        if (isRetracting) {
+            newBattleData[`${player}Votes`] = (newBattleData[`${player}Votes`] || 1) - 1;
+        } else {
+            newBattleData[`${player}Votes`] = (newBattleData[`${player}Votes`] || 0) + 1;
+            if (previousVote) {
+                const otherPlayer = player === 'messi' ? 'ronaldo' : 'messi';
+                newBattleData[`${otherPlayer}Votes`] = (newBattleData[`${otherPlayer}Votes`] || 1) - 1;
+            }
+        }
+        return newBattleData;
+    });
+
     try {
         await runTransaction(firestore, async (transaction) => {
             const battleRef = doc(firestore, 'goat_battles', BATTLE_ID);
@@ -251,9 +273,10 @@ export default function GoatBattle() {
 
             transaction.update(battleRef, updates);
         });
-
+        refetchUserVote(); // Refreshes user's vote status for UI update
     } catch (error: any) {
         console.error("Error casting vote:", error);
+        setBattleData(initialBattleData); // Revert optimistic update
         toast({
             title: t('AttitudeVoting.errorToast.title'),
             description: error.message || t('AttitudeVoting.errorToast.description'),
@@ -451,3 +474,5 @@ export default function GoatBattle() {
       </Card>
   );
 }
+
+    

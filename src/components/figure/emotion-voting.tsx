@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -27,7 +28,7 @@ const emotionOptions: {
   { id: 'alegria', labelKey: 'EmotionVoting.labels.alegria', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Falegria.png?alt=media&token=c6ea80e2-b3f9-463c-be2a-d7499053eeba', colorClass: 'border-transparent', textColorClass: 'text-yellow-400', selectedClass: 'bg-yellow-400/20 border-yellow-300' },
   { id: 'envidia', labelKey: 'EmotionVoting.labels.envidia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fenvidia.png?alt=media&token=8c596bec-ad23-4b32-9b31-f9e79a9006b4', colorClass: 'border-transparent', textColorClass: 'text-green-500', selectedClass: 'bg-green-500/20 border-green-400' },
   { id: 'tristeza', labelKey: 'EmotionVoting.labels.tristeza', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Ftrizteza.png?alt=media&token=84884715-cd24-4bb9-9e66-a838cb4b7264', colorClass: 'border-transparent', textColorClass: 'text-blue-500', selectedClass: 'bg-blue-500/20 border-blue-400' },
-  { id: 'miedo', labelKey: 'EmotionVoting.labels.miedo', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fmiedo.png?alt=media&token=904c948b-2b47-4b73-abda-ff9906598cc3', colorClass: 'border-transparent', textColorClass: 'text-purple-500', selectedClass: 'bg-purple-500/20 border-purple-400' },
+  { id: 'miedo', labelKey: 'EmotionVoting.labels.miedo', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3_B3n%2Fmiedo.png?alt=media&token=904c948b-2b47-4b73-abda-ff9906598cc3', colorClass: 'border-transparent', textColorClass: 'text-purple-500', selectedClass: 'bg-purple-500/20 border-purple-400' },
   { id: 'desagrado', labelKey: 'EmotionVoting.labels.desagrado', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Fdesagrado.png?alt=media&token=88161fe7-a756-4d4c-ba27-f831682da537', colorClass: 'border-transparent', textColorClass: 'text-lime-600', selectedClass: 'bg-lime-600/20 border-lime-500' },
   { id: 'furia', labelKey: 'EmotionVoting.labels.furia', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/Emoci%C3%B3n%2Ffuria.png?alt=media&token=69a8a540-82a9-457b-8993-2076902475d6', colorClass: 'border-transparent', textColorClass: 'text-red-500', selectedClass: 'bg-red-500/20 border-red-400' },
 ];
@@ -36,14 +37,19 @@ interface EmotionVotingProps {
   figure: Figure;
 }
 
-export default function EmotionVoting({ figure }: EmotionVotingProps) {
+export default function EmotionVoting({ figure: initialFigure }: EmotionVotingProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
-  
+
+  const [figure, setFigure] = useState(initialFigure);
   const [isVoting, setIsVoting] = useState<EmotionOption | null>(null);
+
+  useEffect(() => {
+    setFigure(initialFigure);
+  }, [initialFigure]);
 
   // Fetch global settings
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
@@ -91,6 +97,25 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
     setIsVoting(vote);
     
+    // --- Optimistic UI Update ---
+    const previousVote = userVote?.vote;
+    const isRetracting = previousVote === vote;
+
+    setFigure(currentFigure => {
+        const newEmotion = { ...currentFigure.emotion };
+        if (isRetracting) {
+            newEmotion[vote] = (newEmotion[vote] || 1) - 1;
+        } else {
+            newEmotion[vote] = (newEmotion[vote] || 0) + 1;
+            if (previousVote) {
+                newEmotion[previousVote] = (newEmotion[previousVote] || 1) - 1;
+            }
+        }
+        return { ...currentFigure, emotion: newEmotion };
+    });
+    // --- End Optimistic UI Update ---
+
+
     try {
         await runTransaction(firestore, async (transaction) => {
             const figureRef = doc(firestore, 'figures', figure.id);
@@ -107,21 +132,21 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
                 throw new Error("Figure does not exist.");
             }
 
-            const previousVote = privateVoteDoc.exists() ? privateVoteDoc.data().vote : null;
-            const isRetracting = previousVote === vote;
-            const isChanging = previousVote && !isRetracting;
+            const dbPreviousVote = privateVoteDoc.exists() ? privateVoteDoc.data().vote : null;
+            const dbIsRetracting = dbPreviousVote === vote;
+            const dbIsChanging = dbPreviousVote && !dbIsRetracting;
 
             const updates: { [key: string]: any } = {
-                __oldVote: previousVote,
-                __newVote: isRetracting ? null : vote,
+                __oldVote: dbPreviousVote,
+                __newVote: dbIsRetracting ? null : vote,
             };
-            if (isRetracting) {
+            if (dbIsRetracting) {
                 updates[`emotion.${vote}`] = increment(-1);
                 transaction.delete(privateVoteRef);
             } else {
                 updates[`emotion.${vote}`] = increment(1);
-                if (isChanging) {
-                    updates[`emotion.${previousVote}`] = increment(-1);
+                if (dbIsChanging) {
+                    updates[`emotion.${dbPreviousVote}`] = increment(-1);
                 }
                 
                 const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : {};
@@ -145,6 +170,8 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
 
     } catch (error: any) {
       console.error('Error al registrar el voto:', error);
+      // Revert optimistic update on error
+      setFigure(initialFigure);
       toast({
         variant: 'destructive',
         title: t('AttitudeVoting.errorToast.title'),
@@ -236,3 +263,5 @@ export default function EmotionVoting({ figure }: EmotionVotingProps) {
       </div>
   );
 }
+
+    
