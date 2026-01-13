@@ -134,6 +134,12 @@ service cloud.firestore {
           (
             request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
             isDecrement('ratingCount', 1)
+          ) ||
+          
+          // Regla 6: Permite la actualización del contador de rachas activas (para la función de actualización de rachas)
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeStreakCount']) &&
+            (isIncrement('activeStreakCount', 1) || isDecrement('activeStreakCount', 1))
           )
         )
       );
@@ -245,4 +251,4 @@ service cloud.firestore {
   }
 }
 
-    
+  

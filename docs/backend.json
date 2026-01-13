@@ -178,6 +178,10 @@
             "type": "string"
           }
         },
+        "activeStreakCount": {
+            "type": "number",
+            "description": "The total number of currently active user streaks for this figure."
+        },
         "tags": {
           "type": "array",
           "description": "Tags associated with the public figure.",
@@ -913,3 +917,4 @@
   }
 }
 
+  
