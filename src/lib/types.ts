@@ -71,6 +71,7 @@ export interface Figure {
   occupation?: string;
   maritalStatus?: 'Soltero/a' | 'Casado/a' | 'Divorciado/a' | 'Viudo/a' | 'Separado/Ex-Conviviente';
   height?: number;
+  activeStreakCount?: number;
   socialLinks?: {
     instagram?: string;
     twitter?: string;
@@ -217,6 +218,7 @@ export interface Streak {
   id: string; // The ID will now be the figureId
   userId: string;
   figureId: string; // Denormalized for querying
+  isActive: boolean; // True if the streak is current (today/yesterday)
   currentStreak: number;
   lastCommentDate: Timestamp;
   attitude?: 'neutral' | 'fan' | 'simp' | 'hater' | null;
@@ -252,5 +254,3 @@ export interface Referral {
     sourceFigureId?: string | null;
     hasVoted?: boolean;
 }
-
-    

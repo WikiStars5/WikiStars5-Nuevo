@@ -12,6 +12,7 @@ import {
     DocumentReference,
 } from 'firebase/firestore';
 import type { Streak, User, AttitudeVote } from '@/lib/types';
+import { isDateActive } from '@/lib/streaks';
 
 interface UpdateStreakParams {
     firestore: Firestore;
@@ -19,7 +20,6 @@ interface UpdateStreakParams {
     figureName: string;
     userId: string;
     isAnonymous: boolean;
-    // User data is now fetched inside, so we don't need to pass it all
 }
 
 interface StreakUpdateResult {
@@ -52,23 +52,25 @@ export async function updateStreak({
     const publicStreakRef = doc(firestore, `figures/${figureId}/streaks`, userId);
     const userRef = doc(firestore, 'users', userId);
     const attitudeVoteRef = doc(firestore, `users/${userId}/attitudeVotes`, figureId);
+    const figureRef = doc(firestore, 'figures', figureId);
 
     try {
         let finalStreakCount = 1;
         let streakGained = false;
-        let oldStreakCount = 0;
 
         const result = await runTransaction(firestore, async (transaction) => {
             const [privateStreakDoc, userDoc, attitudeVoteDoc, figureDoc] = await Promise.all([
                 transaction.get(privateStreakRef),
                 transaction.get(userRef),
                 transaction.get(attitudeVoteRef),
-                getDoc(doc(firestore, 'figures', figureId)) // This can be a direct get as it's read-only in this context
+                transaction.get(figureRef) // Get figure doc within transaction
             ]);
 
             if (!userDoc.exists()) {
-                // If user doc doesn't exist (e.g., first action for anon user), create it.
                 transaction.set(userRef, { id: userId, createdAt: serverTimestamp() });
+            }
+            if (!figureDoc.exists()) {
+                throw new Error("Figure document does not exist.");
             }
             
             const userData = userDoc.data() as User | undefined || {};
@@ -81,56 +83,48 @@ export async function updateStreak({
             const attitude = attitudeVoteDoc.exists() ? (attitudeVoteDoc.data() as AttitudeVote).vote : null;
 
             const now = new Date();
+            let wasActiveBefore = false;
+            let streakIsNowActive = true; // A comment always makes the streak active for today.
 
             if (!privateStreakDoc.exists()) {
                 finalStreakCount = 1;
                 streakGained = true;
-                oldStreakCount = 0; // No old streak
             } else {
                 const streakData = privateStreakDoc.data() as Streak;
-                oldStreakCount = streakData.currentStreak || 0;
+                wasActiveBefore = streakData.isActive;
                 const lastCommentDate = streakData.lastCommentDate.toDate();
 
                 if (isSameDay(lastCommentDate, now)) {
                     finalStreakCount = streakData.currentStreak;
                     streakGained = false;
-                    oldStreakCount = finalStreakCount; // No change in streak count
                 } else if (isYesterday(lastCommentDate, now)) {
-                    finalStreakCount = oldStreakCount + 1;
+                    finalStreakCount = (streakData.currentStreak || 0) + 1;
                     streakGained = true;
                 } else {
                     finalStreakCount = 1;
-                    streakGained = true;
+                    streakGained = true; // It's a new streak
                 }
             }
             
-            // Only perform stat updates if the streak count has changed.
-            if (oldStreakCount !== finalStreakCount) {
-                // Decrement old streak stat if it existed
-                if (oldStreakCount > 0) {
-                    const oldStatRef = doc(firestore, `figures/${figureId}/streakStats`, String(oldStreakCount));
-                    transaction.set(oldStatRef, {
-                        [userCountry]: {
-                            total: increment(-1),
-                            [userGender]: increment(-1)
-                        }
-                    }, { merge: true });
+            // Only update the global counter if the active status changes
+            if (!wasActiveBefore && streakIsNowActive) {
+                // A streak just became active
+                transaction.update(figureRef, { activeStreakCount: increment(1) });
+            } else if (wasActiveBefore && !streakIsNowActive) {
+                // A streak just became inactive (handled by a separate job/function)
+                // For now, we only handle activation. Deactivation on expiry needs another mechanism.
+                // Or, if a user's new streak is 1 (meaning it was broken), we can decrement.
+                if (finalStreakCount === 1 && wasActiveBefore) {
+                    transaction.update(figureRef, { activeStreakCount: increment(-1) });
                 }
-
-                // Increment new streak stat
-                const newStatRef = doc(firestore, `figures/${figureId}/streakStats`, String(finalStreakCount));
-                transaction.set(newStatRef, {
-                    [userCountry]: {
-                        total: increment(1),
-                        [userGender]: increment(1)
-                    }
-                }, { merge: true });
             }
 
-            // Prepare the data payload for both streak documents.
-            const streakPayload: Omit<Streak, 'id'> = {
+
+            const streakPayload: Streak = {
+                id: figureId,
                 userId,
                 figureId,
+                isActive: streakIsNowActive,
                 currentStreak: finalStreakCount,
                 lastCommentDate: Timestamp.now(),
                 attitude: attitude,
@@ -142,8 +136,8 @@ export async function updateStreak({
                 figureImageUrl: figureImageUrl,
             };
 
-            transaction.set(privateStreakRef, streakPayload, { merge: true });
-            transaction.set(publicStreakRef, streakPayload, { merge: true });
+            transaction.set(privateStreakRef, streakPayload);
+            transaction.set(publicStreakRef, streakPayload);
             
             return { streakGained, newStreakCount: finalStreakCount };
         });

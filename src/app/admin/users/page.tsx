@@ -5,10 +5,9 @@ import { useMemo } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter
+  CardDescription,
 } from '@/components/ui/card';
 import {
   Table,
@@ -26,8 +25,6 @@ import { countries } from '@/lib/countries';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'recharts';
 import { Users, TrendingUp, MapPin, UserCheck } from 'lucide-react';
 import UserTrendsChart from '@/components/admin/user-trends-chart';
-import UserManagementTable from '@/components/admin/user-management-table';
-import UserVisitTable from '@/components/admin/user-visit-table';
 import { useLanguage } from '@/context/LanguageContext';
 
 
@@ -245,8 +242,6 @@ export default function AdminUsersDashboardPage() {
             </Card>
             <UserTrendsChart className="lg:col-span-2" />
         </div>
-        <UserManagementTable />
-        <UserVisitTable />
     </div>
   );
 }
