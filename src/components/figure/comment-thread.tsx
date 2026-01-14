@@ -521,7 +521,6 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
   const hasMoreReplies = threadReplies && threadReplies.length > visibleRepliesCount;
   
   const handleReplySuccess = useCallback(() => {
-    // The realtime listener in useCollection will handle refetching.
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
@@ -616,3 +615,4 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
     </div>
   );
 }
+

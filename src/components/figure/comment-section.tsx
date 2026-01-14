@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useCallback, useState, useEffect } from 'react';
@@ -7,6 +8,7 @@ import CommentList from './comment-list';
 import { Separator } from '../ui/separator';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { Comment } from '@/lib/types';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -18,7 +20,7 @@ interface CommentSectionProps {
 
 export default function CommentSection({ figureId, figureName, sortPreference }: CommentSectionProps) {
   const { user } = useUser();
-  const firestore = useFirestore();
+  const [allComments, setAllComments] = useState<Comment[]>([]);
   const [hasUserCommented, setHasUserCommented] = useState(false);
   const [isCheckingComment, setIsCheckingComment] = useState(true);
   
@@ -26,34 +28,27 @@ export default function CommentSection({ figureId, figureName, sortPreference }:
   const [commentListKey, setCommentListKey] = useState(Date.now());
 
   useEffect(() => {
-    if (!user || !firestore) {
+    if (!user) {
       setHasUserCommented(false);
       setIsCheckingComment(false);
       return;
     }
     
-    setIsCheckingComment(true);
-
-    const q = query(
-      collection(firestore, 'figures', figureId, 'comments'),
-      where('userId', '==', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setHasUserCommented(!snapshot.empty);
-      setIsCheckingComment(false);
-    }, (error) => {
-      console.error("Error listening to user's comment:", error);
-      setIsCheckingComment(false);
-    });
-
-    return () => unsubscribe();
-  }, [user, firestore, figureId]);
+    // Check if the user's comment exists in the already loaded comments
+    const userComment = allComments.find(comment => comment.userId === user.uid && !comment.parentId);
+    setHasUserCommented(!!userComment);
+    setIsCheckingComment(false); // We can determine this from the loaded comments
+  }, [user, allComments]);
 
 
   const handleCommentPosted = useCallback(() => {
-    setCommentListKey(Date.now());
+    // onSnapshot will handle the update, no need to force a re-render with a key
   }, []);
+
+  const handleCommentsLoaded = useCallback((comments: Comment[]) => {
+      setAllComments(comments);
+  }, []);
+
 
   return (
     <div className="space-y-6">
@@ -71,7 +66,9 @@ export default function CommentSection({ figureId, figureName, sortPreference }:
         figureId={figureId} 
         figureName={figureName} 
         sortPreference={sortPreference} 
+        onCommentsLoaded={handleCommentsLoaded}
       />
     </div>
   );
 }
+

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -9,6 +10,7 @@ import {
   FirestoreError,
   QuerySnapshot,
   CollectionReference,
+  onSnapshot,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -42,10 +44,12 @@ export interface InternalQuery extends Query<DocumentData> {
 interface UseCollectionOptions {
   onNewData?: (snapshot: QuerySnapshot<DocumentData>) => void;
   enabled?: boolean;
+  realtime?: boolean; // If true, uses onSnapshot for real-time updates.
 }
 
 /**
- * React hook to fetch a Firestore collection or query ONE TIME.
+ * React hook to fetch a Firestore collection or query.
+ * Can be set to real-time or single-fetch.
  * Handles nullable references/queries.
  * 
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
@@ -59,7 +63,7 @@ interface UseCollectionOptions {
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
-    options: UseCollectionOptions = { enabled: true }
+    options: UseCollectionOptions = { enabled: true, realtime: false }
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
   type StateDataType = ResultItemType[] | null;
@@ -112,8 +116,54 @@ export function useCollection<T = any>(
   }, [memoizedTargetRefOrQuery, options.enabled, options.onNewData]);
   
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!options.realtime) {
+      fetchData();
+      return;
+    }
+
+    // Real-time logic
+    if (!options.enabled || !memoizedTargetRefOrQuery) {
+      setIsLoading(false);
+      setData(null);
+      setError(null);
+      return () => {};
+    }
+
+    if (!memoizedTargetRefOrQuery.__memo) {
+      console.warn('The query passed to useCollection was not properly memoized using useMemoFirebase. This can cause infinite loops and unexpected behavior.');
+    }
+    
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(
+      memoizedTargetRefOrQuery,
+      (snapshot) => {
+        const results: ResultItemType[] = snapshot.docs.map(doc => ({ ...(doc.data() as T), id: doc.id }));
+        setData(results);
+        setError(null);
+        setIsLoading(false);
+        options.onNewData?.(snapshot);
+      },
+      (err: FirestoreError) => {
+          let path = 'unknown';
+          try {
+            path = (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+          } catch (e) {
+            console.warn("Could not determine path for useCollection permission error.");
+          }
+          const contextualError = new FirestorePermissionError({
+            operation: 'list',
+            path: path,
+          });
+
+          setError(contextualError);
+          setData(null);
+          setIsLoading(false);
+          errorEmitter.emit('permission-error', contextualError);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [memoizedTargetRefOrQuery, options.enabled, options.realtime, options.onNewData, fetchData]);
 
   return { data, isLoading, error, refetch: fetchData };
 }

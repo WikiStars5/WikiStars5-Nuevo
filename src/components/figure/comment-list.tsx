@@ -35,6 +35,7 @@ interface CommentListProps {
   figureId: string;
   figureName: string;
   sortPreference: AttitudeOption | null;
+  onCommentsLoaded: (comments: Comment[]) => void;
 }
 
 const K_REPLY_WEIGHT = 1.0;
@@ -61,39 +62,29 @@ const calculateHotScore = (comment: Comment): number => {
 }
 
 
-export default function CommentList({ figureId, figureName, sortPreference }: CommentListProps) {
+export default function CommentList({ figureId, figureName, sortPreference, onCommentsLoaded }: CommentListProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const { t } = useLanguage();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
   const [loadComments, setLoadComments] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-
-  // The base query now sorts by creation date by default.
-  useEffect(() => {
-    if (!firestore || !loadComments) return;
-    
-    setIsLoading(true);
-    let baseQuery = query(
-      collection(firestore, 'figures', figureId, 'comments'),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(baseQuery, (snapshot) => {
-        const fetchedComments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
-        setComments(fetchedComments);
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Error fetching comments:", error);
-        setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-
+  
+  const commentsQuery = useMemoFirebase(() => {
+      if (!firestore || !loadComments) return null;
+      return query(
+          collection(firestore, 'figures', figureId, 'comments'),
+          orderBy('createdAt', 'desc')
+      );
   }, [firestore, figureId, loadComments]);
+  
+  const { data: comments, isLoading } = useCollection<Comment>(commentsQuery, { realtime: true });
+
+  useEffect(() => {
+    if (comments) {
+      onCommentsLoaded(comments);
+    }
+  }, [comments, onCommentsLoaded]);
 
 
   const filteredRootComments = useMemo(() => {
@@ -122,16 +113,12 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
       };
 
       if (sortPreference === 'fan' || sortPreference === 'simp') {
-          // For fans/simps, show comments with 0-2 stars first (provocative)
           tempComments = provocativeSort(tempComments, c => (c.rating ?? 3) < 3 && c.rating !== -1);
       } else if (sortPreference === 'hater') {
-          // For haters, show comments with 3-5 stars first (provocative)
           tempComments = provocativeSort(tempComments, c => (c.rating ?? 0) >= 3);
       } else { 
-        // For 'neutral' or any other case, apply the filter from the active tab.
         switch(activeFilter) {
           case 'featured':
-              // Prioritize featured comments, then sort by hot score
               tempComments.sort((a, b) => {
                   if (a.isFeatured && !b.isFeatured) return -1;
                   if (!a.isFeatured && b.isFeatured) return 1;
@@ -142,10 +129,9 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
               tempComments.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
               break;
           case 'newest':
-              // Already sorted by createdAt desc from Firestore query
+              // Already sorted by createdAt desc
               break;
           default:
-              // For 'mine' and star filters, default to hot score sorting
               tempComments.sort(hotScoreSort);
               break;
         }
@@ -156,9 +142,7 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   }, [filteredRootComments, sortPreference, activeFilter]);
   
   const handleDeleteSuccess = useCallback(() => {
-      // The onSnapshot listener will automatically update the `comments` state,
-      // which will then cause the derived memos to re-calculate.
-      // We don't need to do anything extra here.
+      // The onSnapshot listener will automatically update the `comments` state
   }, []);
 
 
