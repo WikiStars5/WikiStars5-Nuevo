@@ -1,8 +1,9 @@
 
+
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
-import { collection, query, orderBy, where, doc, getDoc } from 'firebase/firestore';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { collection, query, orderBy, where, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import type { Comment, AttitudeVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -67,23 +68,33 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
   const [loadComments, setLoadComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
 
   // The base query now sorts by creation date by default.
-  const commentsQuery = useMemoFirebase(() => {
-    // Only prepare the query if we intend to load comments
-    if (!firestore || !loadComments) return null;
+  useEffect(() => {
+    if (!firestore || !loadComments) return;
     
+    setIsLoading(true);
     let baseQuery = query(
       collection(firestore, 'figures', figureId, 'comments'),
       orderBy('createdAt', 'desc')
     );
 
-    return baseQuery;
+    const unsubscribe = onSnapshot(baseQuery, (snapshot) => {
+        const fetchedComments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
+        setComments(fetchedComments);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching comments:", error);
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+
   }, [firestore, figureId, loadComments]);
 
-
-  const { data: comments, isLoading } = useCollection<Comment>(commentsQuery);
 
   const filteredRootComments = useMemo(() => {
     if (!comments) return [];
@@ -143,6 +154,13 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
       return tempComments;
 
   }, [filteredRootComments, sortPreference, activeFilter]);
+  
+  const handleDeleteSuccess = useCallback(() => {
+      // The onSnapshot listener will automatically update the `comments` state,
+      // which will then cause the derived memos to re-calculate.
+      // We don't need to do anything extra here.
+  }, []);
+
 
   if (!loadComments) {
       return (
@@ -233,6 +251,7 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
                 comment={comment}
                 figureId={figureId} 
                 figureName={figureName}
+                onDeleteSuccess={handleDeleteSuccess}
             />
         ))
       ) : (
@@ -275,4 +294,3 @@ export default function CommentList({ figureId, figureName, sortPreference }: Co
     </div>
   );
 }
-

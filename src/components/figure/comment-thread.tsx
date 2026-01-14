@@ -2,7 +2,7 @@
 
 'use client';
 
-import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
+import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking, useAdmin } from '@/firebase';
 import type { Comment as CommentType, CommentVote, GlobalSettings, Streak } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -52,11 +52,12 @@ interface CommentItemProps {
   figureName: string,
   isReply?: boolean;
   onReplySuccess: () => void;
+  onDeleteSuccess: () => void;
   areRepliesEnabled: boolean;
   refetchReplies?: () => void; // Add refetch function for replies
 }
 
-function CommentItem({ comment, figureId, figureName, isReply = false, onReplySuccess, areRepliesEnabled, refetchReplies }: CommentItemProps) {
+function CommentItem({ comment, figureId, figureName, isReply = false, onReplySuccess, onDeleteSuccess, areRepliesEnabled, refetchReplies }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { isAdmin } = useAdmin();
@@ -82,14 +83,14 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
         return doc(firestore, votePath, user.uid);
     }, [firestore, user, votePath]);
 
-    const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user });
+    const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user, realtime: true });
 
     const userStreakRef = useMemoFirebase(() => {
         if (!firestore || !comment.userId) return null;
         return doc(firestore, `users/${comment.userId}/streaks`, figureId);
     }, [firestore, comment.userId, figureId]);
 
-    const { data: userStreak, isLoading: isStreakLoading } = useDoc<Streak>(userStreakRef);
+    const { data: userStreak, isLoading: isStreakLoading } = useDoc<Streak>(userStreakRef, {realtime: true});
 
     const country = comment.userCountry ? countries.find(c => c.key === comment.userCountry) : null;
     const tag = comment.tag ? commentTags.find(t => t.id === comment.tag) : null;
@@ -132,8 +133,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 
                 transaction.update(commentRef, updates);
             });
-            refetchVote();
-            refetchReplies?.();
+            // No need for refetch, realtime listener will update UI.
         } catch (error: any) {
             console.error("Error al votar:", error);
             toast({
@@ -191,7 +191,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 title: t('CommentThread.toast.deleteSuccess'),
                 description: t('CommentThread.toast.deleteSuccessDescription')
             });
-            refetchReplies?.();
+            onDeleteSuccess(); // This will trigger a UI update via parent state
         } catch (error: any) {
             console.error("Error al eliminar comentario:", error);
             toast({
@@ -223,7 +223,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 title: t('CommentThread.toast.updateSuccess'),
             });
             setIsEditing(false);
-            refetchReplies?.();
+            // Real-time listener will catch this update
         } catch (error) {
             console.error("updating comment:", error);
             toast({
@@ -249,7 +249,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
             toast({
                 title: comment.isFeatured ? 'Comentario Desfijado' : 'Comentario Fijado',
             });
-            refetchReplies?.();
+            // Real-time listener will catch this
         } catch (error) {
             console.error("Error featuring comment:", error);
             toast({
@@ -484,12 +484,13 @@ interface CommentThreadProps {
   comment: CommentType;
   figureId: string;
   figureName: string;
+  onDeleteSuccess: () => void;
 }
 
 const INITIAL_REPLIES_LIMIT = 3;
 const REPLIES_INCREMENT = 3;
 
-export default function CommentThread({ comment, figureId, figureName }: CommentThreadProps) {
+export default function CommentThread({ comment, figureId, figureName, onDeleteSuccess }: CommentThreadProps) {
   const firestore = useFirestore();
   const { t } = useLanguage();
   const [repliesVisible, setRepliesVisible] = useState(false);
@@ -508,7 +509,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     );
   }, [firestore, figureId, comment.id]);
 
-  const { data: threadReplies, isLoading: areRepliesLoading, refetch: refetchReplies } = useCollection<CommentType>(repliesQuery);
+  const { data: threadReplies, isLoading: areRepliesLoading, refetch: refetchReplies } = useCollection<CommentType>(repliesQuery, {realtime: true});
 
   const visibleReplies = useMemo(() => {
       if (!threadReplies) return [];
@@ -520,11 +521,11 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
   const hasMoreReplies = threadReplies && threadReplies.length > visibleRepliesCount;
   
   const handleReplySuccess = useCallback(() => {
-    refetchReplies();
+    // The realtime listener in useCollection will handle refetching.
     if (!repliesVisible) {
         setRepliesVisible(true);
     }
-  }, [refetchReplies, repliesVisible]);
+  }, [repliesVisible]);
   
   const toggleReplies = () => {
     const nextRepliesVisible = !repliesVisible;
@@ -550,8 +551,8 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
         figureId={figureId}
         figureName={figureName}
         onReplySuccess={handleReplySuccess}
+        onDeleteSuccess={onDeleteSuccess}
         areRepliesEnabled={areRepliesEnabled}
-        refetchReplies={refetchReplies}
       />
       {hasReplies && (
         <Button
@@ -595,6 +596,7 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
                     figureName={figureName}
                     isReply={true}
                     onReplySuccess={handleReplySuccess}
+                    onDeleteSuccess={refetchReplies} // Refetch replies when a nested reply is deleted
                     areRepliesEnabled={areRepliesEnabled}
                     refetchReplies={refetchReplies}
                 />
@@ -614,5 +616,3 @@ export default function CommentThread({ comment, figureId, figureName }: Comment
     </div>
   );
 }
-
-    

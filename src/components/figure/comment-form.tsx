@@ -5,7 +5,7 @@ import { useState, useContext, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, setDoc, writeBatch, onSnapshot } from 'firebase/firestore';
 import { signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useCollection, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +47,7 @@ type CommentFormValues = z.infer<ReturnType<typeof createCommentSchema>>;
 interface CommentFormProps {
   figureId: string;
   figureName: string;
+  hasUserCommented: boolean;
   onCommentPosted: () => void; // Callback to refetch comments
 }
 
@@ -59,7 +60,7 @@ const ratingSounds: { [key: number]: string } = {
 };
 
 
-export default function CommentForm({ figureId, figureName, onCommentPosted }: CommentFormProps) {
+export default function CommentForm({ figureId, figureName, hasUserCommented, onCommentPosted }: CommentFormProps) {
   const { user, isUserLoading, reloadUser } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -88,19 +89,6 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
     resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
     defaultValues: { text: '', rating: null, username: '', title: '', tag: undefined },
   });
-
-  const existingCommentQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, 'figures', figureId, 'comments'),
-      where('userId', '==', user.uid),
-      limit(1)
-    );
-  }, [firestore, user, figureId]);
-
-  const { data: existingComments, isLoading: isCheckingComment, refetch: refetchExistingComment } = useCollection<Comment>(existingCommentQuery);
-  
-  const existingComment = existingComments && existingComments.length > 0 ? existingComments[0] : null;
 
   useEffect(() => {
     form.reset(form.getValues());
@@ -280,7 +268,6 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
         toast({ title: t('CommentForm.toast.opinionPosted'), description: t('CommentForm.toast.thanks') });
         form.reset({ text: '', rating: null as any, username: '', title: '', tag: undefined });
         onCommentPosted();
-        refetchExistingComment();
     } catch (error: any) {
         console.error('Error al publicar comentario:', error);
         toast({
@@ -293,7 +280,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
     }
   };
   
-  if (isUserLoading || (user && (isCheckingComment || isProfileLoading))) {
+  if (isUserLoading || (user && isProfileLoading)) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -303,7 +290,7 @@ export default function CommentForm({ figureId, figureName, onCommentPosted }: C
     )
   }
   
-  if (existingComment) {
+  if (hasUserCommented) {
     return (
       <Card className="bg-muted/50 dark:bg-black">
         <CardContent className="p-6 text-center space-y-3">
