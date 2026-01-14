@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, serverTimestamp, doc, getDoc, Timestamp, addDoc, runTransaction, increment } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useFirestore, useUser } from '@/firebase';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,7 @@ interface ReplyFormProps {
   figureName: string;
   parentComment: CommentType; // The root comment of the thread
   replyToComment: CommentType; // The comment being replied to (can be parent or another reply)
-  onReplySuccess: () => void;
+  onReplySuccess: (newReply: CommentType) => void;
 }
 
 export default function ReplyForm({ figureId, figureName, parentComment, replyToComment, onReplySuccess }: ReplyFormProps) {
@@ -64,6 +63,8 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
     // Combine the static mention with the user's input
     const fullText = `@[${replyToComment.userDisplayName}] ${data.text}`;
 
+    let newReply: CommentType | null = null;
+
     try {
         const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentComment.id);
         const repliesColRef = collection(parentCommentRef, 'replies');
@@ -75,12 +76,14 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
             const displayName = userProfileData.username || user.displayName || 'Usuario';
             
             const newReplyRef = doc(repliesColRef); // Create a new doc ref to get its ID
+            const now = Timestamp.now();
 
             const newReplyData = {
+                id: newReplyRef.id, // Manually add the id for the optimistic update
                 figureId: figureId,
                 userId: user.uid,
                 text: fullText, // Use the combined text
-                createdAt: serverTimestamp(),
+                createdAt: now,
                 userDisplayName: displayName,
                 userPhotoURL: user.photoURL,
                 userCountry: userProfileData.country || null,
@@ -91,8 +94,12 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
                 rating: -1,
             };
             
-            transaction.set(newReplyRef, newReplyData);
-            transaction.set(parentCommentRef, { replyCount: increment(1) }, { merge: true });
+            newReply = newReplyData as CommentType;
+            
+            // In transaction, use the data without the ID field for writing
+            const { id, ...dataToWrite } = newReplyData;
+            transaction.set(newReplyRef, dataToWrite);
+            transaction.update(parentCommentRef, { replyCount: increment(1) });
             
             const replyToAuthorId = replyToComment.userId;
             if (replyToAuthorId && replyToAuthorId !== user.uid) {
@@ -130,7 +137,9 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
         title: t('ReplyForm.toast.replyPosted'),
       });
       form.reset({ text: '' });
-      onReplySuccess();
+      if (newReply) {
+          onReplySuccess(newReply);
+      }
     } catch (error) {
       console.error('Error al publicar respuesta:', error);
       toast({
@@ -166,7 +175,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
                 </div>
 
                 <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => onReplySuccess()} disabled={isSubmitting}>
+                    <Button variant="ghost" size="sm" onClick={() => onReplySuccess(null as any)} disabled={isSubmitting}>
                         {t('ReplyForm.cancelButton')}
                     </Button>
                     <Button type="submit" size="sm" disabled={isSubmitting}>

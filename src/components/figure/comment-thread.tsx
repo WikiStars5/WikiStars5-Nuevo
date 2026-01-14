@@ -1,7 +1,7 @@
 
 'use client';
 
-import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking, useAdmin } from '@/firebase';
 import type { Comment as CommentType, CommentVote, GlobalSettings, Streak } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -50,7 +50,7 @@ interface CommentItemProps {
   figureId: string,
   figureName: string,
   isReply?: boolean;
-  onReplySuccess: () => void;
+  onReplySuccess: (newReply: CommentType) => void;
   onDeleteSuccess: () => void;
   areRepliesEnabled: boolean;
 }
@@ -260,9 +260,9 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
         }
     };
     
-    const localOnReplySuccess = () => {
+    const localOnReplySuccess = (newReply: CommentType) => {
         setIsReplying(false);
-        onReplySuccess();
+        onReplySuccess(newReply);
     }
 
     const getAvatarFallback = () => {
@@ -310,7 +310,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                             </div>
                         )}
                         {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Feminino">♀</span>}
                         {country && (
                             <Image
                                 src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
@@ -483,59 +483,42 @@ interface CommentThreadProps {
   figureId: string;
   figureName: string;
   onDeleteSuccess: () => void;
+  onReplySuccess: () => void;
 }
 
 const INITIAL_REPLIES_LIMIT = 3;
 const REPLIES_INCREMENT = 3;
 
-export default function CommentThread({ comment, figureId, figureName, onDeleteSuccess }: CommentThreadProps) {
+export default function CommentThread({ comment, figureId, figureName, onDeleteSuccess, onReplySuccess }: CommentThreadProps) {
   const firestore = useFirestore();
   const { t } = useLanguage();
   const [repliesVisible, setRepliesVisible] = useState(false);
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
-  const [threadReplies, setThreadReplies] = useState<CommentType[] | null>(null);
-  const [areRepliesLoading, setAreRepliesLoading] = useState(false);
   
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
   const areRepliesEnabled = (globalSettings?.isReplyEnabled ?? true);
 
-
-  useEffect(() => {
-    if (!firestore || !comment.id) return;
-
-    setAreRepliesLoading(true);
-    const repliesQuery = query(
+  const repliesQuery = useMemoFirebase(() => {
+    if (!firestore || !comment.id) return null;
+    return query(
         collection(firestore, 'figures', figureId, 'comments', comment.id, 'replies'),
         orderBy('createdAt', 'asc')
     );
-
-    const unsubscribe = onSnapshot(repliesQuery, (snapshot) => {
-        const fetchedReplies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CommentType));
-        setThreadReplies(fetchedReplies);
-        setAreRepliesLoading(false);
-    }, (error) => {
-        console.error("Error fetching replies:", error);
-        setAreRepliesLoading(false);
-    });
-
-    return () => unsubscribe();
   }, [firestore, figureId, comment.id]);
 
-  const visibleReplies = useMemo(() => {
-      if (!threadReplies) return [];
-      return threadReplies.slice(0, visibleRepliesCount);
-  }, [threadReplies, visibleRepliesCount]);
+  const { data: replies, isLoading: areRepliesLoading, refetch } = useCollection<CommentType>(repliesQuery, { realtime: false });
 
-
-  const hasReplies = threadReplies && threadReplies.length > 0;
-  const hasMoreReplies = threadReplies && threadReplies.length > visibleRepliesCount;
-  
-  const handleReplySuccess = useCallback(() => {
+  const handleLocalReplySuccess = () => {
+    refetch(); // Refetch replies for this thread
     if (!repliesVisible) {
-        setRepliesVisible(true);
+      setRepliesVisible(true);
     }
-  }, [repliesVisible]);
+    onReplySuccess(); // Bubble up to parent if needed
+  };
+
+  const hasReplies = replies && replies.length > 0;
+  const hasMoreReplies = replies && replies.length > visibleRepliesCount;
   
   const toggleReplies = () => {
     const nextRepliesVisible = !repliesVisible;
@@ -546,8 +529,8 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
   }
   
   const getSeeRepliesText = () => {
-    if (!threadReplies) return '';
-    const count = threadReplies.length;
+    if (!replies) return '';
+    const count = replies.length;
     if (count === 1) {
       return t('CommentThread.seeRepliesSingular');
     }
@@ -560,7 +543,7 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
         comment={comment} 
         figureId={figureId}
         figureName={figureName}
-        onReplySuccess={handleReplySuccess}
+        onReplySuccess={handleLocalReplySuccess}
         onDeleteSuccess={onDeleteSuccess}
         areRepliesEnabled={areRepliesEnabled}
       />
@@ -598,15 +581,15 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
                 <Loader2 className="h-4 w-4 animate-spin"/> {t('CommentList.loading')}
             </div>
           ) : (
-            visibleReplies.map(reply => (
+            replies?.slice(0, visibleRepliesCount).map(reply => (
                 <CommentItem
                     key={reply.id}
                     comment={reply}
                     figureId={figureId}
                     figureName={figureName}
                     isReply={true}
-                    onReplySuccess={handleReplySuccess}
-                    onDeleteSuccess={() => { /* Real-time listener handles UI update */ }}
+                    onReplySuccess={handleLocalReplySuccess}
+                    onDeleteSuccess={() => { refetch() }} // Refetch replies when one is deleted
                     areRepliesEnabled={areRepliesEnabled}
                 />
             ))

@@ -2,15 +2,13 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { collection, query, orderBy, where, doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import type { Comment, AttitudeVote } from '@/lib/types';
+import { collection, query, orderBy, where, doc, getDocs } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import type { Comment } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-import { MessageCircle, Star, MoreHorizontal, ChevronDown, Loader2 } from 'lucide-react';
+import { MessageCircle, Star, MoreHorizontal, ChevronDown } from 'lucide-react';
 import CommentThread from './comment-thread';
 import { Button } from '../ui/button';
-import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
-import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +19,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
-
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 const INITIAL_COMMENT_LIMIT = 5;
@@ -34,12 +31,11 @@ interface CommentListProps {
   figureId: string;
   figureName: string;
   sortPreference: AttitudeOption | null;
-  onCommentsLoaded: (comments: Comment[]) => void;
+  onCommentsLoaded: (comments: Comment[], hasUserCommented: boolean) => void;
 }
 
 const K_REPLY_WEIGHT = 1.0;
 const C_DECAY_CONSTANT = 24.0;
-
 
 const calculateHotScore = (comment: Comment): number => {
     const likes = comment.likes ?? 0;
@@ -67,35 +63,23 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
   const { t } = useLanguage();
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
-  const [loadComments, setLoadComments] = useState(false);
-  const [comments, setComments] = useState<Comment[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  
+  const commentsQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return query(
+          collection(firestore, 'figures', figureId, 'comments'),
+          orderBy('createdAt', 'desc')
+      );
+  }, [firestore, figureId]);
+
+  const { data: comments, isLoading, refetch } = useCollection<Comment>(commentsQuery);
   
   useEffect(() => {
-    if (!loadComments || !firestore) {
-      if (!loadComments) setIsLoading(false);
-      return;
+    if (comments) {
+      const userHasCommented = user ? comments.some(c => c.userId === user.uid && !c.parentId) : false;
+      onCommentsLoaded(comments, userHasCommented);
     }
-
-    setIsLoading(true);
-    const commentsQuery = query(
-      collection(firestore, 'figures', figureId, 'comments'),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
-      const fetchedComments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
-      setComments(fetchedComments);
-      onCommentsLoaded(fetchedComments);
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Error fetching comments in real-time:", error);
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [firestore, figureId, loadComments, onCommentsLoaded]);
-
+  }, [comments, user, onCommentsLoaded]);
 
   const filteredRootComments = useMemo(() => {
     if (!comments) return [];
@@ -152,17 +136,8 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
   }, [filteredRootComments, sortPreference, activeFilter]);
   
   const handleDeleteSuccess = useCallback(() => {
-      // The onSnapshot listener will automatically update the `comments` state
-  }, []);
-
-
-  if (!loadComments) {
-      return (
-          <div className="text-center py-10 border-2 border-dashed rounded-lg">
-              <Button onClick={() => setLoadComments(true)}>Ver Comentarios</Button>
-          </div>
-      );
-  }
+      refetch();
+  }, [refetch]);
 
   if (isLoading) {
     return (
@@ -189,10 +164,7 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
   const FilterButton = ({ filter, children, isActive }: { filter: FilterType; children: React.ReactNode; isActive: boolean; }) => (
     <Button
         variant={isActive ? 'default' : 'ghost'}
-        className={cn(
-            "h-8 px-3",
-            isActive && "bg-primary text-primary-foreground hover:bg-primary/90"
-        )}
+        className={`h-8 px-3 ${isActive ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
         onClick={() => setActiveFilter(filter)}
     >
         {children}
@@ -246,6 +218,7 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
                 figureId={figureId} 
                 figureName={figureName}
                 onDeleteSuccess={handleDeleteSuccess}
+                onReplySuccess={refetch}
             />
         ))
       ) : (
