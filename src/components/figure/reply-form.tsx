@@ -79,10 +79,10 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
             const now = Timestamp.now();
 
             const newReplyData = {
-                id: newReplyRef.id, // Manually add the id for the optimistic update
+                id: newReplyRef.id,
                 figureId: figureId,
                 userId: user.uid,
-                text: fullText, // Use the combined text
+                text: fullText,
                 createdAt: now,
                 userDisplayName: displayName,
                 userPhotoURL: user.photoURL,
@@ -90,7 +90,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
                 userGender: userProfileData.gender || null,
                 likes: 0,
                 dislikes: 0,
-                parentId: parentComment.id, // Always link to the root comment
+                parentId: parentComment.id,
                 rating: -1,
             };
             
