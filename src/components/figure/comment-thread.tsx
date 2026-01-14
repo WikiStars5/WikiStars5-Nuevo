@@ -1,7 +1,7 @@
 
 'use client';
 
-import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit } from 'firebase/firestore';
+import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking, useAdmin } from '@/firebase';
 import type { Comment as CommentType, CommentVote, GlobalSettings, Streak } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -73,7 +73,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     const isOwner = user && user.uid === comment.userId;
     
     const votePath = isReply 
-        ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
+        ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}/votes`
         : `figures/${figureId}/comments/${comment.id}/votes`;
         
     const userVoteRef = useMemoFirebase(() => {
@@ -624,3 +624,5 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
     </div>
   );
 }
+
+    
