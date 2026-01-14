@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
@@ -61,30 +60,50 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
   const firestore = useFirestore();
   const { user } = useUser();
   const { t } = useLanguage();
+  const [commentsVisible, setCommentsVisible] = useState(false);
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
-  
-  const commentsQuery = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return query(
-          collection(firestore, 'figures', figureId, 'comments'),
-          orderBy('createdAt', 'desc')
-      );
-  }, [firestore, figureId]);
+  const [localComments, setLocalComments] = useState<Comment[]>([]);
 
-  const { data: comments, isLoading, refetch } = useCollection<Comment>(commentsQuery);
-  
   useEffect(() => {
-    if (comments) {
-      const userHasCommented = user ? comments.some(c => c.userId === user.uid && !c.parentId) : false;
-      onCommentsLoaded(comments, userHasCommented);
-    }
-  }, [comments, user, onCommentsLoaded]);
+    // This effect runs only on the client
+    const fetchComments = async () => {
+      if (!firestore) return;
+      const q = query(
+        collection(firestore, 'figures', figureId, 'comments'),
+        orderBy('createdAt', 'desc')
+      );
+      try {
+        const snapshot = await getDocs(q);
+        const fetchedComments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
+        setLocalComments(fetchedComments);
+        const userHasCommented = user ? fetchedComments.some(c => c.userId === user.uid && !c.parentId) : false;
+        onCommentsLoaded(fetchedComments, userHasCommented);
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+      }
+    };
+    fetchComments();
+  }, [firestore, figureId, user, onCommentsLoaded]);
+
+  const handleRefetch = useCallback(async () => {
+     if (!firestore) return;
+      const q = query(
+        collection(firestore, 'figures', figureId, 'comments'),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      const fetchedComments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
+      setLocalComments(fetchedComments);
+      const userHasCommented = user ? fetchedComments.some(c => c.userId === user.uid && !c.parentId) : false;
+      onCommentsLoaded(fetchedComments, userHasCommented);
+  }, [firestore, figureId, user, onCommentsLoaded]);
+
 
   const filteredRootComments = useMemo(() => {
-    if (!comments) return [];
+    if (!localComments) return [];
     
-    const rootComments = comments.filter(comment => !comment.parentId);
+    const rootComments = localComments.filter(comment => !comment.parentId);
 
     if (activeFilter === 'mine') {
       if (!user) return [];
@@ -94,7 +113,7 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
     }
     
     return rootComments;
-  }, [comments, activeFilter, user]);
+  }, [localComments, activeFilter, user]);
 
  const sortedAndFilteredComments = useMemo(() => {
       let tempComments = [...filteredRootComments];
@@ -135,12 +154,42 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
 
   }, [filteredRootComments, sortPreference, activeFilter]);
   
-  const handleDeleteSuccess = useCallback(() => {
-      refetch();
-  }, [refetch]);
+  const handleDeleteSuccess = useCallback((deletedCommentId: string) => {
+      setLocalComments(prev => prev.filter(c => c.id !== deletedCommentId));
+      const userHasCommented = user ? localComments.some(c => c.id !== deletedCommentId && c.userId === user.uid && !c.parentId) : false;
+      onCommentsLoaded(localComments.filter(c => c.id !== deletedCommentId), userHasCommented);
+  }, [localComments, onCommentsLoaded, user]);
 
-  if (isLoading) {
-    return (
+  const handleReplySuccess = useCallback((newReply: Comment) => {
+    // Find the parent and update its reply count optimistically
+    setLocalComments(prev => {
+      return prev.map(c => {
+        if (c.id === newReply.parentId) {
+          return { ...c, replyCount: (c.replyCount || 0) + 1 };
+        }
+        return c;
+      });
+    });
+    // Add the reply to the list to show it instantly
+    setLocalComments(prev => [...prev, newReply]);
+  }, []);
+
+  const visibleComments = sortedAndFilteredComments.slice(0, visibleCount);
+  
+  const FilterButton = ({ filter, children, isActive }: { filter: FilterType; children: React.ReactNode; isActive: boolean; }) => (
+    <Button
+        variant={isActive ? 'default' : 'ghost'}
+        className={`h-8 px-3 ${isActive ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+        onClick={() => setActiveFilter(filter)}
+    >
+        {children}
+    </Button>
+  );
+
+  const isStarFilterActive = typeof activeFilter === 'number';
+
+  if (!localComments) {
+     return (
         <div className="space-y-6">
             {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="flex items-start gap-4 p-4 rounded-lg border">
@@ -159,19 +208,19 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
     )
   }
 
-  const visibleComments = sortedAndFilteredComments.slice(0, visibleCount);
-  
-  const FilterButton = ({ filter, children, isActive }: { filter: FilterType; children: React.ReactNode; isActive: boolean; }) => (
-    <Button
-        variant={isActive ? 'default' : 'ghost'}
-        className={`h-8 px-3 ${isActive ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
-        onClick={() => setActiveFilter(filter)}
-    >
-        {children}
-    </Button>
-  );
+  if (!commentsVisible) {
+      return (
+          <div className="text-center py-10 border-2 border-dashed rounded-lg">
+              <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-semibold">Ver opiniones</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                  Mira lo que otros opinan sobre este perfil.
+              </p>
+              <Button className="mt-4" onClick={() => setCommentsVisible(true)}>Ver comentarios</Button>
+          </div>
+      )
+  }
 
-  const isStarFilterActive = typeof activeFilter === 'number';
 
   return (
     <div className="space-y-6">
@@ -217,8 +266,8 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
                 comment={comment}
                 figureId={figureId} 
                 figureName={figureName}
-                onDeleteSuccess={handleDeleteSuccess}
-                onReplySuccess={refetch}
+                onDeleteSuccess={() => handleDeleteSuccess(comment.id)}
+                onReplySuccess={handleReplySuccess}
             />
         ))
       ) : (
@@ -231,13 +280,13 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
                 className="mx-auto h-52 w-52"
             />
             <h3 className="mt-2 text-lg font-semibold">
-                {activeFilter === 'featured' && (!comments || comments.length === 0) 
+                {activeFilter === 'featured' && (localComments.length === 0) 
                     ? t('CommentList.beTheFirst.title')
                     : t('CommentList.noComments.title')
                 }
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-                {activeFilter === 'featured' && (!comments || comments.length === 0)
+                {activeFilter === 'featured' && (localComments.length === 0)
                     ? t('CommentList.beTheFirst.description')
                     : t('CommentList.noComments.description')
                 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useCallback, useState, useEffect } from 'react';
@@ -6,6 +5,7 @@ import CommentForm from './comment-form';
 import CommentList from './comment-list';
 import { Separator } from '../ui/separator';
 import { Comment } from '@/lib/types';
+import { useUser } from '@/firebase';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -16,15 +16,16 @@ interface CommentSectionProps {
 }
 
 export default function CommentSection({ figureId, figureName, sortPreference }: CommentSectionProps) {
+  const { user } = useUser();
   const [allComments, setAllComments] = useState<Comment[]>([]);
   const [hasUserCommented, setHasUserCommented] = useState(false);
-  
-  // This key will be used to force a re-render of CommentList when a new comment is posted by the current user.
-  const [commentListKey, setCommentListKey] = useState(Date.now());
+  const [key, setKey] = useState(Date.now()); // Key to force re-render
 
   const handleCommentPosted = useCallback(() => {
-    // Force a re-fetch of the comments list
-    setCommentListKey(Date.now());
+    // This will force CommentList to re-fetch its data
+    setKey(Date.now());
+    // Also, optimistically update hasUserCommented
+    setHasUserCommented(true);
   }, []);
 
   const handleCommentsLoaded = useCallback((comments: Comment[], userHasCommented: boolean) => {
@@ -43,7 +44,7 @@ export default function CommentSection({ figureId, figureName, sortPreference }:
       />
       <Separator />
       <CommentList 
-        key={commentListKey} 
+        key={key} 
         figureId={figureId} 
         figureName={figureName} 
         sortPreference={sortPreference} 

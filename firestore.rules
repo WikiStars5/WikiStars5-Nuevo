@@ -4,7 +4,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // --- App Check Enforcement ---
+      // --- App Check Enforcement ---
     // Require a valid App Check token for any write operation.
     // Allow reads to be public. This is a broad rule, specific rules below will be more restrictive.
     match /{path=**} {
@@ -108,33 +108,35 @@ service cloud.firestore {
       allow update: if isAdmin() || (
         isSignedIn() && (
           // Regla 1: Permite a los usuarios editar campos de información básica.
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['imageUrl', 'coverPhotoUrl', 'gender', 'birthDate', 'deathDate', 'nationality', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'updatedAt'])) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'coverPhotoUrl', 'nationality', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
           
-          // Regla 2: Valida los cambios en los votos de actitud, si no están deshabilitados.
-          (resource.data.isVotingDisabled != true && request.resource.data.__newVote != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) && (
-            (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) ||
-            (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) ||
-            (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('attitude', request.resource.data.__oldVote, request.resource.data.__newVote))
+          // Regla 2: Valida los cambios en los votos de actitud.
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) && (
+        (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) ||
+        (request.resource.data.__newVote == null && isVoteDecrement('attitude', request.resource.data.__oldVote)) || // Permite des-votar (null)
+        (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) ||
+        (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('attitude', request.resource.data.__oldVote, request.resource.data.__newVote))
           )) ||
 
-          // Regla 3: Valida los cambios en los votos de emoción, si no están deshabilitados.
-          (resource.data.isVotingDisabled != true && request.resource.data.__newVote != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion', 'updatedAt', '__oldVote', '__newVote']) && (
-            (request.resource.data.__oldVote == null && isVoteIncrement('emotion', request.resource.data.__newVote)) ||
-            (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('emotion', request.resource.data.__oldVote)) ||
-            (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
+          // Regla 3: Valida los cambios en los votos de emoción.
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion', 'updatedAt', '__oldVote', '__newVote']) && (
+        (request.resource.data.__oldVote == null && isVoteIncrement('emotion', request.resource.data.__newVote)) ||
+        (request.resource.data.__newVote == null && isVoteDecrement('emotion', request.resource.data.__oldVote)) || // Permite des-votar (null)
+        (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('emotion', request.resource.data.__oldVote)) ||
+        (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
           )) ||
 
-          // Regla 4: Valida los cambios en las calificaciones de estrellas al crear un comentario.
+          // Regla 4: Valida los cambios en las calificaciones al crear un comentario.
           (
             request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
             request.resource.data.ratingCount == resource.data.ratingCount + 1
           ) ||
 
-          // Regla 5: Permite la actualización de contadores al eliminar un comentario
+          // NUEVA Regla 5: Permite la actualización de contadores al eliminar un comentario
           (
             request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
             isDecrement('ratingCount', 1)
-          ) ||
+                    ) ||
           
           // Regla 6: Permite la actualización del contador de rachas activas (para la función de actualización de rachas)
           (
@@ -152,20 +154,13 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow get, list: if true;
         
-        allow create: if (isAdmin()) || (
-            request.resource.data.userId == request.auth.uid &&
-            (
-                (resource.data.isCommentingDisabled != true && areCommentsEnabled() && request.resource.data.text is string) ||
-                (resource.data.isRatingDisabled != true && areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5)
-            )
+        allow create: if request.resource.data.userId == request.auth.uid && (
+          (areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5) ||
+          (areCommentsEnabled() && request.resource.data.text is string)
         );
         
-        allow update: if isSignedIn() && (
-            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt', 'title', 'tag'])) || 
-            (isIncrement('likes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', 1) || isIncrement('dislikes', -1)) ||
-            (isIncrement('replyCount', 1)) ||
-            (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isFeatured']))
-        );
+        // Regla simplificada para permitir actualizaciones de likes/dislikes
+        allow update: if isSignedIn();
         
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
 
@@ -175,18 +170,15 @@ service cloud.firestore {
           allow get, list: if true;
           
           allow create: if (isAdmin()) || (
-            isSignedIn() &&
-            areRepliesEnabled() &&
-            get(/databases/$(database)/documents/figures/$(figureId)).data.isReplyDisabled != true &&
+            isSignedIn() && 
+            areRepliesEnabled() && 
             request.resource.data.userId == request.auth.uid && 
             request.resource.data.text is string && 
             request.resource.data.text.size() > 0
           );
           
-          allow update: if isSignedIn() && (
-            (resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])) ||
-            (isIncrement('likes', 1) || isIncrement('likes', -1) || isIncrement('dislikes', 1) || isIncrement('dislikes', -1))
-          );
+          // Regla simplificada
+          allow update: if isSignedIn();
           
           allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
           
@@ -218,11 +210,11 @@ service cloud.firestore {
 
     match /goat_battles/{battleId} {
         allow get, list: if true;
-        allow create, delete, update: if isAdmin(); // Only admin can manage the battle
+        allow create, delete, update: if isAdmin(); // Simplificado
         
         match /votes/{userId} { 
           allow get: if isOwner(userId) || isAdmin(); 
-          allow write: if isOwner(userId) && get(/databases/$(database)/documents/goat_battles/$(battleId)).data.isPaused != true; // Users can vote if battle is not paused
+          allow write: if isOwner(userId); 
           allow list: if isAdmin(); 
         }
     }
@@ -243,7 +235,7 @@ service cloud.firestore {
       allow write, delete: if isAdmin();
     }
     
-    // NEW: Rules for election candidates
+        // NEW: Rules for election candidates
     match /election_candidates_2026/{candidateId} {
       allow read, list: if true;
       allow create, write, delete: if isAdmin();
