@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
@@ -7,7 +6,7 @@ import { collection, query, orderBy, where, doc, getDoc, onSnapshot } from 'fire
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import type { Comment, AttitudeVote } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-import { MessageCircle, Star, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { MessageCircle, Star, MoreHorizontal, ChevronDown, Loader2 } from 'lucide-react';
 import CommentThread from './comment-thread';
 import { Button } from '../ui/button';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
@@ -69,22 +68,33 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
   const [loadComments, setLoadComments] = useState(false);
+  const [comments, setComments] = useState<Comment[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading true
   
-  const commentsQuery = useMemoFirebase(() => {
-      if (!firestore || !loadComments) return null;
-      return query(
-          collection(firestore, 'figures', figureId, 'comments'),
-          orderBy('createdAt', 'desc')
-      );
-  }, [firestore, figureId, loadComments]);
-  
-  const { data: comments, isLoading } = useCollection<Comment>(commentsQuery, { realtime: true });
-
   useEffect(() => {
-    if (comments) {
-      onCommentsLoaded(comments);
+    if (!loadComments || !firestore) {
+      if (!loadComments) setIsLoading(false);
+      return;
     }
-  }, [comments, onCommentsLoaded]);
+
+    setIsLoading(true);
+    const commentsQuery = query(
+      collection(firestore, 'figures', figureId, 'comments'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
+      const fetchedComments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
+      setComments(fetchedComments);
+      onCommentsLoaded(fetchedComments);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error fetching comments in real-time:", error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [firestore, figureId, loadComments, onCommentsLoaded]);
 
 
   const filteredRootComments = useMemo(() => {

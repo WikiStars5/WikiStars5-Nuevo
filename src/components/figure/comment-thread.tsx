@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
@@ -54,10 +53,9 @@ interface CommentItemProps {
   onReplySuccess: () => void;
   onDeleteSuccess: () => void;
   areRepliesEnabled: boolean;
-  refetchReplies?: () => void; // Add refetch function for replies
 }
 
-function CommentItem({ comment, figureId, figureName, isReply = false, onReplySuccess, onDeleteSuccess, areRepliesEnabled, refetchReplies }: CommentItemProps) {
+function CommentItem({ comment, figureId, figureName, isReply = false, onReplySuccess, onDeleteSuccess, areRepliesEnabled }: CommentItemProps) {
     const { user } = useUser();
     const firestore = useFirestore();
     const { isAdmin } = useAdmin();
@@ -495,21 +493,34 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
   const { t } = useLanguage();
   const [repliesVisible, setRepliesVisible] = useState(false);
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
+  const [threadReplies, setThreadReplies] = useState<CommentType[] | null>(null);
+  const [areRepliesLoading, setAreRepliesLoading] = useState(false);
   
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
   const areRepliesEnabled = (globalSettings?.isReplyEnabled ?? true);
 
 
-  const repliesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
+  useEffect(() => {
+    if (!firestore || !comment.id) return;
+
+    setAreRepliesLoading(true);
+    const repliesQuery = query(
         collection(firestore, 'figures', figureId, 'comments', comment.id, 'replies'),
         orderBy('createdAt', 'asc')
     );
-  }, [firestore, figureId, comment.id]);
 
-  const { data: threadReplies, isLoading: areRepliesLoading, refetch: refetchReplies } = useCollection<CommentType>(repliesQuery, {realtime: true});
+    const unsubscribe = onSnapshot(repliesQuery, (snapshot) => {
+        const fetchedReplies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CommentType));
+        setThreadReplies(fetchedReplies);
+        setAreRepliesLoading(false);
+    }, (error) => {
+        console.error("Error fetching replies:", error);
+        setAreRepliesLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [firestore, figureId, comment.id]);
 
   const visibleReplies = useMemo(() => {
       if (!threadReplies) return [];
@@ -595,9 +606,8 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
                     figureName={figureName}
                     isReply={true}
                     onReplySuccess={handleReplySuccess}
-                    onDeleteSuccess={refetchReplies} // Refetch replies when a nested reply is deleted
+                    onDeleteSuccess={() => { /* Real-time listener handles UI update */ }}
                     areRepliesEnabled={areRepliesEnabled}
-                    refetchReplies={refetchReplies}
                 />
             ))
           )}
@@ -615,4 +625,3 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
     </div>
   );
 }
-
