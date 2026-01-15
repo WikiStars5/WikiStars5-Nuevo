@@ -88,20 +88,15 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
 
-         <Script id="service-worker-unregister" strategy="afterInteractive">
+         <Script id="service-worker-register" strategy="afterInteractive">
           {`
             if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                  console.log('🛑 Service Worker encontrado. Desregistrando...', registration);
-                  registration.unregister();
-                }
-                if(registrations.length > 0) {
-                   console.log('✅ Service Workers eliminados. Recargando página para limpiar caché...');
-                   // Opcional: forzar recarga si detecta que había uno
-                   // window.location.reload(); 
-                }
-              });
+              navigator.serviceWorker.register('/sw.js')
+                .then(function(registration) {
+                  console.log('✅ Service Worker registered with scope:', registration.scope);
+                }).catch(function(error) {
+                  console.error('🛑 Service Worker registration failed:', error);
+                });
             }
           `}
         </Script>
