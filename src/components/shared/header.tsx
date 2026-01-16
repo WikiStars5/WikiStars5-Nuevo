@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -153,19 +154,12 @@ export default function Header() {
                     <>
                       <DropdownMenuLabel>{t('Header.guestMenuTitle')}</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {userProfile ? (
-                         <DropdownMenuItem asChild>
-                           <Link href="/profile">
-                             <UserIcon className="mr-2 h-4 w-4" />
-                             <span>{t('Header.myProfile')}</span>
-                           </Link>
-                         </DropdownMenuItem>
-                      ) : (
-                         <DropdownMenuItem onSelect={handleLogin}>
-                          <LogIn className="mr-2 h-4 w-4" />
-                          <span>{t('Header.login')}</span>
-                        </DropdownMenuItem>
-                      )}
+                      <DropdownMenuItem asChild>
+                        <Link href="/profile">
+                          <UserIcon className="mr-2 h-4 w-4" />
+                          <span>{t('Header.myProfile')}</span>
+                        </Link>
+                      </DropdownMenuItem>
                     </>
                   ) : (
                     <>
