@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
@@ -14,7 +13,7 @@ import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy, Lock, ArrowDown, Star, Swords } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy, Lock, ArrowDown, Star } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -26,7 +25,6 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
 import { countries } from '@/lib/countries';
 import { useLanguage } from '@/context/LanguageContext';
-import FigureVersus from '@/components/figure/figure-versus';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -237,10 +235,6 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 />
                 {t('FigurePage.tabs.streaks')}
               </TabsTrigger>
-              <TabsTrigger value="versus">
-                <Swords className="mr-2 h-4 w-4" />
-                Versus
-              </TabsTrigger>
               {isGoatCandidate && (
                 <TabsTrigger value="goat">
                   <Trophy className="mr-2 h-4 w-4" />
@@ -348,9 +342,6 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           </TabsContent>
           <TabsContent value="rachas" className="mt-4">
             <TopStreaks figure={figure} />
-          </TabsContent>
-          <TabsContent value="versus" className="mt-4">
-            <FigureVersus figure={figure} />
           </TabsContent>
           {isGoatCandidate && (
             <TabsContent value="goat" className="mt-4">
