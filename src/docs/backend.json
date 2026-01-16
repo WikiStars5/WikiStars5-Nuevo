@@ -169,16 +169,16 @@
           "type": "string",
           "description": "The nationality of the public figure."
         },
-        "activeStreakCount": {
-          "type": "number",
-          "description": "The total number of currently active user streaks for this figure."
-        },
         "socialMediaLinks": {
           "type": "array",
           "description": "Links to the public figure's social media profiles.",
           "items": {
             "type": "string"
           }
+        },
+        "activeStreakCount": {
+            "type": "number",
+            "description": "The total number of currently active user streaks for this figure."
         },
         "tags": {
           "type": "array",
@@ -435,10 +435,6 @@
           "type": "string",
           "description": "Reference to the PublicFigure the streak is for. (Relationship: PublicFigure 1:N Streak)"
         },
-        "isActive": {
-            "type": "boolean",
-            "description": "Indicates if the streak is currently active (commented today or yesterday)."
-        },
         "startDate": {
           "type": "string",
           "description": "The start date of the streak.",
@@ -468,10 +464,6 @@
       "type": "object",
       "description": "Represents a related figure relationship between two public figures.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the related figure entity."
-        },
         "sourceFigureId": {
           "type": "string",
           "description": "Reference to the source PublicFigure. (Relationship: PublicFigure 1:N RelatedFigure)"
@@ -487,10 +479,14 @@
         "targetFigureName": {
           "type": "string",
           "description": "Denormalized name of the target PublicFigure for display."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the relationship was created."
         }
       },
       "required": [
-        "id",
         "sourceFigureId",
         "targetFigureId",
         "sourceFigureName",

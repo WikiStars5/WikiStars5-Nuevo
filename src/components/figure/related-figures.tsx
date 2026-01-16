@@ -10,7 +10,7 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import AddRelatedFigureDialog from './add-related-figure-dialog';
 import FigureCard from '../shared/figure-card';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, doc, getDoc, deleteDoc, limit } from 'firebase/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import {
@@ -32,12 +32,10 @@ interface RelatedFiguresProps {
     figure: Figure;
 }
 
-// A new component to fetch the actual figure data based on the relation
-function RelatedFigureCard({ figureId, relationId }: { figureId: string, relationId: string }) {
+// A new component to render the card with delete functionality
+function RelatedFigureDisplay({ figure, relationId, onRelationDeleted }: { figure: Figure, relationId: string, onRelationDeleted: () => void }) {
     const firestore = useFirestore();
     const { toast } = useToast();
-    const [figureData, setFigureData] = useState<Figure | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const { user } = useUser();
     const { t } = useLanguage();
@@ -52,7 +50,7 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
                 title: t('FigurePage.relatedFigures.deleteToastTitle'),
                 description: t('FigurePage.relatedFigures.deleteToastDescription'),
             });
-            // The component will unmount as the parent's `relations` data updates
+            onRelationDeleted();
         } catch (error) {
             console.error("Failed to delete relation:", error);
             toast({
@@ -65,42 +63,15 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
     }
 
 
-    useEffect(() => {
-        const fetchFigure = async () => {
-            if (!firestore) return;
-            try {
-                const figureRef = doc(firestore, 'figures', figureId);
-                const docSnap = await getDoc(figureRef);
-                if (docSnap.exists()) {
-                    setFigureData({ id: docSnap.id, ...docSnap.data() } as Figure);
-                }
-            } catch (error) {
-                console.error("Failed to fetch related figure data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchFigure();
-    }, [figureId, firestore]);
-
-    if (isLoading) {
-        return (
-             <div className="space-y-4">
-                <Skeleton className="aspect-[4/5] w-full" />
-                <Skeleton className="h-5 w-3/4" />
-            </div>
-        )
-    }
-
-    if (!figureData) return null;
+    if (!figure) return null;
 
     return (
         <div className="relative group">
-            <FigureCard figure={figureData} />
+            <FigureCard figure={figure} />
             {user && !user.isAnonymous && (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button
+                         <Button
                             variant="destructive"
                             size="icon"
                             className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -113,7 +84,7 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
                         <AlertDialogHeader>
                             <AlertDialogTitle>{t('FigurePage.relatedFigures.deleteConfirmTitle')}</AlertDialogTitle>
                             <AlertDialogDescription>
-                               {t('FigurePage.relatedFigures.deleteConfirmDescription').replace('{name}', figureData.name)}
+                               {t('FigurePage.relatedFigures.deleteConfirmDescription').replace('{name}', figure.name)}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -127,30 +98,43 @@ function RelatedFigureCard({ figureId, relationId }: { figureId: string, relatio
     );
 }
 
-
 export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const firestore = useFirestore();
     const { user } = useUser();
     const { t } = useLanguage();
 
-    // Query only for relationships where the current figure is the SOURCE.
-    const relationsAsSourceQuery = useMemoFirebase(() => {
+    const relationsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collection(firestore, 'related_figures'), where('sourceFigureId', '==', figure.id));
+        return query(
+            collection(firestore, 'related_figures'), 
+            where('sourceFigureId', '==', figure.id),
+            limit(6)
+        );
     }, [firestore, figure.id]);
 
-    const { data: relations, isLoading } = useCollection<RelatedFigure>(relationsAsSourceQuery);
+    const { data: relations, isLoading: isLoadingRelations, refetch: refetchRelations } = useCollection<RelatedFigure>(relationsQuery, {realtime: true});
 
-    const relatedItems = useMemo(() => {
+    const relatedFigureIds = useMemo(() => {
         if (!relations) return [];
-        return relations.map(rel => ({
-            figureId: rel.targetFigureId,
-            relationId: rel.id
-        }));
+        return relations.map(rel => rel.targetFigureId).filter(Boolean);
     }, [relations]);
+
+    const figuresQuery = useMemoFirebase(() => {
+        if (!firestore || relatedFigureIds.length === 0) return null;
+        return query(collection(firestore, 'figures'), where('__name__', 'in', relatedFigureIds));
+    }, [firestore, relatedFigureIds]);
+
+    const { data: relatedFiguresData, isLoading: isLoadingFigures } = useCollection<Figure>(figuresQuery);
+
+    const relatedFiguresMap = useMemo(() => {
+        if (!relatedFiguresData) return new Map();
+        return new Map(relatedFiguresData.map(fig => [fig.id, fig]));
+    }, [relatedFiguresData]);
     
-    const isLimitReached = relatedItems.length >= 6;
+    const isLoading = isLoadingRelations || (relatedFigureIds.length > 0 && isLoadingFigures);
+
+    const isLimitReached = relations ? relations.length >= 6 : false;
 
     return (
         <Card className="bg-black">
@@ -203,14 +187,16 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
                         ))}
                     </div>
                 )}
-                {!isLoading && relatedItems.length > 0 && (
+                {!isLoading && relations && relations.length > 0 && relatedFiguresMap.size > 0 && (
                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {relatedItems.slice(0, 6).map(item => (
-                            <RelatedFigureCard key={item.relationId} figureId={item.figureId} relationId={item.relationId} />
-                        ))}
+                        {relations.map(rel => {
+                            const relatedFigure = relatedFiguresMap.get(rel.targetFigureId);
+                            if (!relatedFigure) return null;
+                            return <RelatedFigureDisplay key={rel.id} figure={relatedFigure} relationId={rel.id} onRelationDeleted={refetchRelations} />;
+                        })}
                     </div>
                 )}
-                {!isLoading && relatedItems.length === 0 && (
+                {!isLoading && (!relations || relations.length === 0) && (
                      <p className="text-sm text-muted-foreground text-center py-8">
                         {t('FigurePage.relatedFigures.noRelated')}
                     </p>
@@ -219,4 +205,3 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
         </Card>
     );
 }
-
