@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -130,6 +129,14 @@ export default function EmotionVoting({ figure: initialFigure }: EmotionVotingPr
 
             if (!figureDoc.exists()) {
                 throw new Error("Figure does not exist.");
+            }
+            
+            // Create user profile if it doesn't exist (for anonymous users on first action)
+            if (!userProfileDoc.exists()) {
+                transaction.set(userProfileRef, { 
+                    id: currentUser!.uid,
+                    createdAt: serverTimestamp() 
+                });
             }
 
             const dbPreviousVote = privateVoteDoc.exists() ? privateVoteDoc.data().vote : null;

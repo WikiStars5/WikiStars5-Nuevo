@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -140,6 +139,14 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
             if (!figureDoc.exists()) {
                 throw new Error("Figure does not exist.");
             }
+            
+            // Create user profile if it doesn't exist (for anonymous users on first action)
+            if (!userProfileDoc.exists()) {
+                transaction.set(userProfileRef, { 
+                    id: currentUser!.uid,
+                    createdAt: serverTimestamp() 
+                });
+            }
 
             const dbPreviousVote = privateVoteDoc.exists() ? privateVoteDoc.data().vote : null;
             const dbIsRetracting = dbPreviousVote === vote;
@@ -159,7 +166,11 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
                     updates[`attitude.${dbPreviousVote}`] = increment(-1);
                 }
 
-                const userProfileData = userProfileDoc.exists() ? userProfileDoc.data() as AppUser : {};
+                // Use the fetched userProfileDoc data, even if it was just created
+                const userProfileData = userProfileDoc.exists() 
+                    ? userProfileDoc.data() as AppUser 
+                    : {};
+                
                 const voteData = {
                     userId: currentUser!.uid,
                     figureId: figure.id,
@@ -302,5 +313,3 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
     </div>
   );
 }
-
-    
