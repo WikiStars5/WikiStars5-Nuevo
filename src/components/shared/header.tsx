@@ -56,7 +56,7 @@ export default function Header() {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef, { realtime: true });
   
   React.useEffect(() => {
     // This effect runs only on the client after hydration
