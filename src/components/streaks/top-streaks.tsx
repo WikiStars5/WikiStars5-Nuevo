@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -125,17 +124,16 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                                     ¿Cómo se Gana una Racha de Lealtad?
                                 </DialogTitle>
                                 <DialogDescription className="pt-2 text-left">
-                                    Para ganar y mantener tu racha, debes seguir una regla simple pero importante:
+                                   Para ganar y mantener tu racha, realiza cualquiera de las siguientes acciones en días consecutivos. Si dejas pasar un día completo, tu racha se reinicia.
                                 </DialogDescription>
                             </DialogHeader>
-                            <div className="py-4 space-y-3 text-sm text-muted-foreground">
-                                <p>
-                                    1. <strong>Deja un comentario con texto o responde a uno existente.</strong> No basta con solo calificar con estrellas; tu opinión escrita es lo que cuenta para la racha.
-                                </p>
-                                <p>
-                                    2. <strong>Hazlo en días consecutivos.</strong> Si comentas hoy y luego mañana, tu racha aumentará. Si dejas pasar un día completo, tu racha se reiniciará a 1 la próxima vez que comentes.
-                                </p>
-                                <p className="font-semibold text-foreground">
+                            <div className="py-4 space-y-2 text-sm">
+                                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                                    <li><strong>Comentar o Responder:</strong> Tu opinión escrita es clave.</li>
+                                    <li><strong>Votar en Comentarios:</strong> Dar "Me gusta" o "No me gusta" también cuenta.</li>
+                                    <li><strong>Compartir Perfiles:</strong> Difunde la conversación y mantén tu racha.</li>
+                                </ul>
+                                <p className="pt-4 font-semibold text-foreground">
                                     ¡Mantén viva la conversación y demuestra tu lealtad (o tu crítica constante)!
                                 </p>
                             </div>
@@ -207,3 +205,4 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
         </Card>
     );
 }
+    
