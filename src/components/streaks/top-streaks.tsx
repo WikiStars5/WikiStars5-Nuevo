@@ -64,8 +64,8 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
     const firestore = useFirestore();
     const { t } = useLanguage();
     const [topStreaks, setTopStreaks] = useState<Streak[]>([]);
+    const [activeStreaksCount, setActiveStreaksCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
-    const { isAdmin } = useAdmin();
 
     useEffect(() => {
         const fetchStreaks = async () => {
@@ -81,12 +81,12 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                 const snapshot = await getDocs(streaksQuery);
                 const allStreaks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Streak));
 
-                // Filter for active streaks and limit to 10
+                // Filter for active streaks
                 const activeStreaks = allStreaks
-                    .filter(streak => isDateActive(streak.lastCommentDate))
-                    .slice(0, 10);
+                    .filter(streak => isDateActive(streak.lastCommentDate));
                 
-                setTopStreaks(activeStreaks);
+                setActiveStreaksCount(activeStreaks.length);
+                setTopStreaks(activeStreaks.slice(0, 10)); // Display top 10
 
             } catch (error) {
                 console.error("Failed to fetch top streaks:", error);
@@ -105,9 +105,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                     <div>
                         <CardTitle className="flex items-center gap-2">
                             {t('TopStreaks.title')}
-                             {isAdmin && figure.activeStreakCount && (
-                                <span className="text-sm font-normal text-muted-foreground">({formatCompactNumber(figure.activeStreakCount)})</span>
-                            )}
+                            <span className="text-sm font-normal text-muted-foreground">({formatCompactNumber(activeStreaksCount)})</span>
                         </CardTitle>
                         <CardDescription className="text-muted-foreground">{t('TopStreaks.description')}</CardDescription>
                     </div>
@@ -129,8 +127,8 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                             </DialogHeader>
                             <div className="py-4 space-y-2 text-sm">
                                 <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                                    <li><strong>Comentar o Responder:</strong> Tu opinión escrita es clave.</li>
-                                    <li><strong>Votar en Comentarios:</strong> Dar "Me gusta" o "No me gusta" también cuenta.</li>
+                                    <li><strong>Comentar o Responder:</strong> Tu opinión escrita es clave para iniciar o continuar una racha.</li>
+                                    <li><strong>Votar en Comentarios:</strong> Dar "Me gusta" o "No me gusta" también cuenta para mantener tu racha activa.</li>
                                     <li><strong>Compartir Perfiles:</strong> Difunde la conversación y mantén tu racha.</li>
                                 </ul>
                                 <p className="pt-4 font-semibold text-foreground">
@@ -205,4 +203,3 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
         </Card>
     );
 }
-    
