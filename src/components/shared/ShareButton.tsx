@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { doc, updateDoc, increment } from "firebase/firestore";
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser, useAuth, signInAnonymously } from '@/firebase';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Share2, Link as LinkIcon, Facebook, Twitter, Linkedin, MessageCircle, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { updateStreak } from '@/firebase/streaks';
+import { StreakAnimationContext } from '@/context/StreakAnimationContext';
+import type { Figure } from '@/lib/types';
 
 
 // Simple inline SVG component for Reddit Icon
@@ -73,6 +76,9 @@ export function ShareButton({
 }: ShareButtonProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
+  const auth = useAuth();
+  const { showStreakAnimation } = useContext(StreakAnimationContext);
   const [currentUrl, setCurrentUrl] = useState('');
   const [isWebShareSupported, setIsWebShareSupported] = useState(false);
 
@@ -114,26 +120,53 @@ export function ShareButton({
       return 'profile';
   }
 
-  const trackShare = async () => {
-    if (!firestore) return;
+  const handleShareAction = async () => {
+    if (!firestore || !auth) return;
 
+    // Increment public share count on the figure
     const category = getShareCategory();
     const figureRef = doc(firestore, "figures", figureId);
-    
     try {
         await updateDoc(figureRef, {
             [`shareCounts.${category}`]: increment(1)
         });
     } catch (error) {
-        // This is a background task, so we don't need to bother the user if it fails.
-        // We can log it for debugging purposes.
         console.error("Failed to increment share count:", error);
+    }
+    
+    // Check for user and update streak
+    let currentUser = user;
+    if (!currentUser) {
+        try {
+            const userCredential = await signInAnonymously(auth);
+            currentUser = userCredential.user;
+        } catch (error) {
+            console.error("Failed to sign in anonymously for streak tracking:", error);
+            return; // Exit if we can't get a user
+        }
+    }
+    
+    if (currentUser) {
+        try {
+            const streakResult = await updateStreak({
+                firestore,
+                figureId,
+                figureName,
+                userId: currentUser.uid,
+                isAnonymous: currentUser.isAnonymous,
+            });
+
+            if (streakResult?.streakGained) {
+                showStreakAnimation(streakResult.newStreakCount);
+            }
+        } catch (error) {
+            console.error("Failed to update streak on share:", error);
+        }
     }
   };
 
 
   if (!currentUrl) {
-    // Return a disabled button or a placeholder while URL is not available
     return (
       <Button variant="outline" size={buttonSize} aria-label="Cargando opciones para compartir" disabled>
         <Share2 className="h-5 w-5" />
@@ -181,9 +214,8 @@ export function ShareButton({
   };
 
 
-  // If Web Share API is supported, show a direct share button.
   const handleNativeShare = async () => {
-    trackShare(); // Track the share action
+    await handleShareAction();
     if (navigator.share) {
       try {
         await navigator.share({
@@ -192,7 +224,6 @@ export function ShareButton({
           url: currentUrl,
         });
       } catch (error) {
-        // This can happen if the user cancels the share dialog. We don't need to show an error for that.
         console.log("Web Share API was cancelled or failed:", error);
       }
     }
@@ -213,7 +244,6 @@ export function ShareButton({
     );
   }
 
-  // --- Fallback for browsers that don't support Web Share API (e.g., desktop) ---
   const encodedUrl = encodeURIComponent(currentUrl);
   const encodedTitle = encodeURIComponent(getShareText());
   const emailSubject = encodeURIComponent(getShareTitle());
@@ -260,7 +290,7 @@ export function ShareButton({
   ];
 
   const handleShareOptionClick = async (option: SocialShareOption) => {
-    trackShare(); // Track the share action
+    await handleShareAction();
     if (option.url === "#copy") {
       try {
         await navigator.clipboard.writeText(currentUrl);
@@ -273,7 +303,6 @@ export function ShareButton({
         window.location.href = option.url;
     }
     else {
-      // For other social media, open in a new tab
       window.open(option.url, '_blank', 'noopener,noreferrer');
     }
   };

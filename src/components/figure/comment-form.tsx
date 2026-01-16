@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect, useCallback } from 'react';
@@ -248,7 +247,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
         await batch.commit();
 
-        if (data.text && data.text.trim().length > 0 && newRating >= 0) {
+        if (data.text && data.text.trim().length > 0) {
             const streakResult = await updateStreak({
                 firestore, figureId, figureName,
                 userId: currentUser.uid,
