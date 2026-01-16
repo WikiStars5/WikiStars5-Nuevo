@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '@/lib/utils';
 import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp, Share2, Lock, Flame, Pin, PinOff } from 'lucide-react';
 import { Button } from '../ui/button';
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, useContext } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -34,6 +34,8 @@ import { formatDateDistance } from '@/lib/utils';
 import { commentTags } from '@/lib/tags';
 import { Input } from '../ui/input';
 import { isDateActive } from '@/lib/streaks';
+import { updateStreak } from '@/firebase/streaks';
+import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -61,6 +63,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     const { isAdmin } = useAdmin();
     const { toast } = useToast();
     const { t, language } = useLanguage();
+    const { showStreakAnimation } = useContext(StreakAnimationContext);
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -131,6 +134,18 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 
                 transaction.update(commentRef, updates);
             });
+            
+            const streakResult = await updateStreak({
+                firestore,
+                figureId,
+                figureName,
+                userId: user.uid,
+                isAnonymous: user.isAnonymous,
+            });
+
+            if (streakResult?.streakGained) {
+                showStreakAnimation(streakResult.newStreakCount);
+            }
             // No need for refetch, realtime listener will update UI.
         } catch (error: any) {
             console.error("Error al votar:", error);
@@ -310,7 +325,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                             </div>
                         )}
                         {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Feminino">♀</span>}
+                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
                         {country && (
                             <Image
                                 src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
@@ -624,5 +639,3 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
     </div>
   );
 }
-
-    
