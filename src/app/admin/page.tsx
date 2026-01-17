@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessagesSquare, MessageCircle, Share2, Bot, Calendar as CalendarIcon, Clock, Flame } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
-import { collection, query, doc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, query, doc, runTransaction, Timestamp, serverTimestamp, increment } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -16,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { GlobalSettings } from '@/lib/types';
+import type { GlobalSettings, FigureStats } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -62,11 +63,11 @@ export default function AdminDashboard() {
   const { data: globalSettings, isLoading: isLoadingSettings } = useDoc<GlobalSettings>(settingsDocRef);
 
 
-  const figuresCollection = useMemoFirebase(() => {
+  const figuresStatsDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'figures'));
+    return doc(firestore, 'stats', 'figures');
   }, [firestore]);
-  const { data: figures, isLoading: isLoadingFigures } = useCollection(figuresCollection);
+  const { data: figuresStats, isLoading: isLoadingFigures } = useDoc<FigureStats>(figuresStatsDocRef);
 
   const usersCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -233,7 +234,7 @@ export default function AdminDashboard() {
                 {isLoadingFigures ? (
                     <Skeleton className="h-9 w-1/4" />
                 ) : (
-                    <div className="text-4xl font-bold">{figures?.length ?? 0}</div>
+                    <div className="text-4xl font-bold">{figuresStats?.totalCount ?? 0}</div>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">perfiles gestionados en Firestore</p>
               </div>

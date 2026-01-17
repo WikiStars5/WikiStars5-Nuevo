@@ -17,6 +17,10 @@ export interface User {
   gender?: 'Masculino' | 'Femenino' | 'Otro' | 'Prefiero no decirlo' | null;
 }
 
+export interface FigureStats {
+  totalCount: number;
+}
+
 export interface GlobalSettings {
   isRatingEnabled: boolean;
   isVotingEnabled?: boolean;

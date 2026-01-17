@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -29,15 +30,17 @@ import {
 } from '@/components/ui/table';
 import Image from 'next/image';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, doc, runTransaction, increment } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Figure } from '@/lib/types';
 import * as React from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const ITEMS_PER_PAGE = 10;
 
 export default function AdminFiguresPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [currentPage, setCurrentPage] = React.useState(1);
 
   const figuresCollection = useMemoFirebase(() => {
@@ -45,7 +48,7 @@ export default function AdminFiguresPage() {
     return query(collection(firestore, 'figures'));
   }, [firestore]);
 
-  const { data: figures, isLoading } = useCollection<Figure>(figuresCollection);
+  const { data: figures, isLoading, refetch } = useCollection<Figure>(figuresCollection, { realtime: true });
 
   const totalPages = figures ? Math.ceil(figures.length / ITEMS_PER_PAGE) : 1;
 
@@ -53,8 +56,44 @@ export default function AdminFiguresPage() {
     if (!figures) return [];
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
-    return figures.slice(startIndex, endIndex);
+    // Sort figures alphabetically by name before paginating
+    const sortedFigures = [...figures].sort((a, b) => a.name.localeCompare(b.name));
+    return sortedFigures.slice(startIndex, endIndex);
   }, [figures, currentPage]);
+
+  const handleDelete = async (figureId: string, figureName: string) => {
+    if (!firestore) return;
+
+    const figureRef = doc(firestore, 'figures', figureId);
+    const statsRef = doc(firestore, 'stats', 'figures');
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const figureDoc = await transaction.get(figureRef);
+        if (!figureDoc.exists()) {
+          throw new Error("La figura ya no existe.");
+        }
+        
+        // Note: This does not delete subcollections like comments. 
+        // A Cloud Function would be required for a full cleanup.
+        transaction.delete(figureRef);
+        transaction.set(statsRef, { totalCount: increment(-1) }, { merge: true });
+      });
+
+      toast({
+        title: "Figura eliminada",
+        description: `El perfil de ${figureName} ha sido eliminado.`
+      });
+      // No need to call refetch() because we are using a realtime listener
+    } catch (error: any) {
+      console.error("Error deleting figure:", error);
+      toast({
+        variant: "destructive",
+        title: "Error al eliminar",
+        description: error.message || "No se pudo eliminar la figura."
+      });
+    }
+  };
   
   return (
     <Card>
@@ -134,7 +173,7 @@ export default function AdminFiguresPage() {
                       <DropdownMenuItem asChild>
                         <Link href={`/admin/figures/${figure.id}/edit`}>Editar</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Eliminar</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDelete(figure.id, figure.name)}>Eliminar</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

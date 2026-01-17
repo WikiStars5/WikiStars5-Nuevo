@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import { collection, doc, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import { generateKeywords } from '@/lib/keywords';
 import { Loader2, Sparkles, AlertCircle, ArrowLeft, Pencil } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -106,6 +106,7 @@ export default function BulkCreatePage() {
     }
 
     const batch = writeBatch(firestore);
+    const statsRef = doc(firestore, 'stats', 'figures');
     let createdCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
@@ -154,6 +155,10 @@ export default function BulkCreatePage() {
         console.error(`Error processing name "${name}":`, error);
         errorCount++;
       }
+    }
+
+    if (createdCount > 0) {
+        batch.set(statsRef, { totalCount: increment(createdCount) }, { merge: true });
     }
 
     try {

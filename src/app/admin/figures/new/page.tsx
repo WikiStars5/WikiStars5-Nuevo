@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -7,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, writeBatch, increment } from 'firebase/firestore';
 import { generateKeywords, normalizeText } from '@/lib/keywords';
 
 import { Button } from '@/components/ui/button';
@@ -120,6 +121,7 @@ export default function AdminNewFigurePage() {
     
     const slug = data.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     const figureRef = doc(firestore, 'figures', slug);
+    const statsRef = doc(firestore, 'stats', 'figures');
 
     try {
       const docSnap = await getDoc(figureRef);
@@ -159,7 +161,11 @@ export default function AdminNewFigurePage() {
         ratingsBreakdown: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
       };
 
-      await setDoc(figureRef, figureData);
+      const batch = writeBatch(firestore);
+      batch.set(figureRef, figureData);
+      batch.set(statsRef, { totalCount: increment(1) }, { merge: true });
+
+      await batch.commit();
 
       toast({
         title: '¡Perfil Creado!',
