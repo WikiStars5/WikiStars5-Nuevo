@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -9,7 +8,7 @@ import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlo
 import { collection, query, doc, runTransaction, Timestamp, serverTimestamp, increment } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { GlobalSettings, FigureStats } from '@/lib/types';
+import type { GlobalSettings, Figure, FigureStats } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -63,11 +62,31 @@ export default function AdminDashboard() {
   const { data: globalSettings, isLoading: isLoadingSettings } = useDoc<GlobalSettings>(settingsDocRef);
 
 
+  // --- Figure Count Logic ---
   const figuresStatsDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'stats', 'figures');
   }, [firestore]);
-  const { data: figuresStats, isLoading: isLoadingFigures } = useDoc<FigureStats>(figuresStatsDocRef);
+  const { data: figuresStats, isLoading: isLoadingStatsDoc } = useDoc<FigureStats>(figuresStatsDocRef);
+  
+  const figuresCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'figures'));
+  }, [firestore]);
+  const { data: allFigures, isLoading: isLoadingAllFigures } = useCollection<Figure>(figuresCollection);
+
+  const isLoadingFigures = isLoadingStatsDoc || isLoadingAllFigures;
+  const actualFigureCount = allFigures?.length ?? 0;
+  
+  // Self-healing effect: if the stored count is out of sync, update it.
+  useEffect(() => {
+    if (!isLoadingFigures && figuresStatsDocRef && figuresStats?.totalCount !== actualFigureCount) {
+      console.log(`Syncing figure count. Stored: ${figuresStats?.totalCount}, Actual: ${actualFigureCount}`);
+      setDocumentNonBlocking(figuresStatsDocRef, { totalCount: actualFigureCount }, { merge: false });
+    }
+  }, [isLoadingFigures, figuresStats, actualFigureCount, figuresStatsDocRef]);
+  // --- End Figure Count Logic ---
+
 
   const usersCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -234,7 +253,7 @@ export default function AdminDashboard() {
                 {isLoadingFigures ? (
                     <Skeleton className="h-9 w-1/4" />
                 ) : (
-                    <div className="text-4xl font-bold">{figuresStats?.totalCount ?? 0}</div>
+                    <div className="text-4xl font-bold">{actualFigureCount}</div>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">perfiles gestionados en Firestore</p>
               </div>
