@@ -229,6 +229,11 @@ service cloud.firestore {
       allow read: if true; 
       allow write: if isAdmin(); 
     }
+
+    match /stats/{statId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
     
     match /featured_figures/{figureId} {
       allow read: if true;
@@ -244,3 +249,5 @@ service cloud.firestore {
 }
 
   
+
+      
