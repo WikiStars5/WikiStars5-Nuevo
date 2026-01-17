@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
@@ -139,7 +140,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   const getDefaultTab = () => {
     const shareType = searchParams.get('shareType');
     if (shareType === 'emotion') return 'emocion';
-    if (searchParams.get('tab') === 'goat') return 'goat';
+    if (searchParams.get('tab') === 'goat') return 'reseñas';
     return 'reseñas';
   }
 
@@ -235,12 +236,6 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 />
                 {t('FigurePage.tabs.streaks')}
               </TabsTrigger>
-              {isGoatCandidate && (
-                <TabsTrigger value="goat">
-                  <Trophy className="mr-2 h-4 w-4" />
-                  GOAT
-                </TabsTrigger>
-              )}
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -343,11 +338,6 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           <TabsContent value="rachas" className="mt-4">
             <TopStreaks figure={figure} />
           </TabsContent>
-          {isGoatCandidate && (
-            <TabsContent value="goat" className="mt-4">
-                <GoatBattle />
-            </TabsContent>
-          )}
         </Tabs>
       </div>
       

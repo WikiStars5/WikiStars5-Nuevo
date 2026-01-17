@@ -126,15 +126,6 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
               <h1 className="text-3xl md:text-5xl font-bold tracking-tight font-headline">
                 {figure.name}
               </h1>
-              {isWinner && (
-                <Image 
-                  src={GOAT_ICON_URL}
-                  alt="GOAT Icon"
-                  width={40}
-                  height={40}
-                  className="h-10 w-10"
-                />
-              )}
             </div>
             <div className="flex justify-center md:justify-start">
               <PersonalStreak figureId={figureId} />
