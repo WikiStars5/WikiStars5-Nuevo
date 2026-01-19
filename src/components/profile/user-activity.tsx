@@ -33,6 +33,8 @@ interface UserActivityProps {
 
 const INITIAL_VOTE_LIMIT = 4;
 const VOTE_INCREMENT = 4;
+const INITIAL_STREAK_LIMIT = 4;
+const STREAK_INCREMENT = 4;
 
 function ActivityDisplay({ votes, category }: { votes: FetchedVote[], category: string }) {
     const { t } = useLanguage();
@@ -77,6 +79,8 @@ function ActivityDisplay({ votes, category }: { votes: FetchedVote[], category: 
 
 function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
   const { t } = useLanguage();
+  const [visibleCount, setVisibleCount] = useState(INITIAL_STREAK_LIMIT);
+
   if (streaks.length === 0) {
     return (
         <div className="text-center py-8">
@@ -89,21 +93,33 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
     );
   }
 
+  const visibleStreaks = streaks.slice(0, visibleCount);
+  const hasMore = streaks.length > visibleCount;
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 py-4">
-      {streaks.map((streak) => {
-        if (!streak.figureName) return null;
-        return (
-          <Link key={streak.figureId} href={`/figures/${streak.figureId}`} className="flex flex-col items-center gap-2 text-center group relative">
-            <Image src={streak.figureImageUrl || 'https://placehold.co/64x64'} alt={streak.figureName} width={64} height={64} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
-            <span className="text-xs font-medium group-hover:text-primary transition-colors">{streak.figureName}</span>
-            <div className="absolute top-0 right-0 flex items-center gap-1 rounded-full bg-card border px-2 py-0.5 text-xs font-bold text-orange-500">
-                <span>{streak.currentStreak}</span>
-                <Flame className="w-3 h-3" />
+    <div className="py-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {visibleStreaks.map((streak) => {
+            if (!streak.figureName) return null;
+            return (
+            <Link key={streak.figureId} href={`/figures/${streak.figureId}`} className="flex flex-col items-center gap-2 text-center group relative">
+                <Image src={streak.figureImageUrl || 'https://placehold.co/64x64'} alt={streak.figureName} width={64} height={64} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
+                <span className="text-xs font-medium group-hover:text-primary transition-colors">{streak.figureName}</span>
+                <div className="absolute top-0 right-0 flex items-center gap-1 rounded-full bg-card border px-2 py-0.5 text-xs font-bold text-orange-500">
+                    <span>{streak.currentStreak}</span>
+                    <Flame className="w-3 h-3" />
+                </div>
+            </Link>
+            );
+        })}
+        </div>
+        {hasMore && (
+            <div className="text-center mt-6">
+                <Button variant="outline" onClick={() => setVisibleCount(prev => prev + STREAK_INCREMENT)}>
+                    Ver más rachas activas
+                </Button>
             </div>
-          </Link>
-        );
-      })}
+        )}
     </div>
   );
 }
