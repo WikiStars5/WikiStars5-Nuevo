@@ -14,6 +14,7 @@ import { isDateActive } from '@/lib/streaks';
 import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart, Trophy, Award } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useLanguage } from '@/context/LanguageContext';
+import { Button } from '../ui/button';
 
 
 // The fetched votes will now contain the denormalized data
@@ -30,29 +31,46 @@ interface UserActivityProps {
     userId: string;
 }
 
+const INITIAL_VOTE_LIMIT = 4;
+const VOTE_INCREMENT = 4;
+
 function ActivityDisplay({ votes, category }: { votes: FetchedVote[], category: string }) {
     const { t } = useLanguage();
+    const [visibleCount, setVisibleCount] = useState(INITIAL_VOTE_LIMIT);
+
     if (!votes || votes.length === 0) {
         return <p className="text-sm text-muted-foreground text-center py-8">{t('UserActivity.noVotes').replace('{category}', category)}</p>;
     }
     
+    const visibleVotes = votes.slice(0, visibleCount);
+    const hasMore = votes.length > visibleCount;
+
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 py-4">
-            {votes.map((vote) => {
-                if (!vote.figureName) return null; // Skip if denormalized data is missing
-                return (
-                    <Link key={vote.figureId} href={`/figures/${vote.figureId}`} className="flex flex-col items-center gap-2 text-center group">
-                        <Image 
-                          src={vote.figureImageUrl || 'https://placehold.co/64x64'} 
-                          alt={vote.figureName} 
-                          width={64} 
-                          height={64} 
-                          className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" 
-                        />
-                        <span className="text-xs font-medium group-hover:text-primary transition-colors">{vote.figureName}</span>
-                    </Link>
-                );
-            })}
+        <div className="py-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {visibleVotes.map((vote) => {
+                    if (!vote.figureName) return null; // Skip if denormalized data is missing
+                    return (
+                        <Link key={vote.figureId} href={`/figures/${vote.figureId}`} className="flex flex-col items-center gap-2 text-center group">
+                            <Image 
+                              src={vote.figureImageUrl || 'https://placehold.co/64x64'} 
+                              alt={vote.figureName} 
+                              width={64} 
+                              height={64} 
+                              className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" 
+                            />
+                            <span className="text-xs font-medium group-hover:text-primary transition-colors">{vote.figureName}</span>
+                        </Link>
+                    );
+                })}
+            </div>
+            {hasMore && (
+                <div className="text-center mt-6">
+                    <Button variant="outline" onClick={() => setVisibleCount(prev => prev + VOTE_INCREMENT)}>
+                        Ver más
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }
