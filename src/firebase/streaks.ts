@@ -25,6 +25,7 @@ interface UpdateStreakParams {
 interface StreakUpdateResult {
     streakGained: boolean;
     newStreakCount: number;
+    livesChanged: number; // Can be 1, -1, or 0
 }
 
 function isSameDay(date1: Date, date2: Date): boolean {
@@ -55,15 +56,17 @@ export async function updateStreak({
     const figureRef = doc(firestore, 'figures', figureId);
 
     try {
-        let finalStreakCount = 1;
-        let streakGained = false;
-
         const result = await runTransaction(firestore, async (transaction) => {
+            let finalStreakCount = 1;
+            let streakGained = false;
+            let livesChange = 0; // +1 for gaining, -1 for using, 0 for no change
+            let finalLivesCount = 0;
+
             const [privateStreakDoc, userDoc, attitudeVoteDoc, figureDoc] = await Promise.all([
                 transaction.get(privateStreakRef),
                 transaction.get(userRef),
                 transaction.get(attitudeVoteRef),
-                transaction.get(figureRef) // Get figure doc within transaction
+                transaction.get(figureRef)
             ]);
 
             if (!userDoc.exists()) {
@@ -84,36 +87,52 @@ export async function updateStreak({
 
             const now = new Date();
             let wasActiveBefore = false;
-            let streakIsNowActive = true; // A comment always makes the streak active for today.
+            let streakIsNowActive = true; 
 
             if (!privateStreakDoc.exists()) {
+                // First time activity for this figure
                 finalStreakCount = 1;
                 streakGained = true;
+                finalLivesCount = 0;
             } else {
                 const streakData = privateStreakDoc.data() as Streak;
                 wasActiveBefore = streakData.isActive;
+                finalLivesCount = streakData.lives || 0;
                 const lastCommentDate = streakData.lastCommentDate.toDate();
 
                 if (isSameDay(lastCommentDate, now)) {
+                    // Activity on the same day, no change to streak or lives.
                     finalStreakCount = streakData.currentStreak;
                     streakGained = false;
                 } else if (isYesterday(lastCommentDate, now)) {
+                    // Activity on the next day, streak continues.
                     finalStreakCount = (streakData.currentStreak || 0) + 1;
                     streakGained = true;
+                    // Check if a life is earned
+                    if (finalStreakCount > 0 && finalStreakCount % 10 === 0) {
+                        finalLivesCount += 1;
+                        livesChange = 1;
+                    }
                 } else {
-                    finalStreakCount = 1;
-                    streakGained = true; // It's a new streak
+                    // Missed one or more days.
+                    if (finalLivesCount > 0) {
+                        // Use a life to save the streak
+                        finalLivesCount -= 1;
+                        livesChange = -1;
+                        finalStreakCount = streakData.currentStreak; // Streak count doesn't increase but isn't reset
+                        streakGained = false;
+                        streakIsNowActive = true;
+                    } else {
+                        // No lives left, reset streak.
+                        finalStreakCount = 1;
+                        streakGained = true;
+                    }
                 }
             }
             
-            // Only update the global counter if the active status changes
             if (!wasActiveBefore && streakIsNowActive) {
-                // A streak just became active
                 transaction.update(figureRef, { activeStreakCount: increment(1) });
             } else if (wasActiveBefore && !streakIsNowActive) {
-                // A streak just became inactive (handled by a separate job/function)
-                // For now, we only handle activation. Deactivation on expiry needs another mechanism.
-                // Or, if a user's new streak is 1 (meaning it was broken), we can decrement.
                 if (finalStreakCount === 1 && wasActiveBefore) {
                     transaction.update(figureRef, { activeStreakCount: increment(-1) });
                 }
@@ -126,6 +145,7 @@ export async function updateStreak({
                 figureId,
                 isActive: streakIsNowActive,
                 currentStreak: finalStreakCount,
+                lives: finalLivesCount,
                 lastCommentDate: Timestamp.now(),
                 attitude: attitude,
                 userDisplayName: userDisplayName,
@@ -139,7 +159,7 @@ export async function updateStreak({
             transaction.set(privateStreakRef, streakPayload);
             transaction.set(publicStreakRef, streakPayload);
             
-            return { streakGained, newStreakCount: finalStreakCount };
+            return { streakGained, newStreakCount: finalStreakCount, livesChanged: livesChange };
         });
 
         return result;

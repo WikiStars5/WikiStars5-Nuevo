@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,7 +7,7 @@ import { collection, query, orderBy, getDocs, where, limit, Timestamp } from 'fi
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Flame, Trophy, HelpCircle } from 'lucide-react';
+import { Flame, Trophy, HelpCircle, Heart } from 'lucide-react';
 import { Streak, AttitudeVote, Figure } from '@/lib/types';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import Image from 'next/image';
@@ -180,15 +181,23 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                                             </div>
                                         </Link>
                                     </div>
-                                    <div className="flex items-center gap-2 font-bold text-lg text-orange-500">
-                                        <span>{streak.currentStreak}</span>
-                                        <Image
-                                            src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
-                                            alt="Streak flame"
-                                            width={24}
-                                            height={24}
-                                            unoptimized // GIF animations are not optimized by next/image
-                                        />
+                                    <div className="flex items-center gap-2 font-bold text-lg">
+                                        <div className="flex items-center gap-1 text-orange-500">
+                                            <span>{streak.currentStreak}</span>
+                                            <Image
+                                                src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
+                                                alt="Streak flame"
+                                                width={24}
+                                                height={24}
+                                                unoptimized // GIF animations are not optimized by next/image
+                                            />
+                                        </div>
+                                         {typeof streak.lives === 'number' && streak.lives > 0 && (
+                                            <div className="flex items-center gap-1 text-red-500" title={`${streak.lives} vidas restantes`}>
+                                                <Heart className="h-4 w-4 fill-current" />
+                                                <span className="text-base">{streak.lives}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );

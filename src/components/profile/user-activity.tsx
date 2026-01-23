@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { collection, query, where, getDocs, doc, getDoc, orderBy, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, orderBy, collectionGroup, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +16,7 @@ import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '../ui/button';
+import { Separator } from '../ui/separator';
 
 
 // The fetched votes will now contain the denormalized data
@@ -102,14 +104,23 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
         {visibleStreaks.map((streak) => {
             if (!streak.figureName) return null;
             return (
-            <Link key={streak.figureId} href={`/figures/${streak.figureId}`} className="flex flex-col items-center gap-2 text-center group relative">
-                <Image src={streak.figureImageUrl || 'https://placehold.co/64x64'} alt={streak.figureName} width={64} height={64} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
-                <span className="text-xs font-medium group-hover:text-primary transition-colors">{streak.figureName}</span>
-                <div className="absolute top-0 right-0 flex items-center gap-1 rounded-full bg-card border px-2 py-0.5 text-xs font-bold text-orange-500">
-                    <span>{streak.currentStreak}</span>
-                    <Flame className="w-3 h-3" />
-                </div>
-            </Link>
+                <Link key={streak.figureId} href={`/figures/${streak.figureId}`} className="flex flex-col items-center gap-2 text-center group relative">
+                    <Image src={streak.figureImageUrl || 'https://placehold.co/64x64'} alt={streak.figureName} width={64} height={64} className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" />
+                    <span className="text-xs font-medium group-hover:text-primary transition-colors">{streak.figureName}</span>
+                     <div className="absolute top-0 right-0 flex items-center gap-2 rounded-full bg-card border px-2 py-0.5 text-xs font-bold">
+                        <div className="flex items-center gap-1 text-orange-500">
+                            <span>{streak.currentStreak}</span>
+                            <Flame className="w-3 h-3" />
+                        </div>
+                        {typeof streak.lives === 'number' && streak.lives > 0 && (
+                            <div className="flex items-center gap-1 text-red-500">
+                                <Separator orientation="vertical" className="h-3 bg-border mx-1" />
+                                <Heart className="w-3 h-3 fill-current" />
+                                <span>{streak.lives}</span>
+                            </div>
+                        )}
+                    </div>
+                </Link>
             );
         })}
         </div>
@@ -147,13 +158,13 @@ export default function UserActivity({ userId }: UserActivityProps) {
 
   const attitudeQuery = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
-    return query(collection(firestore, 'users', userId, 'attitudeVotes'));
+    return query(collection(firestore, 'users', userId, 'attitudeVotes'), orderBy('createdAt', 'desc'), limit(100));
   }, [firestore, userId]);
   const { data: attitudeVotes, isLoading: isLoadingAttitudes } = useCollection<FetchedVote>(attitudeQuery);
 
   const emotionQuery = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
-    return query(collection(firestore, 'users', userId, 'emotionVotes'));
+    return query(collection(firestore, 'users', userId, 'emotionVotes'), orderBy('createdAt', 'desc'), limit(100));
   }, [firestore, userId]);
   const { data: emotionVotes, isLoading: isLoadingEmotions } = useCollection<FetchedVote>(emotionQuery);
   

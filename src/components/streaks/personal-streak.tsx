@@ -5,8 +5,9 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 import type { Streak } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-import { Flame } from 'lucide-react';
+import { Flame, Heart } from 'lucide-react';
 import Image from 'next/image';
+import { Separator } from '../ui/separator';
 
 interface PersonalStreakProps {
     figureId: string;
@@ -67,6 +68,13 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
             <span className="font-bold text-orange-500">
                 {streak.currentStreak} {streakText}
             </span>
+             {typeof streak.lives === 'number' && streak.lives > 0 && (
+                <div className="flex items-center gap-1 text-red-500 font-bold" title={`${streak.lives} vidas restantes`}>
+                    <Separator orientation="vertical" className="h-4 bg-border mx-1" />
+                    <Heart className="h-4 w-4 fill-current" />
+                    <span>{streak.lives}</span>
+                </div>
+            )}
         </div>
     );
 }

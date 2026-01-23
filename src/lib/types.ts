@@ -224,6 +224,7 @@ export interface Streak {
   figureId: string; // Denormalized for querying
   isActive: boolean; // True if the streak is current (today/yesterday)
   currentStreak: number;
+  lives?: number;
   lastCommentDate: Timestamp;
   attitude?: 'neutral' | 'fan' | 'simp' | 'hater' | null;
   userDisplayName: string;
