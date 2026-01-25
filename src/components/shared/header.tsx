@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -19,7 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
-import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider, useDoc, useMemoFirebase } from '@/firebase';
+import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider, useDoc, useMemoFirebase, useFirebaseApp, requestNotificationPermissionAndGetToken } from '@/firebase';
 import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
@@ -51,6 +50,8 @@ export default function Header() {
   const { setTheme, theme } = useTheme();
   const { t } = useLanguage();
   const { isSnowing, toggleSnow } = useSnow();
+
+  const firebaseApp = useFirebaseApp();
 
   // New logic: Check if a user profile document exists for the current user
   const userProfileRef = useMemoFirebase(() => {
@@ -88,6 +89,30 @@ export default function Header() {
   const handleLogin = () => {
     router.push('/login');
   }
+
+  const handleSubscribe = async () => {
+    if (!firebaseApp) {
+      toast({
+          title: "Error",
+          description: "Firebase no está inicializado.",
+          variant: "destructive",
+      });
+      return;
+    }
+    const token = await requestNotificationPermissionAndGetToken(firebaseApp);
+    if (token) {
+        toast({
+            title: "¡Suscrito a las notificaciones!",
+            description: "Ahora recibirás notificaciones sobre la actividad importante.",
+        });
+    } else {
+        toast({
+            title: "No se concedió el permiso",
+            description: "No se pudieron activar las notificaciones.",
+            variant: "destructive"
+        })
+    }
+  };
 
   const getAvatarFallback = () => {
     if (user?.isAnonymous) return <UserIcon className="h-5 w-5" />;
@@ -212,6 +237,13 @@ export default function Header() {
                     <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
                       <Globe className="mr-2 h-4 w-4" />
                       <span>{t('Header.createWebProfile')}</span>
+                    </DropdownMenuItem>
+                  )}
+
+                  {!user.isAnonymous && (
+                    <DropdownMenuItem onSelect={handleSubscribe}>
+                      <Bell className="mr-2 h-4 w-4" />
+                      <span>Activar notificaciones</span>
                     </DropdownMenuItem>
                   )}
 
