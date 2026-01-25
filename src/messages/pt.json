@@ -51,7 +51,8 @@
     "logout": "Sair",
     "login": "Entrar",
     "enableSnow": "Ativar neve",
-    "disableSnow": "Desativar neve"
+    "disableSnow": "Desativar neve",
+    "activateNotifications": "Ativar notificações"
   },
   "ProfilePage": {
     "loading": "Carregando...",

@@ -49,7 +49,8 @@
     "changeToLightMode": "切换到浅色模式",
     "changeToDarkMode": "切换到深色模式",
     "logout": "退出",
-    "login": "登录"
+    "login": "登录",
+    "activateNotifications": "激活通知"
   },
   "ProfilePage": {
     "loading": "加载中...",

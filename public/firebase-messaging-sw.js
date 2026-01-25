@@ -19,21 +19,27 @@ const messaging = firebase.messaging(app);
 
 /**
  * Handles messages received when the app is in the background.
- * The function is given a payload object, which contains the details of the
- * received message.
  */
 messaging.onBackgroundMessage((payload) => {
-  console.log(
-    "[firebase-messaging-sw.js] Received background message ",
-    payload
-  );
+  console.log("[firebase-messaging-sw.js] Received background message ", payload);
   
-  // Customize notification here
-  const notificationTitle = payload.notification.title;
+  const defaultIcon = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(3)%20(1).png?alt=media&token=59ebd53d-9095-4d1e-a0a8-256ba3959b00";
+
+  const notificationTitle = payload.notification?.title || "WikiStars5";
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: "/icon-192x192.png", // Ensure you have this icon in your /public folder
+    body: payload.notification?.body || "Tienes una nueva actualización.",
+    icon: payload.notification?.image || defaultIcon, 
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(notificationTitle, notificationOptions);
+}); // <--- Aquí faltaba cerrar la función
+
+/**
+ * Controla el clic en la notificación
+ */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow('/')
+  );
 });

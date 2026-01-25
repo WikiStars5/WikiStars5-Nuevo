@@ -49,7 +49,8 @@
     "changeToLightMode": "Passa alla modalità chiara",
     "changeToDarkMode": "Passa alla modalità scura",
     "logout": "Esci",
-    "login": "Accedi"
+    "login": "Accedi",
+    "activateNotifications": "Attiva notifiche"
   },
   "ProfilePage": {
     "loading": "Caricamento...",

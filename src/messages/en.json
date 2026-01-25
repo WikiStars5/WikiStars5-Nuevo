@@ -51,7 +51,8 @@
     "logout": "Log Out",
     "login": "Log In",
     "enableSnow": "Enable snow",
-    "disableSnow": "Disable snow"
+    "disableSnow": "Disable snow",
+    "activateNotifications": "Activate notifications"
   },
   "ProfilePage": {
     "loading": "Loading...",

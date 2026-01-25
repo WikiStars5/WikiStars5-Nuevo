@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -152,19 +153,6 @@ export default function Header() {
             </DialogContent>
           </Dialog>
 
-          <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button onClick={handleSubscribe} variant="ghost" size="icon" aria-label="Activar notificaciones">
-                        <Bell className="h-5 w-5" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Activar notificaciones</p>
-                </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
           {isLoading ? (
             <Skeleton className="h-10 w-20" />
           ) : user ? (
@@ -265,6 +253,11 @@ export default function Header() {
                   <DropdownMenuItem onSelect={toggleSnow}>
                     <Snowflake className="mr-2 h-4 w-4" />
                     <span>{isSnowing ? t('Header.disableSnow') : t('Header.enableSnow')}</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem onSelect={handleSubscribe}>
+                    <Bell className="mr-2 h-4 w-4" />
+                    <span>{t('Header.activateNotifications')}</span>
                   </DropdownMenuItem>
                   
                   {!user.isAnonymous && (

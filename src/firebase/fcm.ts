@@ -36,3 +36,4 @@ export const requestNotificationPermissionAndGetToken = async (app: FirebaseApp)
     return null;
   }
 };
+

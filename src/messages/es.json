@@ -51,7 +51,8 @@
     "logout": "Cerrar Sesión",
     "login": "Iniciar Sesión",
     "enableSnow": "Activar nieve",
-    "disableSnow": "Desactivar nieve"
+    "disableSnow": "Desactivar nieve",
+    "activateNotifications": "Activar notificaciones"
   },
   "ProfilePage": {
     "loading": "Cargando...",
@@ -880,4 +881,3 @@
     "zimbabwe": "Zimbabue"
   }
 }
-
