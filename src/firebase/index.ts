@@ -97,4 +97,5 @@ export * from './errors';
 export * from './error-emitter';
 export * from './auth/use-admin';
 export * from './auth/use-user';
+export * from './fcm';
 export { GoogleAuthProvider, signInWithPopup };
