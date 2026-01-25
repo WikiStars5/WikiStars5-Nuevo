@@ -34,6 +34,7 @@ import { InstallPwaButton } from '../layout/InstallPwaButton';
 import { useTheme } from 'next-themes';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSnow } from '@/context/SnowContext';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 export default function Header() {
@@ -150,6 +151,20 @@ export default function Header() {
                 <SearchBar onResultClick={() => setIsSearchDialogOpen(false)} />
             </DialogContent>
           </Dialog>
+
+          <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button onClick={handleSubscribe} variant="ghost" size="icon" aria-label="Activar notificaciones">
+                        <Bell className="h-5 w-5" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>Activar notificaciones</p>
+                </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {isLoading ? (
             <Skeleton className="h-10 w-20" />
           ) : user ? (
@@ -237,13 +252,6 @@ export default function Header() {
                     <DropdownMenuItem onSelect={() => setIsWebProfileDialogOpen(true)}>
                       <Globe className="mr-2 h-4 w-4" />
                       <span>{t('Header.createWebProfile')}</span>
-                    </DropdownMenuItem>
-                  )}
-
-                  {!user.isAnonymous && (
-                    <DropdownMenuItem onSelect={handleSubscribe}>
-                      <Bell className="mr-2 h-4 w-4" />
-                      <span>Activar notificaciones</span>
                     </DropdownMenuItem>
                   )}
 
