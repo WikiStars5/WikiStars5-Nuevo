@@ -3,37 +3,38 @@
 import { getMessaging, getToken } from "firebase/messaging";
 import { FirebaseApp } from "firebase/app"; 
 
-const VAPID_KEY = "gA8xWOEtVxV8gmkNrRW8AWa2s61bc_yFmJCPLBHhMNo";
+const VAPID_KEY = "BCYGNceh7OkmCymkXUU7IKjxGwVlVUO6QlMOhFoGJjho7KZ5-R6waOTnrklOb4f4lO-KRdf_4p6_WhT_XFng5SE";
 
-// Aceptamos 'app' como parámetro para no depender de index.ts
 export const requestNotificationPermissionAndGetToken = async (app: FirebaseApp) => {
-  
-  if (!app || typeof window === 'undefined' || !('Notification' in window)) {
-    console.error("Firebase app not initialized or notifications not supported.");
-    return null;
-  }
+  if (!app || typeof window === 'undefined' || !('Notification' in window)) return null;
 
   try {
     const messaging = getMessaging(app);
-    console.log("Requesting notification permission...");
+    
+    // 1. Forzamos el registro del service worker ANTES de pedir el token
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/' // Esto ayuda a que el navegador lo encuentre en la raíz
+    });
+    
+    console.log("Service Worker registrado con éxito");
+
     const permission = await Notification.requestPermission();
 
     if (permission === "granted") {
-      const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
+      // 2. Le pasamos la registración explícitamente al getToken
+      const currentToken = await getToken(messaging, { 
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: registration 
+      });
+      
       if (currentToken) {
-        console.log("FCM Token:", currentToken);
+        console.log("FCM Token obtenido:", currentToken);
         return currentToken;
-      } else {
-        console.log('No registration token available. Request permission to generate one.');
-        return null;
       }
-    } else {
-        console.log('Unable to get permission to notify.');
-        return null;
     }
+    return null;
   } catch (error) {
-    console.error("Error retrieving token:", error);
+    console.error("Error detallado al obtener token:", error);
     return null;
   }
 };
-
