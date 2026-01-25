@@ -20,6 +20,8 @@ import { signInAnonymously } from 'firebase/auth';
 import { useLanguage } from '@/context/LanguageContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { updateStreak } from '@/firebase/streaks';
+import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 
 
 const BATTLE_ID = 'messi-vs-ronaldo';
@@ -65,6 +67,7 @@ export default function GoatBattle() {
   const { toast } = useToast();
   const pathname = usePathname();
   const { t } = useLanguage();
+  const { showStreakAnimation } = useContext(StreakAnimationContext);
 
   const [isVoting, setIsVoting] = useState(false);
   const [battleData, setBattleData] = useState<GoatBattle | null>(null);
@@ -273,6 +276,19 @@ export default function GoatBattle() {
 
             transaction.update(battleRef, updates);
         });
+
+        const streakResult = await updateStreak({
+            firestore,
+            figureId: player === 'messi' ? (messiData?.id || 'lionel-messi') : (ronaldoData?.id || 'cristiano-ronaldo'),
+            figureName: player === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo',
+            userId: currentUser.uid,
+            isAnonymous: currentUser.isAnonymous,
+        });
+
+        if (streakResult?.streakGained) {
+            showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
+        }
+        
         refetchUserVote(); // Refreshes user's vote status for UI update
     } catch (error: any) {
         console.error("Error casting vote:", error);

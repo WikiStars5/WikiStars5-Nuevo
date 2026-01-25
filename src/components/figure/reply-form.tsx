@@ -130,7 +130,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
       });
 
       if (streakResult?.streakGained) {
-        showStreakAnimation(streakResult.newStreakCount);
+        showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
       }
 
       toast({

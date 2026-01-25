@@ -17,6 +17,8 @@ import { useLanguage } from '@/context/LanguageContext';
 import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { updateStreak } from '@/firebase/streaks';
+import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -46,6 +48,7 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
   const auth = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { showStreakAnimation } = useContext(StreakAnimationContext);
   
   const [figure, setFigure] = useState(initialFigure);
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
@@ -185,6 +188,18 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
             }
             transaction.update(figureRef, updates);
         });
+
+        const streakResult = await updateStreak({
+          firestore,
+          figureId: figure.id,
+          figureName: figure.name,
+          userId: currentUser.uid,
+          isAnonymous: currentUser.isAnonymous,
+        });
+
+        if (streakResult?.streakGained) {
+          showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
+        }
         
         onVote(userVote?.vote === vote ? null : vote);
         toast({ title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });

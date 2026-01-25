@@ -144,7 +144,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
             });
 
             if (streakResult?.streakGained) {
-                showStreakAnimation(streakResult.newStreakCount);
+                showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
             }
             // No need for refetch, realtime listener will update UI.
         } catch (error: any) {

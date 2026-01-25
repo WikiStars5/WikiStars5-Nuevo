@@ -255,7 +255,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             });
 
             if (streakResult?.streakGained) {
-                showStreakAnimation(streakResult.newStreakCount);
+                showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
             }
         }
 
