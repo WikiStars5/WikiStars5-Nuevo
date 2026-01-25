@@ -27,10 +27,22 @@ messaging.onBackgroundMessage(function(payload) {
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Open your web app when a notification is clicked
 self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
+  event.notification.close(); // Cierra la notificación de inmediato
+
   event.waitUntil(
-    clients.openWindow('/')
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      // Si ya hay una pestaña abierta, enfócala
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url === '/' && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Si no hay pestañas abiertas, abre una nueva
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
+    })
   );
 });
