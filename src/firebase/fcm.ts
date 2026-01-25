@@ -11,30 +11,30 @@ export const requestNotificationPermissionAndGetToken = async (app: FirebaseApp)
   try {
     const messaging = getMessaging(app);
     
-    // 1. Forzamos el registro del service worker ANTES de pedir el token
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-      scope: '/' // Esto ayuda a que el navegador lo encuentre en la raíz
+    // 1. We register the service worker BEFORE requesting the token
+    const registration = await navigator.serviceWorker.register('/sw.js', {
+      scope: '/' // This helps the browser find it at the root
     });
     
-    console.log("Service Worker registrado con éxito");
+    console.log("Service Worker registered successfully");
 
     const permission = await Notification.requestPermission();
 
     if (permission === "granted") {
-      // 2. Le pasamos la registración explícitamente al getToken
+      // 2. We pass the registration explicitly to getToken
       const currentToken = await getToken(messaging, { 
         vapidKey: VAPID_KEY,
         serviceWorkerRegistration: registration 
       });
       
       if (currentToken) {
-        console.log("FCM Token obtenido:", currentToken);
+        console.log("FCM Token obtained:", currentToken);
         return currentToken;
       }
     }
     return null;
   } catch (error) {
-    console.error("Error detallado al obtener token:", error);
+    console.error("Detailed error while getting token:", error);
     return null;
   }
 };
