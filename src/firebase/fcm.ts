@@ -3,7 +3,7 @@
 import { getMessaging, getToken } from "firebase/messaging";
 import { FirebaseApp } from "firebase/app"; 
 
-const VAPID_KEY = "BCYGNceh7OkmCymkXUU7IKjxGwVlVUO6QlMOhFoGJjho7KZ5-R6waOTnrklOb4f4lO-KRdf_4p6_WhT_XFng5SE";
+const VAPID_KEY = "BLSUGgPAINebr5_AwrOz236TXhpxXB0WyONE5Xb3-lRrBB7KK19j8ghaVqTjLGMKRDWOgj93kzvSj3AVBC_u830";
 
 export const requestNotificationPermissionAndGetToken = async (app: FirebaseApp) => {
   if (!app || typeof window === 'undefined' || !('Notification' in window)) return null;
