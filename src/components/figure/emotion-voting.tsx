@@ -1,20 +1,18 @@
 'use client';
 
-import { useState, useContext, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore'; 
+import { doc, runTransaction, serverTimestamp, increment, getDoc } from 'firebase/firestore'; 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Loader2, Lock } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { Figure, EmotionVote, GlobalSettings, User as AppUser } from '@/lib/types';
 import Image from 'next/image';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
-import { updateStreak } from '@/firebase/streaks';
-import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 
 type EmotionOption = 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
 
@@ -44,7 +42,6 @@ export default function EmotionVoting({ figure: initialFigure }: EmotionVotingPr
   const auth = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
-  const { showStreakAnimation } = useContext(StreakAnimationContext);
 
   const [figure, setFigure] = useState(initialFigure);
   const [isVoting, setIsVoting] = useState<EmotionOption | null>(null);
@@ -175,18 +172,6 @@ export default function EmotionVoting({ figure: initialFigure }: EmotionVotingPr
             transaction.update(figureRef, updates);
         });
 
-        const streakResult = await updateStreak({
-            firestore,
-            figureId: figure.id,
-            figureName: figure.name,
-            userId: currentUser.uid,
-            isAnonymous: currentUser.isAnonymous,
-        });
-
-        if (streakResult?.streakGained) {
-            showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
-        }
-        
         toast({ title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
         refetch();
 

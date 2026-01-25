@@ -1,25 +1,18 @@
 'use client';
 
-import { useState, useContext, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc, runTransaction, serverTimestamp, increment, setDoc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore'; 
-import { onAuthStateChanged, User as FirebaseUser, Auth, signInAnonymously } from 'firebase/auth';
+import { doc, runTransaction, serverTimestamp, increment, getDoc, updateDoc } from 'firebase/firestore'; 
+import { User as FirebaseUser, signInAnonymously } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Lock, ArrowDown, BarChart3 } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import type { Figure, AttitudeVote, GlobalSettings, User as AppUser } from '@/lib/types';
 import Image from 'next/image';
-import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
-import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { updateStreak } from '@/firebase/streaks';
-import { StreakAnimationContext } from '@/context/StreakAnimationContext';
-
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -48,7 +41,6 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
   const auth = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
-  const { showStreakAnimation } = useContext(StreakAnimationContext);
   
   const [figure, setFigure] = useState(initialFigure);
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
@@ -188,18 +180,6 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
             }
             transaction.update(figureRef, updates);
         });
-
-        const streakResult = await updateStreak({
-          firestore,
-          figureId: figure.id,
-          figureName: figure.name,
-          userId: currentUser.uid,
-          isAnonymous: currentUser.isAnonymous,
-        });
-
-        if (streakResult?.streakGained) {
-          showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
-        }
         
         onVote(userVote?.vote === vote ? null : vote);
         toast({ title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
