@@ -28,20 +28,20 @@ messaging.onBackgroundMessage(function(payload) {
 });
 
 self.addEventListener('notificationclick', function(event) {
-  event.notification.close(); // Cierra la notificación de inmediato
+  event.notification.close(); // Cierra la notificación al hacer clic
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-      // Si ya hay una pestaña abierta, enfócala
+      // Intenta encontrar una pestaña abierta que coincida exactamente con la URL absoluta
       for (var i = 0; i < clientList.length; i++) {
         var client = clientList[i];
-        if (client.url === '/' && 'focus' in client) {
-          return client.focus();
+        if (client.url === 'https://wikistars5.co/' && 'focus' in client) {
+          return client.focus(); // Si existe, la pone en primer plano
         }
       }
-      // Si no hay pestañas abiertas, abre una nueva
+      // Si el navegador estaba cerrado, abre una nueva ventana con la URL completa
       if (clients.openWindow) {
-        return clients.openWindow('/');
+        return clients.openWindow('https://wikistars5.co/');
       }
     })
   );
