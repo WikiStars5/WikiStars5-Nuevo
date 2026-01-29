@@ -153,7 +153,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     const isLimitReached = relatedItems.length >= 6;
 
     return (
-        <Card className="bg-black">
+        <Card>
             <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                     <div>
