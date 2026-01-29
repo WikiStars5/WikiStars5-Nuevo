@@ -36,6 +36,7 @@ import { Input } from '../ui/input';
 import { isDateActive } from '@/lib/streaks';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
+import { useTheme } from 'next-themes';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -511,6 +512,7 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
   const [visibleRepliesCount, setVisibleRepliesCount] = useState(INITIAL_REPLIES_LIMIT);
   const [localReplies, setLocalReplies] = useState<CommentType[]>([]);
   const [areRepliesLoading, setAreRepliesLoading] = useState(false);
+  const { theme } = useTheme();
   
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
@@ -569,7 +571,7 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
   };
 
   return (
-    <div className="space-y-4 rounded-lg border bg-card text-card-foreground p-4 dark:bg-black">
+    <div className={cn("space-y-4 rounded-lg border bg-card text-card-foreground p-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
       <CommentItem 
         comment={comment} 
         figureId={figureId}
