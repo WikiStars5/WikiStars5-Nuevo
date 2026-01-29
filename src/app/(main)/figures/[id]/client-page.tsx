@@ -26,6 +26,8 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams } from 'next/navigation';
 import { countries } from '@/lib/countries';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -125,6 +127,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   const [isEditing, setIsEditing] = useState(false);
   const [commentSortPreference, setCommentSortPreference] = useState<AttitudeOption | null>(null);
   const { t } = useLanguage();
+  const { theme } = useTheme();
 
   const figureDocRef = useMemoFirebase(() => {
     if (!firestore || !figureId) return null;
@@ -247,7 +250,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
               {isEditing ? (
                   <EditInformationForm figure={figure} onFormClose={() => setIsEditing(false)} />
               ) : (
-                <Card className="dark:bg-black">
+                <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <div>
@@ -333,7 +336,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
             <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
           </TabsContent>
           <TabsContent value="emocion" className="mt-4">
-            <Card className="dark:bg-black">
+            <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
               <CardContent className="p-6">
                  <EmotionVoting figure={figure} />
               </CardContent>

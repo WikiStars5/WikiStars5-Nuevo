@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import { useSearchParams } from 'next/navigation';
 import AttitudeVoting from './attitude-voting';
 import { useCallback, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
 interface ProfileHeaderProps {
   figure: Figure;
@@ -27,6 +29,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
   const firestore = useFirestore();
   const searchParams = useSearchParams();
   const [commentSortPreference, setCommentSortPreference] = useState<AttitudeOption | null>(null);
+  const { theme } = useTheme();
 
   const battleDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -50,7 +53,7 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
   }, []);
 
   return (
-    <Card className="overflow-hidden shadow-md dark:bg-black border-0 md:border md:rounded-lg">
+    <Card className={cn("overflow-hidden shadow-md border-0 md:border md:rounded-lg", (theme === 'dark' || theme === 'army') && 'bg-black')}>
       <Dialog>
         <DialogTrigger asChild>
           <div className="relative h-48 md:h-64 bg-muted cursor-pointer">

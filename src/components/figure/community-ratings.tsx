@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LabelList } from 'rec
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from 'next-themes';
 
 
 interface CommunityRatingsProps {
@@ -34,6 +35,7 @@ const RatingRow = ({ stars, count, total }: { stars: number; count: number; tota
 
 export default function CommunityRatings({ figure }: CommunityRatingsProps) {
     const { t } = useLanguage();
+    const { theme } = useTheme();
     const { ratingsBreakdown } = figure;
 
     const { totalVotes, averageRating } = React.useMemo(() => {
@@ -60,7 +62,7 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
     const allRatings = [5, 4, 3, 2, 1, 0];
         
     return (
-        <Card className="dark:bg-black">
+        <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
             <CardHeader>
                 <CardTitle>{t('CommunityRatings.title')}</CardTitle>
             </CardHeader>
@@ -90,4 +92,3 @@ export default function CommunityRatings({ figure }: CommunityRatingsProps) {
         </Card>
     );
 }
-

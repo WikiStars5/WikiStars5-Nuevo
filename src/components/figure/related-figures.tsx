@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
 
 interface RelatedFiguresProps {
@@ -133,6 +135,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     const firestore = useFirestore();
     const { user } = useUser();
     const { t } = useLanguage();
+    const { theme } = useTheme();
 
     // Query only for relationships where the current figure is the SOURCE.
     const relationsAsSourceQuery = useMemoFirebase(() => {
@@ -153,7 +156,7 @@ export default function RelatedFigures({ figure }: RelatedFiguresProps) {
     const isLimitReached = relatedItems.length >= 6;
 
     return (
-        <Card className="dark:bg-black">
+        <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
             <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                     <div>
