@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
+import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 const INITIAL_COMMENT_LIMIT = 5;
@@ -60,6 +62,7 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
   const firestore = useFirestore();
   const { user } = useUser();
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [visibleCount, setVisibleCount] = useState(INITIAL_COMMENT_LIMIT);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
@@ -210,7 +213,7 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
 
   if (!commentsVisible) {
       return (
-          <div className="text-center py-10 border-2 border-dashed rounded-lg">
+          <div className={cn("text-center py-10 border-2 border-dashed rounded-lg", (theme === 'dark' || theme === 'army') && 'bg-black')}>
               <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-semibold">Ver opiniones</h3>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -310,3 +313,5 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
     </div>
   );
 }
+
+    
