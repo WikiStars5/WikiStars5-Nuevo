@@ -19,6 +19,7 @@ import { doc, runTransaction, increment, serverTimestamp } from 'firebase/firest
 import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
 import { isDateActive } from '@/lib/streaks';
+import { useTheme } from 'next-themes';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -39,6 +40,7 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { theme } = useTheme();
   
   const [post, setPost] = useState(initialPost);
   const [isReplying, setIsReplying] = useState(false);
@@ -136,7 +138,7 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
   const showStreak = userStreak && userStreak.currentStreak > 0 && isDateActive(userStreak.lastCommentDate);
 
   return (
-    <Card className="hover:border-primary/50 transition-colors dark:bg-black">
+    <Card className={cn("hover:border-primary/50 transition-colors", (theme === 'dark' || theme === 'army') && 'bg-black')}>
         <div className="p-4">
              <div className="flex items-start gap-3">
                 <Link href={`/u/${post.userDisplayName}`} className="flex-shrink-0">
