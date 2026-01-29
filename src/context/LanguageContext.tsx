@@ -7,12 +7,8 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import esMessages from '@/messages/es.json';
 import enMessages from '@/messages/en.json';
 import ptMessages from '@/messages/pt.json';
-import zhMessages from '@/messages/zh.json';
-import frMessages from '@/messages/fr.json';
-import itMessages from '@/messages/it.json';
-import deMessages from '@/messages/de.json';
 
-type Language = 'es' | 'en' | 'pt'; // | 'zh' | 'fr' | 'it' | 'de';
+type Language = 'es' | 'en' | 'pt';
 
 const supportedLanguages: Language[] = ['es', 'en', 'pt'];
 
@@ -29,10 +25,6 @@ const messages: Record<Language, any> = {
   es: esMessages,
   en: enMessages,
   pt: ptMessages,
-  // zh: zhMessages,
-  // fr: frMessages,
-  // it: itMessages,
-  // de: deMessages,
 };
 
 function getNestedValue(obj: any, key: string): string | undefined {

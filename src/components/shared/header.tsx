@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider, useDoc, useMemoFirebase, useFirebaseApp, requestNotificationPermissionAndGetToken } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote, Heart } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
@@ -244,11 +244,31 @@ export default function Header() {
                   )}
 
                   <DropdownMenuSeparator />
-                  
-                  <DropdownMenuItem onSelect={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-                    {theme === 'light' ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
-                    <span>{theme === 'light' ? t('Header.changeToDarkMode') : t('Header.changeToLightMode')}</span>
-                  </DropdownMenuItem>
+
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                        {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
+                        {theme === 'dark' && <Moon className="mr-2 h-4 w-4" />}
+                        {theme === 'army' && <Heart className="mr-2 h-4 w-4" />}
+                        <span>Temas</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                        <DropdownMenuSubContent>
+                            <DropdownMenuItem onSelect={() => setTheme('light')}>
+                                <Sun className="mr-2 h-4 w-4" />
+                                <span>Claro</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setTheme('dark')}>
+                                <Moon className="mr-2 h-4 w-4" />
+                                <span>Oscuro</span>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem onSelect={() => setTheme('army')}>
+                                <Heart className="mr-2 h-4 w-4" />
+                                <span>ARMY</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
 
                   <DropdownMenuItem onSelect={toggleSnow}>
                     <Snowflake className="mr-2 h-4 w-4" />

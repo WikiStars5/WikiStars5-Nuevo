@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -67,64 +68,6 @@ export default function LanguageSwitcher() {
             <span>Português</span>
           </div>
         </DropdownMenuItem>
-        {/*
-        <DropdownMenuItem 
-          onSelect={() => setLanguage('fr')}
-          className={cn(language === 'fr' && 'bg-accent/50')}
-        >
-          <div className="flex items-center gap-2">
-            <Image
-              src="https://flagcdn.com/w20/fr.png"
-              alt="Bandera de Francia"
-              width={20}
-              height={15}
-            />
-            <span>Français</span>
-          </div>
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onSelect={() => setLanguage('it')}
-          className={cn(language === 'it' && 'bg-accent/50')}
-        >
-          <div className="flex items-center gap-2">
-            <Image
-              src="https://flagcdn.com/w20/it.png"
-              alt="Bandiera d'Italia"
-              width={20}
-              height={15}
-            />
-            <span>Italiano</span>
-          </div>
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onSelect={() => setLanguage('de')}
-          className={cn(language === 'de' && 'bg-accent/50')}
-        >
-          <div className="flex items-center gap-2">
-            <Image
-              src="https://flagcdn.com/w20/de.png"
-              alt="Flagge von Deutschland"
-              width={20}
-              height={15}
-            />
-            <span>Deutsch</span>
-          </div>
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onSelect={() => setLanguage('zh')}
-          className={cn(language === 'zh' && 'bg-accent/50')}
-        >
-          <div className="flex items-center gap-2">
-            <Image
-              src="https://flagcdn.com/w20/cn.png"
-              alt="Bandera de China"
-              width={20}
-              height={15}
-            />
-            <span>中文</span>
-          </div>
-        </DropdownMenuItem>
-        */}
       </DropdownMenuContent>
     </DropdownMenu>
   );
