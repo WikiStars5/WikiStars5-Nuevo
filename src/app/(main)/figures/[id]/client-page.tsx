@@ -236,6 +236,10 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 />
                 {t('FigurePage.tabs.streaks')}
               </TabsTrigger>
+              <TabsTrigger value="logros">
+                <Trophy className="mr-2 h-4 w-4" />
+                Logros
+              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -337,6 +341,9 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           </TabsContent>
           <TabsContent value="rachas" className="mt-4">
             <TopStreaks figure={figure} />
+          </TabsContent>
+          <TabsContent value="logros" className="mt-4">
+            {/* Achievements content will go here */}
           </TabsContent>
         </Tabs>
       </div>
