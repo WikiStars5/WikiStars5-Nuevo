@@ -128,11 +128,9 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
             const userProfileRef = doc(firestore, 'users', currentUser!.uid);
             const privateVoteRef = doc(firestore, `users/${currentUser!.uid}/attitudeVotes`, figure.id);
 
-            const [figureDoc, userProfileDoc, privateVoteDoc] = await Promise.all([
-                transaction.get(figureRef),
-                transaction.get(userProfileRef),
-                transaction.get(privateVoteDoc)
-            ]);
+            const figureDoc = await transaction.get(figureRef);
+            const userProfileDoc = await transaction.get(userProfileRef);
+            const privateVoteDoc = await transaction.get(privateVoteRef);
 
             if (!figureDoc.exists()) {
                 throw new Error("Figure does not exist.");
