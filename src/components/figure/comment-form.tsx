@@ -27,6 +27,7 @@ import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { useLanguage } from '@/context/LanguageContext';
 import { commentTags, type CommentTagId } from '@/lib/tags';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { useTheme } from 'next-themes';
 
 
 const createCommentSchema = (isRatingEnabled: boolean, needsIdentity: boolean) => z.object({
@@ -69,6 +70,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   const { t } = useLanguage();
+  const { theme } = useTheme();
 
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
@@ -291,7 +293,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
   
   if (hasUserCommented) {
     return (
-      <Card className="bg-muted/50 dark:bg-black">
+      <Card className={cn("bg-muted/50", (theme === 'dark' || theme === 'army') && "bg-black")}>
         <CardContent className="p-6 text-center space-y-3">
           <MessageCircle className="mx-auto h-8 w-8 text-muted-foreground" />
           <h3 className="font-semibold">{t('CommentForm.existingComment.title')}</h3>
@@ -304,7 +306,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
   // If both ratings and comments are disabled, show a locked message.
   if (!isRatingEnabled && !isCommentingEnabled) {
       return (
-        <Card className="dark:bg-black">
+        <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
             <CardContent className="p-6 flex flex-col items-center justify-center text-center">
                 <Lock className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="font-semibold text-lg">{t('CommentForm.locked.title')}</h3>
@@ -316,7 +318,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
 
   return (
-      <Card className="dark:bg-black">
+      <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Image
