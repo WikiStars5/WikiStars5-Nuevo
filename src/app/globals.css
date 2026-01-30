@@ -77,6 +77,17 @@
   body {
     @apply bg-background text-foreground;
   }
+  html.army,
+  html.army *,
+  html.army button,
+  html.army a {
+    cursor: url('https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/army%20bomb.png?alt=media&token=69a9417a-e307-4412-adc4-efd4b16ed321'), auto;
+  }
+
+  html.army input,
+  html.army textarea {
+      cursor: text;
+  }
 }
 
 @layer utilities {
