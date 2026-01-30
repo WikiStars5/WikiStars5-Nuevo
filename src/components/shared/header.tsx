@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -262,10 +261,12 @@ export default function Header() {
                                 <Moon className="mr-2 h-4 w-4" />
                                 <span>Oscuro</span>
                             </DropdownMenuItem>
-                             <DropdownMenuItem onSelect={() => setTheme('army')}>
-                                <Heart className="mr-2 h-4 w-4" />
-                                <span>ARMY</span>
-                            </DropdownMenuItem>
+                            {isAdmin && (
+                                <DropdownMenuItem onSelect={() => setTheme('army')}>
+                                    <Heart className="mr-2 h-4 w-4" />
+                                    <span>Morado</span>
+                                </DropdownMenuItem>
+                            )}
                         </DropdownMenuSubContent>
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
