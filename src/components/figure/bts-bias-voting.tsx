@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -17,6 +16,7 @@ import AddBiasMemberDialog from './add-bias-member-dialog';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
+import { useTheme } from 'next-themes';
 
 function BiasMemberCard({ 
     member, 
@@ -103,6 +103,7 @@ export default function BtsBiasVoting() {
     const { isAdmin } = useAdmin();
     const { toast } = useToast();
     const auth = useAuth();
+    const { theme } = useTheme();
     
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [membersWithVotes, setMembersWithVotes] = useState<(BtsBiasMember & { voteCount: number })[]>([]);
@@ -251,7 +252,7 @@ export default function BtsBiasVoting() {
 
     return (
         <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-            <Card>
+            <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
                 <CardHeader>
                     <div className="flex items-start justify-between">
                          <div>
