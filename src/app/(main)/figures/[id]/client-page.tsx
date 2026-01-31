@@ -136,6 +136,9 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
 
   const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
 
+  const btsMemberIds = ["rm", "kim-seok-jin", "suga", "j-hope", "jimin", "v-cantante", "jungkook"];
+  const isBtsMember = figureId && btsMemberIds.includes(figureId.toLowerCase());
+
   const handleVote = useCallback((attitude: AttitudeOption | null) => {
     setCommentSortPreference(attitude);
   }, []);
@@ -225,7 +228,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 Reseñas
               </TabsTrigger>
               <TabsTrigger value="emocion">
-              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path dM="9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
                 {t('FigurePage.tabs.emotion')}
               </TabsTrigger>
               <TabsTrigger value="rachas">
@@ -243,6 +246,12 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 <Trophy className="mr-2 h-4 w-4" />
                 Logros
               </TabsTrigger>
+              {isBtsMember && (
+                <TabsTrigger value="bias">
+                  <Heart className="mr-2 h-4 w-4" />
+                  Bias
+                </TabsTrigger>
+              )}
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
@@ -348,6 +357,18 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           <TabsContent value="logros" className="mt-4">
             {/* Achievements content will go here */}
           </TabsContent>
+          {isBtsMember && (
+            <TabsContent value="bias" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sección de Bias</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>Contenido especial para tu bias próximamente.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
       
