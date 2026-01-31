@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,6 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { useTheme } from 'next-themes';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -67,6 +67,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
     const [topStreaks, setTopStreaks] = useState<Streak[]>([]);
     const [activeStreaksCount, setActiveStreaksCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const { theme } = useTheme();
 
     useEffect(() => {
         const fetchStreaks = async () => {
@@ -100,7 +101,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
     }, [firestore, figure.id]);
 
     return (
-        <Card className="dark:bg-black">
+        <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
             <CardHeader>
                 <div className="flex items-start justify-between">
                     <div>

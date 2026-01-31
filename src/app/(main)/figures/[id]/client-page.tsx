@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
@@ -219,7 +218,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
       <div className="mt-6">
         <Tabs defaultValue={getDefaultTab()} className="w-full">
           <ScrollArea className="w-full whitespace-nowrap">
-            <TabsList className="inline-flex h-auto">
+            <TabsList className={cn("inline-flex h-auto", (theme === 'dark' || theme === 'army') && 'bg-black')}>
               <TabsTrigger value="wiki">
                 <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
                 Wiki
