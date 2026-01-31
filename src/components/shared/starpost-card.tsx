@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -9,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { StarRating } from '@/components/shared/star-rating';
 import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame } from 'lucide-react';
-import { cn, formatDateDistance } from '@/lib/utils';
+import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
@@ -208,7 +207,7 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                         >
                             {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
                         </Button>
-                        <span className="text-xs font-semibold w-6 text-center">{(post.likes ?? 0).toLocaleString()}</span>
+                        <span className="text-xs font-semibold w-6 text-center">{formatCompactNumber(post.likes ?? 0)}</span>
                         <Button 
                             variant="ghost" 
                             size="icon" 
@@ -218,7 +217,7 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                         >
                             {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
                         </Button>
-                        <span className="text-xs font-semibold w-6 text-center">{(post.dislikes ?? 0).toLocaleString()}</span>
+                        <span className="text-xs font-semibold w-6 text-center">{formatCompactNumber(post.dislikes ?? 0)}</span>
                     </div>
                      <div className="flex">
                         <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>

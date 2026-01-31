@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { cn, formatCompactNumber } from '@/lib/utils';
 import { Loader2, Timer } from 'lucide-react';
 import { useFirestore, useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import type { GoatBattle, GoatVote, Figure, GlobalSettings } from '@/lib/types';
@@ -425,8 +424,8 @@ export default function GoatBattle() {
                     />
                 </div>
                 <div className="flex justify-between text-sm font-bold mt-1">
-                    <span className="text-blue-400">{messiVotes.toLocaleString()} {t('GoatBattle.votesLabel')}</span>
-                    <span className="text-red-400">{ronaldoVotes.toLocaleString()} {t('GoatBattle.votesLabel')}</span>
+                    <span className="text-blue-400">{formatCompactNumber(messiVotes)} {t('GoatBattle.votesLabel')}</span>
+                    <span className="text-red-400">{formatCompactNumber(ronaldoVotes)} {t('GoatBattle.votesLabel')}</span>
                 </div>
                  <p className="text-center text-sm text-muted-foreground mt-2">{t('GoatBattle.callToAction')}</p>
             </div>

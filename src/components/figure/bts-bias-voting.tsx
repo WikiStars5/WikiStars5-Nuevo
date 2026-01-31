@@ -13,7 +13,7 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import AddBiasMemberDialog from './add-bias-member-dialog';
-import { cn } from '@/lib/utils';
+import { cn, formatCompactNumber } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 
@@ -59,7 +59,7 @@ function BiasMemberCard({
                 <CardContent className="p-3 flex-grow flex flex-col justify-between">
                      <div>
                         <h3 className="text-sm font-semibold truncate">{member.figureName}</h3>
-                        <p className="text-xs text-muted-foreground">{member.voteCount.toLocaleString()} votos</p>
+                        <p className="text-xs text-muted-foreground">{formatCompactNumber(member.voteCount)} votos</p>
                     </div>
                     <Button size="sm" className="mt-2 w-full" onClick={onVote} disabled={isVoting}>
                         {isVoting ? <Loader2 className="h-4 w-4 animate-spin" /> : isVoted ? 'Cambiar Voto' : 'Votar'}

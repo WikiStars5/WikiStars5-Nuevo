@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, formatCompactNumber } from '@/lib/utils';
 import type { Figure, EmotionVote, GlobalSettings, User as AppUser } from '@/lib/types';
 import Image from 'next/image';
 import { signInAnonymously, User as FirebaseUser } from 'firebase/auth';
@@ -266,7 +266,7 @@ export default function EmotionVoting({ figure: initialFigure }: EmotionVotingPr
                         <div>
                             <span className="font-semibold text-sm">{t(labelKey)}</span>
                              <span className="block text-lg font-bold">
-                                {(figure.emotion?.[id] ?? 0).toLocaleString()}
+                                {formatCompactNumber(figure.emotion?.[id] ?? 0)}
                               </span>
                         </div>
                     </div>

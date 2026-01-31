@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
@@ -6,7 +5,7 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocum
 import type { Comment as CommentType, CommentVote, GlobalSettings, Streak } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { cn } from '@/lib/utils';
+import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
 import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp, Share2, Lock, Flame, Pin, PinOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState, useEffect, useMemo, useRef, useCallback, useContext } from 'react';
@@ -30,7 +29,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
-import { formatDateDistance } from '@/lib/utils';
 import { commentTags } from '@/lib/tags';
 import { Input } from '../ui/input';
 import { isDateActive } from '@/lib/streaks';
@@ -326,7 +324,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                             </div>
                         )}
                         {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
+                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Feminino">♀</span>}
                         {country && (
                             <Image
                                 src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
@@ -404,7 +402,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                             >
                                 {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
                             </Button>
-                            <span className="text-xs font-semibold w-6 text-center">{(comment.likes ?? 0).toLocaleString()}</span>
+                            <span className="text-xs font-semibold w-6 text-center">{formatCompactNumber(comment.likes ?? 0)}</span>
                             <Button 
                                 variant="ghost" 
                                 size="icon" 
@@ -414,7 +412,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                             >
                                 {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
                             </Button>
-                            <span className="text-xs font-semibold w-6 text-center">{(comment.dislikes ?? 0).toLocaleString()}</span>
+                            <span className="text-xs font-semibold w-6 text-center">{formatCompactNumber(comment.dislikes ?? 0)}</span>
                         </div>
                         
                         <div className="flex items-center gap-1">
