@@ -86,7 +86,7 @@ service cloud.firestore {
 
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
-      match /btsBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
+       match /btsBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
       match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
       match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
@@ -137,13 +137,13 @@ service cloud.firestore {
           (
             request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
             isDecrement('ratingCount', 1)
-          ) ||
+                    ) ||
           
           // Regla 6: Permite la actualización del contador de rachas activas (para la función de actualización de rachas)
           (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeStreakCount']) &&
             (isIncrement('activeStreakCount', 1) || isDecrement('activeStreakCount', 1))
-          ) ||
+                    ) ||
            // Regla 7: Permite la actualización del contador de votos de bias de BTS
           (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['btsBiasVoteCount']) &&
@@ -235,23 +235,27 @@ service cloud.firestore {
       allow read: if true; 
       allow write: if isAdmin(); 
     }
-
+    
     match /stats/{statId} {
       allow read: if true;
       allow write: if isAdmin();
     }
     
+    match /user_stats/{statId} {
+      allow read: if true;
+      allow write: if true; // Allow client-side transactional updates
+    }
     match /featured_figures/{figureId} {
       allow read: if true;
       allow write, delete: if isAdmin();
     }
     
+        // NEW: Rules for election candidates
+        
     match /bts_bias_members/{figureId} {
       allow read: if true;
       allow write, delete: if isAdmin();
     }
-
-    // NEW: Rules for election candidates
     match /election_candidates_2026/{candidateId} {
       allow read, list: if true;
       allow create, write, delete: if isAdmin();

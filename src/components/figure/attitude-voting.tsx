@@ -15,6 +15,17 @@ import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -30,6 +41,8 @@ const allAttitudeOptions: {
   { id: 'simp', labelKey: 'AttitudeVoting.labels.simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', colorClass: 'border-transparent', selectedClass: 'border-pink-300' },
   { id: 'hater', labelKey: 'AttitudeVoting.labels.hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', colorClass: 'border-transparent', selectedClass: 'border-red-400' },
 ];
+
+const btsMemberIds = ["rm", "kim-seok-jin", "suga", "j-hope", "jimin", "v-cantante", "jungkook"];
 
 interface AttitudeVotingProps {
   figure: Figure;
@@ -47,6 +60,9 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
   
   const [figure, setFigure] = useState(initialFigure);
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
+  const [showBiasPrompt, setShowBiasPrompt] = useState(false);
+  const [biasFigureToConfirm, setBiasFigureToConfirm] = useState<Figure | null>(null);
+
 
   useEffect(() => {
     setFigure(initialFigure);
@@ -194,6 +210,16 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
             showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
         }
 
+        const isBtsMember = btsMemberIds.includes(figure.id.toLowerCase());
+        if (isBtsMember && (vote === 'fan' || vote === 'simp') && !isRetracting) {
+            const userBiasVoteRef = doc(firestore, `users/${currentUser!.uid}/btsBiasVote`, 'bts-bias-battle');
+            const userBiasVoteSnap = await getDoc(userBiasVoteRef);
+            if (!userBiasVoteSnap.exists()) {
+                setBiasFigureToConfirm(figure);
+                setShowBiasPrompt(true);
+            }
+        }
+
         onVote(userVote?.vote === vote ? null : vote);
         toast({ title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
         refetch();
@@ -211,6 +237,32 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
       setIsVoting(null);
     }
   };
+  
+  const handleConfirmBias = async () => {
+    if (!firestore || !user || !biasFigureToConfirm) return;
+    
+    const selectedFigureId = biasFigureToConfirm.id;
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const privateVoteRef = doc(firestore, `users/${user.uid}/btsBiasVote`, 'bts-bias-battle');
+            const newFigureRef = doc(firestore, 'figures', selectedFigureId);
+
+            // Since we checked for non-existence before, this is a new vote.
+            transaction.update(newFigureRef, { btsBiasVoteCount: increment(1) });
+            transaction.set(privateVoteRef, { figureId: selectedFigureId, createdAt: serverTimestamp() });
+        });
+        
+        toast({ title: '¡Bias Confirmado!', description: `Has votado por ${biasFigureToConfirm.name} como tu bias.` });
+    } catch (error) {
+        console.error("Error confirming bias:", error);
+        toast({ title: "Error al confirmar", description: "No se pudo registrar tu voto de bias.", variant: 'destructive' });
+    } finally {
+        setShowBiasPrompt(false);
+        setBiasFigureToConfirm(null);
+    }
+  };
+
 
   const totalVotes = Object.values(figure.attitude || {}).reduce(
     (sum, count) => sum + count,
@@ -237,87 +289,101 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
     );
   }
 
-  if (variant === 'header') {
-    return (
-      <div className="w-full">
-        <div className="flex flex-wrap items-start justify-center md:justify-start gap-4">
-          {attitudeOptions.map(({ id, labelKey, selectedClass }) => {
-            const isSelected = userVote?.vote === id;
-            const votes = figure.attitude?.[id] ?? 0;
-            return (
-              <div key={id} className="flex flex-col items-center gap-1">
-                <Button
-                  variant={'outline'}
-                  size="sm"
-                  className={cn("h-8 px-3 text-xs border-2", isSelected ? selectedClass : 'border-transparent')}
+  return (
+    <>
+      {variant === 'header' ? (
+        <div className="w-full">
+          <div className="flex flex-wrap items-start justify-center md:justify-start gap-4">
+            {attitudeOptions.map(({ id, labelKey, selectedClass }) => {
+              const isSelected = userVote?.vote === id;
+              const votes = figure.attitude?.[id] ?? 0;
+              return (
+                <div key={id} className="flex flex-col items-center gap-1">
+                  <Button
+                    variant={'outline'}
+                    size="sm"
+                    className={cn("h-8 px-3 text-xs border-2", isSelected ? selectedClass : 'border-transparent')}
+                    onClick={() => handleVote(id)}
+                    disabled={!!isVoting}
+                  >
+                    {isVoting === id ? <Loader2 className="h-4 w-4 animate-spin" /> : t(labelKey)}
+                  </Button>
+                  <span className="text-xs font-bold text-muted-foreground">{formatCompactNumber(votes)}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="w-full relative">
+          {userVote?.vote && (
+            <div className="absolute top-0 right-0 z-10">
+              <ShareButton
+                  figureId={figure.id}
+                  figureName={figure.name}
+                  isAttitudeShare={true}
+                  attitude={userVote.vote}
+                  showText={false}
+              />
+            </div>
+          )}
+          <div className="mb-4 text-left">
+              <h3 className="text-xl font-bold font-headline">{t('AttitudeVoting.title')}</h3>
+          </div>
+          <div className={cn("grid grid-cols-2 gap-4", attitudeOptions.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4')}>
+              {attitudeOptions.map(({ id, labelKey, gifUrl, colorClass, selectedClass }) => {
+              const isSelected = userVote?.vote === id;
+              return (
+              <Button
+                  key={id}
+                  variant="outline"
+                  className={cn(
+                  'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
+                  'dark:bg-black',
+                  isSelected ? `scale-105 border-2 ${selectedClass}` : `border-2 ${colorClass}`
+                  )}
                   onClick={() => handleVote(id)}
                   disabled={!!isVoting}
-                >
-                  {isVoting === id ? <Loader2 className="h-4 w-4 animate-spin" /> : t(labelKey)}
-                </Button>
-                <span className="text-xs font-bold text-muted-foreground">{formatCompactNumber(votes)}</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="w-full relative">
-      {userVote?.vote && (
-        <div className="absolute top-0 right-0 z-10">
-          <ShareButton
-              figureId={figure.id}
-              figureName={figure.name}
-              isAttitudeShare={true}
-              attitude={userVote.vote}
-              showText={false}
-          />
+              >
+                  {isVoting === id ? (
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                  ) : (
+                      <div className="flex h-full flex-col items-center justify-center text-center">
+                          <div className="flex-1 flex items-center justify-center">
+                              <Image src={gifUrl} alt={t(labelKey)} width={48} height={48} unoptimized className="h-12 w-12" />
+                          </div>
+                          <div>
+                              <span className="font-semibold text-sm">{t(labelKey)}</span>
+                              <span className="block text-lg font-bold">
+                                  {formatCompactNumber(figure.attitude?.[id] ?? 0)}
+                              </span>
+                          </div>
+                      </div>
+                  )}
+              </Button>
+              )})}
+          </div>
+            <div className="mt-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                    {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
+                </p>
+            </div>
         </div>
       )}
-      <div className="mb-4 text-left">
-          <h3 className="text-xl font-bold font-headline">{t('AttitudeVoting.title')}</h3>
-      </div>
-      <div className={cn("grid grid-cols-2 gap-4", attitudeOptions.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4')}>
-          {attitudeOptions.map(({ id, labelKey, gifUrl, colorClass, selectedClass }) => {
-          const isSelected = userVote?.vote === id;
-          return (
-          <Button
-              key={id}
-              variant="outline"
-              className={cn(
-              'relative h-36 flex-col items-center justify-center gap-2 p-4 transition-all duration-200 hover:scale-105',
-              'dark:bg-black',
-              isSelected ? `scale-105 border-2 ${selectedClass}` : `border-2 ${colorClass}`
-              )}
-              onClick={() => handleVote(id)}
-              disabled={!!isVoting}
-          >
-              {isVoting === id ? (
-              <Loader2 className="h-8 w-8 animate-spin" />
-              ) : (
-                  <div className="flex h-full flex-col items-center justify-center text-center">
-                      <div className="flex-1 flex items-center justify-center">
-                          <Image src={gifUrl} alt={t(labelKey)} width={48} height={48} unoptimized className="h-12 w-12" />
-                      </div>
-                      <div>
-                          <span className="font-semibold text-sm">{t(labelKey)}</span>
-                          <span className="block text-lg font-bold">
-                              {formatCompactNumber(figure.attitude?.[id] ?? 0)}
-                          </span>
-                      </div>
-                  </div>
-              )}
-          </Button>
-          )})}
-      </div>
-        <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">
-                {t('AttitudeVoting.totalVotes').replace('{count}', totalVotes.toLocaleString())}
-            </p>
-        </div>
-    </div>
+       <AlertDialog open={showBiasPrompt} onOpenChange={setShowBiasPrompt}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¿{biasFigureToConfirm?.name} es tu Bias?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Al confirmar, tu voto se registrará en la sección "Bias BTS". Esta acción se puede cambiar más tarde.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setBiasFigureToConfirm(null)}>No</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmBias}>Sí, confirmar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </>
   );
 }
