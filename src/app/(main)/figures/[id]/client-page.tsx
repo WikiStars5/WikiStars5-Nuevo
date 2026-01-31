@@ -28,6 +28,7 @@ import { countries } from '@/lib/countries';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import BtsBiasVoting from '@/components/figure/bts-bias-voting';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -359,14 +360,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           </TabsContent>
           {isBtsMember && (
             <TabsContent value="bias" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sección de Bias</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Contenido especial para tu bias próximamente.</p>
-                </CardContent>
-              </Card>
+              <BtsBiasVoting />
             </TabsContent>
           )}
         </Tabs>

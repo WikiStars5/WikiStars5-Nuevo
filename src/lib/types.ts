@@ -119,6 +119,7 @@ export interface Figure {
     emotion: number;
     rating: number;
   };
+  btsBiasVoteCount?: number;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
   // Temporary fields for security rules, not stored in DB.
@@ -135,6 +136,15 @@ export interface FeaturedFigure {
     figureImageUrl: string;
     order: number;
 }
+
+export interface BtsBiasMember {
+  id: string;
+  figureId: string;
+  figureName: string;
+  figureImageUrl: string;
+  order: number;
+}
+
 
 export interface RelatedFigure {
   id: string;
@@ -170,6 +180,12 @@ export interface EmotionVote {
     figureImageUrl?: string;
     userCountry?: string | null;
     userGender?: string | null;
+}
+
+export interface BtsBiasVote {
+  id: string; // battleId
+  figureId: string;
+  createdAt: Timestamp;
 }
 
 export interface Comment {
