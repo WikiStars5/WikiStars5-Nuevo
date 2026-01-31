@@ -249,7 +249,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
               {isBtsMember && (
                 <TabsTrigger value="bias">
                   <Heart className="mr-2 h-4 w-4" />
-                  Bias
+                  Bias BTS
                 </TabsTrigger>
               )}
             </TabsList>
