@@ -235,6 +235,18 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
               <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
                 {t('FigurePage.tabs.emotion')}
               </TabsTrigger>
+              {isBtsMember && (
+                <TabsTrigger value="bias-bts">
+                  <Heart className="mr-2 h-4 w-4" />
+                  Bias BTS
+                </TabsTrigger>
+              )}
+              {isBlackpinkMember && (
+                <TabsTrigger value="bias-blackpink">
+                  <Heart className="mr-2 h-4 w-4" />
+                  Bias Blackpink
+                </TabsTrigger>
+              )}
               <TabsTrigger value="rachas">
                 <Image
                   src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire%20(2)%20(1).gif?alt=media&token=032a6759-bcfd-496a-a349-2f0f30a19448"
@@ -250,18 +262,6 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 <Trophy className="mr-2 h-4 w-4" />
                 Logros
               </TabsTrigger>
-              {isBtsMember && (
-                <TabsTrigger value="bias-bts">
-                  <Heart className="mr-2 h-4 w-4" />
-                  Bias BTS
-                </TabsTrigger>
-              )}
-              {isBlackpinkMember && (
-                <TabsTrigger value="bias-blackpink">
-                  <Heart className="mr-2 h-4 w-4" />
-                  Bias Blackpink
-                </TabsTrigger>
-              )}
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
