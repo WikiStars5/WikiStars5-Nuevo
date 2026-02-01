@@ -289,13 +289,13 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
             const mention = mentionMatch[1];
             const restOfText = comment.text.substring(mentionMatch[0].length).trim();
             return (
-                <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-1">
+                <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">
                     <span className="text-primary font-semibold mr-1">@{mention}</span>
                     {restOfText}
                 </p>
             );
         }
-        return <p className="text-sm text-black dark:text-white whitespace-pre-wrap mt-1">{comment.text}</p>;
+        return <p className="text-sm text-foreground/90 whitespace-pre-wrap mt-1">{comment.text}</p>;
     };
 
     const wasEdited = comment.updatedAt && comment.createdAt && comment.updatedAt.toMillis() > comment.createdAt.toMillis() + 1000;
