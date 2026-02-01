@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -43,6 +44,7 @@ const allAttitudeOptions: {
 ];
 
 const btsMemberIds = ["rm", "kim-seok-jin", "suga", "j-hope", "jimin", "v-cantante", "jungkook"];
+const blackpinkMemberIds = ["jennie", "lalisa-manobal", "rose", "jisoo"];
 
 interface AttitudeVotingProps {
   figure: Figure;
@@ -60,8 +62,12 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
   
   const [figure, setFigure] = useState(initialFigure);
   const [isVoting, setIsVoting] = useState<AttitudeOption | null>(null);
-  const [showBiasPrompt, setShowBiasPrompt] = useState(false);
-  const [biasFigureToConfirm, setBiasFigureToConfirm] = useState<Figure | null>(null);
+  
+  const [showBtsBiasPrompt, setShowBtsBiasPrompt] = useState(false);
+  const [btsBiasFigureToConfirm, setBtsBiasFigureToConfirm] = useState<Figure | null>(null);
+  
+  const [showBlackpinkBiasPrompt, setShowBlackpinkBiasPrompt] = useState(false);
+  const [blackpinkBiasFigureToConfirm, setBlackpinkBiasFigureToConfirm] = useState<Figure | null>(null);
 
 
   useEffect(() => {
@@ -212,13 +218,24 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
 
         const isBtsMember = btsMemberIds.includes(figure.id.toLowerCase());
         if (isBtsMember && (vote === 'fan' || vote === 'simp') && !isRetracting) {
-            const userBiasVoteRef = doc(firestore, `users/${currentUser!.uid}/btsBiasVote`, 'bts-bias-battle');
+            const userBiasVoteRef = doc(firestore, `users/${currentUser.uid}/btsBiasVote`, 'bts-bias-battle');
             const userBiasVoteSnap = await getDoc(userBiasVoteRef);
             if (!userBiasVoteSnap.exists()) {
-                setBiasFigureToConfirm(figure);
-                setShowBiasPrompt(true);
+                setBtsBiasFigureToConfirm(figure);
+                setShowBtsBiasPrompt(true);
             }
         }
+        
+        const isBlackpinkMember = blackpinkMemberIds.includes(figure.id.toLowerCase());
+        if (isBlackpinkMember && (vote === 'fan' || vote === 'simp') && !isRetracting) {
+            const userBiasVoteRef = doc(firestore, `users/${currentUser.uid}/blackpinkBiasVote`, 'blackpink-bias-battle');
+            const userBiasVoteSnap = await getDoc(userBiasVoteRef);
+            if (!userBiasVoteSnap.exists()) {
+                setBlackpinkBiasFigureToConfirm(figure);
+                setShowBlackpinkBiasPrompt(true);
+            }
+        }
+
 
         onVote(userVote?.vote === vote ? null : vote);
         toast({ title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
@@ -238,10 +255,10 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
     }
   };
   
-  const handleConfirmBias = async () => {
-    if (!firestore || !user || !biasFigureToConfirm) return;
+  const handleConfirmBtsBias = async () => {
+    if (!firestore || !user || !btsBiasFigureToConfirm) return;
     
-    const selectedFigureId = biasFigureToConfirm.id;
+    const selectedFigureId = btsBiasFigureToConfirm.id;
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -253,13 +270,37 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
             transaction.set(privateVoteRef, { figureId: selectedFigureId, createdAt: serverTimestamp() });
         });
         
-        toast({ title: '¡Bias Confirmado!', description: `Has votado por ${biasFigureToConfirm.name} como tu bias.` });
+        toast({ title: '¡Bias Confirmado!', description: `Has votado por ${btsBiasFigureToConfirm.name} como tu bias.` });
     } catch (error) {
         console.error("Error confirming bias:", error);
         toast({ title: "Error al confirmar", description: "No se pudo registrar tu voto de bias.", variant: 'destructive' });
     } finally {
-        setShowBiasPrompt(false);
-        setBiasFigureToConfirm(null);
+        setShowBtsBiasPrompt(false);
+        setBtsBiasFigureToConfirm(null);
+    }
+  };
+
+  const handleConfirmBlackpinkBias = async () => {
+    if (!firestore || !user || !blackpinkBiasFigureToConfirm) return;
+    
+    const selectedFigureId = blackpinkBiasFigureToConfirm.id;
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const privateVoteRef = doc(firestore, `users/${user.uid}/blackpinkBiasVote`, 'blackpink-bias-battle');
+            const newFigureRef = doc(firestore, 'figures', selectedFigureId);
+
+            transaction.update(newFigureRef, { blackpinkBiasVoteCount: increment(1) });
+            transaction.set(privateVoteRef, { figureId: selectedFigureId, createdAt: serverTimestamp() });
+        });
+        
+        toast({ title: '¡Bias Confirmado!', description: `Has votado por ${blackpinkBiasFigureToConfirm.name} como tu bias.` });
+    } catch (error) {
+        console.error("Error confirming bias:", error);
+        toast({ title: "Error al confirmar", description: "No se pudo registrar tu voto de bias.", variant: 'destructive' });
+    } finally {
+        setShowBlackpinkBiasPrompt(false);
+        setBlackpinkBiasFigureToConfirm(null);
     }
   };
 
@@ -370,17 +411,31 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
             </div>
         </div>
       )}
-       <AlertDialog open={showBiasPrompt} onOpenChange={setShowBiasPrompt}>
+       <AlertDialog open={showBtsBiasPrompt} onOpenChange={setShowBtsBiasPrompt}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>¿{biasFigureToConfirm?.name} es tu Bias?</AlertDialogTitle>
+                    <AlertDialogTitle>¿{btsBiasFigureToConfirm?.name} es tu Bias?</AlertDialogTitle>
                     <AlertDialogDescription>
                         Al confirmar, tu voto se registrará en la sección "Bias BTS". Esta acción se puede cambiar más tarde.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setBiasFigureToConfirm(null)}>No</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirmBias}>Sí, confirmar</AlertDialogAction>
+                    <AlertDialogCancel onClick={() => setBtsBiasFigureToConfirm(null)}>No</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmBtsBias}>Sí, confirmar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+         <AlertDialog open={showBlackpinkBiasPrompt} onOpenChange={setShowBlackpinkBiasPrompt}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¿{blackpinkBiasFigureToConfirm?.name} es tu Bias?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Al confirmar, tu voto se registrará en la sección "Bias Blackpink". Esta acción se puede cambiar más tarde.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setBlackpinkBiasFigureToConfirm(null)}>No</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleConfirmBlackpinkBias}>Sí, confirmar</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

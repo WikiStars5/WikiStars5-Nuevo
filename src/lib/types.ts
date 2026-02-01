@@ -1,5 +1,4 @@
 
-
 import type { Timestamp } from 'firebase/firestore';
 import type { CommentTagId } from './tags';
 
@@ -120,6 +119,7 @@ export interface Figure {
     rating: number;
   };
   btsBiasVoteCount?: number;
+  blackpinkBiasVoteCount?: number;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
   // Temporary fields for security rules, not stored in DB.
@@ -145,6 +145,13 @@ export interface BtsBiasMember {
   order: number;
 }
 
+export interface BlackpinkBiasMember {
+  id: string;
+  figureId: string;
+  figureName: string;
+  figureImageUrl: string;
+  order: number;
+}
 
 export interface RelatedFigure {
   id: string;
@@ -183,6 +190,12 @@ export interface EmotionVote {
 }
 
 export interface BtsBiasVote {
+  id: string; // battleId
+  figureId: string;
+  createdAt: Timestamp;
+}
+
+export interface BlackpinkBiasVote {
   id: string; // battleId
   figureId: string;
   createdAt: Timestamp;

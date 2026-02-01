@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
@@ -28,6 +29,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import BtsBiasVoting from '@/components/figure/bts-bias-voting';
+import BlackpinkBiasVoting from '@/components/figure/blackpink-bias-voting';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -137,7 +139,9 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
 
   const btsMemberIds = ["rm", "kim-seok-jin", "suga", "j-hope", "jimin", "v-cantante", "jungkook"];
+  const blackpinkMemberIds = ["jennie", "lalisa-manobal", "rose", "jisoo"];
   const isBtsMember = figureId && btsMemberIds.includes(figureId.toLowerCase());
+  const isBlackpinkMember = figureId && blackpinkMemberIds.includes(figureId.toLowerCase());
 
   const handleVote = useCallback((attitude: AttitudeOption | null) => {
     setCommentSortPreference(attitude);
@@ -247,9 +251,15 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                 Logros
               </TabsTrigger>
               {isBtsMember && (
-                <TabsTrigger value="bias">
+                <TabsTrigger value="bias-bts">
                   <Heart className="mr-2 h-4 w-4" />
                   Bias BTS
+                </TabsTrigger>
+              )}
+              {isBlackpinkMember && (
+                <TabsTrigger value="bias-blackpink">
+                  <Heart className="mr-2 h-4 w-4" />
+                  Bias Blackpink
                 </TabsTrigger>
               )}
             </TabsList>
@@ -358,8 +368,13 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
             {/* Achievements content will go here */}
           </TabsContent>
           {isBtsMember && (
-            <TabsContent value="bias" className="mt-4">
+            <TabsContent value="bias-bts" className="mt-4">
               <BtsBiasVoting />
+            </TabsContent>
+          )}
+          {isBlackpinkMember && (
+            <TabsContent value="bias-blackpink" className="mt-4">
+              <BlackpinkBiasVoting />
             </TabsContent>
           )}
         </Tabs>
