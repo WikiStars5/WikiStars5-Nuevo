@@ -215,7 +215,7 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
       return (
           <div className={cn("text-center py-10 border-2 border-dashed rounded-lg", (theme === 'dark' || theme === 'army') && 'bg-black')}>
               <MessageCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">Ver opiniones</h3>
+              <h3 className="mt-4 text-lg font-semibold">Ver StarPosts</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                   Mira lo que otros opinan sobre este perfil.
               </p>
@@ -313,5 +313,3 @@ export default function CommentList({ figureId, figureName, sortPreference, onCo
     </div>
   );
 }
-
-    
