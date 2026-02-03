@@ -50,6 +50,9 @@ interface ShareButtonProps {
   attitude?: string;
   isEmotionShare?: boolean;
   emotion?: string;
+  isBtsBiasShare?: boolean;
+  isBlackpinkBiasShare?: boolean;
+  biasName?: string;
   className?: string;
 }
 
@@ -72,6 +75,9 @@ export function ShareButton({
     attitude,
     isEmotionShare = false,
     emotion,
+    isBtsBiasShare = false,
+    isBlackpinkBiasShare = false,
+    biasName,
     className,
 }: ShareButtonProps) {
   const { toast } = useToast();
@@ -102,13 +108,19 @@ export function ShareButton({
         url.searchParams.set('shareType', 'rating');
         url.searchParams.set('rating', String(rating));
       }
+      if (isBtsBiasShare) {
+        url.searchParams.set('shareType', 'bias-bts');
+      }
+      if (isBlackpinkBiasShare) {
+        url.searchParams.set('shareType', 'bias-blackpink');
+      }
       setCurrentUrl(url.toString());
 
       if (navigator.share) {
         setIsWebShareSupported(true);
       }
     }
-  }, [figureId, isGoatShare, goatVote, isEmotionShare, emotion, isAttitudeShare, attitude, isRatingShare, rating]);
+  }, [figureId, isGoatShare, goatVote, isEmotionShare, emotion, isAttitudeShare, attitude, isRatingShare, rating, isBtsBiasShare, isBlackpinkBiasShare]);
 
   const buttonSize = showText ? "default" : "icon";
   
@@ -176,6 +188,12 @@ export function ShareButton({
   }
 
   const getShareText = () => {
+    if (isBtsBiasShare && biasName) {
+        return `¡Ya elegí a ${biasName} como mi Bias de BTS! Ahora te toca a ti elegir.`;
+    }
+     if (isBlackpinkBiasShare && biasName) {
+        return `¡Ya elegí a ${biasName} como mi Bias de BLACKPINK! Ahora te toca a ti elegir.`;
+    }
     if (isEmotionShare && emotion) {
         const emotionText = emotion.charAt(0).toUpperCase() + emotion.slice(1);
         return `${figureName} me genera ${emotionText}. ¿Y a ti?`;
@@ -198,6 +216,12 @@ export function ShareButton({
   };
 
   const getShareTitle = () => {
+     if (isBtsBiasShare) {
+      return `Mi Bias de BTS es ${biasName} | WikiStars5`;
+    }
+    if (isBlackpinkBiasShare) {
+        return `Mi Bias de BLACKPINK es ${biasName} | WikiStars5`;
+    }
     if (isEmotionShare) {
         return `Mi Emoción sobre ${figureName} en WikiStars5`;
     }

@@ -100,6 +100,7 @@ export default function NotificationBell() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [isOpen, setIsOpen] = useState(false);
+  const previousUnreadCountRef = useRef<number>(0);
   const { t } = useLanguage();
 
   const notificationsQuery = useMemoFirebase(() => {
@@ -111,29 +112,20 @@ export default function NotificationBell() {
     );
   }, [user, firestore]);
 
-  const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery, { realtime: true });
+  const { data: notifications, isLoading } = useCollection<Notification>(notificationsQuery);
   
   const unreadCount = notifications?.filter(n => !n.isRead).length || 0;
   const hasUnread = unreadCount > 0;
 
-  const previousIdsRef = useRef<Set<string>>(new Set(notifications?.map(n => n.id) || []));
-
   useEffect(() => {
-    if (!isLoading && notifications) {
-        const currentIds = new Set(notifications.map(n => n.id));
-        
-        const newUnreadNotifications = notifications.filter(
-            n => !n.isRead && !previousIdsRef.current.has(n.id)
-        );
-
-        if (newUnreadNotifications.length > 0) {
-            const audio = new Audio(NOTIFICATION_SOUND_URL);
-            audio.play().catch(e => console.error("Error playing notification sound:", e));
-        }
-
-        previousIdsRef.current = currentIds;
+    // Play sound only if new unread notifications have arrived.
+    if (isOpen && unreadCount > previousUnreadCountRef.current) {
+        const audio = new Audio(NOTIFICATION_SOUND_URL);
+        audio.play().catch(e => console.error("Error playing notification sound:", e));
     }
-  }, [notifications, isLoading]);
+    // Update the ref with the new count for the next check.
+    previousUnreadCountRef.current = unreadCount;
+  }, [unreadCount, isOpen]);
 
 
  const handleMarkAsRead = async (notificationId: string) => {

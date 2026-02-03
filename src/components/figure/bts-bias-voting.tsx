@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useUser, useAdmin, useCollection, useDoc, useMemoFirebase, useAuth, signInAnonymously } from '@/firebase';
 import { collection, query, orderBy, where, getDocs, doc, runTransaction, serverTimestamp, increment, deleteDoc, addDoc } from 'firebase/firestore';
 import type { Figure, BtsBiasMember, BtsBiasVote } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,6 +17,8 @@ import { cn, formatCompactNumber } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { useTheme } from 'next-themes';
+import { ShareButton } from '../shared/ShareButton';
+import { Alert, AlertDescription } from '../ui/alert';
 
 function BiasMemberCard({ 
     member, 
@@ -249,6 +251,7 @@ export default function BtsBiasVoting() {
 
     const existingFigureIds = useMemo(() => biasMembers?.map(f => f.figureId) || [], [biasMembers]);
     const winnerId = membersWithVotes.length > 0 ? membersWithVotes[0].id : null;
+    const votedMember = userVote ? membersWithVotes.find(m => m.figureId === userVote.figureId) : null;
 
     return (
         <LoginPromptDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
@@ -302,6 +305,22 @@ export default function BtsBiasVoting() {
                         </div>
                     )}
                 </CardContent>
+                {votedMember && (
+                    <CardFooter className="pt-6">
+                        <Alert className="flex items-center justify-between gap-4">
+                            <AlertDescription className="text-sm font-semibold">
+                                ¡Ya elegí a {votedMember.figureName} como mi Bias! Compártelo:
+                            </AlertDescription>
+                            <ShareButton
+                                figureId={votedMember.figureId}
+                                figureName={votedMember.figureName}
+                                isBtsBiasShare={true}
+                                biasName={votedMember.figureName}
+                                showText={false}
+                            />
+                        </Alert>
+                    </CardFooter>
+                )}
             </Card>
         </LoginPromptDialog>
     );
