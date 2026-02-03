@@ -262,16 +262,27 @@ export default function BtsBiasVoting() {
                             <CardTitle>Votación de Bias</CardTitle>
                             <CardDescription>Elige a tu miembro favorito de BTS.</CardDescription>
                         </div>
-                        {isAdmin && (
-                            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant="outline">
-                                        <PlusCircle className="mr-2 h-4 w-4" /> Añadir
-                                    </Button>
-                                </DialogTrigger>
-                                <AddBiasMemberDialog onAdd={handleAdd} existingIds={existingFigureIds} onClose={() => setIsAddDialogOpen(false)} />
-                            </Dialog>
-                        )}
+                        <div className="flex items-center gap-2">
+                             {votedMember && (
+                                <ShareButton
+                                    figureId={votedMember.figureId}
+                                    figureName={votedMember.figureName}
+                                    isBtsBiasShare={true}
+                                    biasName={votedMember.figureName}
+                                    showText={false}
+                                />
+                            )}
+                            {isAdmin && (
+                                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline">
+                                            <PlusCircle className="mr-2 h-4 w-4" /> Añadir
+                                        </Button>
+                                    </DialogTrigger>
+                                    <AddBiasMemberDialog onAdd={handleAdd} existingIds={existingFigureIds} onClose={() => setIsAddDialogOpen(false)} />
+                                </Dialog>
+                            )}
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -305,22 +316,6 @@ export default function BtsBiasVoting() {
                         </div>
                     )}
                 </CardContent>
-                {votedMember && (
-                    <CardFooter className="pt-6">
-                        <Alert className="flex items-center justify-between gap-4">
-                            <AlertDescription className="text-sm font-semibold">
-                                ¡Ya elegí a {votedMember.figureName} como mi Bias! Compártelo:
-                            </AlertDescription>
-                            <ShareButton
-                                figureId={votedMember.figureId}
-                                figureName={votedMember.figureName}
-                                isBtsBiasShare={true}
-                                biasName={votedMember.figureName}
-                                showText={false}
-                            />
-                        </Alert>
-                    </CardFooter>
-                )}
             </Card>
         </LoginPromptDialog>
     );
