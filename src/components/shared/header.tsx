@@ -121,6 +121,8 @@ export default function Header() {
   }
 
   const isLoading = isUserLoading || (user && isProfileLoading);
+  
+  const displayName = userProfile?.username || user?.displayName || user?.email;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -192,8 +194,8 @@ export default function Header() {
                     <>
                       <DropdownMenuLabel className="font-normal">
                         <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">{userProfile?.username || user.displayName || user.email}</p>
-                          {user.email && (
+                          <p className="text-sm font-medium leading-none">{displayName}</p>
+                          {user.email && displayName !== user.email && (
                             <p className="text-xs leading-none text-muted-foreground">
                               {user.email}
                             </p>
