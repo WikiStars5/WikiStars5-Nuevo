@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect, useCallback } from 'react';
@@ -15,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle, User as UserIcon, Tag } from 'lucide-react';
 import StarInput from './star-input';
-import { Comment, Streak, GlobalSettings, Figure, User as AppUser, AttitudeVote } from '@/lib/types';
+import { Comment, Streak, GlobalSettings, Figure, User as AppUser, AttitudeVote, Achievement } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import Image from 'next/image';
@@ -164,90 +165,104 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
   const postComment = async (data: CommentFormValues, currentUser: FirebaseUser) => {
     if (!firestore) return;
 
+    const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
+    const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
+    if (!existingCommentSnap.empty) {
+        toast({ title: 'Error', description: t('CommentForm.toast.alreadyCommented'), variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+    }
+
     try {
-        const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-        
-        // This check is now more reliable because identity creation is separate
-        const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
-        if (!existingCommentSnap.empty) {
-            toast({ title: 'Error', description: t('CommentForm.toast.alreadyCommented'), variant: 'destructive' });
-            setIsSubmitting(false);
-            return;
-        }
+        await runTransaction(firestore, async (transaction) => {
+            const figureRef = doc(firestore, 'figures', figureId);
+            const userProfileRef = doc(firestore, 'users', currentUser.uid);
+            const attitudeVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
 
-        const batch = writeBatch(firestore);
-        const attitudeVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
-        const figureRef = doc(firestore, 'figures', figureId);
-        
-        const [userProfileSnap, attitudeVoteSnap, figureSnap] = await Promise.all([
-          getDoc(doc(firestore, 'users', currentUser.uid)), // Refetch profile to be sure
-          getDoc(attitudeVoteRef),
-          getDoc(figureRef)
-        ]);
+            const [figureDoc, userProfileSnap, attitudeVoteSnap] = await Promise.all([
+              transaction.get(figureRef),
+              transaction.get(userProfileRef),
+              transaction.get(attitudeVoteRef)
+            ]);
 
-        const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
-        const finalDisplayName = userProfileData.username || currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
-        const figureData = figureSnap.data() as Figure | undefined;
-        
-        const country = userProfileData.country || null;
-        const gender = userProfileData.gender || null;
-        const attitude = attitudeVoteSnap.exists() ? (attitudeVoteSnap.data() as AttitudeVote).vote : null;
-        const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
+            if (!figureDoc.exists()) throw new Error("Figure not found.");
 
-        if (newRating >= 0) {
-            const figureUpdates = {
-                ratingCount: increment(1),
-                totalRating: increment(newRating),
-                [`ratingsBreakdown.${newRating}`]: increment(1),
-            };
-            batch.update(figureRef, figureUpdates);
-            
-            if(country){
-              const ratingStatRef = doc(firestore, `figures/${figureId}/ratingStats`, String(newRating));
-              batch.set(ratingStatRef, {
-                  [country]: {
-                      total: increment(1),
-                      [gender || 'unknown']: increment(1)
-                  }
-              }, { merge: true });
+            const figureData = figureDoc.data() as Figure;
+            const currentRatingCount = figureData.ratingCount || 0;
+            const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
+
+            if (newRating >= 0 && currentRatingCount < 1000) {
+                const achievementRef = doc(firestore, `users/${currentUser.uid}/achievements`, figureId);
+                const achievementDoc = await transaction.get(achievementRef);
+                const currentAchievements = (achievementDoc.data()?.achievements as string[] | undefined) || [];
+                
+                if (!currentAchievements.includes('pioneer_1000')) {
+                    transaction.set(achievementRef, { 
+                        id: figureId,
+                        achievements: [...currentAchievements, 'pioneer_1000'],
+                        createdAt: serverTimestamp() 
+                    }, { merge: true });
+                }
             }
-        }
-      
-        const newCommentRef = doc(commentsColRef);
+            
+            const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
+            const finalDisplayName = userProfileData.username || currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
+            
+            const country = userProfileData.country || null;
+            const gender = userProfileData.gender || null;
+            const attitude = attitudeVoteSnap.exists() ? (attitudeVoteSnap.data() as AttitudeVote).vote : null;
 
-        const sharedPayload = {
-            userId: currentUser.uid,
-            figureId: figureId,
-            figureName: figureName,
-            figureImageUrl: figureData?.imageUrl || null,
-            title: data.title || '',
-            text: data.text || '', 
-            tag: data.tag || null,
-            rating: newRating,
-            createdAt: serverTimestamp(), 
-            updatedAt: serverTimestamp(),
-            userDisplayName: finalDisplayName, 
-            userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
-            userCountry: country, 
-            userGender: gender, 
-            userAttitude: attitude,
-            likes: 0, 
-            dislikes: 0, 
-            parentId: null, 
-            replyCount: 0,
-        };
+            if (newRating >= 0) {
+                const figureUpdates = {
+                    ratingCount: increment(1),
+                    totalRating: increment(newRating),
+                    [`ratingsBreakdown.${newRating}`]: increment(1),
+                };
+                transaction.update(figureRef, figureUpdates);
+                
+                if(country){
+                  const ratingStatRef = doc(firestore, `figures/${figureId}/ratingStats`, String(newRating));
+                  transaction.set(ratingStatRef, {
+                      [country]: {
+                          total: increment(1),
+                          [gender || 'unknown']: increment(1)
+                      }
+                  }, { merge: true });
+                }
+            }
+          
+            const newCommentRef = doc(commentsColRef);
 
-        batch.set(newCommentRef, { ...sharedPayload, threadId: newCommentRef.id });
+            const sharedPayload = {
+                userId: currentUser.uid,
+                figureId: figureId,
+                figureName: figureName,
+                figureImageUrl: figureData?.imageUrl || null,
+                title: data.title || '',
+                text: data.text || '', 
+                tag: data.tag || null,
+                rating: newRating,
+                createdAt: serverTimestamp(), 
+                updatedAt: serverTimestamp(),
+                userDisplayName: finalDisplayName, 
+                userPhotoURL: currentUser.isAnonymous ? null : currentUser.photoURL,
+                userCountry: country, 
+                userGender: gender, 
+                userAttitude: attitude,
+                likes: 0, 
+                dislikes: 0, 
+                parentId: null, 
+                replyCount: 0,
+            };
 
-        // Only create a starpost if there is text or a title
-        if ((data.text && data.text.trim().length > 0) || (data.title && data.title.trim().length > 0)) {
-            const starpostsColRef = collection(firestore, 'starposts');
-            const newStarpostRef = doc(starpostsColRef, newCommentRef.id);
-            // Use the correct payload for starposts
-            batch.set(newStarpostRef, sharedPayload);
-        }
+            transaction.set(newCommentRef, { ...sharedPayload, threadId: newCommentRef.id });
 
-        await batch.commit();
+            if ((data.text && data.text.trim().length > 0) || (data.title && data.title.trim().length > 0)) {
+                const starpostsColRef = collection(firestore, 'starposts');
+                const newStarpostRef = doc(starpostsColRef, newCommentRef.id);
+                transaction.set(newStarpostRef, sharedPayload);
+            }
+        });
 
         if (data.text && data.text.trim().length > 0) {
             const streakResult = await updateStreak({

@@ -201,6 +201,12 @@ export interface BlackpinkBiasVote {
   createdAt: Timestamp;
 }
 
+export interface Achievement {
+  id: string; // figureId
+  achievements: ('pioneer_1000')[];
+  createdAt: Timestamp;
+}
+
 export interface Comment {
   id: string;
   userId: string;

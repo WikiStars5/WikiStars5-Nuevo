@@ -7,7 +7,7 @@ import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Figure, Comment } from '@/lib/types';
+import type { Figure, Comment, Achievement } from '@/lib/types';
 import ProfileHeader from '@/components/figure/ProfileHeader';
 import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
@@ -138,8 +138,15 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
 
   const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
 
-  const isBtsMember = figure?.tags?.includes('bts') ?? false;
-  const isBlackpinkMember = figure?.tags?.includes('blackpink') ?? false;
+  const achievementRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}/achievements`, figureId);
+  }, [firestore, user, figureId]);
+
+  const { data: userAchievements, isLoading: isLoadingAchievements } = useDoc<Achievement>(achievementRef);
+
+  const isBtsMember = figureId && ["rm", "kim-seok-jin", "suga", "j-hope", "jimin", "v-cantante", "jungkook"].includes(figureId.toLowerCase());
+  const isBlackpinkMember = figureId && ["jennie", "lalisa-manobal", "rose", "jisoo"].includes(figureId.toLowerCase());
 
   const handleVote = useCallback((attitude: AttitudeOption | null) => {
     setCommentSortPreference(attitude);
@@ -153,6 +160,8 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   }
 
   const isGoatCandidate = figure?.name === 'Lionel Messi' || figure?.name === 'Cristiano Ronaldo';
+  const hasPioneer = userAchievements?.achievements?.includes('pioneer_1000');
+
 
   if (isLoading || !figure) {
     return <FigureDetailSkeleton />;
@@ -370,19 +379,26 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                  <div className="flex flex-col items-center text-center gap-2 p-4 border rounded-lg bg-muted/50">
-                    <Image
-                        src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero%20(1).png?alt=media&token=6a233ccb-21f7-4b09-a45f-be38e171999d"
-                        alt="Logro Pionero"
-                        width={80}
-                        height={80}
-                        className="h-20 w-20"
-                    />
-                    <div>
-                        <p className="text-sm font-semibold">Pionero</p>
-                        <p className="text-xs text-muted-foreground">Calificó entre los primeros 1000.</p>
+                   {isLoadingAchievements ? (
+                    <Skeleton className="h-32 w-24" />
+                   ) : (
+                    <div className={cn(
+                        "flex flex-col items-center text-center gap-2 p-4 border rounded-lg bg-muted/50 transition-opacity",
+                        !hasPioneer && "opacity-40"
+                    )}>
+                        <Image
+                            src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero%20(1).png?alt=media&token=6a233ccb-21f7-4b09-a45f-be38e171999d"
+                            alt="Logro Pionero"
+                            width={80}
+                            height={80}
+                            className={cn("h-20 w-20", !hasPioneer && "grayscale")}
+                        />
+                        <div>
+                            <p className="text-sm font-semibold">Pionero</p>
+                            <p className="text-xs text-muted-foreground">Calificó entre los primeros 1000.</p>
+                        </div>
                     </div>
-                  </div>
+                   )}
                 </div>
               </CardContent>
             </Card>

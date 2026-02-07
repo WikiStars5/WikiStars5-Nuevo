@@ -80,7 +80,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if (isSignedIn() && isOwner(userId)) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
 
@@ -92,6 +92,7 @@ service cloud.firestore {
       match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /adCampaigns/{campaignId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      match /achievements/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
     }
 
     match /usernames/{username} {
