@@ -138,10 +138,8 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
 
   const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
 
-  const btsMemberIds = ["rm", "kim-seok-jin", "suga", "j-hope", "jimin", "v-cantante", "jungkook"];
-  const blackpinkMemberIds = ["jennie", "lalisa-manobal", "rose", "jisoo"];
-  const isBtsMember = figureId && btsMemberIds.includes(figureId.toLowerCase());
-  const isBlackpinkMember = figureId && blackpinkMemberIds.includes(figureId.toLowerCase());
+  const isBtsMember = figure?.tags?.includes('bts') ?? false;
+  const isBlackpinkMember = figure?.tags?.includes('blackpink') ?? false;
 
   const handleVote = useCallback((attitude: AttitudeOption | null) => {
     setCommentSortPreference(attitude);
@@ -365,7 +363,29 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
             <TopStreaks figure={figure} />
           </TabsContent>
           <TabsContent value="logros" className="mt-4">
-            {/* Achievements content will go here */}
+            <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
+              <CardHeader>
+                <CardTitle>Logros Desbloqueados</CardTitle>
+                <CardDescription>Colecciona insignias por tus contribuciones y lealtad.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                  <div className="flex flex-col items-center text-center gap-2 p-4 border rounded-lg bg-muted/50">
+                    <Image
+                        src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero%20(1).png?alt=media&token=6a233ccb-21f7-4b09-a45f-be38e171999d"
+                        alt="Logro Pionero"
+                        width={80}
+                        height={80}
+                        className="h-20 w-20"
+                    />
+                    <div>
+                        <p className="text-sm font-semibold">Pionero</p>
+                        <p className="text-xs text-muted-foreground">Calificó entre los primeros 1000.</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           {isBtsMember && (
             <TabsContent value="bias-bts" className="mt-4">
