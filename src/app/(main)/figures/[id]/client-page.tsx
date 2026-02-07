@@ -144,7 +144,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
 
   const { data: userAchievements, isLoading: isLoadingAchievements } = useDoc<Achievement>(achievementRef);
 
-  const btsMemberIds = ["rm", "kim-seok-jin", "suga", "j-hope", "jimin", "v-cantante", "jungkook"];
+  const btsMemberIds = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
   const blackpinkMemberIds = ["jennie", "lalisa-manobal", "rose", "jisoo"];
   const isBtsMember = figureId && btsMemberIds.includes(figureId.toLowerCase());
   const isBlackpinkMember = figureId && blackpinkMemberIds.includes(figureId.toLowerCase());
@@ -431,5 +431,3 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </Suspense>
   );
 }
-
-    
