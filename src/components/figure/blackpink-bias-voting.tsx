@@ -19,6 +19,7 @@ import { LoginPromptDialog } from '../shared/login-prompt-dialog';
 import { useTheme } from 'next-themes';
 import { Alert, AlertDescription } from '../ui/alert';
 import { ShareButton } from '../shared/ShareButton';
+import Link from 'next/link';
 
 function BiasMemberCard({ 
     member, 
@@ -46,22 +47,26 @@ function BiasMemberCard({
     return (
         <div className="group relative text-center flex flex-col h-full">
             <Card className={cn("overflow-hidden transition-all flex-grow flex flex-col", isVoted && "border-primary ring-2 ring-primary")}>
-                <div className="relative aspect-square w-full">
-                    {isWinner && (
-                        <div className="absolute top-1 right-1 z-10 p-1 bg-black/50 rounded-full">
-                           <Crown className="h-5 w-5 text-yellow-400" />
-                        </div>
-                    )}
-                     <Image
-                        src={member.figureImageUrl}
-                        alt={member.figureName}
-                        fill
-                        className="object-cover"
-                    />
-                </div>
+                <Link href={`/figures/${member.figureId}`}>
+                    <div className="relative aspect-square w-full">
+                        {isWinner && (
+                            <div className="absolute top-1 right-1 z-10 p-1 bg-black/50 rounded-full">
+                               <Crown className="h-5 w-5 text-yellow-400" />
+                            </div>
+                        )}
+                         <Image
+                            src={member.figureImageUrl}
+                            alt={member.figureName}
+                            fill
+                            className="object-cover"
+                        />
+                    </div>
+                </Link>
                 <CardContent className="p-3 flex-grow flex flex-col justify-between">
                      <div>
-                        <h3 className="text-sm font-semibold truncate">{member.figureName}</h3>
+                        <Link href={`/figures/${member.figureId}`}>
+                            <h3 className="text-sm font-semibold truncate hover:underline">{member.figureName}</h3>
+                        </Link>
                         <p className="text-xs text-muted-foreground">{formatCompactNumber(member.voteCount)} votos</p>
                     </div>
                     <Button size="sm" className="mt-2 w-full" onClick={onVote} disabled={isVoting}>
