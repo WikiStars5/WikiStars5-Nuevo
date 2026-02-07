@@ -50,9 +50,16 @@ export async function generateMetadata({ params, searchParams }: FigurePageProps
   let title = `Perfil de ${figureName} - WikiStars5`;
   let description = `Explora el perfil, las opiniones y las calificaciones de ${figureName} en WikiStars5.`;
   
-  // Use the figure's specific image as the default, falling back to the logo
-  let imageUrl = figure?.imageUrl || 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6';
-  let imageAlt = figure?.name || 'WikiStars5';
+  // Define a default image and alt text for the social share preview.
+  const defaultImageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6';
+  let imageUrl = defaultImageUrl;
+  let imageAlt = 'WikiStars5';
+
+  // If the figure has a valid image URL, use it for the preview. Otherwise, it falls back to the default logo.
+  if (figure && figure.imageUrl && (figure.imageUrl.startsWith('https://') || figure.imageUrl.startsWith('http://'))) {
+    imageUrl = figure.imageUrl;
+    imageAlt = figure.name;
+  }
 
   if (shareType === 'emotion' && emotion) {
       const emotionText = emotion.charAt(0).toUpperCase() + emotion.slice(1);
