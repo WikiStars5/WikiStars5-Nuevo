@@ -385,7 +385,8 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
                     <Skeleton className="h-32 w-24" />
                    ) : (
                     <div className={cn(
-                        "flex flex-col items-center text-center gap-2 p-4 border rounded-lg bg-muted/50 transition-opacity",
+                        "flex flex-col items-center text-center gap-2 p-4 border-2 rounded-lg bg-muted/50 transition-all",
+                        hasPioneer ? "border-primary" : "border-dashed",
                         !hasPioneer && "opacity-40"
                     )}>
                         <Image
@@ -432,5 +433,3 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </Suspense>
   );
 }
-
-    
