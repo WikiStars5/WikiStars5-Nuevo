@@ -5,9 +5,9 @@ import type { Comment, CommentVote, Streak } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { StarRating } from '@/components/shared/star-rating';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame, ChevronDown } from 'lucide-react';
 import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
@@ -19,6 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
 import { isDateActive } from '@/lib/streaks';
 import { useTheme } from 'next-themes';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import StarPostThreadDialog from './starpost-thread-dialog';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -44,6 +46,7 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
   const [post, setPost] = useState(initialPost);
   const [isReplying, setIsReplying] = useState(false);
   const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
+  const [isThreadOpen, setIsThreadOpen] = useState(false);
 
   // Since starposts can come from any figure, we build the path dynamically
   const votePath = `figures/${post.figureId}/comments/${post.id}/votes`;
@@ -138,15 +141,14 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
   const getAvatarFallback = () => post.userDisplayName?.charAt(0) || 'U';
 
   const country = post.userCountry ? countries.find(c => c.key === post.userCountry?.toLowerCase()) : null;
-  const attitudeStyle = post.userAttitude ? attitudeStyles[post.userAttitude] : null;
+  const attitudeStyle = post.userAttitude ? attitudeStyles[post.userAttitude as AttitudeOption] : null;
   const tag = post.tag ? commentTags.find(t => t.id === post.tag) : null;
-  const isOwner = user && user.uid === post.userId;
   const showStreak = userStreak && userStreak.currentStreak > 0 && isDateActive(userStreak.lastCommentDate);
 
   return (
-    <Card className={cn("hover:border-primary/50 transition-colors", (theme === 'dark' || theme === 'army') && 'bg-black')}>
-        <div className="p-4">
-             <div className="flex items-start gap-3">
+    <Dialog open={isThreadOpen} onOpenChange={setIsThreadOpen}>
+        <Card className={cn("hover:border-primary/50 transition-colors p-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+            <div className="flex items-start gap-4">
                 <Link href={`/u/${post.userDisplayName}`} className="flex-shrink-0">
                     <Avatar className="h-10 w-10">
                         <AvatarImage src={post.userPhotoURL || undefined} alt={post.userDisplayName} />
@@ -154,108 +156,62 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                     </Avatar>
                 </Link>
                 <div className="flex-1">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-sm">
-                                {post.userDisplayName}
-                            </p>
-                             {attitudeStyle && (
-                                <p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>
-                            )}
-                             {showStreak && (
-                                <div className="flex items-center gap-1 text-orange-500 font-bold text-xs" title={`${userStreak.currentStreak} días de racha`}>
-                                    <Flame className="h-3 w-3" />
-                                    <span>{userStreak.currentStreak}</span>
-                                </div>
-                            )}
+                            <Link href={`/u/${post.userDisplayName}`} className="font-semibold text-sm hover:underline">{post.userDisplayName}</Link>
+                            {attitudeStyle && (<p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>)}
+                            {showStreak && (<div className="flex items-center gap-1 text-orange-500 font-bold text-xs" title={`${userStreak.currentStreak} días de racha`}><Flame className="h-3 w-3" /><span>{userStreak.currentStreak}</span></div>)}
                             {post.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
                             {post.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Feminino">♀</span>}
-                            {country && (
-                                <Image
-                                    src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                                    alt={country.name}
-                                    width={20}
-                                    height={15}
-                                    className="object-contain"
-                                    title={country.name}
-                                />
-                            )}
-                         </div>
-                    </div>
-                     <p className="text-xs text-muted-foreground">
-                        Publicado en <Link href={`/figures/${post.figureId}`} className="text-primary hover:underline">{post.figureName}</Link>
-                    </p>
-                </div>
-            </div>
-
-            <div className="pl-12 mt-2 space-y-2">
-                <div className="flex w-full justify-between items-center gap-2">
-                    {tag ? (
-                        <div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border", tag.color)}>
-                            {tag.emoji} {tag.label}
+                            {country && (<Image src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`} alt={country.name} width={20} height={15} className="object-contain" title={country.name}/>)}
                         </div>
-                    ) : <div />}
-                    {typeof post.rating === 'number' && post.rating >= 0 && <StarRating rating={post.rating} starClassName="h-4 w-4" />}
-                </div>
-
-                <Link href={`/figures/${post.figureId}?thread=${post.threadId || post.id}`} className="space-y-1 block">
-                    {post.text && <p className="text-sm text-foreground/90 whitespace-pre-wrap">{post.text}</p>}
-                </Link>
-                 
-                <div className="flex items-center gap-4 pt-2 text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={cn("h-8 w-8", userVote?.vote === 'like' && 'text-primary' )}
-                            onClick={() => handleVote('like')}
-                            disabled={!user || !!isVoting}
-                        >
-                            {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
-                        </Button>
-                        <span className="text-xs font-semibold w-6 text-center">{formatCompactNumber(post.likes ?? 0)}</span>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={cn("h-8 w-8", userVote?.vote === 'dislike' && 'text-destructive' )}
-                            onClick={() => handleVote('dislike')}
-                            disabled={!user || !!isVoting}
-                        >
-                            {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
-                        </Button>
-                        <span className="text-xs font-semibold w-6 text-center">{formatCompactNumber(post.dislikes ?? 0)}</span>
+                        <span className="text-xs text-muted-foreground">{formatDateDistance(post.createdAt.toDate(), language)}</span>
                     </div>
 
-                    <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Responder
-                    </Button>
-                    
+                    <p className="text-xs text-muted-foreground">Publicado en <Link href={`/figures/${post.figureId}`} className="text-primary hover:underline">{post.figureName}</Link></p>
+
+                    <div className="mt-2 space-y-2">
+                        {tag && (<div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border", tag.color)}>{tag.emoji} {tag.label}</div>)}
+                        {typeof post.rating === 'number' && post.rating >= 0 && <StarRating rating={post.rating} starClassName="h-4 w-4" />}
+                        {post.text && <p className="text-sm text-foreground/90 whitespace-pre-wrap pt-1">{post.text}</p>}
+                    </div>
+
+                    <div className="flex items-center gap-1 text-muted-foreground mt-2">
+                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('like')} disabled={!user || !!isVoting}>
+                            <ThumbsUp className={cn("h-4 w-4 mr-1", userVote?.vote === 'like' && 'text-primary' )} /> {formatCompactNumber(post.likes ?? 0)}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('dislike')} disabled={!user || !!isVoting}>
+                            <ThumbsDown className={cn("h-4 w-4 mr-1", userVote?.vote === 'dislike' && 'text-destructive' )} /> {formatCompactNumber(post.dislikes ?? 0)}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
+                            <MessageSquare className="h-4 w-4 mr-2" /> Responder
+                        </Button>
+                    </div>
+
                     {(post.replyCount ?? 0) > 0 && (
-                        <Link
-                            href={`/figures/${post.figureId}?thread=${post.threadId || post.id}`}
-                            className="flex items-center gap-1.5 text-xs hover:text-primary transition-colors"
-                        >
-                            <MessageSquare className="h-4 w-4" />
-                            <span>
-                                {post.replyCount} {post.replyCount === 1 ? 'respuesta' : 'respuestas'}
-                            </span>
-                        </Link>
+                        <DialogTrigger asChild>
+                            <Button variant="link" className="p-0 h-auto text-sm font-semibold text-primary">
+                                <ChevronDown className="mr-1 h-4 w-4" />
+                                Ver {post.replyCount} {post.replyCount === 1 ? 'respuesta' : 'respuestas'}
+                            </Button>
+                        </DialogTrigger>
+                    )}
+
+                    {isReplying && (
+                        <div className="mt-4">
+                            <ReplyForm figureId={post.figureId} figureName={post.figureName} parentComment={post} replyToComment={post} onReplySuccess={handleReplySuccess}/>
+                        </div>
                     )}
                 </div>
-                {isReplying && (
-                  <div className="pt-2">
-                    <ReplyForm
-                      figureId={post.figureId}
-                      figureName={post.figureName}
-                      parentComment={post}
-                      replyToComment={post}
-                      onReplySuccess={handleReplySuccess}
-                    />
-                  </div>
-                )}
             </div>
-        </div>
-    </Card>
+        </Card>
+        <StarPostThreadDialog
+            figureId={post.figureId}
+            parentId={post.id}
+            figureName={post.figureName}
+            onOpenChange={setIsThreadOpen}
+            initialRepliesCount={post.replyCount || 0}
+        />
+    </Dialog>
   );
 }
