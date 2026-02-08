@@ -82,7 +82,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
           return {
             ...data,
             id: doc.id,
-            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+            createdAt: data.createdAt,
           } as unknown as Comment;
         })
       );
