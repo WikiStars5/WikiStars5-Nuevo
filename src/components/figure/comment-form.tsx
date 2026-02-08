@@ -137,6 +137,8 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
         setIsSubmitting(false);
         return;
     }
+    
+    const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -154,8 +156,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
             const figureData = figureDoc.data() as Figure;
             const currentRatingCount = figureData.ratingCount || 0;
-            const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
-
+            
             if (newRating >= 0 && currentRatingCount < 1000) {
                 const achievementRef = doc(firestore, `users/${currentUser.uid}/achievements`, figureId);
                 const achievementDoc = await transaction.get(achievementRef);
