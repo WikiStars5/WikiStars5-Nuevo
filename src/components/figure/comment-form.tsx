@@ -162,11 +162,13 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 const currentAchievements = (achievementDoc.data()?.achievements as string[] | undefined) || [];
                 
                 if (!currentAchievements.includes('pioneer_1000')) {
-                    transaction.set(achievementRef, { 
-                        id: figureId,
+                    const achievementData = {
+                        figureName: figureData.name,
+                        figureImageUrl: figureData.imageUrl,
                         achievements: [...currentAchievements, 'pioneer_1000'],
-                        createdAt: serverTimestamp() 
-                    }, { merge: true });
+                        createdAt: serverTimestamp()
+                    };
+                    transaction.set(achievementRef, achievementData, { merge: true });
                 }
             }
             
@@ -463,5 +465,3 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
       </Card>
   );
 }
-
-    

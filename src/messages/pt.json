@@ -512,7 +512,7 @@
       "duplicateDescription": "Já existe um perfil para \"{name}\".",
       "duplicateDescriptionRedirect": "Já existe um perfil para {name}. Redirecionando...",
       "createSuccessTitle": "Perfil Criado!",
-      "createSuccessDescription": "O perfil para {name} foi adicionado.",
+      "createSuccessDescription": "O perfil de {name} foi adicionado.",
       "createErrorTitle": "Erro ao Criar",
       "createErrorDescription": "Não foi possível criar o perfil. Tente novamente."
     }
@@ -617,7 +617,8 @@
     "tabs": {
       "attitudes": "Atitude",
       "emotions": "Emoções",
-      "streaks": "Sequências de Lealdade"
+      "streaks": "Sequências de Lealdade",
+      "achievements": "Conquistas"
     },
     "noVotes": "Você não votou como '{category}' em nenhum perfil.",
     "noStreaksTitle": "Você ainda não tem sequências ativas",

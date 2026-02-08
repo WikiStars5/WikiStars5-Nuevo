@@ -516,8 +516,8 @@
       "duplicateTitle": "Perfil Duplicado",
       "duplicateDescription": "Ya existe un perfil para \"{name}\".",
       "duplicateDescriptionRedirect": "Ya existe un perfil para {name}. Redirigiendo...",
-      "createSuccessTitle": "¡Perfil Creado!",
-      "createSuccessDescription": "El perfil para {name} ha sido añadido.",
+      "createSuccessTitle": "¡Perfil Creato!",
+      "createSuccessDescription": "O perfil de {name} foi adicionado.",
       "createErrorTitle": "Erro ao Criar",
       "createErrorDescription": "Não foi possível criar o perfil. Tente novamente."
     }
@@ -622,7 +622,8 @@
     "tabs": {
       "attitudes": "Actitud",
       "emotions": "Emociones",
-      "streaks": "Rachas de lealtad"
+      "streaks": "Rachas de lealtad",
+      "achievements": "Logros"
     },
     "noVotes": "No has votado como '{category}' por ningún perfil.",
     "noStreaksTitle": "Aún no tienes rachas activas",

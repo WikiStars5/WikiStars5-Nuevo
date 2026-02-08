@@ -202,7 +202,8 @@ export interface BlackpinkBiasVote {
 }
 
 export interface Achievement {
-  id: string; // figureId
+  figureName: string;
+  figureImageUrl: string;
   achievements: ('pioneer_1000')[];
   createdAt: Timestamp;
 }
@@ -294,5 +295,3 @@ export interface Referral {
     sourceFigureId?: string | null;
     hasVoted?: boolean;
 }
-
-    

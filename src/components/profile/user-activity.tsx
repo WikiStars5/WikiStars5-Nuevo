@@ -9,7 +9,7 @@ import { collection, query, where, getDocs, doc, getDoc, orderBy, collectionGrou
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Figure, AttitudeVote, EmotionVote, Streak } from '@/lib/types';
+import { Figure, AttitudeVote, EmotionVote, Streak, Achievement } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { isDateActive } from '@/lib/streaks';
 import { Star, Smile, Meh, Frown, AlertTriangle, ThumbsDown, Angry, Flame, Heart, Trophy, Award } from 'lucide-react';
@@ -135,6 +135,98 @@ function StreaksDisplay({ streaks }: { streaks: FetchedStreak[] }) {
   );
 }
 
+function AchievementsDisplay({ userId }: { userId: string }) {
+    const { t } = useLanguage();
+    const firestore = useFirestore();
+
+    const achievementsQuery = useMemoFirebase(() => {
+        if (!firestore || !userId) return null;
+        return query(collection(firestore, 'users', userId, 'achievements'));
+    }, [firestore, userId]);
+    
+    // The 'id' will be populated with the document ID (which is the figureId)
+    const { data: achievements, isLoading } = useCollection<Achievement & {id: string}>(achievementsQuery);
+
+    const groupedAchievements = useMemo(() => {
+        const achievementMap = new Map<string, {
+            id: string; // figureId
+            figureName: string;
+            figureImageUrl: string;
+        }[]>();
+
+        if (!achievements) return achievementMap;
+
+        achievements.forEach(doc => {
+            const figureInfo = {
+                id: doc.id, // This is the figureId from useCollection
+                figureName: doc.figureName,
+                figureImageUrl: doc.figureImageUrl,
+            };
+            doc.achievements.forEach(ach => {
+                if (!achievementMap.has(ach)) {
+                    achievementMap.set(ach, []);
+                }
+                achievementMap.get(ach)!.push(figureInfo);
+            });
+        });
+
+        return achievementMap;
+    }, [achievements]);
+
+    if (isLoading) {
+        return <Skeleton className="h-24 w-full" />;
+    }
+
+    if (groupedAchievements.size === 0) {
+        return (
+            <div className="text-center py-8">
+                <Trophy className="mx-auto h-12 w-12 text-muted-foreground/30" />
+                <h3 className="mt-2 text-md font-semibold">No has ganado logros</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                    Participa en la comunidad para empezar a coleccionar insignias.
+                </p>
+            </div>
+        );
+    }
+    
+    const pioneerData = groupedAchievements.get('pioneer_1000');
+
+    return (
+        <div className="py-4">
+            <Accordion type="single" collapsible className="w-full">
+                {pioneerData && (
+                    <AccordionItem value="pioneer_1000">
+                        <AccordionTrigger>
+                            <div className="flex items-center gap-4">
+                                <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero%20(1).png?alt=media&token=6a233ccb-21f7-4b09-a45f-be38e171999d" alt="Pionero" width={56} height={56} className="h-14 w-14" />
+                                <div className="text-left">
+                                    <h4 className="font-semibold">Pionero</h4>
+                                    <p className="text-sm text-muted-foreground">Calificó entre los primeros 1000 en {pioneerData.length} perfiles.</p>
+                                </div>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pt-4">
+                                {pioneerData.map(figure => (
+                                    <Link key={figure.id} href={`/figures/${figure.id}`} className="flex flex-col items-center gap-2 text-center group">
+                                        <Image 
+                                          src={figure.figureImageUrl || 'https://placehold.co/64x64'} 
+                                          alt={figure.figureName} 
+                                          width={64} 
+                                          height={64} 
+                                          className="rounded-full object-cover aspect-square border-2 border-transparent group-hover:border-primary transition-colors" 
+                                        />
+                                        <span className="text-xs font-medium group-hover:text-primary transition-colors">{figure.figureName}</span>
+                                    </Link>
+                                ))}
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                )}
+            </Accordion>
+        </div>
+    );
+}
 
 export default function UserActivity({ userId }: UserActivityProps) {
   const firestore = useFirestore();
@@ -203,10 +295,11 @@ export default function UserActivity({ userId }: UserActivityProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="attitudes" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="attitudes">{t('UserActivity.tabs.attitudes')}</TabsTrigger>
             <TabsTrigger value="emotions">{t('UserActivity.tabs.emotions')}</TabsTrigger>
             <TabsTrigger value="streaks">{t('UserActivity.tabs.streaks')}</TabsTrigger>
+            <TabsTrigger value="achievements">Logros</TabsTrigger>
           </TabsList>
           
           <TabsContent value="attitudes" className="mt-4">
@@ -247,6 +340,10 @@ export default function UserActivity({ userId }: UserActivityProps) {
 
            <TabsContent value="streaks" className="mt-4">
              <StreaksDisplay streaks={activeStreaks} />
+          </TabsContent>
+
+          <TabsContent value="achievements" className="mt-4">
+             <AchievementsDisplay userId={userId} />
           </TabsContent>
 
         </Tabs>

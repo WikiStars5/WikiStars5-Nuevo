@@ -355,6 +355,11 @@
       "continue": "Continue"
     },
     "toast": {
+      "voteRemoved": "Vote removed",
+      "voteUpdated": "Vote updated!",
+      "voteRegistered": "Vote registered!",
+      "voteErrorTitle": "Error Voting",
+      "voteErrorDescription": "There was a problem registering your vote.",
       "deleteSuccess": "Comment Deleted",
       "deleteSuccessDescription": "The comment has been successfully deleted.",
       "deleteError": "Error Deleting",
@@ -617,7 +622,8 @@
     "tabs": {
       "attitudes": "Attitude",
       "emotions": "Emotions",
-      "streaks": "Loyalty Streaks"
+      "streaks": "Loyalty Streaks",
+      "achievements": "Achievements"
     },
     "noVotes": "You have not voted as '{category}' for any profile.",
     "noStreaksTitle": "You have no active streaks yet",

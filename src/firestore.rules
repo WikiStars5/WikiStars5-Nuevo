@@ -86,10 +86,13 @@ service cloud.firestore {
 
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      match /btsBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
+      match /blackpinkBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
       match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
       match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /adCampaigns/{campaignId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      match /achievements/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
     }
 
     match /usernames/{username} {
@@ -142,6 +145,16 @@ service cloud.firestore {
           (
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeStreakCount']) &&
             (isIncrement('activeStreakCount', 1) || isDecrement('activeStreakCount', 1))
+                    ) ||
+           // Regla 7: Permite la actualización del contador de votos de bias de BTS
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['btsBiasVoteCount']) &&
+            (isIncrement('btsBiasVoteCount', 1) || isDecrement('btsBiasVoteCount', 1))
+          ) ||
+          // Regla 8: Permite la actualización del contador de votos de bias de Blackpink
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['blackpinkBiasVoteCount']) &&
+            (isIncrement('blackpinkBiasVoteCount', 1) || isDecrement('blackpinkBiasVoteCount', 1))
           )
         )
       );
@@ -229,23 +242,35 @@ service cloud.firestore {
       allow read: if true; 
       allow write: if isAdmin(); 
     }
-
+    
     match /stats/{statId} {
       allow read: if true;
       allow write: if isAdmin();
     }
     
+    match /user_stats/{statId} {
+      allow read: if true;
+      allow write: if true; // Allow client-side transactional updates
+    }
     match /featured_figures/{figureId} {
       allow read: if true;
       allow write, delete: if isAdmin();
     }
     
-        // NEW: Rules for election candidates
+    // NEW: Rules for election candidates
     match /election_candidates_2026/{candidateId} {
       allow read, list: if true;
       allow create, write, delete: if isAdmin();
     }
+    
+    // NEW: Rules for Bias battles
+    match /bts_bias_members/{figureId} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
+    }
+    match /blackpink_bias_members/{figureId} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
+    }
   }
 }
-
-      
