@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -165,7 +166,6 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                             {post.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Feminino">♀</span>}
                             {country && (<Image src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`} alt={country.name} width={20} height={15} className="object-contain" title={country.name}/>)}
                         </div>
-                        <span className="text-xs text-muted-foreground">{formatDateDistance(post.createdAt.toDate(), language)}</span>
                     </div>
 
                     <p className="text-xs text-muted-foreground">Publicado en <Link href={`/figures/${post.figureId}`} className="text-primary hover:underline">{post.figureName}</Link></p>
