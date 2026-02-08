@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect, useCallback } from 'react';
@@ -36,7 +35,6 @@ const createCommentSchema = (isRatingEnabled: boolean, needsIdentity: boolean) =
     ? z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.')
     : z.number().optional().nullable(),
   username: z.string().optional(),
-  title: z.string().max(50, 'El título no puede superar los 50 caracteres.').optional(),
   text: z.string().max(500, 'El comentario no puede superar los 500 caracteres.').optional(),
   tag: z.custom<CommentTagId>().optional(),
 });
@@ -87,7 +85,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
-    defaultValues: { text: '', rating: null, username: '', title: '', tag: undefined },
+    defaultValues: { text: '', rating: null, username: '', tag: undefined },
   });
 
   useEffect(() => {
@@ -96,7 +94,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
 
   const textValue = form.watch('text', '');
-  const titleValue = form.watch('title', '');
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
   
@@ -206,7 +203,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 figureId: figureId,
                 figureName: figureName,
                 figureImageUrl: figureData?.imageUrl || null,
-                title: data.title || '',
                 text: data.text || '', 
                 tag: data.tag || null,
                 rating: newRating,
@@ -225,7 +221,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
             transaction.set(newCommentRef, { ...sharedPayload, threadId: newCommentRef.id });
 
-            if ((data.text && data.text.trim().length > 0) || (data.title && data.title.trim().length > 0)) {
+            if (data.text && data.text.trim().length > 0) {
                 const starpostsColRef = collection(firestore, 'starposts');
                 const newStarpostRef = doc(starpostsColRef, newCommentRef.id);
                 transaction.set(newStarpostRef, sharedPayload);
@@ -243,14 +239,15 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
             }
         }
-
-        if (newRating >= 0 && ratingSounds[newRating]) {
-            const audio = new Audio(ratingSounds[newRating]);
+        
+        const rating = data.rating
+        if (typeof rating === 'number' && ratingSounds[rating]) {
+            const audio = new Audio(ratingSounds[rating]);
             audio.play();
         }
 
         toast({ title: t('CommentForm.toast.opinionPosted'), description: t('CommentForm.toast.thanks') });
-        form.reset({ text: '', rating: null as any, username: '', title: '', tag: undefined });
+        form.reset({ text: '', rating: null as any, username: '', tag: undefined });
         onCommentPosted();
     } catch (error: any) {
         console.error('Error al publicar comentario:', error);
@@ -352,78 +349,58 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                     )}
                   />
                 )}
-
-                <div className="flex items-end gap-4">
-                    <FormField
-                        control={form.control}
-                        name="title"
-                        render={({ field }) => (
-                            <FormItem className="flex-1">
-                            <FormLabel>Título del Comentario (Opcional)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Un titular llamativo..." {...field} maxLength={50} />
-                            </FormControl>
-                             <div className="flex justify-between items-center pt-1">
-                                <FormMessage />
-                                <div className="text-xs text-muted-foreground ml-auto">
-                                    {(titleValue || '').length} / 50
-                                </div>
-                            </div>
-                            </FormItem>
-                        )}
-                        />
-
-                    <FormField
-                        control={form.control}
-                        name="tag"
-                        render={({ field }) => (
-                            <FormItem>
-                                <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
-                                    <PopoverTrigger asChild>
-                                        <FormControl>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                className={cn("w-auto justify-start", !field.value && "w-10 px-3 justify-center text-muted-foreground")}
-                                            >
-                                                {selectedTag ? (
-                                                    <span className="flex items-center gap-2">{selectedTag.emoji} {selectedTag.label}</span>
-                                                ) : (
-                                                    <Tag className="h-4 w-4"/>
-                                                )}
-                                            </Button>
-                                        </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[300px] p-0">
-                                        <div className="grid grid-cols-2 gap-2 p-2">
-                                            {commentTags.map(tag => (
-                                                <Button
-                                                    key={tag.id}
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className={cn("transition-all h-10 text-xs justify-start", selectedTagId === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
-                                                    onClick={() => {
-                                                        field.onChange(selectedTagId === tag.id ? undefined : tag.id);
-                                                        setIsTagPopoverOpen(false);
-                                                    }}
-                                                >
-                                                    <span className="mr-1.5">{tag.emoji}</span> {tag.label}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
               
-
                 {isCommentingEnabled && (
                   <div className="space-y-2">
-                    <FormLabel>Escribe tu opinión (opcional)</FormLabel>
+                    <div className="flex justify-between items-center">
+                        <FormLabel>Escribe tu opinión (opcional)</FormLabel>
+                          <FormField
+                            control={form.control}
+                            name="tag"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    size="sm"
+                                                    className={cn("w-auto justify-start h-7", !field.value && "w-8 px-2 justify-center text-muted-foreground")}
+                                                >
+                                                    {selectedTag ? (
+                                                        <span className="flex items-center gap-2 text-xs">{selectedTag.emoji} {selectedTag.label}</span>
+                                                    ) : (
+                                                        <Tag className="h-4 w-4"/>
+                                                    )}
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[300px] p-0">
+                                            <div className="grid grid-cols-2 gap-2 p-2">
+                                                {commentTags.map(tag => (
+                                                    <Button
+                                                        key={tag.id}
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className={cn("transition-all h-10 text-xs justify-start", selectedTagId === tag.id ? `${tag.color} border-2 font-bold` : 'border-dashed')}
+                                                        onClick={() => {
+                                                            field.onChange(selectedTagId === tag.id ? undefined : tag.id);
+                                                            setIsTagPopoverOpen(false);
+                                                        }}
+                                                    >
+                                                        <span className="mr-1.5">{tag.emoji}</span> {tag.label}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                     <FormField
                       control={form.control}
                       name="text"

@@ -212,7 +212,6 @@ export interface Comment {
   id: string;
   userId: string;
   figureId: string;
-  title?: string | null;
   text: string;
   rating: number; // Star rating from 0-5 associated with the comment. -1 for replies or when ratings are disabled.
   tag?: CommentTagId | null;

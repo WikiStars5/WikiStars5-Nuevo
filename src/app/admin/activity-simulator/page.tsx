@@ -39,7 +39,6 @@ const simulatorSchema = z.object({
   virtualAvatarUrl: z.string().url('Debe ser una URL de imagen válida.').optional().or(z.literal('')),
   commentText: z.string().min(1, 'El comentario no puede estar vacío.'),
   rating: z.number().min(0).max(5),
-  title: z.string().max(80, 'El título no puede superar los 80 caracteres.').optional(),
   tag: z.custom<CommentTagId>().optional(),
 });
 
@@ -186,7 +185,6 @@ export default function ActivitySimulatorPage() {
       virtualAvatarUrl: '',
       commentText: '',
       rating: 0,
-      title: '',
       tag: undefined,
     },
   });
@@ -214,7 +212,6 @@ export default function ActivitySimulatorPage() {
             const newComment: Omit<Comment, 'id'> = {
                 userId: virtualUserId,
                 figureId: selectedFigure.id,
-                title: data.title || '',
                 text: data.commentText,
                 rating: data.rating,
                 tag: data.tag || null,
@@ -275,7 +272,6 @@ export default function ActivitySimulatorPage() {
             ...form.getValues(),
             commentText: '',
             rating: 0,
-            title: '',
             tag: undefined
         });
 
@@ -380,19 +376,6 @@ export default function ActivitySimulatorPage() {
 
                             <div className="flex items-center gap-4">
                                 <FormField
-                                    control={form.control}
-                                    name="title"
-                                    render={({ field }) => (
-                                        <FormItem className="flex-1">
-                                            <FormLabel>Título del Comentario (Opcional)</FormLabel>
-                                            <FormControl>
-                                                <Input {...field} placeholder="Un titular llamativo..." />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                 <FormField
                                     control={form.control}
                                     name="tag"
                                     render={({ field }) => (

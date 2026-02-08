@@ -192,7 +192,6 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                 </div>
 
                 <Link href={`/figures/${post.figureId}?thread=${post.threadId || post.id}`} className="space-y-1 block">
-                    {post.title && <h4 className="font-bold text-lg uppercase">{post.title}</h4>}
                     {post.text && <p className="text-sm text-foreground/90 whitespace-pre-wrap">{post.text}</p>}
                 </Link>
                  

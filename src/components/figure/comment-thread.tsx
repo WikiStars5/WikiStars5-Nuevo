@@ -67,7 +67,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(comment.text);
-    const [editTitle, setEditTitle] = useState(comment.title || '');
     const [isSavingEdit, setIsSavingEdit] = useState(false);
     const [isReplying, setIsReplying] = useState(false);
     const [isFeaturing, setIsFeaturing] = useState(false);
@@ -217,7 +216,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     };
 
     const handleUpdate = async () => {
-        if (!firestore || !isOwner || (editText.trim() === '' && editTitle.trim() === '')) return;
+        if (!firestore || !isOwner) return;
         setIsSavingEdit(true);
 
          const commentPath = isReply
@@ -227,7 +226,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
 
         try {
             await updateDoc(commentRef, {
-                title: editTitle || '',
                 text: editText,
                 updatedAt: serverTimestamp() 
             });
@@ -356,21 +354,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 </div>
                 
 
-                {!isReply && comment.title && !isEditing && (
-                    <h4 className="font-bold text-lg mt-1 uppercase">{comment.title}</h4>
-                )}
-                
-
                 {isEditing ? (
                     <div className="mt-2 space-y-2">
-                        {!isReply && (
-                            <Input 
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                placeholder="Título (opcional)"
-                                className="font-bold text-lg uppercase"
-                            />
-                        )}
                         <Textarea 
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
