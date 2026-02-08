@@ -162,11 +162,11 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 const currentAchievements = (achievementDoc.data()?.achievements as string[] | undefined) || [];
                 
                 if (!currentAchievements.includes('pioneer_1000')) {
-                    const achievementData = {
+                    const achievementData: Omit<Achievement, 'id'> = {
                         figureName: figureData.name,
                         figureImageUrl: figureData.imageUrl,
                         achievements: [...currentAchievements, 'pioneer_1000'],
-                        createdAt: serverTimestamp()
+                        createdAt: serverTimestamp() as any
                     };
                     transaction.set(achievementRef, achievementData, { merge: true });
                 }
