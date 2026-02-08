@@ -35,9 +35,7 @@ const createCommentSchema = (isRatingEnabled: boolean, needsIdentity: boolean) =
   rating: isRatingEnabled
     ? z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.')
     : z.number().optional().nullable(),
-  username: needsIdentity 
-    ? z.string().min(3, 'El nombre de usuario debe tener al menos 3 caracteres.').max(10, 'El nombre de usuario no puede superar los 10 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo se permiten letras, números y guiones bajos.')
-    : z.string().optional(),
+  username: z.string().optional(),
   title: z.string().max(50, 'El título no puede superar los 50 caracteres.').optional(),
   text: z.string().max(500, 'El comentario no puede superar los 500 caracteres.').optional(),
   tag: z.custom<CommentTagId>().optional(),
@@ -85,7 +83,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
   const { data: userProfile, isLoading: isProfileLoading, refetch: refetchProfile } = useDoc<AppUser>(userProfileRef);
 
-  const needsIdentity = !user || (user.isAnonymous && !userProfile);
+  const needsIdentity = false;
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
@@ -124,41 +122,8 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
         return;
     }
 
-    if (needsIdentity && data.username && firestore) {
-      try {
-        const newUsername = data.username;
-        const newUsernameLower = normalizeText(newUsername);
-        const newUsernameRef = doc(firestore, 'usernames', newUsernameLower);
-        const userRef = doc(firestore, 'users', currentUser.uid);
+    await postComment(data, currentUser);
 
-        await runTransaction(firestore, async (transaction) => {
-          const usernameDoc = await transaction.get(newUsernameRef);
-          if (usernameDoc.exists()) {
-            throw new Error(t('CommentForm.toast.usernameInUse'));
-          }
-          transaction.set(newUsernameRef, { userId: currentUser!.uid });
-          transaction.set(userRef, {
-            username: newUsername,
-            usernameLower: newUsernameLower,
-            createdAt: serverTimestamp(),
-          }, { merge: true });
-        });
-        
-        await refetchProfile(); // Force reload of the user profile data
-        await postComment(data, currentUser); // Now post the comment
-      } catch (error: any) {
-        if (error.message === t('CommentForm.toast.usernameInUse')) {
-            form.setError('username', { type: 'manual', message: error.message });
-        } else {
-            console.error("Error creating identity:", error);
-            toast({ title: t('CommentForm.toast.errorPostingTitle'), variant: "destructive" });
-        }
-        setIsSubmitting(false);
-        return;
-      }
-    } else {
-        await postComment(data, currentUser);
-    }
   }
 
 
@@ -498,3 +463,5 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
       </Card>
   );
 }
+
+    

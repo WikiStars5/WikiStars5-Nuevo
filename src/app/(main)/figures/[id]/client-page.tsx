@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense, useCallback } from 'react';
@@ -431,3 +432,5 @@ export default function FigureDetailClient({ figureId }: { figureId: string }) {
     </Suspense>
   );
 }
+
+    

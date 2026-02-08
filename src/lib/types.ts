@@ -294,3 +294,5 @@ export interface Referral {
     sourceFigureId?: string | null;
     hasVoted?: boolean;
 }
+
+    

@@ -80,7 +80,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if (isSignedIn() && isOwner(userId)) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isSignedIn() && isOwner(userId);
+      allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
 
@@ -274,3 +274,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
