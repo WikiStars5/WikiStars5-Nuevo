@@ -123,6 +123,13 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
     }
   };
 
+  const handleReplySuccess = (newReply: Comment) => {
+    setIsReplying(false);
+    setPost(currentPost => ({
+      ...currentPost,
+      replyCount: (currentPost.replyCount || 0) + 1
+    }));
+  };
 
   if (!post.figureId || !post.figureName) {
       return null;
@@ -195,8 +202,8 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                     {post.text && <p className="text-sm text-foreground/90 whitespace-pre-wrap">{post.text}</p>}
                 </Link>
                  
-                <div className="flex flex-col gap-2 pt-2">
-                    <div className="flex items-center gap-1 text-muted-foreground">
+                <div className="flex items-center gap-4 pt-2 text-muted-foreground">
+                    <div className="flex items-center gap-1">
                         <Button 
                             variant="ghost" 
                             size="icon" 
@@ -218,12 +225,23 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                         </Button>
                         <span className="text-xs font-semibold w-6 text-center">{formatCompactNumber(post.dislikes ?? 0)}</span>
                     </div>
-                     <div className="flex">
-                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Responder
-                        </Button>
-                    </div>
+
+                    <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Responder
+                    </Button>
+                    
+                    {(post.replyCount ?? 0) > 0 && (
+                        <Link
+                            href={`/figures/${post.figureId}?thread=${post.threadId || post.id}`}
+                            className="flex items-center gap-1.5 text-xs hover:text-primary transition-colors"
+                        >
+                            <MessageSquare className="h-4 w-4" />
+                            <span>
+                                {post.replyCount} {post.replyCount === 1 ? 'respuesta' : 'respuestas'}
+                            </span>
+                        </Link>
+                    )}
                 </div>
                 {isReplying && (
                   <div className="pt-2">
@@ -232,7 +250,7 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                       figureName={post.figureName}
                       parentComment={post}
                       replyToComment={post}
-                      onReplySuccess={() => setIsReplying(false)}
+                      onReplySuccess={handleReplySuccess}
                     />
                   </div>
                 )}
