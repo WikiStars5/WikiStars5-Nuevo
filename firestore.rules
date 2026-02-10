@@ -84,6 +84,9 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
 
+      match /starposts/{postId} {
+        allow read, write, delete: if isOwner(userId);
+      }
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /btsBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
@@ -202,12 +205,6 @@ service cloud.firestore {
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
     }
     
-    match /starposts/{commentId} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin();
-    }
-    
     match /{path=**}/comments/{commentId} {
       allow read;
       allow write: if false;
@@ -274,5 +271,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

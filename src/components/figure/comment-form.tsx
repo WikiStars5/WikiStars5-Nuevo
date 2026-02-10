@@ -126,19 +126,25 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
   const postComment = async (data: CommentFormValues, currentUser: FirebaseUser) => {
     if (!firestore) return;
-
-    const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-    const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
-    if (!existingCommentSnap.empty) {
+    
+    const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
+    
+    // Quick client-side check to prevent duplicate submission while waiting for Firestore
+    if(hasUserCommented) {
         toast({ title: 'Error', description: t('CommentForm.toast.alreadyCommented'), variant: 'destructive' });
         setIsSubmitting(false);
         return;
     }
-    
-    const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
 
     try {
         await runTransaction(firestore, async (transaction) => {
+            const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
+            // Check again inside the transaction for race conditions
+            const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
+            if (!existingCommentSnap.empty) {
+                throw new Error(t('CommentForm.toast.alreadyCommented'));
+            }
+
             const figureRef = doc(firestore, 'figures', figureId);
             const userProfileRef = doc(firestore, 'users', currentUser.uid);
             const attitudeVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
@@ -222,9 +228,9 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             transaction.set(newCommentRef, { ...sharedPayload, threadId: newCommentRef.id });
 
             if (data.text && data.text.trim().length > 0) {
-                const starpostsColRef = collection(firestore, 'starposts');
-                const newStarpostRef = doc(starpostsColRef, newCommentRef.id);
-                transaction.set(newStarpostRef, sharedPayload);
+                 const userStarpostColRef = collection(firestore, 'users', currentUser.uid, 'starposts');
+                 const newUserStarpostRef = doc(userStarpostColRef, newCommentRef.id);
+                 transaction.set(newUserStarpostRef, sharedPayload);
             }
         });
 
@@ -240,10 +246,10 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             }
         }
         
-        const rating = data.rating
+        const rating = data.rating;
         if (typeof rating === 'number' && ratingSounds[rating]) {
             const audio = new Audio(ratingSounds[rating]);
-            audio.play();
+            audio.play().catch(e => console.error("Error playing sound", e));
         }
 
         toast({ title: t('CommentForm.toast.opinionPosted'), description: t('CommentForm.toast.thanks') });
@@ -254,7 +260,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
         toast({
             variant: 'destructive',
             title: t('CommentForm.toast.errorPostingTitle'),
-            description: t('CommentForm.toast.errorPostingDescription'),
+            description: error.message || t('CommentForm.toast.errorPostingDescription'),
         });
     } finally {
         setIsSubmitting(false);
