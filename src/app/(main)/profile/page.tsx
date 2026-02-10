@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone } from "lucide-react";
+import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
+import UserStarPosts from '@/components/profile/user-starposts';
 
 
 export const dynamic = 'force-dynamic';
@@ -291,8 +292,9 @@ function ProfilePageContent() {
             
             <div className="mt-8">
                  <Tabs defaultValue="info" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
+                        <TabsTrigger value="starposts"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
                         <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="info" className="mt-4">
@@ -451,6 +453,9 @@ function ProfilePageContent() {
                             </CardContent>
                          </Card>
                        )}
+                    </TabsContent>
+                    <TabsContent value="starposts" className="mt-4">
+                        <UserStarPosts userId={user.uid} />
                     </TabsContent>
                     <TabsContent value="activity" className="mt-4">
                         <UserActivity userId={user.uid} />
