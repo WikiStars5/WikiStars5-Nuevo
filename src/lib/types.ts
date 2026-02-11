@@ -208,6 +208,12 @@ export interface Achievement {
   createdAt: Timestamp;
 }
 
+export interface StarPostReference {
+  figureId: string;
+  commentId: string;
+  createdAt: Timestamp;
+}
+
 export interface Comment {
   id: string;
   userId: string;

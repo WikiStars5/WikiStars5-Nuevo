@@ -4,7 +4,7 @@ import { useState, useContext, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, setDoc, writeBatch, onSnapshot } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, runTransaction, increment, query, where, orderBy, limit, getDocs, getDoc, setDoc, writeBatch, onSnapshot, Timestamp } from 'firebase/firestore';
 import { signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useCollection, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -204,11 +204,9 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
           
             const newCommentRef = doc(commentsColRef);
 
-            const sharedPayload = {
+            const newCommentPayload = {
                 userId: currentUser.uid,
                 figureId: figureId,
-                figureName: figureName,
-                figureImageUrl: figureData?.imageUrl || null,
                 text: data.text || '', 
                 tag: data.tag || null,
                 rating: newRating,
@@ -223,14 +221,20 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 dislikes: 0, 
                 parentId: null, 
                 replyCount: 0,
+                threadId: newCommentRef.id,
             };
 
-            transaction.set(newCommentRef, { ...sharedPayload, threadId: newCommentRef.id });
+            transaction.set(newCommentRef, newCommentPayload);
 
             if (data.text && data.text.trim().length > 0) {
                  const userStarpostColRef = collection(firestore, 'users', currentUser.uid, 'starposts');
-                 const newUserStarpostRef = doc(userStarpostColRef, newCommentRef.id);
-                 transaction.set(newUserStarpostRef, sharedPayload);
+                 const newStarpostRef = doc(userStarpostColRef, newCommentRef.id);
+                 const starpostReference = {
+                     figureId: figureId,
+                     commentId: newCommentRef.id,
+                     createdAt: newCommentPayload.createdAt,
+                 };
+                 transaction.set(newStarpostRef, starpostReference);
             }
         });
 

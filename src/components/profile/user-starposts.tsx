@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
-import type { Comment } from '@/lib/types';
+import { collection, query, orderBy, doc, getDoc, Timestamp } from 'firebase/firestore';
+import type { Comment, StarPostReference } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MessagesSquare } from 'lucide-react';
@@ -14,13 +14,58 @@ interface UserStarPostsProps {
 
 export default function UserStarPosts({ userId }: UserStarPostsProps) {
     const firestore = useFirestore();
+    const [starposts, setStarposts] = useState<Comment[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const starpostsQuery = useMemoFirebase(() => {
+    const referencesQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
         return query(collection(firestore, 'users', userId, 'starposts'), orderBy('createdAt', 'desc'));
     }, [firestore, userId]);
 
-    const { data: starposts, isLoading } = useCollection<Comment>(starpostsQuery);
+    const { data: references, isLoading: isLoadingReferences } = useCollection<StarPostReference>(referencesQuery);
+
+    useEffect(() => {
+        if (isLoadingReferences) {
+            setIsLoading(true);
+            return;
+        }
+
+        if (!references || references.length === 0 || !firestore) {
+            setStarposts([]);
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchPosts = async () => {
+            setIsLoading(true);
+            try {
+                const postPromises = references.map(ref => {
+                    if (ref.figureId && ref.commentId) {
+                        const postDocRef = doc(firestore, 'figures', ref.figureId, 'comments', ref.commentId);
+                        return getDoc(postDocRef);
+                    }
+                    return Promise.resolve(null);
+                });
+
+                const postSnapshots = await Promise.all(postPromises);
+
+                const fetchedPosts = postSnapshots
+                    .filter((snap): snap is import('firebase/firestore').DocumentSnapshot<import('firebase/firestore').DocumentData> => snap !== null && snap.exists())
+                    .map(snap => ({ id: snap.id, ...snap.data() } as Comment));
+                
+                setStarposts(fetchedPosts);
+
+            } catch (error) {
+                console.error("Error fetching starposts from references:", error);
+                setStarposts([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchPosts();
+
+    }, [references, isLoadingReferences, firestore]);
 
     if (isLoading) {
         return (
