@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect, useCallback } from 'react';
@@ -207,6 +208,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             const newCommentPayload = {
                 userId: currentUser.uid,
                 figureId: figureId,
+                figureName: figureName,
                 text: data.text || '', 
                 tag: data.tag || null,
                 rating: newRating,

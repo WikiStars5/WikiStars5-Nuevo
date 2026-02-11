@@ -81,6 +81,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
             const newReplyData = {
                 id: newReplyRef.id,
                 figureId: figureId,
+                figureName: figureName,
                 userId: user.uid,
                 text: fullText,
                 createdAt: now,

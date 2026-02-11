@@ -98,6 +98,7 @@ export default function AdminBotReplyForm({
 
         const newReplyData = {
           figureId: figureId,
+          figureName: figureName,
           userId: selectedBot.id,
           text: data.text,
           createdAt: serverTimestamp(),

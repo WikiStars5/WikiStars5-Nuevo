@@ -212,6 +212,7 @@ export default function ActivitySimulatorPage() {
             const newComment: Omit<Comment, 'id'> = {
                 userId: virtualUserId,
                 figureId: selectedFigure.id,
+                figureName: selectedFigure.name,
                 text: data.commentText,
                 rating: data.rating,
                 tag: data.tag || null,
