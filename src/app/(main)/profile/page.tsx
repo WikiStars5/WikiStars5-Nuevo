@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
 import { normalizeText } from '@/lib/keywords';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from "@/components/ui/textarea";
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -294,8 +294,8 @@ function ProfilePageContent() {
                  <Tabs defaultValue="info" className="w-full">
                     <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
-                        <TabsTrigger value="starposts"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
                         <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
+                        <TabsTrigger value="starposts"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
                     </TabsList>
                     <TabsContent value="info" className="mt-4">
                       <Card>
@@ -454,11 +454,11 @@ function ProfilePageContent() {
                          </Card>
                        )}
                     </TabsContent>
-                    <TabsContent value="starposts" className="mt-4">
-                        <UserStarPosts userId={user.uid} />
-                    </TabsContent>
                     <TabsContent value="activity" className="mt-4">
                         <UserActivity userId={user.uid} />
+                    </TabsContent>
+                    <TabsContent value="starposts" className="mt-4">
+                        <UserStarPosts userId={user.uid} />
                     </TabsContent>
                 </Tabs>
             </div>
@@ -471,3 +471,5 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
+
+    
