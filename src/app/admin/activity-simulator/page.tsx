@@ -213,6 +213,7 @@ export default function ActivitySimulatorPage() {
                 userId: virtualUserId,
                 figureId: selectedFigure.id,
                 figureName: selectedFigure.name,
+                figureImageUrl: selectedFigure.imageUrl,
                 text: data.commentText,
                 rating: data.rating,
                 tag: data.tag || null,
