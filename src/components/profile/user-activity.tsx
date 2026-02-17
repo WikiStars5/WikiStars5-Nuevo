@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -17,6 +16,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
+import { useTheme } from 'next-themes';
 
 
 // The fetched votes will now contain the denormalized data
@@ -231,6 +231,7 @@ function AchievementsDisplay({ userId }: { userId: string }) {
 export default function UserActivity({ userId }: UserActivityProps) {
   const firestore = useFirestore();
   const { t } = useLanguage();
+  const { theme } = useTheme();
 
   const attitudeOptions = useMemo(() => [
     { id: 'neutral', label: t('AttitudeVoting.labels.neutral') },
@@ -275,7 +276,7 @@ export default function UserActivity({ userId }: UserActivityProps) {
 
   if (isLoading) {
     return (
-        <Card>
+        <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
             <CardHeader>
                 <Skeleton className="h-6 w-1/3" />
                 <Skeleton className="h-4 w-2/3" />
@@ -288,7 +289,7 @@ export default function UserActivity({ userId }: UserActivityProps) {
   }
 
   return (
-    <Card>
+    <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
       <CardHeader>
         <CardTitle>{t('UserActivity.title')}</CardTitle>
         <CardDescription>{t('UserActivity.description')}</CardDescription>

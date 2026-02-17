@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare } from "lucide-react";
+import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare, Edit } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
@@ -27,6 +27,8 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import UserStarPosts from '@/components/profile/user-starposts';
+import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
 
 export const dynamic = 'force-dynamic';
@@ -63,6 +65,7 @@ function ProfilePageContent() {
     const [isSaving, setIsSaving] = useState(false);
     const [isLinking, setIsLinking] = useState(false);
     const { isAdmin } = useAdmin();
+    const { theme } = useTheme();
 
     const { t } = useLanguage();
 
@@ -298,7 +301,7 @@ function ProfilePageContent() {
                         <TabsTrigger value="starposts"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
                     </TabsList>
                     <TabsContent value="info" className="mt-4">
-                      <Card>
+                      <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
                         <CardHeader>
                             <CardTitle>{t('ProfilePage.editProfileTitle')}</CardTitle>
                             <CardDescription>{t('ProfilePage.editProfileDescription')}</CardDescription>
@@ -422,7 +425,7 @@ function ProfilePageContent() {
                         </Form>
                       </Card>
                        {user.isAnonymous && (
-                        <Card className="mt-6">
+                        <Card className={cn("mt-6", (theme === 'dark' || theme === 'army') && 'bg-black')}>
                             <CardHeader>
                                 <CardTitle>{t('ProfilePage.saveProgressTitle')}</CardTitle>
                                 <CardDescription>{t('ProfilePage.saveProgressDescription')}</CardDescription>
@@ -436,7 +439,7 @@ function ProfilePageContent() {
                         </Card>
                        )}
                        {isAdmin && (
-                         <Card className="mt-6">
+                         <Card className={cn("mt-6", (theme === 'dark' || theme === 'army') && 'bg-black')}>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Megaphone />
@@ -471,5 +474,3 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
-
-    
