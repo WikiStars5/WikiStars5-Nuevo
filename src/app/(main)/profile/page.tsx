@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -295,7 +296,7 @@ function ProfilePageContent() {
             
             <div className="mt-8">
                  <Tabs defaultValue="info" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className={cn("grid w-full grid-cols-3", (theme === 'dark' || theme === 'army') && 'bg-black')}>
                         <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
                         <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
                         <TabsTrigger value="starposts"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
