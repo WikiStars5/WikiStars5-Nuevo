@@ -296,7 +296,7 @@ export default function UserActivity({ userId }: UserActivityProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="attitudes" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={cn("grid w-full grid-cols-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
             <TabsTrigger value="attitudes">{t('UserActivity.tabs.attitudes')}</TabsTrigger>
             <TabsTrigger value="emotions">{t('UserActivity.tabs.emotions')}</TabsTrigger>
             <TabsTrigger value="streaks">{t('UserActivity.tabs.streaks')}</TabsTrigger>
