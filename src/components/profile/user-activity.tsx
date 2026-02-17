@@ -305,7 +305,7 @@ export default function UserActivity({ userId }: UserActivityProps) {
           
           <TabsContent value="attitudes" className="mt-4">
              <Tabs defaultValue="neutral">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className={cn("grid w-full grid-cols-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
                     {attitudeOptions.map(opt => (
                         <TabsTrigger key={opt.id} value={opt.id}>{opt.label}</TabsTrigger>
                     ))}
@@ -323,7 +323,7 @@ export default function UserActivity({ userId }: UserActivityProps) {
 
           <TabsContent value="emotions" className="mt-4">
              <Tabs defaultValue="alegria">
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
+                <TabsList className={cn("grid w-full grid-cols-3 sm:grid-cols-6", (theme === 'dark' || theme === 'army') && 'bg-black')}>
                     {emotionOptions.map(opt => (
                         <TabsTrigger key={opt.id} value={opt.id}>{opt.label}</TabsTrigger>
                     ))}
