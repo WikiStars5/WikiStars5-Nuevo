@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,14 +7,14 @@ import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { StarRating } from '@/components/shared/star-rating';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame, ChevronDown, Trash2 } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame, ChevronDown, Trash2, FilePenLine, X, Send } from 'lucide-react';
 import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, runTransaction, increment, serverTimestamp, onSnapshot, getDocs, collection as firestoreCollection } from 'firebase/firestore';
+import { doc, runTransaction, increment, serverTimestamp, onSnapshot, getDocs, collection as firestoreCollection, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
 import { isDateActive } from '@/lib/streaks';
@@ -33,7 +32,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
+import { Textarea } from '../ui/textarea';
+import { ShareButton } from './ShareButton';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -62,9 +62,11 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
   const [isThreadOpen, setIsThreadOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  const isOwner = user && user.uid === initialPost.userId;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(initialPost.text);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  const isOwner = user && user.uid === initialPost.userId;
 
   const commentRef = useMemoFirebase(() => {
     if (!firestore || !initialPost.figureId || !initialPost.id) return null;
@@ -75,11 +77,15 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
     if (!commentRef) return;
     const unsubscribe = onSnapshot(commentRef, (doc) => {
         if (doc.exists()) {
-            setPost({ id: doc.id, ...doc.data() } as Comment);
+            const updatedPost = { id: doc.id, ...doc.data() } as Comment;
+            setPost(updatedPost);
+            if (!isEditing) { // Prevent overwriting user's edits
+              setEditText(updatedPost.text);
+            }
         }
     });
     return () => unsubscribe();
-  }, [commentRef]);
+  }, [commentRef, isEditing]);
 
 
   const votePath = `figures/${post.figureId}/comments/${post.id}/votes`;
@@ -89,14 +95,14 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
       return doc(firestore, votePath, user.uid);
   }, [firestore, user, votePath]);
 
-  const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user });
+  const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user, realtime: true });
 
   const userStreakRef = useMemoFirebase(() => {
     if (!firestore || !post.userId || !post.figureId) return null;
     return doc(firestore, `users/${post.userId}/streaks`, post.figureId);
   }, [firestore, post.userId, post.figureId]);
 
-  const { data: userStreak, isLoading: isStreakLoading } = useDoc<Streak>(userStreakRef);
+  const { data: userStreak, isLoading: isStreakLoading } = useDoc<Streak>(userStreakRef, {realtime: true});
 
   const handleDelete = async () => {
     if (!firestore || !isOwner) return;
@@ -145,7 +151,34 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
     } finally {
         setIsDeleting(false);
     }
-};
+  };
+
+  const handleUpdate = async () => {
+    if (!firestore || !isOwner) return;
+    setIsSavingEdit(true);
+
+    const commentRef = doc(firestore, 'figures', post.figureId, 'comments', post.id);
+
+    try {
+        await updateDoc(commentRef, {
+            text: editText,
+            updatedAt: serverTimestamp() 
+        });
+        toast({
+            title: t('CommentThread.toast.updateSuccess'),
+        });
+        setIsEditing(false);
+    } catch (error) {
+        console.error("updating starpost:", error);
+        toast({
+            title: t('CommentThread.toast.updateError'),
+            description: t('CommentThread.toast.updateErrorDescription'),
+            variant: "destructive",
+        });
+    } finally {
+        setIsSavingEdit(false);
+    }
+  };
 
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
@@ -251,43 +284,87 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                     <div className="mt-2 space-y-2">
                         {tag && (<div className={cn("inline-flex items-center gap-2 text-xs font-bold px-2 py-0.5 rounded-full border", tag.color)}>{tag.emoji} {tag.label}</div>)}
                         {typeof post.rating === 'number' && post.rating >= 0 && <StarRating rating={post.rating} starClassName="h-4 w-4" />}
-                        {post.text && <p className="text-sm text-foreground/90 whitespace-pre-wrap pt-1">{post.text}</p>}
-                    </div>
-
-                    <div className="flex items-center gap-1 text-muted-foreground mt-2">
-                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('like')} disabled={!user || !!isVoting}>
-                            <ThumbsUp className={cn("h-4 w-4 mr-1", userVote?.vote === 'like' && 'text-primary' )} /> {formatCompactNumber(post.likes ?? 0)}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('dislike')} disabled={!user || !!isVoting}>
-                            <ThumbsDown className={cn("h-4 w-4 mr-1", userVote?.vote === 'dislike' && 'text-destructive' )} /> {formatCompactNumber(post.dislikes ?? 0)}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
-                            <MessageSquare className="h-4 w-4 mr-2" /> Responder
-                        </Button>
-                        {isOwner && (
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="h-8 px-2 text-destructive" disabled={isDeleting}>
-                                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        
+                        {isEditing ? (
+                            <div className="mt-2 space-y-2">
+                                <Textarea 
+                                    value={editText}
+                                    onChange={(e) => setEditText(e.target.value)}
+                                    className="text-sm"
+                                    rows={3}
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={isSavingEdit}>
+                                        <X className="mr-1.5 h-4 w-4" /> {t("ReplyForm.cancelButton")}
                                     </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>{t('CommentThread.confirmDelete.title')}</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        {t('CommentThread.confirmDelete.description')}
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>{t("ReplyForm.cancelButton")}</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDelete}>{t('CommentThread.confirmDelete.continue')}</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                                    <Button size="sm" onClick={handleUpdate} disabled={isSavingEdit}>
+                                        {isSavingEdit ? <Loader2 className="animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />} {t("EditFigure.buttons.save")}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                           post.text && <p className="text-sm text-foreground/90 whitespace-pre-wrap pt-1">{post.text}</p>
                         )}
                     </div>
+                    
+                    {!isEditing && (
+                        <div className="mt-2 space-y-1">
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('like')} disabled={!user || !!isVoting}>
+                                    <ThumbsUp className={cn("h-4 w-4 mr-1", userVote?.vote === 'like' && 'text-primary' )} /> {formatCompactNumber(post.likes ?? 0)}
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('dislike')} disabled={!user || !!isVoting}>
+                                    <ThumbsDown className={cn("h-4 w-4 mr-1", userVote?.vote === 'dislike' && 'text-destructive' )} /> {formatCompactNumber(post.dislikes ?? 0)}
+                                </Button>
+                            </div>
+                            
+                            <div className="flex items-center gap-1">
+                                {isOwner && (
+                                    <>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
+                                            <FilePenLine className="h-4 w-4" />
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" disabled={isDeleting}>
+                                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>{t('CommentThread.confirmDelete.title')}</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    {t('CommentThread.confirmDelete.description')}
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>{t("ReplyForm.cancelButton")}</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDelete}>{t('CommentThread.confirmDelete.continue')}</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </>
+                                )}
+                                 <ShareButton
+                                    figureId={post.figureId}
+                                    figureName={post.figureName}
+                                    isRatingShare={typeof post.rating === 'number' && post.rating >= 0}
+                                    rating={post.rating}
+                                    showText={false}
+                                    className="h-8 w-8"
+                                />
+                            </div>
 
-                    {(post.replyCount ?? 0) > 0 && (
+                            <div className="flex items-center">
+                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Responder
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {(post.replyCount ?? 0) > 0 && !isReplying && (
                         <DialogTrigger asChild>
                             <Button variant="link" className="p-0 h-auto text-sm font-semibold text-primary">
                                 <ChevronDown className="mr-1 h-4 w-4" />
