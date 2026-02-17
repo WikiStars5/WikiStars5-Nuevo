@@ -66,6 +66,10 @@ export default function UserStarPosts({ userId }: UserStarPostsProps) {
         fetchPosts();
 
     }, [references, isLoadingReferences, firestore]);
+    
+    const handlePostDeleted = (deletedPostId: string) => {
+        setStarposts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
+    };
 
     if (isLoading) {
         return (
@@ -90,7 +94,7 @@ export default function UserStarPosts({ userId }: UserStarPostsProps) {
     return (
         <div className="space-y-4">
             {starposts.map(post => (
-                <StarPostCard key={post.id} post={post} />
+                <StarPostCard key={post.id} post={post} onDeleteSuccess={() => handlePostDeleted(post.id)} />
             ))}
         </div>
     );

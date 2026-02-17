@@ -1,27 +1,39 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Comment, CommentVote, Streak } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { StarRating } from '@/components/shared/star-rating';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame, ChevronDown } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame, ChevronDown, Trash2 } from 'lucide-react';
 import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, runTransaction, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, runTransaction, increment, serverTimestamp, onSnapshot, getDocs, collection as firestoreCollection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
 import { isDateActive } from '@/lib/streaks';
 import { useTheme } from 'next-themes';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import StarPostThreadDialog from './starpost-thread-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -35,9 +47,10 @@ const attitudeStyles: Record<AttitudeOption, { text: string; color: string }> = 
 
 interface StarPostCardProps {
   post: Comment;
+  onDeleteSuccess?: () => void;
 }
 
-export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
+export default function StarPostCard({ post: initialPost, onDeleteSuccess }: StarPostCardProps) {
   const { language, t } = useLanguage();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -48,8 +61,27 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
   const [isReplying, setIsReplying] = useState(false);
   const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
   const [isThreadOpen, setIsThreadOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const isOwner = user && user.uid === initialPost.userId;
 
-  // Since starposts can come from any figure, we build the path dynamically
+
+  const commentRef = useMemoFirebase(() => {
+    if (!firestore || !initialPost.figureId || !initialPost.id) return null;
+    return doc(firestore, 'figures', initialPost.figureId, 'comments', initialPost.id);
+  }, [firestore, initialPost.figureId, initialPost.id]);
+
+  useEffect(() => {
+    if (!commentRef) return;
+    const unsubscribe = onSnapshot(commentRef, (doc) => {
+        if (doc.exists()) {
+            setPost({ id: doc.id, ...doc.data() } as Comment);
+        }
+    });
+    return () => unsubscribe();
+  }, [commentRef]);
+
+
   const votePath = `figures/${post.figureId}/comments/${post.id}/votes`;
         
   const userVoteRef = useMemoFirebase(() => {
@@ -65,6 +97,55 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
   }, [firestore, post.userId, post.figureId]);
 
   const { data: userStreak, isLoading: isStreakLoading } = useDoc<Streak>(userStreakRef);
+
+  const handleDelete = async () => {
+    if (!firestore || !isOwner) return;
+    setIsDeleting(true);
+
+    const commentRef = doc(firestore, 'figures', post.figureId, 'comments', post.id);
+    const starpostRef = doc(firestore, 'users', post.userId, 'starposts', post.id);
+    const figureRef = doc(firestore, 'figures', post.figureId);
+    
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const figureDoc = await transaction.get(figureRef);
+            if (!figureDoc.exists()) throw new Error("Figure not found.");
+
+            const repliesRef = firestoreCollection(firestore, commentRef.path, 'replies');
+            const repliesSnapshot = await getDocs(repliesRef);
+            repliesSnapshot.forEach(replyDoc => transaction.delete(replyDoc.ref));
+
+            if (typeof post.rating === 'number' && post.rating >= 0) {
+                const ratingUpdates = {
+                    ratingCount: increment(-1),
+                    totalRating: increment(-post.rating),
+                    [`ratingsBreakdown.${post.rating}`]: increment(-1),
+                };
+                transaction.update(figureRef, ratingUpdates);
+            }
+
+            transaction.delete(commentRef);
+            transaction.delete(starpostRef);
+        });
+
+        toast({
+            title: t('CommentThread.toast.deleteSuccess'),
+            description: t('CommentThread.toast.deleteSuccessDescription')
+        });
+        if (onDeleteSuccess) {
+            onDeleteSuccess();
+        }
+    } catch (error: any) {
+        console.error("Error deleting StarPost:", error);
+        toast({
+            title: t('CommentThread.toast.deleteError'),
+            description: error.message || "Could not delete this post.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsDeleting(false);
+    }
+};
 
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
@@ -129,10 +210,7 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
 
   const handleReplySuccess = (newReply: Comment) => {
     setIsReplying(false);
-    setPost(currentPost => ({
-      ...currentPost,
-      replyCount: (currentPost.replyCount || 0) + 1
-    }));
+    // Realtime listener will handle updating replyCount
   };
 
   if (!post.figureId || !post.figureName) {
@@ -186,6 +264,27 @@ export default function StarPostCard({ post: initialPost }: StarPostCardProps) {
                         <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setIsReplying(prev => !prev)}>
                             <MessageSquare className="h-4 w-4 mr-2" /> Responder
                         </Button>
+                        {isOwner && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 px-2 text-destructive" disabled={isDeleting}>
+                                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>{t('CommentThread.confirmDelete.title')}</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {t('CommentThread.confirmDelete.description')}
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>{t("ReplyForm.cancelButton")}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDelete}>{t('CommentThread.confirmDelete.continue')}</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )}
                     </div>
 
                     {(post.replyCount ?? 0) > 0 && (
