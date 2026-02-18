@@ -51,7 +51,7 @@ const createProfileSchema = (t: (key: string) => string) => z.object({
     .regex(/^[a-zA-Z0-9_]+$/, t('ProfilePage.validation.usernameRegex')),
   profilePhotoUrl: z.string().url(t('ProfilePage.validation.profilePhotoUrl')).optional().or(z.literal('')),
   country: z.string().optional(),
-  gender: z.enum(['Masculino', 'Femenino', 'Otro', 'Prefiero no decirlo']).optional(),
+  gender: z.enum(['Masculino', 'Femenino']).optional(),
   description: z.string().max(160, t('ProfilePage.validation.descriptionMax')).optional(),
 });
 
@@ -406,8 +406,6 @@ function ProfilePageContent() {
                                                         <SelectContent>
                                                             <SelectItem value="Masculino">{t('ProfilePage.genderMale')}</SelectItem>
                                                             <SelectItem value="Femenino">{t('ProfilePage.genderFemale')}</SelectItem>
-                                                            <SelectItem value="Otro">{t('ProfilePage.genderOther')}</SelectItem>
-                                                            <SelectItem value="Prefiero no decirlo">{t('ProfilePage.genderPreferNotToSay')}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
