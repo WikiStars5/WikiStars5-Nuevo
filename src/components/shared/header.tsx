@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider, useDoc, useMemoFirebase, useFirebaseApp, requestNotificationPermissionAndGetToken } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote, Heart } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote, Heart, Check } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
@@ -258,14 +258,17 @@ export default function Header() {
                             <DropdownMenuItem onSelect={() => setTheme('light')}>
                                 <Sun className="mr-2 h-4 w-4" />
                                 <span>Claro</span>
+                                {theme === 'light' && <Check className="ml-auto h-4 w-4" />}
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => setTheme('dark')}>
                                 <Moon className="mr-2 h-4 w-4" />
                                 <span>Oscuro</span>
+                                {theme === 'dark' && <Check className="ml-auto h-4 w-4" />}
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => setTheme('army')}>
                                 <Heart className="mr-2 h-4 w-4" />
                                 <span>Morado</span>
+                                {theme === 'army' && <Check className="ml-auto h-4 w-4" />}
                             </DropdownMenuItem>
                         </DropdownMenuSubContent>
                     </DropdownMenuPortal>
