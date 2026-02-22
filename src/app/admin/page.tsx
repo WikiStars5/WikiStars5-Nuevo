@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -16,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { GlobalSettings, Figure, FigureStats } from '@/lib/types';
+import type { GlobalSettings, FigureStats } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -67,24 +68,9 @@ export default function AdminDashboard() {
     if (!firestore) return null;
     return doc(firestore, 'stats', 'figures');
   }, [firestore]);
-  const { data: figuresStats, isLoading: isLoadingStatsDoc } = useDoc<FigureStats>(figuresStatsDocRef);
+  const { data: figuresStats, isLoading: isLoadingFigures } = useDoc<FigureStats>(figuresStatsDocRef);
   
-  const figuresCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'figures'));
-  }, [firestore]);
-  const { data: allFigures, isLoading: isLoadingAllFigures } = useCollection<Figure>(figuresCollection);
-
-  const isLoadingFigures = isLoadingStatsDoc || isLoadingAllFigures;
-  const actualFigureCount = allFigures?.length ?? 0;
-  
-  // Self-healing effect: if the stored count is out of sync, update it.
-  useEffect(() => {
-    if (!isLoadingFigures && figuresStatsDocRef && figuresStats?.totalCount !== actualFigureCount) {
-      console.log(`Syncing figure count. Stored: ${figuresStats?.totalCount}, Actual: ${actualFigureCount}`);
-      setDocumentNonBlocking(figuresStatsDocRef, { totalCount: actualFigureCount }, { merge: false });
-    }
-  }, [isLoadingFigures, figuresStats, actualFigureCount, figuresStatsDocRef]);
+  const actualFigureCount = figuresStats?.totalCount ?? 0;
   // --- End Figure Count Logic ---
 
 
@@ -189,7 +175,7 @@ export default function AdminDashboard() {
 
         // Determine end time
         let endTime = new Date(data.endDate);
-        const [endHours, endMinutes] = data.endTime.split(':');
+        const [endHours, endMinutes] = (data.endTime || "00:00").split(':');
         endTime.setHours(parseInt(endHours, 10), parseInt(endMinutes, 10), 0, 0);
         
         await runTransaction(firestore, async (transaction) => {
@@ -469,3 +455,5 @@ export default function AdminDashboard() {
     </>
   );
 }
+
+    
