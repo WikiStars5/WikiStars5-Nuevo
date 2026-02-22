@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
 import { generateKeywords, normalizeText } from '@/lib/keywords';
 import { BLOCKED_NAMES } from '@/lib/blocked-names';
 
@@ -157,22 +157,15 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
 
     const slug = verificationResult.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     const figureRef = doc(firestore, 'figures', slug);
+    const statsRef = doc(firestore, 'stats', 'figures');
 
     try {
-        const docSnap = await getDoc(figureRef);
-        if (docSnap.exists()) {
-            toast({
-                variant: 'destructive',
-                title: t('CreateProfile.toast.duplicateTitle'),
-                description: t('CreateProfile.toast.duplicateDescription').replace('{name}', verificationResult.title),
-            });
-            router.push(`/figures/${slug}`);
-            onProfileCreated();
-            setIsCreating(false);
-            return;
-        }
-        
         await runTransaction(firestore, async (transaction) => {
+            const docSnap = await transaction.get(figureRef);
+            if (docSnap.exists()) {
+                throw new Error("DUPLICATE_PROFILE");
+            }
+        
             const keywords = generateKeywords(verificationResult.title!);
 
             const figureData = {
@@ -194,6 +187,7 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
             };
             
             transaction.set(figureRef, figureData);
+            transaction.set(statsRef, { totalCount: increment(1) }, { merge: true });
         });
         
         toast({
@@ -204,12 +198,22 @@ export default function CreateProfileFromWikipedia({ onProfileCreated }: CreateP
         onProfileCreated();
 
     } catch (error: any) {
-        console.error('Error creating profile:', error);
-        toast({
-            variant: 'destructive',
-            title: t('CreateProfile.toast.createErrorTitle'),
-            description: error.message || t('CreateProfile.toast.createErrorDescription'),
-        });
+        if (error.message === "DUPLICATE_PROFILE") {
+            toast({
+                variant: 'destructive',
+                title: t('CreateProfile.toast.duplicateTitle'),
+                description: t('CreateProfile.toast.duplicateDescription').replace('{name}', verificationResult.title!),
+            });
+            router.push(`/figures/${slug}`);
+            onProfileCreated();
+        } else {
+            console.error('Error creating profile:', error);
+            toast({
+                variant: 'destructive',
+                title: t('CreateProfile.toast.createErrorTitle'),
+                description: error.message || t('CreateProfile.toast.createErrorDescription'),
+            });
+        }
     } finally {
         setIsCreating(false);
     }

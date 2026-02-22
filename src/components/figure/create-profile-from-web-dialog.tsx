@@ -6,8 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from '@/firebase';
-import { doc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc, getDoc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
 import { generateKeywords } from '@/lib/keywords';
 
 import {
@@ -111,36 +110,38 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
 
     const slug = verifiedDomain.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     const figureRef = doc(firestore, 'figures', slug);
+    const statsRef = doc(firestore, 'stats', 'figures');
 
     try {
-      const docSnap = await getDoc(figureRef);
-      if (docSnap.exists()) {
-        toast({
-          variant: 'destructive',
-          title: t('CreateProfile.toast.duplicateTitle'),
-          description: t('CreateProfile.toast.duplicateDescriptionRedirect').replace('{name}', verifiedDomain),
-        });
-        router.push(`/figures/${slug}`);
-        onProfileCreated();
-        return;
-      }
+      await runTransaction(firestore, async (transaction) => {
+        const docSnap = await transaction.get(figureRef);
+        if (docSnap.exists()) {
+          throw new Error("DUPLICATE_PROFILE");
+        }
 
-      const keywords = generateKeywords(verifiedDomain);
-      
-      const figureData = {
-        id: slug,
-        name: verifiedDomain,
-        imageUrl: `https://www.google.com/s2/favicons?sz=128&domain_url=${verifiedDomain}`,
-        imageHint: `favicon for ${verifiedDomain}`,
-        nationality: 'Web',
-        tags: [verifiedDomain],
-        isFeatured: false,
-        nameKeywords: keywords,
-        createdAt: serverTimestamp(),
-        approved: true,
-      };
+        const keywords = generateKeywords(verifiedDomain);
+        
+        const figureData = {
+          id: slug,
+          name: verifiedDomain,
+          imageUrl: `https://www.google.com/s2/favicons?sz=128&domain_url=${verifiedDomain}`,
+          imageHint: `favicon for ${verifiedDomain}`,
+          nationality: 'Web',
+          tags: [verifiedDomain],
+          isFeatured: false,
+          nameKeywords: keywords,
+          createdAt: serverTimestamp(),
+          approved: true,
+          attitude: { neutral: 0, fan: 0, simp: 0, hater: 0 },
+          emotion: { alegria: 0, envidia: 0, tristeza: 0, miedo: 0, desagrado: 0, furia: 0 },
+          ratingCount: 0,
+          totalRating: 0,
+          ratingsBreakdown: { '0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
+        };
 
-      setDocumentNonBlocking(figureRef, figureData, { merge: false });
+        transaction.set(figureRef, figureData);
+        transaction.set(statsRef, { totalCount: increment(1) }, { merge: true });
+      });
 
       toast({
         title: t('CreateProfile.toast.createSuccessTitle'),
@@ -150,13 +151,23 @@ export default function CreateProfileFromWebDialog({ onProfileCreated }: CreateP
       router.push(`/figures/${slug}`);
       onProfileCreated();
 
-    } catch (error) {
-      console.error('Error creating profile:', error);
-      toast({
-        variant: 'destructive',
-        title: t('CreateProfile.toast.createErrorTitle'),
-        description: t('CreateProfile.toast.createErrorDescription'),
-      });
+    } catch (error: any) {
+      if (error.message === "DUPLICATE_PROFILE") {
+        toast({
+          variant: 'destructive',
+          title: t('CreateProfile.toast.duplicateTitle'),
+          description: t('CreateProfile.toast.duplicateDescriptionRedirect').replace('{name}', verifiedDomain),
+        });
+        router.push(`/figures/${slug}`);
+        onProfileCreated();
+      } else {
+        console.error('Error creating profile:', error);
+        toast({
+          variant: 'destructive',
+          title: t('CreateProfile.toast.createErrorTitle'),
+          description: t('CreateProfile.toast.createErrorDescription'),
+        });
+      }
     } finally {
       setIsCreating(false);
     }
