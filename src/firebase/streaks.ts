@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -79,7 +78,7 @@ export async function updateStreak({
             const userData = userDoc.data() as User | undefined || {};
             const userCountry = userData.country || 'unknown';
             const userGender = userData.gender || 'unknown';
-            const userDisplayName = userData.username || 'Invitado';
+            const userDisplayName = userData.username || (isAnonymous ? `Invitado_${userId.substring(0, 4)}` : 'Invitado');
             const userPhotoURL = userData.profilePhotoUrl || null;
             const figureImageUrl = figureDoc.data()?.imageUrl || null;
 
