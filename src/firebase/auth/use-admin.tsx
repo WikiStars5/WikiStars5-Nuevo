@@ -19,23 +19,23 @@ export const useAdmin = (): UseAdminResult => {
   const firestore = useFirestore();
 
   const adminRoleDocRef = useMemoFirebase(() => {
-    // If there is no user, there is no admin role to check.
-    if (!firestore || !user) return null;
+    // If there is no user, or if the user is anonymous, there is no admin role to check.
+    if (!firestore || !user || user.isAnonymous) return null;
     return doc(firestore, 'roles_admin', user.uid);
   }, [firestore, user]);
 
   const { data: adminDoc, isLoading: isAdminDocLoading } = useDoc(adminRoleDocRef, {
-    // Only enable the hook if there is a user.
-    enabled: !!user,
+    // Only enable the hook if there is a non-anonymous user.
+    enabled: !!user && !user.isAnonymous,
   });
   
-  // The overall loading state is true if auth is loading, or if we have a user
+  // The overall loading state is true if auth is loading, or if we have a non-anonymous user
   // and we are still fetching their admin role document.
-  const isAdminLoading = isAuthLoading || (!!user && isAdminDocLoading);
+  const isAdminLoading = isAuthLoading || (!!user && !user.isAnonymous && isAdminDocLoading);
 
   const isAdmin = useMemo(() => {
-    // Not an admin if there's no user or if we are still loading.
-    if (!user || isAdminLoading) {
+    // Not an admin if there's no user, user is anonymous, or if we are still loading.
+    if (!user || user.isAnonymous || isAdminLoading) {
       return false;
     }
     
