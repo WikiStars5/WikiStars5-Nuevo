@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,7 +37,6 @@ export default function KonamiCodeListener() {
   const [flash, setFlash] = useState(false);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Ignore keys if user is typing in an input field
     if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') {
         setKeySequence([]);
         return;
@@ -77,11 +75,28 @@ export default function KonamiCodeListener() {
   
   useEffect(() => {
     const audio = audioRef.current;
-    if (isIdiotOpen && audio) {
-      audio.play().catch(e => {
-        console.warn("Audio playback failed initially. A user click might be needed.", e);
-      });
-    } else if (!isIdiotOpen && audio) {
+    if (!audio) return;
+
+    if (isIdiotOpen) {
+      // 1. Force the audio to load
+      audio.load(); 
+      
+      // 2. Attempt to play and handle browser autoplay restrictions
+      const playPromise = audio.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.log("Autoplay was blocked. Waiting for a user gesture.");
+          
+          // 3. Fallback: If autoplay fails, play on the first user click.
+          const playOnGesture = () => {
+            audio.play();
+            document.removeEventListener('click', playOnGesture);
+          };
+          document.addEventListener('click', playOnGesture);
+        });
+      }
+    } else {
       audio.pause();
       audio.currentTime = 0;
     }
@@ -106,6 +121,11 @@ export default function KonamiCodeListener() {
 
   return (
     <>
+      {/* Audio element is now outside the dialogs to ensure it's always in the DOM */}
+      <audio ref={audioRef} loop preload="auto">
+        <source src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/troll%2FYou%20are%20an%20idiot__%20%5B48rz8udZBmQ%5D.mp3?alt=media&token=cc00bb22-0849-420c-b892-7a8bb722aa47" type="audio/mpeg" />
+      </audio>
+
       <Dialog open={isKonamiOpen} onOpenChange={setIsKonamiOpen}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader className="items-center">
@@ -137,9 +157,6 @@ export default function KonamiCodeListener() {
             <IdiotFace />
             <IdiotFace />
           </div>
-          <audio ref={audioRef} loop>
-            <source src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/troll%2FYou%20are%20an%20idiot__%20%5B48rz8udZBmQ%5D.mp3?alt=media&token=cc00bb22-0849-420c-b892-7a8bb722aa47" type="audio/mpeg" />
-          </audio>
         </DialogContent>
       </Dialog>
     </>
