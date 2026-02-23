@@ -14,7 +14,7 @@ export default function Footer() {
       <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 items-center gap-4 px-4 py-6">
         <div className="flex items-center gap-2 font-bold text-lg justify-center md:justify-start">
           <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528" alt="WikiStars5 Logo" width={24} height={24} className="h-6 w-6" />
-          <span className="font-headline text-primary">WikiStars5</span>
+          <span className="font-headline text-primary">WikiStars5<Link href="/beta" className="hover:underline text-sm align-text-top">.Beta</Link></span>
         </div>
         <p className="text-sm text-muted-foreground text-center order-last md:order-none">
           © 2026 WikiStars5.

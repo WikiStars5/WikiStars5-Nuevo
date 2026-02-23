@@ -128,10 +128,14 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-                <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528" alt="WikiStars5 Logo" width={24} height={24} className="h-6 w-6" />
-                <span className="font-headline text-primary">WikiStars5</span>
-            </Link>
+            <div className="flex items-center gap-2 font-bold text-lg">
+                <Link href="/">
+                    <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528" alt="WikiStars5 Logo" width={24} height={24} className="h-6 w-6" />
+                </Link>
+                <span className="font-headline text-primary">
+                    <Link href="/">WikiStars5</Link><Link href="/beta" className="hover:underline text-sm align-text-top">.Beta</Link>
+                </span>
+            </div>
             <div className="hidden md:block w-96">
               <SearchBar />
             </div>
