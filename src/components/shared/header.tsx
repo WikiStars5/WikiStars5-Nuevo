@@ -133,7 +133,7 @@ export default function Header() {
                     <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528" alt="WikiStars5 Logo" width={24} height={24} className="h-6 w-6" />
                 </Link>
                 <span className="font-headline text-primary">
-                    <Link href="/">WikiStars5</Link><Link href="/beta" className="hover:underline text-sm align-text-top">.Beta</Link>
+                    <Link href="/">WikiStars5</Link>
                 </span>
             </div>
             <div className="hidden md:block w-96">
