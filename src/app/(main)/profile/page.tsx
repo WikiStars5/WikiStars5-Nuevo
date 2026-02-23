@@ -315,7 +315,10 @@ function ProfilePageContent() {
                                         name="profilePhotoUrl"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>{t('ProfilePage.profilePhotoUrlLabel')}</FormLabel>
+                                                <FormLabel>
+                                                    {t('ProfilePage.profilePhotoUrlLabel')}
+                                                    <span className="ml-2 font-normal text-xs text-muted-foreground">(pinterest, wikimedia)</span>
+                                                </FormLabel>
                                                 <div className="relative">
                                                     <FormControl>
                                                         <Input {...field} placeholder={t('ProfilePage.profilePhotoUrlPlaceholder')} value={field.value || ''} className="pr-8" />
@@ -473,3 +476,5 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
+
+    
