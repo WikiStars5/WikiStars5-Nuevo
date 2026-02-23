@@ -63,7 +63,7 @@ export default function KonamiCodeListener() {
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 text-muted-foreground italic">
-          <p>"Alexandra, han pasado 10 años y aún te sigo amando. Eres la única chica que he amado de verdad."</p>
+          <p>"Alexandra, han pasado 10 años y aún te sigo amando. Eres la unica chica que he amado de verdad."</p>
         </div>
       </DialogContent>
     </Dialog>
