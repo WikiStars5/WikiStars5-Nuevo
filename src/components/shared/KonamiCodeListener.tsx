@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const konamiCode = [
   'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
@@ -34,35 +35,31 @@ export default function KonamiCodeListener() {
   const [isKonamiOpen, setIsKonamiOpen] = useState(false);
   const [isIdiotOpen, setIsIdiotOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-  
+  const [flash, setFlash] = useState(false);
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Ignore keys with modifiers to avoid conflicts with browser shortcuts
-    if (e.metaKey || e.ctrlKey || e.altKey) {
-        setKeySequence([]); // Reset on modifier key press
+    // Ignore keys if user is typing in an input field
+    if (e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') {
+        setKeySequence([]);
         return;
     }
     
-    // Use a temporary sequence to avoid state update delays
     const newSequence = [...keySequence, e.key];
     
-    // --- Check for Konami Code ---
-    // Get the last 10 keys
     const recentKonamiKeys = newSequence.slice(-konamiCode.length);
     if (JSON.stringify(recentKonamiKeys) === JSON.stringify(konamiCode)) {
       setIsKonamiOpen(true);
-      setKeySequence([]); // Reset after successful entry
-      return; // Stop processing to avoid conflicts
+      setKeySequence([]);
+      return;
     }
 
-    // --- Check for "you are an idiot" ---
     const sequenceString = newSequence.join('').toLowerCase();
     if (sequenceString.endsWith(idiotPhrase)) {
         setIsIdiotOpen(true);
-        setKeySequence([]); // Reset
-        return; // Stop processing
+        setKeySequence([]);
+        return;
     }
 
-    // Keep the sequence from growing indefinitely
     const maxRelevantLength = Math.max(konamiCode.length, idiotPhrase.length);
     if (newSequence.length > maxRelevantLength) {
       setKeySequence(newSequence.slice(-maxRelevantLength));
@@ -78,20 +75,33 @@ export default function KonamiCodeListener() {
     };
   }, [handleKeyDown]);
   
-  // Effect to handle audio playback for the idiot dialog
   useEffect(() => {
-    if (isIdiotOpen && audioRef.current) {
-      // Browsers require user interaction to play audio. 
-      // The dialog opening is that interaction. We try to play it.
-      audioRef.current.play().catch(e => {
-        // If it fails, we know we need another click.
-        // For simplicity, we'll let the user close and reopen.
+    const audio = audioRef.current;
+    if (isIdiotOpen && audio) {
+      audio.play().catch(e => {
         console.warn("Audio playback failed initially. A user click might be needed.", e);
       });
-    } else if (!isIdiotOpen && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0; // Reset audio
+    } else if (!isIdiotOpen && audio) {
+      audio.pause();
+      audio.currentTime = 0;
     }
+  }, [isIdiotOpen]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isIdiotOpen) {
+        interval = setInterval(() => {
+            setFlash(prev => !prev);
+        }, 120);
+    } else {
+        setFlash(false);
+    }
+
+    return () => {
+        if (interval) {
+            clearInterval(interval);
+        }
+    };
   }, [isIdiotOpen]);
 
   return (
@@ -112,7 +122,13 @@ export default function KonamiCodeListener() {
       </Dialog>
 
       <Dialog open={isIdiotOpen} onOpenChange={setIsIdiotOpen}>
-        <DialogContent className="sm:max-w-2xl text-center bg-black text-white border-white">
+        <DialogContent 
+          className={cn(
+              "sm:max-w-2xl text-center border-white transition-colors duration-100",
+              flash ? "bg-white text-black" : "bg-black text-white"
+          )}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="text-4xl md:text-5xl font-serif">you are an idiot</DialogTitle>
           </DialogHeader>
