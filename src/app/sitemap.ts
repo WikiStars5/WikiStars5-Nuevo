@@ -1,12 +1,13 @@
 import type { MetadataRoute } from 'next';
+import { getSdks } from '@/firebase/server';
+import type { Figure } from '@/lib/types';
 
 const URL = 'https://wikistars5.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // As we can't use the admin SDK reliably, we'll return a static sitemap for now.
-  // This is a trade-off to ensure the build doesn't fail.
-  // Dynamic routes for figures and users won't be included until server-side data fetching is stable.
+  const { firestore } = getSdks();
 
+  // 1. Get static pages
   const staticUrls: MetadataRoute.Sitemap = [
     {
       url: URL,
@@ -18,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${URL}/figures`,
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 0.7,
+      priority: 0.8,
     },
      {
       url: `${URL}/rules`,
@@ -40,5 +41,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  return staticUrls;
+  // 2. Get dynamic figure pages
+  let figureUrls: MetadataRoute.Sitemap = [];
+  try {
+    const figuresSnapshot = await firestore.collection('figures').get();
+    figureUrls = figuresSnapshot.docs.map(doc => {
+      const figure = doc.data() as Figure;
+      // Use the 'updatedAt' field if it exists, otherwise fall back to a recent date.
+      // This is better than createdAt because it reflects content changes.
+      const lastModified = figure.updatedAt ? figure.updatedAt.toDate() : new Date();
+      return {
+        url: `${URL}/figures/${doc.id}`,
+        lastModified,
+        changeFrequency: 'weekly',
+        priority: 0.7,
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching figures for sitemap:", error);
+    // In case of an error, we'll just return the static URLs to avoid breaking the build.
+    return staticUrls;
+  }
+  
+  // 3. Combine and return all URLs
+  return [...staticUrls, ...figureUrls];
 }
