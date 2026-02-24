@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const URL = 'https://wikistars5.co';
+const URL = 'https://wikistars5.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // As we can't use the admin SDK reliably, we'll return a static sitemap for now.
