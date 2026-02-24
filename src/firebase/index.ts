@@ -8,6 +8,7 @@ import {
   User,
   GoogleAuthProvider,
   signInWithPopup,
+  signInAnonymously,
 } from 'firebase/auth';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore, FirestoreSettings } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
@@ -98,4 +99,4 @@ export * from './error-emitter';
 export * from './auth/use-admin';
 export * from './auth/use-user';
 export * from './fcm';
-export { GoogleAuthProvider, signInWithPopup };
+export { GoogleAuthProvider, signInWithPopup, signInAnonymously };
