@@ -79,6 +79,7 @@ export async function generateMetadata({ params, searchParams }: FigurePageProps
     title: title,
     description: description,
     openGraph: {
+      siteName: 'WikiStars5',
       title: title,
       description: description,
       images: [
