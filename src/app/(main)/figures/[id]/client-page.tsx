@@ -157,6 +157,8 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   const getDefaultTab = () => {
     const shareType = searchParams.get('shareType');
     if (shareType === 'emotion') return 'emocion';
+    if (shareType === 'bias-bts') return 'bias-bts';
+    if (shareType === 'bias-blackpink') return 'bias-blackpink';
     if (searchParams.get('tab') === 'goat') return 'reseñas';
     return 'reseñas';
   }
