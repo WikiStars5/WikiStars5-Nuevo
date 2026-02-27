@@ -84,9 +84,16 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
   const { data: userProfile, isLoading: isProfileLoading, refetch: refetchProfile } = useDoc<AppUser>(userProfileRef);
 
-  // Identity logic: Needs a name if anonymous or has a default guest name
-  const isDefaultName = userProfile?.username?.startsWith(t('ProfilePage.guestUser'));
-  const needsIdentity = !user || user.isAnonymous || !userProfile?.username || isDefaultName;
+  // Identity logic: Checks if the user has a "real" name or a default one.
+  const username = userProfile?.username || '';
+  const isDefaultName = 
+    username.startsWith('user') || 
+    username.startsWith('Invitado') || 
+    username.startsWith('Guest') || 
+    username.startsWith('Convidado');
+    
+  // If the user has a name and it's NOT a default pattern, we don't need to ask for it.
+  const needsIdentity = !username || isDefaultName;
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
