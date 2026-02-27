@@ -35,7 +35,9 @@ const createCommentSchema = (isRatingEnabled: boolean, needsIdentity: boolean) =
   rating: isRatingEnabled
     ? z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0, 'La calificación es obligatoria.').max(5, 'La calificación debe estar entre 0 y 5.')
     : z.number().optional().nullable(),
-  username: z.string().optional(),
+  username: needsIdentity 
+    ? z.string().min(3, 'El nombre debe tener al menos 3 caracteres.').max(15, 'Máximo 15 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guiones bajos.')
+    : z.string().optional(),
   text: z.string().max(500, 'El comentario no puede superar los 500 caracteres.').optional(),
   tag: z.custom<CommentTagId>().optional(),
 });
@@ -82,7 +84,9 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
   const { data: userProfile, isLoading: isProfileLoading, refetch: refetchProfile } = useDoc<AppUser>(userProfileRef);
 
-  const needsIdentity = false;
+  // Identity logic: Needs a name if anonymous or has a default guest name
+  const isDefaultName = userProfile?.username?.startsWith(t('ProfilePage.guestUser'));
+  const needsIdentity = !user || user.isAnonymous || !userProfile?.username || isDefaultName;
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(isRatingEnabled, needsIdentity)),
@@ -106,7 +110,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
       try {
         const userCredential = await signInAnonymously(auth);
         currentUser = userCredential.user;
-        await reloadUser(); // This will trigger a re-render and user/userProfile update
+        await reloadUser(); 
       } catch (error) {
         toast({ title: t('AttitudeVoting.authErrorToast.title'), description: t('AttitudeVoting.authErrorToast.description'), variant: "destructive" });
         setIsSubmitting(false);
@@ -121,7 +125,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
     }
 
     await postComment(data, currentUser);
-
   }
 
 
@@ -130,7 +133,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
     
     const newRating = isRatingEnabled && typeof data.rating === 'number' ? data.rating : -1;
     
-    // Quick client-side check to prevent duplicate submission while waiting for Firestore
     if(hasUserCommented) {
         toast({ title: 'Error', description: t('CommentForm.toast.alreadyCommented'), variant: 'destructive' });
         setIsSubmitting(false);
@@ -140,7 +142,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
     try {
         await runTransaction(firestore, async (transaction) => {
             const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-            // Check again inside the transaction for race conditions
             const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
             if (!existingCommentSnap.empty) {
                 throw new Error(t('CommentForm.toast.alreadyCommented'));
@@ -178,7 +179,27 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             }
             
             const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
-            const finalDisplayName = userProfileData.username || currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
+            
+            // Handle username update if provided and needed
+            if (data.username && needsIdentity) {
+                const usernameLower = normalizeText(data.username);
+                // Check uniqueness in transaction
+                const usernameRef = doc(firestore, 'usernames', usernameLower);
+                const usernameDoc = await transaction.get(usernameRef);
+                if (usernameDoc.exists() && usernameDoc.data()?.userId !== currentUser.uid) {
+                    throw new Error(t('ProfilePage.toast.usernameInUse'));
+                }
+                
+                transaction.set(userProfileRef, { 
+                    username: data.username,
+                    usernameLower: usernameLower,
+                    id: currentUser.uid,
+                    createdAt: userProfileData.createdAt || serverTimestamp()
+                }, { merge: true });
+                transaction.set(usernameRef, { userId: currentUser.uid });
+            }
+
+            const finalDisplayName = data.username || userProfileData.username || currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
             
             const country = userProfileData.country || null;
             const gender = userProfileData.gender || null;
@@ -296,7 +317,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
     )
   }
 
-  // If both ratings and comments are disabled, show a locked message.
   if (!isRatingEnabled && !isCommentingEnabled) {
       return (
         <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
@@ -353,9 +373,9 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('CommentForm.usernameLabel')}</FormLabel>
+                        <FormLabel>Nombre de Usuario (Obligatorio)*</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder={t('CommentForm.usernamePlaceholder')} />
+                          <Input {...field} placeholder="Elige un nombre único para tu reseña" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
