@@ -91,6 +91,10 @@ export async function generateMetadata({ params, searchParams }: FigurePageProps
         },
       ],
     },
+    robots: {
+      index: true,
+      follow: true,
+    },
   };
 }
 

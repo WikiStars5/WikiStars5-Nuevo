@@ -5,21 +5,35 @@ import { getAuth } from 'firebase-admin/auth';
 
 // --- Singleton Pattern for Firebase Admin SDK ---
 
+/**
+ * Initializes and returns the Firebase Admin App instance.
+ * It handles both local development with service account files
+ * and cloud environments with default credentials.
+ */
 function getAdminApp() {
-  // If the app is already initialized, return it.
+  // If the app is already initialized, return it to avoid errors.
   if (getApps().length > 0) {
     return getApp();
   }
 
-  // Determine credentials based on the environment.
+  // Determine credentials based on the environment variable.
   const serviceAccountString = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
-  const appOptions = serviceAccountString
-    ? { credential: cert(JSON.parse(serviceAccountString)) }
-    : undefined;
+  if (serviceAccountString) {
+    try {
+      // If it looks like a JSON string, parse it and use it as a certificate.
+      if (serviceAccountString.startsWith('{')) {
+        return initializeApp({
+          credential: cert(JSON.parse(serviceAccountString))
+        });
+      }
+    } catch (error) {
+      console.error("Failed to parse GOOGLE_APPLICATION_CREDENTIALS as JSON:", error);
+    }
+  }
 
-  // Initialize the app. If appOptions is 'undefined', the SDK will try to find credentials automatically.
-  return initializeApp(appOptions);
+  // Fallback: Initialize with default credentials provided by the environment (App Hosting / GCP)
+  return initializeApp();
 }
 
 // Export singleton instances of the services.
