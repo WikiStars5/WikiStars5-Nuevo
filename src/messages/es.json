@@ -244,7 +244,7 @@
     }
   },
   "EmotionVoting": {
-    "title": "¿Qué emoción te genera?",
+    "title": "¿Qué emoción te provocó hoy?",
     "totalVotes": "Total de respuestas: {count}",
     "locked": {
       "title": "Votaciones Deshabilitadas",
@@ -839,7 +839,7 @@
     "senegal": "Senegal",
     "serbia": "Serbia",
     "seychelles": "Seychelles",
-    "sierra_leone": "Sierra Leona",
+    "sierra_leone": "Sierra Leone",
     "singapore": "Singapur",
     "sint_maarten": "Sint Maarten",
     "syria": "Siria",

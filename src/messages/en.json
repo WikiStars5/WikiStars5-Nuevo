@@ -244,7 +244,7 @@
     }
   },
   "EmotionVoting": {
-    "title": "What emotion do they evoke in you?",
+    "title": "What emotion did it provoke in you today?",
     "totalVotes": "Total responses: {count}",
     "locked": {
       "title": "Voting Disabled",
@@ -610,7 +610,7 @@
       "Keep the discussion focused on the public figure. Discussions should be about their actions, career, and public perception, not about other users.",
       "Do not post private information (doxing) of any person, whether a public figure or a user.",
       "Avoid spam and self-promotion. Comments should add value to the discussion.",
-      "Do not manipulate votes. The use of bots, scripts, or multiple accounts to alter results is not allowed.",
+      "Do not manipulate votes. The use of bots, scripts or multiple accounts to alter results is not allowed.",
       "Sexually explicit, violent, or illegal content is strictly prohibited.",
       "Respect copyrights. Do not post content that you do not own without proper attribution."
     ],

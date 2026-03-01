@@ -105,7 +105,7 @@
   "LoginPage": {
     "loading": "Carregando...",
     "title": "Entrar",
-    "description": "Use sua conta para acessar seu perfil e continuar de onde parou.",
+    "description": "Use sua conta para acceder a seu perfil e continuar de onde parou.",
     "continueButton": "Continuar com Google",
     "toast": {
       "welcomeBackTitle": "Bem-vindo de Volta!",
@@ -222,7 +222,7 @@
     },
     "anonymousToast": {
       "title": "Bem-vindo, Convidado!",
-      "description": "Sua atividade agora é anônima. Faça login para salvá-la."
+      "description": "Sua atividade agora es anônima. Faça login para salvá-la."
     },
     "authErrorToast": {
       "title": "Erro de Autenticação",
@@ -233,8 +233,8 @@
       "description": "Não foi possível obter a identidade do usuário."
     },
     "locked": {
-      "title": "Votação Desativada",
-      "description": "O administrador desativou temporariamente a votação de atitude."
+      "title": "Votación Desactivada",
+      "description": "El administrador ha desactivado temporalmente las votaciones de actitud."
     },
     "labels": {
       "neutral": "Espectador",
@@ -244,11 +244,11 @@
     }
   },
   "EmotionVoting": {
-    "title": "Que emoção eles evocam em você?",
+    "title": "Que emoção te provocou hoje?",
     "totalVotes": "Total de respostas: {count}",
     "locked": {
-      "title": "Votação Desativada",
-      "description": "O administrador desativou temporariamente a votação de emoção."
+      "title": "Votación Desactivada",
+      "description": "El administrador ha desactivado temporalmente las votaciones de emoción."
     },
     "labels": {
       "alegria": "Alegria",
@@ -263,7 +263,7 @@
     "title": "VAMOS ESCOLHER O VERDADEIRO GOAT",
     "description": "Quem é o maior de todos os tempos? O vencedor ganha este ícone em seu perfil.",
     "countdownFinished": "A votação terminou!",
-    "paused": "BATALHA PAUSADA",
+    "paused": "BATALLA PAUSADA",
     "votesLabel": "votos",
     "callToAction": "Dê seu voto para o melhor. O que você acha?",
     "messiButton": "Votar em Messi",
@@ -318,8 +318,8 @@
       "goToComment": "Ir para minha opinião"
     },
     "locked": {
-      "title": "Opiniões Desativadas",
-      "description": "O administrador desativou temporariamente as avaliações e comentários."
+      "title": "Opiniones Deshabilitadas",
+      "description": "El administrador ha desactivado temporalmente las calificaciones y comentarios."
     }
   },
   "CommentList": {
@@ -481,22 +481,22 @@
     "Web": {
       "title": "Criar Perfil Web",
       "verifyDescription": "Verifique um domínio para criar um perfil web básico.",
-      "confirmDescription": "Confirme a criação do perfil para o domínio verificado.",
-      "placeholder": "example.com ou https://example.com",
+      "confirmDescription": "Confirma la creación del perfil para el dominio verificado.",
+      "placeholder": "example.com o https://example.com",
       "verifyButton": "Verificar",
-      "verificationFailedTitle": "Falha na Verificação",
-      "verifiedTitle": "Domínio Verificado",
-      "confirmCreationDescription": "Você deseja criar um perfil para o seguinte domínio?",
+      "verificationFailedTitle": "Verificação Fallida",
+      "verifiedTitle": "Dominio Verificado",
+      "confirmCreationDescription": "¿Deseas crear un perfil para el siguiente dominio?",
       "cancelButton": "Cancelar",
-      "confirmAndCreateButton": "Confirmar e Criar",
+      "confirmAndCreateButton": "Confirmar y Crear",
       "validation": {
-        "invalidDomain": "Por favor, insira um domínio válido."
+        "invalidDomain": "Por favor, introduce un dominio válido."
       },
       "toast": {
-        "validDomainTitle": "Domínio Válido",
-        "validDomainDescription": "O domínio {domain} está acessível.",
-        "verificationFailed": "Não foi possível verificar o domínio.",
-        "unexpectedError": "Ocorreu um erro inesperado ao verificar o domínio."
+        "validDomainTitle": "Dominio Válido",
+        "validDomainDescription": "El dominio {domain} es accesible.",
+        "verificationFailed": "No se pudo verificar el dominio.",
+        "unexpectedError": "Ocurrió un error inesperado al verificar el dominio."
       }
     },
     "Result": {
@@ -523,14 +523,14 @@
       "1_strong": "Natureza do Site:",
       "1": " O WikiStars5 é uma plataforma de opinião e entretenimento. Acreditamos firmemente na liberdade de expressão, e nosso propósito é permitir que os usuários expressem e discutam livremente suas percepções sobre figuras públicas. O conteúdo deste site, incluindo avaliações, votos e comentários, representa as opiniões subjetivas de nossos usuários e não deve ser interpretado como uma declaração de fato.",
       "2_strong": "Reflexo da Percepção Pública:",
-      "2": " As percepções, sejam de admiração ou ódio, refletidas nesta plataforma são resultado das próprias ações e reputação das figuras públicas. O WikiStars5 não cria nem controla essas opiniões; simplesmente atua como um fórum para sua expressão. A responsabilidade pela imagem pública recai inteiramente sobre a figura pública, não sobre a plataforma que permite a discussão sobre ela. Em resumo: não é nossa culpa se você se faz amar ou odiar; essa responsabilidade é inteiramente sua e não está sob nosso controle.",
+      "2": " As percepções, sejam de admiração ou ódio, refletidas nesta plataforma são resultado das próprias ações e reputação das figuras públicas. O WikiStars5 não cria nem controla essas opiniões; simplesmente atua como um fórum para sua expressão. A responsabilidade pela imagem pública recai inteiramente sobre a figura pública, não sobre a plataforma que permite a discussão sobre ela. En resumo: não é nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.",
       "3_strong": "Sem Afiliação ou Endosso:",
       "3": " Este site não é afiliado, associado, autorizado, endossado por, ou de qualquer forma oficialmente conectado a nenhuma das figuras públicas mencionadas nele, nem a nenhuma de suas subsidiárias ou afiliadas.",
       "4": "Os nomes, bem como quaisquer imagens, marcas registradas e direitos autorais relacionados, são propriedade de seus respectivos donos. O uso desses nomes e imagens é para fins de identificação, comentário e crítica, no âmbito do direito à liberdade de expressão.",
       "5_strong": "Conteúdo Gerado pelo Usuário:",
       "5": " Todo o conteúdo gerado pelo usuário, como comentários e votos, é de responsabilidade exclusiva da pessoa que o publica. O WikiStars5 não se responsabiliza pela precisão, veracidade ou legalidade de tal conteúdo. Reservamo-nos o direito de moderar ou remover conteúdo que viole nossas políticas, mas não somos obrigados a fazê-lo.",
       "6_strong": "Sem Lucro Direto com a Imagem:",
-      "6": " A plataforma não utiliza a imagem ou o nome de figuras públicas para a venda direta de produtos ou serviços. O propósito é fomentar a discussão e o debate público."
+      "6": " A plataforma não utiliza a imagem ou o nome de figuras públicas para a venda direta de produtos ou servicios. El propósito es fomentar la discusión y el debate público."
     }
   },
   "PrivacyPolicyPage": {
@@ -546,7 +546,7 @@
         "points": [
           {
             "strong": "Informações que você nos fornece:",
-            "text": " Quando você se registra com o Google, você nos fornece seu nome, endereço de e-mail e foto de perfil. Você também pode adicionar voluntariamente um nome de usuário, país, sexo e uma breve descrição ao seu perfil."
+            "text": " Ao se registrar com o Google, você nos fornece seu nome, endereço de e-mail e foto de perfil. Você também pode adicionar voluntariamente um nome de usuário, país, sexo e uma breve descrição ao seu perfil."
           },
           {
             "strong": "Conteúdo que você gera:",
@@ -570,7 +570,7 @@
       },
       "4": {
         "title": "4. Compartilhando Suas Informações",
-        "intro": "Não compartilhamos suas informações pessoais com empresas, organizações ou indivíduos fora do WikiStars5, exceto nos seguintes casos:",
+        "intro": "Não compartilhamos suas informações pessoais con empresas, organizaciones o individuos fuera de WikiStars5, excepto en los siguientes casos:",
         "points": [
           {
             "strong": "Conteúdo público:",
@@ -582,7 +582,7 @@
           },
           {
             "strong": "Por razões legais:",
-            "text": " Compartilharemos informações pessoais se acreditarmos de boa-fé que o acesso, uso, preservação ou divulgação das informações é razoavelmente necessário para cumprir a lei aplicável, regulamento, processo legal ou solicitação governamental aplicável."
+            "text": " Compartilharemos informações pessoais si creemos de buena fe que el acceso, uso, preservación o divulgación de la información es razonablemente necesario para cumplir con la ley aplicable, regulamento, proceso legal o solicitud gubernamental aplicable."
           }
         ]
       },
@@ -590,10 +590,10 @@
         "title": "5. Seus Controles de Privacidade",
         "intro": "Você tem controle sobre as informações que fornece e sua atividade. Em sua página de perfil, você pode:",
         "points": [
-          "Visualizar e editar as informações do seu perfil, como seu nome de usuário, país, sexo e descrição.",
+          "Visualizar e editar as informações do seu perfil, como seu nome de usuario, país, sexo e descrição.",
           "Ver um resumo de sua atividade, incluindo seus votos e sequências."
         ],
-        "outro": "Se você deseja excluir sua conta e todas as informações associadas, entre em contato conosco."
+        "outro": "Si você deseja excluir sua conta e todas as informações associadas, entre em contato conosco."
       }
     }
   },
@@ -617,8 +617,7 @@
     "tabs": {
       "attitudes": "Atitude",
       "emotions": "Emoções",
-      "streaks": "Sequências de Lealdade",
-      "achievements": "Conquistas"
+      "streaks": "Sequências de Lealdade"
     },
     "noVotes": "Você não votou como '{category}' em nenhum perfil.",
     "noStreaksTitle": "Você ainda não tem sequências ativas",
@@ -715,7 +714,7 @@
     "guinea": "Guiné",
     "guinea_bissau": "Guiné-Bissau",
     "equatorial_guinea": "Guiné Equatorial",
-    "guyana": "Guiana",
+    "guyana": "Guyana",
     "haiti": "Haiti",
     "honduras": "Honduras",
     "hong_kong": "Hong Kong",
@@ -740,7 +739,7 @@
     "northern_mariana_islands": "Ilhas Marianas do Norte",
     "marshall_islands": "Ilhas Marshall",
     "pitcairn_islands": "Ilhas Pitcairn",
-    "solomon_islands": "Ilhas Salomão",
+    "solomon_islands": "Ilhas Salomón",
     "turks_and_caicos_islands": "Ilhas Turcas e Caicos",
     "united_states_minor_outlying_islands": "Ilhas Menores Distantes dos Estados Unidos",
     "british_virgin_islands": "Ilhas Virgens Britânicas",
