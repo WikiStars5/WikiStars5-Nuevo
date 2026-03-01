@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, runTransaction, serverTimestamp, increment, getDoc } from 'firebase/firestore'; 
 import { signInAnonymously } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Lock, ArrowRight, Check } from 'lucide-react';
+import { Loader2, Lock, ArrowRight, Check, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import type { Figure, AttitudeVote, GlobalSettings, User as AppUser } from '@/lib/types';
@@ -324,8 +324,8 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
         <Card className="mt-4 border-2 border-primary/50 bg-primary/5 overflow-hidden animate-border-blink animate-in slide-in-from-top duration-500 max-w-lg mx-auto md:mx-0">
             <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="bg-primary/20 p-2 rounded-full">
-                        <ArrowRight className="h-5 w-5 text-primary" />
+                    <div className="bg-primary/20 p-2 rounded-full animate-pulse">
+                        <Heart className="h-5 w-5 text-primary fill-primary" />
                     </div>
                     <p className="text-sm font-bold">¿Es {figure.name} tu bias de {biasConfirmType.toUpperCase()}?</p>
                 </div>
