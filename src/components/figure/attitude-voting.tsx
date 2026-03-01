@@ -321,7 +321,7 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
       )}
 
       {biasConfirmType && (
-        <Card className="mt-4 border-primary/50 bg-primary/5 overflow-hidden animate-in slide-in-from-top duration-500 max-w-lg mx-auto md:mx-0">
+        <Card className="mt-4 border-2 border-primary/50 bg-primary/5 overflow-hidden animate-border-blink animate-in slide-in-from-top duration-500 max-w-lg mx-auto md:mx-0">
             <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="bg-primary/20 p-2 rounded-full">
