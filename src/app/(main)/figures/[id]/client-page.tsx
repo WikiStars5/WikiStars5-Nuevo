@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { doc, getDoc, collection } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,7 +23,7 @@ import RelatedFigures from '@/components/figure/related-figures';
 import TopStreaks from '@/components/streaks/top-streaks';
 import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { countries } from '@/lib/countries';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from 'next-themes';
@@ -126,6 +126,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   const firestore = useFirestore();
   const { user } = useUser();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [commentSortPreference, setCommentSortPreference] = useState<AttitudeOption | null>(null);
   const { t } = useLanguage();
@@ -154,14 +155,23 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
     setCommentSortPreference(attitude);
   }, []);
 
-  const getDefaultTab = () => {
+  const activeTab = useMemo(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) return tabParam;
+
     const shareType = searchParams.get('shareType');
     if (shareType === 'emotion') return 'emocion';
     if (shareType === 'bias-bts') return 'bias-bts';
     if (shareType === 'bias-blackpink') return 'bias-blackpink';
-    if (searchParams.get('tab') === 'goat') return 'reseñas';
+    
     return 'reseñas';
-  }
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
 
   const isGoatCandidate = figure?.name === 'Lionel Messi' || figure?.name === 'Cristiano Ronaldo';
   const hasPioneer = userAchievements?.achievements?.includes('pioneer_1000');
@@ -231,7 +241,7 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
       <ProfileHeader figure={figure} figureId={figure.id} />
 
       <div className="mt-6">
-        <Tabs defaultValue={getDefaultTab()} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <ScrollArea className="w-full whitespace-nowrap">
             <TabsList className={cn("inline-flex h-auto", (theme === 'dark' || theme === 'army') && 'bg-black')}>
               <TabsTrigger value="wiki">
