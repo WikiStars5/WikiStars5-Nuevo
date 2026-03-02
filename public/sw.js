@@ -35,13 +35,13 @@ self.addEventListener('notificationclick', function(event) {
       // Intenta encontrar una pestaña abierta que coincida exactamente con la URL absoluta
       for (var i = 0; i < clientList.length; i++) {
         var client = clientList[i];
-        if (client.url === 'https://wikistars5.co/' && 'focus' in client) {
+        if (client.url === 'https://wikistars5.com/' && 'focus' in client) {
           return client.focus(); // Si existe, la pone en primer plano
         }
       }
       // Si el navegador estaba cerrado, abre una nueva ventana con la URL completa
       if (clients.openWindow) {
-        return clients.openWindow('https://wikistars5.co/');
+        return clients.openWindow('https://wikistars5.com/');
       }
     })
   );

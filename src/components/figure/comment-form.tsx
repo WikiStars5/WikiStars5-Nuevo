@@ -146,34 +146,57 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
         return;
     }
 
+    // Pre-check for existing comment to keep transaction fast and clean
+    const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
+    const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
+    if (!existingCommentSnap.empty) {
+        toast({ title: 'Error', description: t('CommentForm.toast.alreadyCommented'), variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+    }
+
     try {
         await runTransaction(firestore, async (transaction) => {
-            const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
-            const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
-            if (!existingCommentSnap.empty) {
-                throw new Error(t('CommentForm.toast.alreadyCommented'));
-            }
-
+            // --- STEP 1: ALL READS ---
             const figureRef = doc(firestore, 'figures', figureId);
             const userProfileRef = doc(firestore, 'users', currentUser.uid);
             const attitudeVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
-
-            const [figureDoc, userProfileSnap, attitudeVoteSnap] = await Promise.all([
+            const achievementRef = doc(firestore, `users/${currentUser.uid}/achievements`, figureId);
+            
+            // Read figure, user profile, vote and achievement status simultaneously
+            const [figureDoc, userProfileSnap, attitudeVoteSnap, achievementDoc] = await Promise.all([
               transaction.get(figureRef),
               transaction.get(userProfileRef),
-              transaction.get(attitudeVoteRef)
+              transaction.get(attitudeVoteRef),
+              transaction.get(achievementRef)
             ]);
 
             if (!figureDoc.exists()) throw new Error("Figure not found.");
 
+            // Read username only if needed for identity creation
+            let usernameDoc = null;
+            let usernameLower = '';
+            if (data.username && needsIdentity) {
+                usernameLower = normalizeText(data.username);
+                const usernameRef = doc(firestore, 'usernames', usernameLower);
+                usernameDoc = await transaction.get(usernameRef);
+            }
+
+            // --- STEP 2: LOGIC ---
             const figureData = figureDoc.data() as Figure;
+            const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
             const currentRatingCount = figureData.ratingCount || 0;
             
+            // Check username uniqueness
+            if (usernameDoc && usernameDoc.exists() && usernameDoc.data()?.userId !== currentUser.uid) {
+                throw new Error(t('ProfilePage.toast.usernameInUse'));
+            }
+
+            // --- STEP 3: ALL WRITES ---
+            
+            // 1. Assign Achievement if eligible
             if (newRating >= 0 && currentRatingCount < 1000) {
-                const achievementRef = doc(firestore, `users/${currentUser.uid}/achievements`, figureId);
-                const achievementDoc = await transaction.get(achievementRef);
-                const currentAchievements = (achievementDoc.data()?.achievements as string[] | undefined) || [];
-                
+                const currentAchievements = (achievementDoc.exists() ? achievementDoc.data()?.achievements : []) || [];
                 if (!currentAchievements.includes('pioneer_1000')) {
                     const achievementData: Omit<Achievement, 'id'> = {
                         figureName: figureData.name,
@@ -185,18 +208,9 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 }
             }
             
-            const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
-            
-            // Handle username update if provided and needed
+            // 2. Update User Profile and Username Map
             if (data.username && needsIdentity) {
-                const usernameLower = normalizeText(data.username);
-                // Check uniqueness in transaction
                 const usernameRef = doc(firestore, 'usernames', usernameLower);
-                const usernameDoc = await transaction.get(usernameRef);
-                if (usernameDoc.exists() && usernameDoc.data()?.userId !== currentUser.uid) {
-                    throw new Error(t('ProfilePage.toast.usernameInUse'));
-                }
-                
                 transaction.set(userProfileRef, { 
                     username: data.username,
                     usernameLower: usernameLower,
@@ -207,11 +221,11 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             }
 
             const finalDisplayName = data.username || userProfileData.username || currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
-            
             const country = userProfileData.country || null;
             const gender = userProfileData.gender || null;
             const attitude = attitudeVoteSnap.exists() ? (attitudeVoteSnap.data() as AttitudeVote).vote : null;
 
+            // 3. Update Figure Stats
             if (newRating >= 0) {
                 const figureUpdates = {
                     ratingCount: increment(1),
@@ -231,8 +245,8 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 }
             }
           
+            // 4. Create the actual Comment
             const newCommentRef = doc(commentsColRef);
-
             const newCommentPayload = {
                 userId: currentUser.uid,
                 figureId: figureId,
@@ -254,9 +268,9 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 replyCount: 0,
                 threadId: newCommentRef.id,
             };
-
             transaction.set(newCommentRef, newCommentPayload);
 
+            // 5. Create user reference for history
             if (data.text && data.text.trim().length > 0) {
                  const userStarpostColRef = collection(firestore, 'users', currentUser.uid, 'starposts');
                  const newStarpostRef = doc(userStarpostColRef, newCommentRef.id);
@@ -269,6 +283,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             }
         });
 
+        // Outside transaction logic (sounds, streaks, etc)
         if (data.text && data.text.trim().length > 0) {
             const streakResult = await updateStreak({
                 firestore, figureId, figureName,
@@ -281,9 +296,8 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             }
         }
         
-        const rating = data.rating;
-        if (typeof rating === 'number' && ratingSounds[rating]) {
-            const audio = new Audio(ratingSounds[rating]);
+        if (typeof data.rating === 'number' && ratingSounds[data.rating]) {
+            const audio = new Audio(ratingSounds[data.rating]);
             audio.play().catch(e => console.error("Error playing sound", e));
         }
 
@@ -448,7 +462,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                         <FormItem>
                           <FormControl>
                             <Textarea
-                              placeholder={`¿Qué opinas sobre ${figureName}?`}
+                              placeholder={`¿Qué opinas de ${figureName}?`}
                               className="resize-none"
                               rows={3}
                               maxLength={500}
