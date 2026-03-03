@@ -17,8 +17,8 @@ export default function CookieConsentBanner() {
     // This effect runs only on the client side
     try {
       const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
-      // Show the banner only if consent has not been given yet
-      if (!consent) {
+      // Show the banner only if consent has not been given (neither true nor false)
+      if (consent === null) {
         setIsVisible(true);
       }
     } catch (error) {
@@ -37,6 +37,16 @@ export default function CookieConsentBanner() {
     }
   };
 
+  const handleReject = () => {
+    try {
+      localStorage.setItem(COOKIE_CONSENT_KEY, 'false');
+      setIsVisible(false);
+    } catch (error) {
+       console.error("Could not write to localStorage:", error);
+       setIsVisible(false);
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -48,16 +58,21 @@ export default function CookieConsentBanner() {
         <div className="flex items-start gap-3">
           <Cookie className="h-6 w-6 flex-shrink-0 text-primary" />
           <p className="text-sm text-muted-foreground">
-            Utilizamos cookies para mejorar tu experiencia y para fines publicitarios. Al continuar, aceptas nuestro uso de cookies. Lee nuestra{' '}
+            Utilizamos cookies para mejorar tu experiencia y para fines publicitarios. Al continuar, aceptas nuestro uso de cookies o puedes rechazarlas. Lee nuestra{' '}
             <Link href="/privacy" className="font-semibold text-primary underline-offset-4 hover:underline">
               Política de Privacidad
             </Link>
             .
           </p>
         </div>
-        <Button onClick={handleAccept} className="w-full flex-shrink-0 md:w-auto">
-          Aceptar
-        </Button>
+        <div className="flex w-full items-center gap-2 md:w-auto">
+          <Button variant="outline" onClick={handleReject} className="flex-1 md:flex-none">
+            Rechazar
+          </Button>
+          <Button onClick={handleAccept} className="flex-1 md:flex-none">
+            Aceptar
+          </Button>
+        </div>
       </Card>
     </div>
   );
