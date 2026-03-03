@@ -166,6 +166,7 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
         const streakResult = await updateStreak({
             firestore, figureId: figure.id, figureName: figure.name,
             userId: currentUser!.uid, isAnonymous: currentUser!.isAnonymous,
+            userPhotoURL: currentUser!.photoURL // Aseguramos que la racha use la foto actual
         });
 
         if (streakResult?.streakGained) {

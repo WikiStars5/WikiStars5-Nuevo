@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useContext } from 'react';
@@ -20,7 +19,6 @@ import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import type { Figure } from '@/lib/types';
 
 
-// Simple inline SVG component for Reddit Icon
 const RedditIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -30,7 +28,7 @@ const RedditIcon = (props: React.SVGProps<SVGSVGElement>) => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    {...props} // Allows passing className, size, etc.
+    {...props}
   >
     <title>Reddit</title>
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-.5-5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5zm-3 0c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5zm-1.79-4.71L10.5 6h3l3.79 3.79c.2.2.2.51 0 .71l-1.06 1.06c-.2.2-.51.2-.71 0L14.41 10H9.59l-1.12 1.56c-.2.2-.51.2-.71 0l-1.06-1.06c-.2-.2-.2-.51 0-.71z" fill="currentColor"/>
@@ -135,7 +133,6 @@ export function ShareButton({
   const handleShareAction = async () => {
     if (!firestore || !auth) return;
 
-    // Increment public share count on the figure
     const category = getShareCategory();
     const figureRef = doc(firestore, "figures", figureId);
     try {
@@ -146,7 +143,6 @@ export function ShareButton({
         console.error("Failed to increment share count:", error);
     }
     
-    // Check for user and update streak
     let currentUser = user;
     if (!currentUser) {
         try {
@@ -154,7 +150,7 @@ export function ShareButton({
             currentUser = userCredential.user;
         } catch (error) {
             console.error("Failed to sign in anonymously for streak tracking:", error);
-            return; // Exit if we can't get a user
+            return; 
         }
     }
     
@@ -166,6 +162,7 @@ export function ShareButton({
                 figureName,
                 userId: currentUser.uid,
                 isAnonymous: currentUser.isAnonymous,
+                userPhotoURL: currentUser.photoURL // Enviamos la foto actual
             });
 
             if (streakResult?.streakGained) {

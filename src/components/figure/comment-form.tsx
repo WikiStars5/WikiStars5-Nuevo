@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect, useCallback } from 'react';
@@ -48,7 +47,7 @@ interface CommentFormProps {
   figureId: string;
   figureName: string;
   hasUserCommented: boolean;
-  onCommentPosted: () => void; // Callback to refetch comments
+  onCommentPosted: () => void; 
 }
 
 const ratingSounds: { [key: number]: string } = {
@@ -84,7 +83,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
   const { data: userProfile, isLoading: isProfileLoading, refetch: refetchProfile } = useDoc<AppUser>(userProfileRef);
 
-  // Identity logic: Checks if the user has a "real" name or a default one.
   const username = userProfile?.username || '';
   const isDefaultName = 
     username.startsWith('user') || 
@@ -92,7 +90,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
     username.startsWith('Guest') || 
     username.startsWith('Convidado');
     
-  // If the user has a name and it's NOT a default pattern, we don't need to ask for it.
   const needsIdentity = !username || isDefaultName;
 
   const form = useForm<CommentFormValues>({
@@ -146,7 +143,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
         return;
     }
 
-    // Pre-check for existing comment to keep transaction fast and clean
     const commentsColRef = collection(firestore, 'figures', figureId, 'comments');
     const existingCommentSnap = await getDocs(query(commentsColRef, where('userId', '==', currentUser.uid), limit(1)));
     if (!existingCommentSnap.empty) {
@@ -157,13 +153,11 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            // --- STEP 1: ALL READS ---
             const figureRef = doc(firestore, 'figures', figureId);
             const userProfileRef = doc(firestore, 'users', currentUser.uid);
             const attitudeVoteRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
             const achievementRef = doc(firestore, `users/${currentUser.uid}/achievements`, figureId);
             
-            // Read figure, user profile, vote and achievement status simultaneously
             const [figureDoc, userProfileSnap, attitudeVoteSnap, achievementDoc] = await Promise.all([
               transaction.get(figureRef),
               transaction.get(userProfileRef),
@@ -173,7 +167,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
             if (!figureDoc.exists()) throw new Error("Figure not found.");
 
-            // Read username only if needed for identity creation
             let usernameDoc = null;
             let usernameLower = '';
             if (data.username && needsIdentity) {
@@ -182,19 +175,14 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 usernameDoc = await transaction.get(usernameRef);
             }
 
-            // --- STEP 2: LOGIC ---
             const figureData = figureDoc.data() as Figure;
             const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() as AppUser : {};
             const currentRatingCount = figureData.ratingCount || 0;
             
-            // Check username uniqueness
             if (usernameDoc && usernameDoc.exists() && usernameDoc.data()?.userId !== currentUser.uid) {
                 throw new Error(t('ProfilePage.toast.usernameInUse'));
             }
 
-            // --- STEP 3: ALL WRITES ---
-            
-            // 1. Assign Achievement if eligible
             if (newRating >= 0 && currentRatingCount < 1000) {
                 const currentAchievements = (achievementDoc.exists() ? achievementDoc.data()?.achievements : []) || [];
                 if (!currentAchievements.includes('pioneer_1000')) {
@@ -208,7 +196,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 }
             }
             
-            // 2. Update User Profile and Username Map
             if (data.username && needsIdentity) {
                 const usernameRef = doc(firestore, 'usernames', usernameLower);
                 transaction.set(userProfileRef, { 
@@ -225,7 +212,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             const gender = userProfileData.gender || null;
             const attitude = attitudeVoteSnap.exists() ? (attitudeVoteSnap.data() as AttitudeVote).vote : null;
 
-            // 3. Update Figure Stats
             if (newRating >= 0) {
                 const figureUpdates = {
                     ratingCount: increment(1),
@@ -245,7 +231,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 }
             }
           
-            // 4. Create the actual Comment
             const newCommentRef = doc(commentsColRef);
             const newCommentPayload = {
                 userId: currentUser.uid,
@@ -270,7 +255,6 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             };
             transaction.set(newCommentRef, newCommentPayload);
 
-            // 5. Create user reference for history
             if (data.text && data.text.trim().length > 0) {
                  const userStarpostColRef = collection(firestore, 'users', currentUser.uid, 'starposts');
                  const newStarpostRef = doc(userStarpostColRef, newCommentRef.id);
@@ -283,12 +267,12 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             }
         });
 
-        // Outside transaction logic (sounds, streaks, etc)
         if (data.text && data.text.trim().length > 0) {
             const streakResult = await updateStreak({
                 firestore, figureId, figureName,
                 userId: currentUser.uid,
                 isAnonymous: currentUser.isAnonymous,
+                userPhotoURL: currentUser.photoURL // Enviamos la foto actual
             });
 
             if (streakResult?.streakGained) {

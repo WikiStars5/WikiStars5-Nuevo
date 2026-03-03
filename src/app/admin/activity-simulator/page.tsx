@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -94,7 +93,6 @@ function ArtificialCommentList({ figure }: { figure: Figure }) {
                             statData[country].total = (statData[country].total || 1) - 1;
                             statData[country][gender] = (statData[country][gender] || 1) - 1;
                             
-                            // Prevent negative counts
                             if(statData[country].total < 0) statData[country].total = 0;
                             if(statData[country][gender] < 0) statData[country][gender] = 0;
 
@@ -110,7 +108,7 @@ function ArtificialCommentList({ figure }: { figure: Figure }) {
                 title: "Comentario Eliminado",
                 description: "El comentario artificial ha sido eliminado y las estadísticas han sido ajustadas.",
             });
-            refetch(); // Refreshes the list after deletion
+            refetch(); 
 
         } catch (error: any) {
             console.error("Error deleting artificial comment:", error);
@@ -237,12 +235,11 @@ export default function ActivitySimulatorPage() {
                 };
                 transaction.update(figureRef, ratingUpdates);
 
-                // Update ratingStats with the correct structure
                 const ratingStatRef = doc(firestore, `figures/${selectedFigure.id}/ratingStats`, String(data.rating));
                 const statDoc = await transaction.get(ratingStatRef);
                 const statData = statDoc.exists() ? statDoc.data() : {};
                 
-                const country = 'unknown'; // Virtual users have unknown country/gender
+                const country = 'unknown'; 
                 const gender = 'unknown';
 
                 const countryData = statData[country] || { total: 0 };
@@ -254,14 +251,13 @@ export default function ActivitySimulatorPage() {
             }
         });
 
-        // After comment is created, update the streak for the virtual user.
         await updateStreak({
           firestore,
           figureId: selectedFigure.id,
           figureName: selectedFigure.name,
           userId: virtualUserId,
           userDisplayName: data.virtualUsername,
-          userPhotoURL: data.virtualAvatarUrl || null,
+          userPhotoURL: data.virtualAvatarUrl || null, // Enviamos la URL del avatar virtual
           isAnonymous: true,
         });
 

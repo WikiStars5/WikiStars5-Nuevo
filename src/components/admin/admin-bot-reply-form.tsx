@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -35,9 +34,9 @@ interface AdminBotReplyFormProps {
   figureId: string;
   figureName: string;
   parentComment: CommentType;
-  replyToComment: CommentType; // The specific comment/reply being replied to
+  replyToComment: CommentType; 
   onReplySuccess: () => void;
-  allComments: CommentType[]; // Pass all comments to find virtual users
+  allComments: CommentType[]; 
 }
 
 export default function AdminBotReplyForm({
@@ -52,7 +51,6 @@ export default function AdminBotReplyForm({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Extract unique virtual users from all comments
   const virtualUsers = useMemo(() => {
     const users: { [key: string]: { id: string; name: string, photo?: string | null } } = {};
     allComments.forEach(comment => {
@@ -90,7 +88,6 @@ export default function AdminBotReplyForm({
       const newReplyId = doc(collection(firestore, 'temp')).id;
 
       await runTransaction(firestore, async (transaction) => {
-        // All replies go to the parent comment's subcollection
         const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentComment.id);
         const repliesColRef = collection(parentCommentRef, 'replies');
         
@@ -132,14 +129,13 @@ export default function AdminBotReplyForm({
         }
       });
 
-      // Update streak for the bot
       await updateStreak({
         firestore,
         figureId,
         figureName,
         userId: selectedBot.id,
         userDisplayName: selectedBot.name,
-        userPhotoURL: selectedBot.photo || null,
+        userPhotoURL: selectedBot.photo || null, // Enviamos la foto del bot
         isAnonymous: true,
       });
 

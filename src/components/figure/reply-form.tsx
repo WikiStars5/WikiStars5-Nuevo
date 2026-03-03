@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext } from 'react';
@@ -27,8 +26,8 @@ type ReplyFormValues = z.infer<ReturnType<typeof createReplySchema>>;
 interface ReplyFormProps {
   figureId: string;
   figureName: string;
-  parentComment: CommentType; // The root comment of the thread
-  replyToComment: CommentType; // The comment being replied to (can be parent or another reply)
+  parentComment: CommentType; 
+  replyToComment: CommentType; 
   onReplySuccess: (newReply: CommentType) => void;
 }
 
@@ -45,7 +44,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
 
   const form = useForm<ReplyFormValues>({
     resolver: zodResolver(replySchema),
-    defaultValues: { text: '' }, // The initial text is now empty
+    defaultValues: { text: '' }, 
   });
   
   const getAvatarFallback = () => {
@@ -60,7 +59,6 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
     }
     setIsSubmitting(true);
 
-    // Combine the static mention with the user's input
     const fullText = `@[${replyToComment.userDisplayName}] ${data.text}`;
 
     let newReply: CommentType | null = null;
@@ -75,7 +73,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
             const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
             const displayName = userProfileData.username || user.displayName || 'Usuario';
             
-            const newReplyRef = doc(repliesColRef); // Create a new doc ref to get its ID
+            const newReplyRef = doc(repliesColRef); 
             const now = Timestamp.now();
 
             const newReplyData = {
@@ -98,7 +96,6 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
             
             newReply = newReplyData as CommentType;
             
-            // In transaction, use the data without the ID field for writing
             const { id, ...dataToWrite } = newReplyData;
             transaction.set(newReplyRef, dataToWrite);
             transaction.update(parentCommentRef, { replyCount: increment(1) });
@@ -122,13 +119,13 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
         });
 
 
-      // --- Streak Update ---
       const streakResult = await updateStreak({
         firestore,
         figureId,
         figureName,
         userId: user.uid,
         isAnonymous: user.isAnonymous,
+        userPhotoURL: user.photoURL // Enviamos la foto actual para la racha
       });
 
       if (streakResult?.streakGained) {

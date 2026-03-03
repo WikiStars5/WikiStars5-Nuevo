@@ -7,8 +7,6 @@ import {
     increment,
     Firestore,
     Timestamp,
-    getDoc,
-    DocumentReference,
 } from 'firebase/firestore';
 import type { Streak, User, AttitudeVote } from '@/lib/types';
 import { isDateActive } from '@/lib/streaks';
@@ -19,12 +17,13 @@ interface UpdateStreakParams {
     figureName: string;
     userId: string;
     isAnonymous: boolean;
+    userPhotoURL?: string | null; // Nuevo parámetro para asegurar la imagen más reciente
 }
 
 interface StreakUpdateResult {
     streakGained: boolean;
     newStreakCount: number;
-    livesChanged: number; // Can be 1, -1, or 0
+    livesChanged: number; 
 }
 
 function isSameDay(date1: Date, date2: Date): boolean {
@@ -46,6 +45,7 @@ export async function updateStreak({
     figureName,
     userId,
     isAnonymous,
+    userPhotoURL,
 }: UpdateStreakParams): Promise<StreakUpdateResult | null> {
     
     const privateStreakRef = doc(firestore, `users/${userId}/streaks`, figureId);
@@ -58,7 +58,7 @@ export async function updateStreak({
         const result = await runTransaction(firestore, async (transaction) => {
             let finalStreakCount = 1;
             let streakGained = false;
-            let livesChange = 0; // +1 for gaining, -1 for using, 0 for no change
+            let livesChange = 0; 
             let finalLivesCount = 0;
 
             const [privateStreakDoc, userDoc, attitudeVoteDoc, figureDoc] = await Promise.all([
@@ -79,7 +79,9 @@ export async function updateStreak({
             const userCountry = userData.country || 'unknown';
             const userGender = userData.gender || 'unknown';
             const userDisplayName = userData.username || (isAnonymous ? `Invitado_${userId.substring(0, 4)}` : 'Invitado');
-            const userPhotoURL = userData.profilePhotoUrl || null;
+            
+            // Priorizamos la foto enviada por el componente (Auth) sobre la de Firestore (UserData)
+            const finalPhotoURL = userPhotoURL || userData.profilePhotoUrl || null;
             const figureImageUrl = figureDoc.data()?.imageUrl || null;
 
             const attitude = attitudeVoteDoc.exists() ? (attitudeVoteDoc.data() as AttitudeVote).vote : null;
@@ -89,7 +91,6 @@ export async function updateStreak({
             let streakIsNowActive = true; 
 
             if (!privateStreakDoc.exists()) {
-                // First time activity for this figure
                 finalStreakCount = 1;
                 streakGained = true;
                 finalLivesCount = 0;
@@ -100,29 +101,23 @@ export async function updateStreak({
                 const lastCommentDate = streakData.lastCommentDate.toDate();
 
                 if (isSameDay(lastCommentDate, now)) {
-                    // Activity on the same day, no change to streak or lives.
                     finalStreakCount = streakData.currentStreak;
                     streakGained = false;
                 } else if (isYesterday(lastCommentDate, now)) {
-                    // Activity on the next day, streak continues.
                     finalStreakCount = (streakData.currentStreak || 0) + 1;
                     streakGained = true;
-                    // Check if a life is earned
                     if (finalStreakCount > 0 && finalStreakCount % 10 === 0) {
                         finalLivesCount += 1;
                         livesChange = 1;
                     }
                 } else {
-                    // Missed one or more days.
                     if (finalLivesCount > 0) {
-                        // Use a life to save the streak
                         finalLivesCount -= 1;
                         livesChange = -1;
-                        finalStreakCount = streakData.currentStreak; // Streak count doesn't increase but isn't reset
+                        finalStreakCount = streakData.currentStreak; 
                         streakGained = false;
                         streakIsNowActive = true;
                     } else {
-                        // No lives left, reset streak.
                         finalStreakCount = 1;
                         streakGained = true;
                     }
@@ -148,7 +143,7 @@ export async function updateStreak({
                 lastCommentDate: Timestamp.now(),
                 attitude: attitude,
                 userDisplayName: userDisplayName,
-                userPhotoURL: userPhotoURL,
+                userPhotoURL: finalPhotoURL, // Guardamos la URL resuelta
                 userCountry: userCountry,
                 userGender: userGender,
                 figureName: figureName,

@@ -33,14 +33,12 @@ interface PlayerData {
   imageUrl: string;
 }
 
-// Fetches a single figure by name. Limited to find Messi or Ronaldo.
 async function fetchFigureByName(firestore: any, name: string): Promise<PlayerData | null> {
     const figuresRef = collection(firestore, 'figures');
     const q = query(figuresRef, where('name', '==', name), limit(1));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
-        // Fallback data if not found in DB
         return {
             id: name.toLowerCase().replace(' ', '-'),
             name,
@@ -76,7 +74,6 @@ export default function GoatBattle() {
   const [timeLeft, setTimeLeft] = useState('');
 
 
-  // Get global battle data
   const battleDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'goat_battles', BATTLE_ID);
@@ -90,14 +87,12 @@ export default function GoatBattle() {
   }, [initialBattleData]);
   
 
-  // Get user's personal vote
   const userVoteDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, `goat_battles/${BATTLE_ID}/votes`, user.uid);
   }, [firestore, user]);
   const { data: userVote, isLoading: isUserVoteLoading, refetch: refetchUserVote } = useDoc<GoatVote>(userVoteDocRef);
 
-  // Fetch global settings to check if voting is enabled
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
   const areVotesEnabled = globalSettings?.isVotingEnabled ?? true;
@@ -129,16 +124,14 @@ export default function GoatBattle() {
   const isBattleOver = battleEndTime ? now > battleEndTime : false;
   let winner = battleData?.winner;
 
-  // Determine winner if battle is over and winner isn't set yet
   if (isBattleOver && !winner && battleData) {
       if (battleData.messiVotes > battleData.ronaldoVotes) {
           winner = 'messi';
       } else if (battleData.ronaldoVotes > battleData.messiVotes) {
           winner = 'ronaldo';
       } else {
-          winner = 'tie'; // Or handle ties as you see fit
+          winner = 'tie'; 
       }
-      // Non-blocking write to update the winner in Firestore
       if (firestore && winner !== 'tie' && battleDocRef) {
           updateDoc(battleDocRef, { winner: winner });
       }
@@ -282,16 +275,17 @@ export default function GoatBattle() {
             figureName: player === 'messi' ? 'Lionel Messi' : 'Cristiano Ronaldo',
             userId: currentUser.uid,
             isAnonymous: currentUser.isAnonymous,
+            userPhotoURL: currentUser.photoURL // Enviamos la foto actual
         });
 
         if (streakResult?.streakGained) {
             showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
         }
         
-        refetchUserVote(); // Refreshes user's vote status for UI update
+        refetchUserVote(); 
     } catch (error: any) {
         console.error("Error casting vote:", error);
-        setBattleData(initialBattleData); // Revert optimistic update
+        setBattleData(initialBattleData); 
         toast({
             title: t('AttitudeVoting.errorToast.title'),
             description: error.message || t('AttitudeVoting.errorToast.description'),
@@ -449,7 +443,7 @@ export default function GoatBattle() {
                         userVote?.vote === 'messi' && "ring-2 ring-offset-2 ring-blue-400 ring-offset-background"
                     )}
                     onClick={() => handleVote('messi')}
-                    disabled={isVoting || battleData?.isPaused}
+                    disabled={!isBattleActive || isVoting || battleData?.isPaused}
                 >
                     {isVoting && userVote?.vote !== 'messi' ? <Loader2 className="animate-spin" /> : t('GoatBattle.messiButton')}
                 </Button>
@@ -460,7 +454,7 @@ export default function GoatBattle() {
                         userVote?.vote === 'ronaldo' && "ring-2 ring-offset-2 ring-red-400 ring-offset-background"
                     )}
                     onClick={() => handleVote('ronaldo')}
-                    disabled={isVoting || battleData?.isPaused}
+                    disabled={!isBattleActive || isVoting || battleData?.isPaused}
                 >
                     {isVoting && userVote?.vote !== 'ronaldo' ? <Loader2 className="animate-spin" /> : t('GoatBattle.ronaldoButton')}
                 </Button>
@@ -489,5 +483,3 @@ export default function GoatBattle() {
       </Card>
   );
 }
-
-    
