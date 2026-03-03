@@ -163,7 +163,7 @@ export default function Header() {
           ) : user ? (
             <>
               <InstallPwaButton />
-              {!user.isAnonymous && <NotificationBell />}
+              <NotificationBell />
               <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
                 <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
               </Dialog>
