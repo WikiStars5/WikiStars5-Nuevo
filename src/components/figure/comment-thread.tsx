@@ -178,6 +178,12 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                     repliesSnapshot = await getDocs(repliesRef);
                 }
 
+                // If it's a reply, decrement the parent's replyCount
+                if (isReply && comment.parentId) {
+                    const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', comment.parentId);
+                    transaction.update(parentCommentRef, { replyCount: increment(-1) });
+                }
+
                 if (!isReply && typeof comment.rating === 'number' && comment.rating >= 0) {
                      const ratingUpdates: { [key: string]: any } = {
                         ratingCount: increment(-1),
@@ -322,7 +328,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                             </div>
                         )}
                         {comment.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Feminino">♀</span>}
+                        {comment.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
                         {country && (
                             <Image
                                 src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
@@ -367,7 +373,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                                 <X className="mr-1.5 h-4 w-4" /> {t("ReplyForm.cancelButton")}
                             </Button>
                             <Button size="sm" onClick={handleUpdate} disabled={isSavingEdit}>
-                                {isSavingEdit ? <Loader2 className="animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />} {t("EditFigure.buttons.save")}
+                                {isSavingEdit ? <Loader2 className="animate-spin" /> : <Save className="mr-1.5 h-4 w-4" />} {t("EditFigure.buttons.save")}
                             </Button>
                         </div>
                     </div>
