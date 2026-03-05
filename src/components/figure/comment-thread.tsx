@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
@@ -139,6 +140,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 figureName,
                 userId: user.uid,
                 isAnonymous: user.isAnonymous,
+                userPhotoURL: user.photoURL
             });
 
             if (streakResult?.streakGained) {

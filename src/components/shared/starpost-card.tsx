@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import type { Comment, CommentVote, Streak } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -34,6 +35,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '../ui/textarea';
 import { ShareButton } from './ShareButton';
+import { updateStreak } from '@/firebase/streaks';
+import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -56,6 +59,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   const firestore = useFirestore();
   const { toast } = useToast();
   const { theme } = useTheme();
+  const { showStreakAnimation } = useContext(StreakAnimationContext);
   
   const [post, setPost] = useState(initialPost);
   const [isReplying, setIsReplying] = useState(false);
@@ -227,6 +231,21 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
             
             transaction.update(commentRef, updates);
         });
+
+        // Update streak for the voter
+        const streakResult = await updateStreak({
+            firestore,
+            figureId: post.figureId,
+            figureName: post.figureName,
+            userId: user.uid,
+            isAnonymous: user.isAnonymous,
+            userPhotoURL: user.photoURL
+        });
+
+        if (streakResult?.streakGained) {
+            showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
+        }
+
         refetchVote();
     } catch (error: any) {
         console.error("Error al votar:", error);
