@@ -1,9 +1,7 @@
-
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -13,196 +11,84 @@ import {
   CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useFirestore } from '@/firebase';
+// Usamos doc y getDoc para leer un documento específico
+import { doc, getDoc } from 'firebase/firestore';
+import { ArrowLeft, Bell, Hash } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, limit, startAfter, DocumentSnapshot } from 'firebase/firestore';
-import type { User } from '@/lib/types';
-import { ArrowLeft, Bell, ChevronLeft, ChevronRight, Smartphone } from 'lucide-react';
-import { countries } from '@/lib/countries';
-import { useLanguage } from '@/context/LanguageContext';
 
-const ITEMS_PER_PAGE = 20;
-
-export default function SubscribersAdminPage() {
+export default function NotificationStatsPage() {
   const firestore = useFirestore();
-  const { t } = useLanguage();
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const [lastVisible, setLastVisible] = React.useState<DocumentSnapshot | null>(null);
-  const [pageSnapshots, setPageSnapshots] = React.useState<Record<number, DocumentSnapshot>>({});
+  const [totalSubscribers, setTotalSubscribers] = React.useState<number | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const subscribersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    
-    let q = query(
-      collection(firestore, 'users'),
-      where('tokenCount', '>', 0),
-      orderBy('tokenCount', 'desc'),
-      limit(ITEMS_PER_PAGE)
-    );
+  React.useEffect(() => {
+    async function getStats() {
+      if (!firestore) return;
 
-    if (currentPage > 1 && pageSnapshots[currentPage - 1]) {
-        q = query(q, startAfter(pageSnapshots[currentPage - 1]));
+      try {
+        setIsLoading(true);
+        // Referencia directa al documento mostrado en tu captura
+        const docRef = doc(firestore, 'stats', 'notifications');
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          // Extraemos el valor del campo totalSubscribers
+          setTotalSubscribers(docSnap.data().totalSubscribers || 0);
+        } else {
+          console.log("El documento no existe");
+          setTotalSubscribers(0);
+        }
+      } catch (error) {
+        console.error("Error al obtener estadísticas:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
 
-    return q;
-  }, [firestore, currentPage, pageSnapshots]);
-
-  const { data: subscribers, isLoading } = useCollection<User>(subscribersQuery, {
-      onNewData: (snapshot) => {
-          if (snapshot.docs.length > 0) {
-              const last = snapshot.docs[snapshot.docs.length - 1];
-              setLastVisible(last);
-          }
-      }
-  });
-
-  const handleNextPage = () => {
-      if (lastVisible) {
-          setPageSnapshots(prev => ({ ...prev, [currentPage]: lastVisible }));
-          setCurrentPage(prev => prev + 1);
-      }
-  };
-
-  const handlePrevPage = () => {
-      setCurrentPage(prev => Math.max(1, prev - 1));
-  };
-
-  const getCountryName = (countryKey?: string) => {
-    if (!countryKey) return 'N/A';
-    return t(`countries.${countryKey.toLowerCase().replace(/ /g, '_')}`);
-  }
+    getStats();
+  }, [firestore]);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="text-primary" />
-              Suscriptores de Notificaciones
+    <div className="flex items-center justify-center min-h-[400px]">
+      <Card className="w-full max-w-md border-zinc-800 bg-zinc-950 text-white">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-xl font-bold">
+              <Bell className="text-yellow-400" />
+              Estadísticas de Notificaciones
             </CardTitle>
-            <CardDescription>
-              Usuarios que han habilitado las notificaciones push (FCM).
-            </CardDescription>
+            <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white" asChild>
+              <Link href="/admin">
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+            </Button>
           </div>
-          <Button variant="outline" asChild>
-            <Link href="/admin">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Volver al panel
-            </Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Usuario</TableHead>
-              <TableHead>País</TableHead>
-              <TableHead>Sexo</TableHead>
-              <TableHead className="text-center">Dispositivos</TableHead>
-              <TableHead className="text-right">Última Visita</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading &&
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={`skel-${i}`}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <Skeleton className="h-5 w-32" />
-                    </div>
-                  </TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-8 mx-auto" /></TableCell>
-                  <TableCell className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
-                </TableRow>
-              ))}
-            {!isLoading && (!subscribers || subscribers.length === 0) && (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  Aún no hay usuarios suscritos.
-                </TableCell>
-              </TableRow>
-            )}
-            {!isLoading && subscribers?.map((sub) => {
-                const countryData = sub.country ? countries.find(c => c.key === sub.country?.toLowerCase()) : null;
-                return (
-                    <TableRow key={sub.id}>
-                        <TableCell>
-                        <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                                <AvatarImage src={sub.profilePhotoUrl || undefined} />
-                                <AvatarFallback>{sub.username?.charAt(0) || 'U'}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{sub.username || 'Invitado'}</span>
-                        </div>
-                        </TableCell>
-                        <TableCell>
-                            <div className="flex items-center gap-2">
-                                {countryData && (
-                                    <Image
-                                        src={`https://flagcdn.com/w20/${countryData.code.toLowerCase()}.png`}
-                                        alt={countryData.key}
-                                        width={20}
-                                        height={15}
-                                        className="object-contain"
-                                    />
-                                )}
-                                <span className="text-xs">{getCountryName(sub.country || undefined)}</span>
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-xs">{sub.gender || 'N/A'}</TableCell>
-                        <TableCell className="text-center">
-                            <div className="inline-flex items-center gap-1 bg-muted px-2 py-1 rounded-md text-xs font-bold">
-                                <Smartphone className="h-3 w-3" />
-                                {sub.tokenCount || sub.fcmTokens?.length || 0}
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-right text-xs text-muted-foreground">
-                            {sub.lastVisit ? format(sub.lastVisit.toDate(), 'PP', { locale: es }) : 'Nunca'}
-                        </TableCell>
-                    </TableRow>
-                )
-            })}
-          </TableBody>
-        </Table>
-      </CardContent>
-       <CardFooter className="flex justify-between items-center">
-        <div className="text-xs text-muted-foreground">
-          Página <strong>{currentPage}</strong>
-        </div>
-        <div className="flex items-center gap-2">
-            <Button
-                size="sm"
-                variant="outline"
-                onClick={handlePrevPage}
-                disabled={currentPage === 1 || isLoading}
-            >
-                <ChevronLeft className="h-4 w-4" />
-                Anterior
-            </Button>
-            <Button
-                size="sm"
-                variant="outline"
-                onClick={handleNextPage}
-                disabled={isLoading || (subscribers?.length || 0) < ITEMS_PER_PAGE}
-            >
-                Siguiente
-                <ChevronRight className="h-4 w-4" />
-            </Button>
-        </div>
-      </CardFooter>
-    </Card>
+          <CardDescription className="text-zinc-500">
+            Total de dispositivos vinculados en el sistema.
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          {isLoading ? (
+            <Skeleton className="h-20 w-32 bg-zinc-800" />
+          ) : (
+            <div className="text-8xl font-black tracking-tighter flex items-center gap-3">
+              <span className="text-zinc-700 text-5xl">#</span>
+              {totalSubscribers?.toLocaleString() ?? 0}
+            </div>
+          )}
+          <p className="text-xs text-zinc-500 mt-6 font-bold uppercase tracking-[0.2em]">
+            Suscriptores Totales
+          </p>
+        </CardContent>
+
+        <CardFooter className="border-t border-zinc-900 bg-zinc-900/50 p-4 flex justify-center">
+          <p className="text-[10px] text-center text-zinc-600">
+            Dato obtenido en tiempo real desde /stats/notifications
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

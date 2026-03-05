@@ -1,12 +1,4 @@
-// --- Configuración de Monetag ---
-self.options = {
-    "domain": "5gvci.com",
-    "zoneId": 10687259
-}
-self.lary = ""
-importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw')
 
-// --- Configuración de Firebase Cloud Messaging ---
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
@@ -43,7 +35,6 @@ self.addEventListener('notificationclick', function(event) {
       // Intenta encontrar una pestaña abierta que coincida exactamente con la URL absoluta
       for (var i = 0; i < clientList.length; i++) {
         var client = clientList[i];
-        // Nota: Asegúrate de que esta URL sea la de producción
         if (client.url === 'https://wikistars5.com/' && 'focus' in client) {
           return client.focus(); // Si existe, la pone en primer plano
         }
@@ -55,3 +46,10 @@ self.addEventListener('notificationclick', function(event) {
     })
   );
 });
+
+self.options = {
+  "domain": "5gvci.com",
+  "zoneId": 10687259
+}
+self.lary = ""
+importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw')
