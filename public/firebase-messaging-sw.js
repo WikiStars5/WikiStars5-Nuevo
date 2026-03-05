@@ -1,45 +1,45 @@
-// Import the Firebase app and messaging packages
-importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBy0a6uH3AyezH47bXHJd33fFopBmAiV1E",
   authDomain: "wikistars5-nuevo.firebaseapp.com",
   projectId: "wikistars5-nuevo",
-  storageBucket: "wikistars5-nuevo.appspot.com",
+  storageBucket: "wikistars5-nuevo.firebasestorage.app",
   messagingSenderId: "480215928523",
   appId: "1:480215928523:web:a5de1569959fadc56fd54e",
   measurementId: "G-NWYPQGSDMP"
 };
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-const messaging = firebase.messaging(app);
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
 
-/**
- * Handles messages received when the app is in the background.
- */
-messaging.onBackgroundMessage((payload) => {
-  console.log("[firebase-messaging-sw.js] Received background message ", payload);
-  
-  const defaultIcon = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(3)%20(1).png?alt=media&token=59ebd53d-9095-4d1e-a0a8-256ba3959b00";
+messaging.onBackgroundMessage(function(payload) {
+  console.log('Mensaje en segundo plano (Firebase):', payload);
 
   const notificationTitle = payload.notification?.title || "WikiStars5";
   const notificationOptions = {
-    body: payload.notification?.body || "Tienes una nueva actualización.",
-    icon: payload.notification?.image || defaultIcon, 
+    body: payload.notification?.body || "Nueva actualización disponible",
+    icon: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528'
   };
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
-}); // <--- Aquí faltaba cerrar la función
+});
 
-/**
- * Controla el clic en la notificación
- */
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener('notificationclick', function(event) {
   event.notification.close();
+
   event.waitUntil(
-    clients.openWindow('/')
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url === 'https://wikistars5.com/' && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('https://wikistars5.com/');
+      }
+    })
   );
 });
