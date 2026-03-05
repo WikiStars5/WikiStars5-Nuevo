@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -19,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/icons';
 import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider, useDoc, useMemoFirebase, useFirebaseApp, requestNotificationPermissionAndGetToken } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote, Heart, Check } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote, Heart, Check, Users } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
@@ -35,6 +36,7 @@ import { useTheme } from 'next-themes';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSnow } from '@/context/SnowContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { saveFcmToken } from '@/firebase/notifications';
 
 
 export default function Header() {
@@ -92,16 +94,19 @@ export default function Header() {
   }
 
   const handleSubscribe = async () => {
-    if (!firebaseApp) {
+    if (!firebaseApp || !firestore || !user) {
       toast({
           title: "Error",
-          description: "Firebase no está inicializado.",
+          description: "Debes estar conectado para suscribirte.",
           variant: "destructive",
       });
       return;
     }
     const token = await requestNotificationPermissionAndGetToken(firebaseApp);
     if (token) {
+        // Save the token and update stats
+        await saveFcmToken(firestore, user.uid, token);
+        
         toast({
             title: "¡Suscrito a las notificaciones!",
             description: "Ahora recibirás notificaciones sobre la actividad importante.",
@@ -221,6 +226,12 @@ export default function Header() {
                                 <Link href="/admin">
                                 <Gem className="mr-2 h-4 w-4" />
                                 <span>{t('Header.adminPanel')}</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/admin/subscribers">
+                                  <Users className="mr-2 h-4 w-4" />
+                                  <span>Suscriptores</span>
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useContext } from 'react';
@@ -6,22 +7,28 @@ import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Bell } from 'lucide-react';
-import { requestNotificationPermissionAndGetToken, useFirebaseApp } from '@/firebase';
+import { requestNotificationPermissionAndGetToken, useFirebaseApp, useFirestore, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { saveFcmToken } from '@/firebase/notifications';
 
 export default function StreakAnimationOverlay() {
   const { isVisible, streakCount, isPromptVisible, hideStreakAnimation } = useContext(StreakAnimationContext);
   const firebaseApp = useFirebaseApp();
+  const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
   const handleSubscribe = async () => {
-    if (!firebaseApp) {
+    if (!firebaseApp || !firestore || !user) {
       toast({ title: "Error", description: "Firebase no está inicializado.", variant: "destructive" });
       hideStreakAnimation();
       return;
     }
     const token = await requestNotificationPermissionAndGetToken(firebaseApp);
     if (token) {
+        // Save the token and update stats
+        await saveFcmToken(firestore, user.uid, token);
+
         toast({ title: "¡Suscrito a las notificaciones!", description: "Ahora recibirás notificaciones para no perder tu racha." });
     } else {
         toast({ title: "Permiso no concedido", description: "No se pudieron activar las notificaciones.", variant: "destructive" });

@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessagesSquare, MessageCircle, Share2, Bot, Calendar as CalendarIcon, Clock, Flame } from 'lucide-react';
+import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessagesSquare, MessageCircle, Share2, Bot, Calendar as CalendarIcon, Clock, Flame, Bell } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, runTransaction, Timestamp, serverTimestamp, increment } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { GlobalSettings, FigureStats } from '@/lib/types';
+import type { GlobalSettings, FigureStats, NotificationStats } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -71,7 +71,15 @@ export default function AdminDashboard() {
   const { data: figuresStats, isLoading: isLoadingFigures } = useDoc<FigureStats>(figuresStatsDocRef);
   
   const actualFigureCount = figuresStats?.totalCount ?? 0;
-  // --- End Figure Count Logic ---
+
+  // --- Notification Subscribers Logic ---
+  const notifStatsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'stats', 'notifications');
+  }, [firestore]);
+  const { data: notifStats, isLoading: isLoadingNotifs } = useDoc<NotificationStats>(notifStatsDocRef);
+
+  const totalSubscribers = notifStats?.totalSubscribers ?? 0;
 
 
   const usersCollection = useMemoFirebase(() => {
@@ -224,42 +232,48 @@ export default function AdminDashboard() {
             </Button>
         </div>
       </div>
-      <Card>
-          <CardHeader>
-            <CardTitle>Resumen de la Plataforma</CardTitle>
-            <CardDescription>Estado general de los datos de la aplicación WikiStars5.</CardDescription>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between">
+                Total de Perfiles
+                <List className="h-4 w-4" />
+            </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-6 rounded-lg bg-muted">
-              <div>
-                <div className='flex justify-between items-center mb-2'>
-                    <h3 className="text-sm font-medium text-muted-foreground">Total de Perfiles</h3>
-                    <List className="h-4 w-4 text-muted-foreground" />
-                </div>
-                {isLoadingFigures ? (
-                    <Skeleton className="h-9 w-1/4" />
-                ) : (
-                    <div className="text-4xl font-bold">{actualFigureCount}</div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">perfiles gestionados en Firestore</p>
-              </div>
-            </div>
-             <div className="p-6 rounded-lg bg-muted">
-              <div>
-                <div className='flex justify-between items-center mb-2'>
-                    <h3 className="text-sm font-medium text-muted-foreground">Usuarios Registrados</h3>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                </div>
-                {isLoadingUsers ? (
-                    <Skeleton className="h-9 w-1/4" />
-                ) : (
-                    <div className="text-4xl font-bold">{users?.length ?? 0}</div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">usuarios en la base de datos</p>
-              </div>
-            </div>
+          <CardContent>
+            {isLoadingFigures ? <Skeleton className="h-9 w-1/4" /> : <div className="text-3xl font-bold">{actualFigureCount}</div>}
+            <p className="text-xs text-muted-foreground mt-1">perfiles en Firestore</p>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between">
+                Usuarios Registrados
+                <Users className="h-4 w-4" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingUsers ? <Skeleton className="h-9 w-1/4" /> : <div className="text-3xl font-bold">{users?.length ?? 0}</div>}
+            <p className="text-xs text-muted-foreground mt-1">usuarios en la DB</p>
+          </CardContent>
+        </Card>
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-primary flex justify-between">
+                Suscriptores Notificaciones
+                <Bell className="h-4 w-4" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingNotifs ? <Skeleton className="h-9 w-1/4" /> : <div className="text-3xl font-bold text-primary">{totalSubscribers}</div>}
+            <p className="text-xs text-muted-foreground mt-1">usuarios con tokens FCM</p>
+            <Button variant="link" size="sm" asChild className="p-0 h-auto mt-2 text-xs">
+                <Link href="/admin/subscribers">Ver lista completa →</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
          <Card>
             <CardHeader>
                 <CardTitle>Gestión de Eventos y Funciones</CardTitle>
@@ -455,5 +469,3 @@ export default function AdminDashboard() {
     </>
   );
 }
-
-    

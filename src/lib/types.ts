@@ -9,6 +9,7 @@ export interface User {
   profilePhotoUrl?: string;
   coverPhotoUrl?: string;
   fcmTokens?: string[]; // For Push Notifications
+  tokenCount?: number; // Optimization for querying subscribers
   referralCount?: number;
   visitCount?: number;
   lastVisit?: Timestamp;
@@ -18,6 +19,10 @@ export interface User {
 
 export interface FigureStats {
   totalCount: number;
+}
+
+export interface NotificationStats {
+  totalSubscribers: number;
 }
 
 export interface GlobalSettings {
