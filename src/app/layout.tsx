@@ -129,6 +129,14 @@ export default function RootLayout({
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
+
+        {/* Monetag Push Notifications */}
+        <Script
+          src="https://5gvci.com/act/files/tag.min.js?z=10688478"
+          data-cfasync="false"
+          async
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
