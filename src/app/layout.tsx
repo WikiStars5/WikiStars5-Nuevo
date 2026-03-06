@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import { Inter, Source_Code_Pro } from 'next/font/google';
 import './globals.css';
@@ -12,6 +11,7 @@ import Script from 'next/script';
 import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { SnowProvider } from '@/context/SnowContext';
+import OneClickAd from '@/components/ads/one-click-ad';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -58,10 +58,8 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
         <link rel="manifest" href="/manifest.json" />
-        {/* AdSense script is deferred below using next/script */}
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
-        {/* Meta Pixel Code */}
         <noscript>
           <img
             height="1"
@@ -70,7 +68,6 @@ export default function RootLayout({
             src="https://www.facebook.com/tr?id=815352248035468&ev=PageView&noscript=1"
           />
         </noscript>
-        {/* End Meta Pixel Code */}
         
         <ThemeProvider
           attribute="class"
@@ -85,6 +82,8 @@ export default function RootLayout({
                   <Toaster />
                   <StreakAnimationOverlay />
                   <CookieConsentBanner />
+                  {/* Lógica de Anuncio One Click - 1 vez al día */}
+                  <OneClickAd />
                 </StreakAnimationProvider>
               </SnowProvider>
             </LanguageProvider>
@@ -122,7 +121,7 @@ export default function RootLayout({
             `}
         </Script>
 
-        {/* AdSense Code - Deferred Loading */}
+        {/* AdSense Code */}
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js?client=ca-pub-4946268254100131"
