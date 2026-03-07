@@ -60,6 +60,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
+        {/* DESACTIVADO: Meta Pixel NoScript
         <noscript>
           <img
             height="1"
@@ -68,6 +69,7 @@ export default function RootLayout({
             src="https://www.facebook.com/tr?id=815352248035468&ev=PageView&noscript=1"
           />
         </noscript>
+        */}
         
         <ThemeProvider
           attribute="class"
@@ -82,8 +84,9 @@ export default function RootLayout({
                   <Toaster />
                   <StreakAnimationOverlay />
                   <CookieConsentBanner />
-                  {/* Lógica de Anuncio One Click - 1 vez al día */}
+                  {/* DESACTIVADO: Lógica de Anuncio One Click
                   <OneClickAd />
+                  */}
                 </StreakAnimationProvider>
               </SnowProvider>
             </LanguageProvider>
@@ -105,7 +108,7 @@ export default function RootLayout({
           `}
         </Script>
 
-        {/* Meta Pixel Code */}
+        {/* DESACTIVADO: Meta Pixel Code
         <Script id="fb-pixel" strategy="afterInteractive">
             {`
                 !function(f,b,e,v,n,t,s)
@@ -120,27 +123,31 @@ export default function RootLayout({
                 fbq('track', 'PageView');
             `}
         </Script>
+        */}
 
-        {/* AdSense Code */}
+        {/* DESACTIVADO: AdSense Code
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js?client=ca-pub-4946268254100131"
           crossOrigin="anonymous"
           strategy="afterInteractive"
         />
+        */}
 
-        {/* Monetag Push Notifications */}
+        {/* DESACTIVADO: Monetag Push Notifications
         <Script
           src="https://5gvci.com/act/files/tag.min.js?z=10688478"
           data-cfasync="false"
           async
           strategy="afterInteractive"
         />
+        */}
 
-        {/* Vignette Banner */}
+        {/* DESACTIVADO: Vignette Banner
         <Script id="vignette-banner" strategy="afterInteractive">
           {`(function(s){s.dataset.zone='10690961',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`}
         </Script>
+        */}
       </body>
     </html>
   );
