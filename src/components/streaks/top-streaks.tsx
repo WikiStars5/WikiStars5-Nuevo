@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useFirestore, useAdmin } from '@/firebase';
-import { collection, query, orderBy, getDocs, where, limit, Timestamp } from 'firebase/firestore';
+import { useState, useEffect, useMemo } from 'react';
+import { useFirestore } from '@/firebase';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Flame, Trophy, HelpCircle, Heart } from 'lucide-react';
-import { Streak, AttitudeVote, Figure } from '@/lib/types';
+import { Streak, Figure } from '@/lib/types';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import Image from 'next/image';
 import { countries } from '@/lib/countries';
@@ -64,9 +64,10 @@ const StreakItemSkeleton = () => (
 export default function TopStreaks({ figure }: TopStreaksProps) {
     const firestore = useFirestore();
     const { t } = useLanguage();
-    const [topStreaks, setTopStreaks] = useState<Streak[]>([]);
+    const [allActiveStreaks, setAllActiveStreaks] = useState<Streak[]>([]);
     const [activeStreaksCount, setActiveStreaksCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [visibleCount, setVisibleCount] = useState(10);
     const { theme } = useTheme();
 
     useEffect(() => {
@@ -74,7 +75,6 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
             if (!firestore) return;
             setIsLoading(true);
             try {
-                // Query the new public subcollection within the figure document.
                 const streaksQuery = query(
                     collection(firestore, `figures/${figure.id}/streaks`),
                     orderBy('currentStreak', 'desc')
@@ -83,12 +83,11 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                 const snapshot = await getDocs(streaksQuery);
                 const allStreaks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Streak));
 
-                // Filter for active streaks
                 const activeStreaks = allStreaks
                     .filter(streak => isDateActive(streak.lastCommentDate));
                 
                 setActiveStreaksCount(activeStreaks.length);
-                setTopStreaks(activeStreaks.slice(0, 10)); // Display top 10
+                setAllActiveStreaks(activeStreaks);
 
             } catch (error) {
                 console.error("Failed to fetch top streaks:", error);
@@ -99,6 +98,8 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
 
         fetchStreaks();
     }, [firestore, figure.id]);
+
+    const visibleStreaks = useMemo(() => allActiveStreaks.slice(0, visibleCount), [allActiveStreaks, visibleCount]);
 
     return (
         <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
@@ -146,9 +147,9 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                     <div className="space-y-2">
                         {Array.from({ length: 3 }).map((_, i) => <StreakItemSkeleton key={i} />)}
                     </div>
-                ) : topStreaks.length > 0 ? (
+                ) : allActiveStreaks.length > 0 ? (
                     <div className="space-y-1">
-                        {topStreaks.map((streak, index) => {
+                        {visibleStreaks.map((streak, index) => {
                              const countryData = streak.userCountry ? countries.find(c => c.key === streak.userCountry.toLowerCase().replace(/ /g, '_')) : null;
                              const attitudeStyle = streak.attitude ? attitudeStyles[streak.attitude as AttitudeOption] : null;
                             return (
@@ -190,7 +191,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                                                 alt="Streak flame"
                                                 width={24}
                                                 height={24}
-                                                unoptimized // GIF animations are not optimized by next/image
+                                                unoptimized
                                             />
                                         </div>
                                          {typeof streak.lives === 'number' && streak.lives > 0 && (
@@ -203,6 +204,18 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                                 </div>
                             );
                         })}
+
+                        {allActiveStreaks.length > visibleCount && (
+                            <div className="pt-4 flex justify-center">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => setVisibleCount(prev => prev + 10)}
+                                    className="w-full sm:w-auto"
+                                >
+                                    Ver más rachas
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <p className="text-center text-muted-foreground py-6">

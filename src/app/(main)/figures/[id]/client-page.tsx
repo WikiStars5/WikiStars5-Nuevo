@@ -1,26 +1,24 @@
 'use client';
 
 import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
-import { doc, getDoc, collection } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Figure, Comment, Achievement } from '@/lib/types';
+import type { Figure, Achievement } from '@/lib/types';
 import ProfileHeader from '@/components/figure/ProfileHeader';
-import AttitudeVoting from '@/components/figure/attitude-voting';
 import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Flame, Trophy, Lock, ArrowDown, Star } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Trophy, Star } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import CommunityRatings from '@/components/figure/community-ratings';
 import RelatedFigures from '@/components/figure/related-figures';
 import TopStreaks from '@/components/streaks/top-streaks';
-import GoatBattle from '@/components/figure/goat-battle';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { countries } from '@/lib/countries';
@@ -78,6 +76,7 @@ function FigureDetailSkeleton() {
             <Skeleton className="h-28 w-28 flex-shrink-0 rounded-full md:h-36 md:w-36" />
             <div className="flex-1 space-y-3 text-center md:text-left">
               <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
             </div>
           </div>
         </CardContent>
@@ -163,8 +162,8 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
     if (shareType === 'bias-bts') return 'bias-bts';
     if (shareType === 'bias-blackpink') return 'bias-blackpink';
     
-    return 'reseñas';
-  }, [searchParams]);
+    return isBtsMember ? 'reseñas' : 'wiki';
+  }, [searchParams, isBtsMember]);
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -172,7 +171,6 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
-  const isGoatCandidate = figure?.name === 'Lionel Messi' || figure?.name === 'Cristiano Ronaldo';
   const hasPioneer = userAchievements?.achievements?.includes('pioneer_1000');
 
 
