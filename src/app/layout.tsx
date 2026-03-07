@@ -8,10 +8,8 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { StreakAnimationProvider } from '@/context/StreakAnimationContext';
 import StreakAnimationOverlay from '@/components/streaks/StreakAnimationOverlay';
 import Script from 'next/script';
-import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { SnowProvider } from '@/context/SnowContext';
-import OneClickAd from '@/components/ads/one-click-ad';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -60,17 +58,6 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
-        {/* DESACTIVADO: Meta Pixel NoScript
-        <noscript>
-          <img
-            height="1"
-            width="1"
-            style={{ display: 'none' }}
-            src="https://www.facebook.com/tr?id=815352248035468&ev=PageView&noscript=1"
-          />
-        </noscript>
-        */}
-        
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -83,10 +70,6 @@ export default function RootLayout({
                   {children}
                   <Toaster />
                   <StreakAnimationOverlay />
-                  <CookieConsentBanner />
-                  {/* DESACTIVADO: Lógica de Anuncio One Click
-                  <OneClickAd />
-                  */}
                 </StreakAnimationProvider>
               </SnowProvider>
             </LanguageProvider>
@@ -107,47 +90,6 @@ export default function RootLayout({
             gtag('config', 'G-JPZ1R12H4D');
           `}
         </Script>
-
-        {/* DESACTIVADO: Meta Pixel Code
-        <Script id="fb-pixel" strategy="afterInteractive">
-            {`
-                !function(f,b,e,v,n,t,s)
-                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-                n.queue=[];t=b.createElement(e);t.async=!0;
-                t.src=v;s=b.getElementsByTagName(e)[0];
-                s.parentNode.insertBefore(t,s)}(window, document,'script',
-                'https://connect.facebook.net/en_US/fbevents.js');
-                fbq('init', '815352248035468');
-                fbq('track', 'PageView');
-            `}
-        </Script>
-        */}
-
-        {/* DESACTIVADO: AdSense Code
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js?client=ca-pub-4946268254100131"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
-        */}
-
-        {/* DESACTIVADO: Monetag Push Notifications
-        <Script
-          src="https://5gvci.com/act/files/tag.min.js?z=10688478"
-          data-cfasync="false"
-          async
-          strategy="afterInteractive"
-        />
-        */}
-
-        {/* DESACTIVADO: Vignette Banner
-        <Script id="vignette-banner" strategy="afterInteractive">
-          {`(function(s){s.dataset.zone='10690961',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`}
-        </Script>
-        */}
       </body>
     </html>
   );

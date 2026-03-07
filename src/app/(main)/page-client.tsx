@@ -16,6 +16,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
+import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
 
 // CONFIGURACIÓN DE RENTABILIDAD
 const MAX_FIGURES_TO_CONSULT = 5; // Cada clic consulta 5 figuras al azar
@@ -181,6 +182,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
         Para ti: Lo más reciente
       </h2>
       {renderContent()}
+      <CookieConsentBanner />
     </div>
   );
 }
