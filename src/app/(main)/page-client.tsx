@@ -37,15 +37,15 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isAppending, setIsAppending] = React.useState(false); // Estado para el botón de "Ver más"
 
-  // 1. Obtener IDs de figuras votadas por el usuario
+  // 1. Obtener IDs de figuras votadas por el usuario (incluyendo anónimos)
   const attitudeVotesQuery = useMemoFirebase(() => {
-    if (!user || !firestore || user.isAnonymous) return null;
+    if (!user || !firestore) return null;
     return collection(firestore, 'users', user.uid, 'attitudeVotes');
   }, [user, firestore]);
 
   const { data: attitudeVotes, isLoading: isLoadingVotes } = useCollection<AttitudeVote>(
     attitudeVotesQuery, 
-    { enabled: !!user && !user.isAnonymous }
+    { enabled: !!user }
   );
 
   const votedFigureIds = React.useMemo(() => {
