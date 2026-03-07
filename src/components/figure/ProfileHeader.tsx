@@ -98,13 +98,14 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
           <div className="relative flex-shrink-0">
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="h-28 w-28 md:h-36 md:w-36 rounded-full border-4 border-card p-0 shadow-lg cursor-pointer">
+                <Button className="h-28 w-28 md:h-36 md:w-36 rounded-full border-4 border-card p-0 shadow-lg cursor-pointer overflow-hidden">
                     <Image
                         src={figure.imageUrl || `https://placehold.co/400x400?text=${encodeURIComponent(figure.name)}`}
                         alt={figure.name}
                         fill
-                        className="rounded-full object-cover"
+                        className="object-cover"
                         data-ai-hint={figure.imageHint}
+                        priority={true} // Priority loading for LCP optimization
                     />
                 </Button>
               </DialogTrigger>

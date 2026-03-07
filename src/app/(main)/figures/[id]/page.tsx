@@ -111,10 +111,10 @@ export async function generateMetadata({ params, searchParams }: FigurePageProps
 function FigureDetailSkeleton() {
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
-      <Skeleton className="h-48 w-full" />
+      <div className="h-[250px] md:h-[320px] w-full rounded-lg bg-muted animate-pulse mb-6" />
       <div className="mt-6">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-64 w-full mt-4" />
+        <Skeleton className="h-10 w-full mb-4" />
+        <Skeleton className="h-64 w-full" />
       </div>
     </div>
   );
@@ -123,9 +123,11 @@ function FigureDetailSkeleton() {
 
 export default async function FigureDetailPage({ params }: FigurePageProps) {
   const { id } = params;
+  const initialFigure = await getFigureData(id);
+
   return (
     <Suspense fallback={<FigureDetailSkeleton />}>
-      <FigureDetailClient figureId={id} />
+      <FigureDetailClient figureId={id} initialFigure={initialFigure} />
     </Suspense>
   );
 }

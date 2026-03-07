@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
@@ -70,24 +71,10 @@ const SocialLink = ({ platform, url }: { platform: string; url: string }) => {
 function FigureDetailSkeleton() {
   return (
     <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
-      <Card className="overflow-hidden">
-        <CardContent className="p-6 md:p-8">
-          <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
-            <Skeleton className="h-28 w-28 flex-shrink-0 rounded-full md:h-36 md:w-36" />
-            <div className="flex-1 space-y-3 text-center md:text-left">
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="h-[250px] md:h-[320px] w-full rounded-lg bg-muted animate-pulse mb-6" />
       <div className="mt-6">
-        <Skeleton className="h-10 w-full" />
-        <Card className="mt-4">
-          <CardContent className="p-6">
-            <Skeleton className="h-24 w-full" />
-          </CardContent>
-        </Card>
+        <Skeleton className="h-10 w-full mb-4" />
+        <Skeleton className="h-64 w-full" />
       </div>
     </div>
   );
@@ -120,7 +107,7 @@ const formatHeight = (cm?: number): string | null => {
     return `${(cm / 100).toFixed(2)} m`;
 };
 
-function FigureDetailContent({ figureId }: { figureId: string }) {
+function FigureDetailContent({ figureId, initialFigure }: { figureId: string, initialFigure: Figure | null }) {
   const firestore = useFirestore();
   const { user } = useUser();
   const searchParams = useSearchParams();
@@ -135,7 +122,10 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
     return doc(firestore, 'figures', figureId);
   }, [firestore, figureId]);
 
-  const { data: figure, isLoading, error } = useDoc<Figure>(figureDocRef);
+  // We use initialFigure as starting point to eliminate the loading state blink
+  const { data: realtimeFigure, isLoading: isRealtimeLoading } = useDoc<Figure>(figureDocRef);
+  
+  const figure = realtimeFigure || initialFigure;
 
   const achievementRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -174,12 +164,8 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   const hasPioneer = userAchievements?.achievements?.includes('pioneer_1000');
 
 
-  if (isLoading || !figure) {
+  if (!figure) {
     return <FigureDetailSkeleton />;
-  }
-  
-  if (error) {
-    return <div className="text-center py-10 text-red-500">Error: {error.message}</div>
   }
 
   const getCountryName = (countryKey?: string) => {
@@ -401,18 +387,22 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
               )}
           </TabsContent>
           <TabsContent value="reseñas" className="mt-4 space-y-8">
-            <CommunityRatings figure={figure} />
-            <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
+            {activeTab === 'reseñas' && (
+              <>
+                <CommunityRatings figure={figure} />
+                <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
+              </>
+            )}
           </TabsContent>
           <TabsContent value="emocion" className="mt-4">
             <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
               <CardContent className="p-6">
-                 <EmotionVoting figure={figure} />
+                 {activeTab === 'emocion' && <EmotionVoting figure={figure} />}
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="rachas" className="mt-4">
-            <TopStreaks figure={figure} />
+            {activeTab === 'rachas' && <TopStreaks figure={figure} />}
           </TabsContent>
           <TabsContent value="logros" className="mt-4">
             <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
@@ -449,12 +439,12 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
           </TabsContent>
           {isBtsMember && (
             <TabsContent value="bias-bts" className="mt-4">
-              <BtsBiasVoting />
+              {activeTab === 'bias-bts' && <BtsBiasVoting />}
             </TabsContent>
           )}
           {isBlackpinkMember && (
             <TabsContent value="bias-blackpink" className="mt-4">
-              <BlackpinkBiasVoting />
+              {activeTab === 'bias-blackpink' && <BlackpinkBiasVoting />}
             </TabsContent>
           )}
         </Tabs>
@@ -467,10 +457,10 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
   );
 }
 
-export default function FigureDetailClient({ figureId }: { figureId: string }) {
+export default function FigureDetailClient({ figureId, initialFigure }: { figureId: string, initialFigure: Figure | null }) {
   return (
     <Suspense fallback={<FigureDetailSkeleton />}>
-      <FigureDetailContent figureId={figureId} />
+      <FigureDetailContent figureId={figureId} initialFigure={initialFigure} />
     </Suspense>
   );
 }
