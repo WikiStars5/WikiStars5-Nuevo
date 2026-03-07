@@ -88,7 +88,7 @@ function FigureDetailSkeleton() {
           <CardContent className="p-6">
             <Skeleton className="h-24 w-full" />
           </CardContent>
-        </div>
+        </Card>
       </div>
     </div>
   );
