@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
@@ -89,7 +88,7 @@ function FigureDetailSkeleton() {
           <CardContent className="p-6">
             <Skeleton className="h-24 w-full" />
           </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   );
@@ -244,45 +243,77 @@ function FigureDetailContent({ figureId }: { figureId: string }) {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <ScrollArea className="w-full whitespace-nowrap">
             <TabsList className={cn("inline-flex h-auto", (theme === 'dark' || theme === 'army') && 'bg-black')}>
-              <TabsTrigger value="wiki">
-                <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
-                Wiki
-              </TabsTrigger>
-               <TabsTrigger value="reseñas">
-                <Star className="mr-2 h-4 w-4" />
-                Reseñas
-              </TabsTrigger>
-              <TabsTrigger value="emocion">
-              <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
-                {t('FigurePage.tabs.emotion')}
-              </TabsTrigger>
-              {isBtsMember && (
-                <TabsTrigger value="bias-bts">
-                  <Heart className="mr-2 h-4 w-4" />
-                  Bias BTS
-                </TabsTrigger>
+              {isBtsMember ? (
+                <>
+                  <TabsTrigger value="reseñas">
+                    <Star className="mr-2 h-4 w-4" />
+                    Reseñas
+                  </TabsTrigger>
+                  <TabsTrigger value="bias-bts">
+                    <Heart className="mr-2 h-4 w-4" />
+                    Bias BTS
+                  </TabsTrigger>
+                  <TabsTrigger value="emocion">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
+                    {t('FigurePage.tabs.emotion')}
+                  </TabsTrigger>
+                  <TabsTrigger value="rachas">
+                    <Image
+                      src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire%20(2)%20(1).gif?alt=media&token=032a6759-bcfd-496a-a349-2f0f30a19448"
+                      alt={t('FigurePage.tabs.streaks')}
+                      width={16}
+                      height={16}
+                      unoptimized
+                      className="mr-2"
+                    />
+                    {t('FigurePage.tabs.streaks')}
+                  </TabsTrigger>
+                  <TabsTrigger value="logros">
+                    <Trophy className="mr-2 h-4 w-4" />
+                    Logros
+                  </TabsTrigger>
+                  <TabsTrigger value="wiki">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
+                    Wiki
+                  </TabsTrigger>
+                </>
+              ) : (
+                <>
+                  <TabsTrigger value="wiki">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
+                    Wiki
+                  </TabsTrigger>
+                  <TabsTrigger value="reseñas">
+                    <Star className="mr-2 h-4 w-4" />
+                    Reseñas
+                  </TabsTrigger>
+                  <TabsTrigger value="emocion">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
+                    {t('FigurePage.tabs.emotion')}
+                  </TabsTrigger>
+                  {isBlackpinkMember && (
+                    <TabsTrigger value="bias-blackpink">
+                      <Heart className="mr-2 h-4 w-4" />
+                      Bias Blackpink
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="rachas">
+                    <Image
+                      src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire%20(2)%20(1).gif?alt=media&token=032a6759-bcfd-496a-a349-2f0f30a19448"
+                      alt={t('FigurePage.tabs.streaks')}
+                      width={16}
+                      height={16}
+                      unoptimized
+                      className="mr-2"
+                    />
+                    {t('FigurePage.tabs.streaks')}
+                  </TabsTrigger>
+                  <TabsTrigger value="logros">
+                    <Trophy className="mr-2 h-4 w-4" />
+                    Logros
+                  </TabsTrigger>
+                </>
               )}
-              {isBlackpinkMember && (
-                <TabsTrigger value="bias-blackpink">
-                  <Heart className="mr-2 h-4 w-4" />
-                  Bias Blackpink
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="rachas">
-                <Image
-                  src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire%20(2)%20(1).gif?alt=media&token=032a6759-bcfd-496a-a349-2f0f30a19448"
-                  alt={t('FigurePage.tabs.streaks')}
-                  width={16}
-                  height={16}
-                  unoptimized
-                  className="mr-2"
-                />
-                {t('FigurePage.tabs.streaks')}
-              </TabsTrigger>
-              <TabsTrigger value="logros">
-                <Trophy className="mr-2 h-4 w-4" />
-                Logros
-              </TabsTrigger>
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
