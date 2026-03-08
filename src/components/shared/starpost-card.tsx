@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -243,7 +242,11 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
         });
 
         if (streakResult?.streakGained) {
-            showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
+            showStreakAnimation(streakResult.newStreakCount, { 
+                showPrompt: true,
+                figureId: post.figureId,
+                figureName: post.figureName
+            });
         }
 
         refetchVote();

@@ -170,7 +170,11 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
         });
 
         if (streakResult?.streakGained) {
-            showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
+            showStreakAnimation(streakResult.newStreakCount, { 
+                showPrompt: true,
+                figureId: figure.id,
+                figureName: figure.name
+            });
         }
 
         const isBts = btsMemberIds.includes(figure.id.toLowerCase());

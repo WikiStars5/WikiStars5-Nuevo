@@ -166,7 +166,11 @@ export function ShareButton({
             });
 
             if (streakResult?.streakGained) {
-                showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
+                showStreakAnimation(streakResult.newStreakCount, { 
+                    showPrompt: true,
+                    figureId: figureId,
+                    figureName: figureName
+                });
             }
         } catch (error) {
             console.error("Failed to update streak on share:", error);

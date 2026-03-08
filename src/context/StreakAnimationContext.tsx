@@ -6,7 +6,9 @@ interface StreakAnimationContextType {
   isVisible: boolean;
   streakCount: number;
   isPromptVisible: boolean;
-  showStreakAnimation: (count: number, options?: { showPrompt?: boolean }) => void;
+  figureName: string;
+  figureId: string;
+  showStreakAnimation: (count: number, options?: { showPrompt?: boolean, figureName?: string, figureId?: string }) => void;
   hideStreakAnimation: () => void;
 }
 
@@ -14,6 +16,8 @@ export const StreakAnimationContext = createContext<StreakAnimationContextType>(
   isVisible: false,
   streakCount: 0,
   isPromptVisible: false,
+  figureName: '',
+  figureId: '',
   showStreakAnimation: () => {},
   hideStreakAnimation: () => {},
 });
@@ -26,6 +30,8 @@ export function StreakAnimationProvider({ children }: StreakAnimationProviderPro
   const [isVisible, setIsVisible] = useState(false);
   const [streakCount, setStreakCount] = useState(0);
   const [isPromptVisible, setIsPromptVisible] = useState(false);
+  const [figureName, setFigureName] = useState('');
+  const [figureId, setFigureId] = useState('');
 
   const hideStreakAnimation = useCallback(() => {
     setIsVisible(false);
@@ -33,21 +39,21 @@ export function StreakAnimationProvider({ children }: StreakAnimationProviderPro
   }, []);
 
   const showStreakAnimation = useCallback(
-    (count: number, options?: { showPrompt?: boolean }) => {
+    (count: number, options?: { showPrompt?: boolean, figureName?: string, figureId?: string }) => {
       // Don't show the prompt if notifications are already enabled.
-      const shouldShowPrompt = options?.showPrompt && Notification.permission !== 'granted';
+      const shouldShowPrompt = options?.showPrompt && typeof Notification !== 'undefined' && Notification.permission !== 'granted';
 
       if (count > 0) {
         setStreakCount(count);
+        setFigureName(options?.figureName || '');
+        setFigureId(options?.figureId || '');
         setIsVisible(true);
         setIsPromptVisible(false); // Always start with the streak animation
 
         setTimeout(() => {
           if (shouldShowPrompt) {
-            // Transition to the prompt instead of hiding
             setIsPromptVisible(true);
           } else {
-            // Otherwise, just hide everything
             hideStreakAnimation();
           }
         }, 3000); // Duration of the streak animation
@@ -60,6 +66,8 @@ export function StreakAnimationProvider({ children }: StreakAnimationProviderPro
     isVisible,
     streakCount,
     isPromptVisible,
+    figureName,
+    figureId,
     showStreakAnimation,
     hideStreakAnimation,
   };

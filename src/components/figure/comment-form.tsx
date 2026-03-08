@@ -276,7 +276,11 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
             });
 
             if (streakResult?.streakGained) {
-                showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
+                showStreakAnimation(streakResult.newStreakCount, { 
+                    showPrompt: true,
+                    figureId: figureId,
+                    figureName: figureName
+                });
             }
         }
         

@@ -82,7 +82,7 @@ export default function EmotionVoting({ figure: initialFigure }: EmotionVotingPr
         try {
             const userCredential = await signInAnonymously(auth);
             currentUser = userCredential.user;
-            toast({
+             toast({
                 title: t('AttitudeVoting.anonymousToast.title'),
                 description: t('AttitudeVoting.anonymousToast.description')
             });
@@ -182,7 +182,11 @@ export default function EmotionVoting({ figure: initialFigure }: EmotionVotingPr
         });
 
         if (streakResult?.streakGained) {
-            showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
+            showStreakAnimation(streakResult.newStreakCount, { 
+                showPrompt: true,
+                figureId: figure.id,
+                figureName: figure.name
+            });
         }
 
         toast({ title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
