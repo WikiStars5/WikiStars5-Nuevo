@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -14,7 +15,8 @@ import {
   where, 
   limit, 
   getDocs, 
-  Timestamp 
+  Timestamp,
+  updateDoc
 } from 'firebase/firestore';
 import { signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -78,12 +80,14 @@ export default function GlobalStarPostForm() {
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   const [existingComment, setExistingComment] = useState<Comment | null>(null);
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Check for existing comment when figure or user changes
   useEffect(() => {
     const checkExisting = async () => {
       if (!firestore || !user || !selectedFigure) {
         setExistingComment(null);
+        setIsEditing(false);
         return;
       }
 
@@ -97,6 +101,7 @@ export default function GlobalStarPostForm() {
           setExistingComment({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Comment);
         } else {
           setExistingComment(null);
+          setIsEditing(false);
         }
       } catch (error) {
         console.error("Error checking existing comment:", error);
@@ -160,6 +165,7 @@ export default function GlobalStarPostForm() {
 
       toast({ title: 'StarPost eliminado', description: 'Ahora puedes calificar de nuevo.' });
       setExistingComment(null);
+      setIsEditing(false);
     } catch (error: any) {
       console.error("Error deleting existing comment:", error);
       toast({ title: 'Error', description: 'No se pudo eliminar el StarPost.', variant: 'destructive' });
@@ -168,13 +174,24 @@ export default function GlobalStarPostForm() {
     }
   };
 
+  const handleEditClick = () => {
+    if (!existingComment) return;
+    form.reset({
+      rating: existingComment.rating,
+      text: existingComment.text || '',
+      tag: existingComment.tag || undefined,
+      username: userProfile?.username || '',
+    });
+    setIsEditing(true);
+  };
+
   const handleSubmit = async (data: CommentFormValues) => {
     if (!selectedFigure) {
       toast({ title: 'Selecciona un personaje', description: 'Debes elegir a quién va dirigido tu StarPost.', variant: 'destructive' });
       return;
     }
 
-    if (existingComment) {
+    if (existingComment && !isEditing) {
       toast({ title: 'Ya has calificado', description: 'No puedes calificar más de una vez al mismo personaje.', variant: 'destructive' });
       return;
     }
@@ -204,7 +221,6 @@ export default function GlobalStarPostForm() {
         const figureRef = doc(firestore, 'figures', selectedFigure.id);
         const userRef = doc(firestore, 'users', currentUser!.uid);
         const achievementRef = doc(firestore, `users/${currentUser!.uid}/achievements`, selectedFigure.id);
-        const commentsColRef = collection(firestore, 'figures', selectedFigure.id, 'comments');
         
         const [figureSnap, userSnap, achievementSnap] = await Promise.all([
           transaction.get(figureRef),
@@ -239,42 +255,70 @@ export default function GlobalStarPostForm() {
         const country = userProfileData.country || null;
         const gender = userProfileData.gender || null;
 
-        transaction.update(figureRef, {
-          ratingCount: increment(1),
-          totalRating: increment(data.rating),
-          [`ratingsBreakdown.${data.rating}`]: increment(1),
-          updatedAt: serverTimestamp()
-        });
+        if (existingComment && isEditing) {
+          // UPDATE LOGIC
+          const oldRating = existingComment.rating;
+          const newRating = data.rating;
+          const ratingDelta = newRating - oldRating;
 
-        const commentRef = doc(collection(firestore, 'figures', selectedFigure.id, 'comments'));
-        const commentData = {
-          userId: currentUser!.uid,
-          figureId: selectedFigure.id,
-          figureName: selectedFigure.name,
-          figureImageUrl: selectedFigure.imageUrl,
-          text: data.text || '',
-          tag: data.tag || null,
-          rating: data.rating,
-          createdAt: serverTimestamp(),
-          userDisplayName: finalDisplayName,
-          userPhotoURL: userProfileData.profilePhotoUrl || currentUser!.photoURL,
-          userCountry: country,
-          userGender: gender,
-          likes: 0,
-          dislikes: 0,
-          parentId: null,
-          replyCount: 0,
-          threadId: commentRef.id,
-        };
-        transaction.set(commentRef, commentData);
+          const figureUpdates: any = {
+            updatedAt: serverTimestamp()
+          };
 
-        const userStarpostColRef = collection(firestore, 'users', currentUser!.uid, 'starposts');
-        const starpostRef = doc(userStarpostColRef, commentRef.id);
-        transaction.set(starpostRef, {
-          figureId: selectedFigure.id,
-          commentId: commentRef.id,
-          createdAt: serverTimestamp(),
-        });
+          if (ratingDelta !== 0) {
+            figureUpdates.totalRating = increment(ratingDelta);
+            figureUpdates[`ratingsBreakdown.${oldRating}`] = increment(-1);
+            figureUpdates[`ratingsBreakdown.${newRating}`] = increment(1);
+          }
+          transaction.update(figureRef, figureUpdates);
+
+          const commentRef = doc(firestore, 'figures', selectedFigure.id, 'comments', existingComment.id);
+          transaction.update(commentRef, {
+            text: data.text || '',
+            tag: data.tag || null,
+            rating: newRating,
+            updatedAt: serverTimestamp(),
+            userDisplayName: finalDisplayName,
+          });
+        } else {
+          // CREATE LOGIC
+          transaction.update(figureRef, {
+            ratingCount: increment(1),
+            totalRating: increment(data.rating),
+            [`ratingsBreakdown.${data.rating}`]: increment(1),
+            updatedAt: serverTimestamp()
+          });
+
+          const commentRef = doc(collection(firestore, 'figures', selectedFigure.id, 'comments'));
+          const commentData = {
+            userId: currentUser!.uid,
+            figureId: selectedFigure.id,
+            figureName: selectedFigure.name,
+            figureImageUrl: selectedFigure.imageUrl,
+            text: data.text || '',
+            tag: data.tag || null,
+            rating: data.rating,
+            createdAt: serverTimestamp(),
+            userDisplayName: finalDisplayName,
+            userPhotoURL: userProfileData.profilePhotoUrl || currentUser!.photoURL,
+            userCountry: country,
+            userGender: gender,
+            likes: 0,
+            dislikes: 0,
+            parentId: null,
+            replyCount: 0,
+            threadId: commentRef.id,
+          };
+          transaction.set(commentRef, commentData);
+
+          const userStarpostColRef = collection(firestore, 'users', currentUser!.uid, 'starposts');
+          const starpostRef = doc(userStarpostColRef, commentRef.id);
+          transaction.set(starpostRef, {
+            figureId: selectedFigure.id,
+            commentId: commentRef.id,
+            createdAt: serverTimestamp(),
+          });
+        }
       });
 
       const streakResult = await updateStreak({
@@ -294,13 +338,18 @@ export default function GlobalStarPostForm() {
         });
       }
 
-      toast({ title: '¡StarPost publicado!', description: `Has calificado a ${selectedFigure.name}.` });
+      toast({ 
+        title: isEditing ? '¡StarPost actualizado!' : '¡StarPost publicado!', 
+        description: isEditing ? 'Tu opinión ha sido modificada.' : `Has calificado a ${selectedFigure.name}.` 
+      });
       form.reset({ text: '', rating: 5, tag: undefined });
       setSelectedFigure(null);
+      setExistingComment(null);
+      setIsEditing(false);
 
     } catch (error: any) {
       console.error(error);
-      toast({ title: 'Error', description: error.message || 'No se pudo publicar el StarPost.', variant: 'destructive' });
+      toast({ title: 'Error', description: error.message || 'No se pudo procesar el StarPost.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -333,6 +382,7 @@ export default function GlobalStarPostForm() {
             <Button variant="ghost" size="icon" onClick={() => {
               setSelectedFigure(null);
               setExistingComment(null);
+              setIsEditing(false);
             }}>
               <XCircle className="h-5 w-5" />
             </Button>
@@ -346,7 +396,7 @@ export default function GlobalStarPostForm() {
           </div>
         )}
 
-        {selectedFigure && !isCheckingExisting && existingComment && (
+        {selectedFigure && !isCheckingExisting && existingComment && !isEditing && (
           <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
             <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="text-primary h-6 w-6" />
@@ -387,11 +437,9 @@ export default function GlobalStarPostForm() {
                 </AlertDialogContent>
               </AlertDialog>
 
-              <Button asChild variant="outline" className="w-full">
-                <Link href={`/figures/${selectedFigure.id}`}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </Link>
+              <Button variant="outline" className="w-full" onClick={handleEditClick}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
               </Button>
 
               <ShareButton 
@@ -405,7 +453,7 @@ export default function GlobalStarPostForm() {
           </div>
         )}
 
-        {selectedFigure && !isCheckingExisting && !existingComment && (
+        {selectedFigure && !isCheckingExisting && ( (!existingComment) || (existingComment && isEditing) ) && (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -491,10 +539,15 @@ export default function GlobalStarPostForm() {
                 )}
               />
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                {isEditing && (
+                  <Button type="button" variant="ghost" onClick={() => setIsEditing(false)}>
+                    Cancelar
+                  </Button>
+                )}
                 <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                  Publicar StarPost
+                  {isEditing ? 'Actualizar StarPost' : 'Publicar StarPost'}
                 </Button>
               </div>
             </form>
@@ -504,3 +557,5 @@ export default function GlobalStarPostForm() {
     </Card>
   );
 }
+
+    
