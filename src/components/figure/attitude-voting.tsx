@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useContext, useCallback } from 'react';
@@ -17,6 +18,7 @@ import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
+import { ToastAction } from '@/components/ui/toast';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -194,19 +196,27 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
         }
 
         onVote(isRetracting ? null : vote);
-        toast({ 
-          title: isRetracting ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered'),
-          action: !isRetracting ? (
-            <ShareButton 
-              figureId={figure.id} 
-              figureName={figure.name} 
-              isAttitudeShare={true} 
-              attitude={vote} 
-              showText={true}
-              className="h-8"
-            />
-          ) : undefined
-        });
+        
+        if (!isRetracting) {
+          toast({ 
+            title: t('AttitudeVoting.voteToast.registered'),
+            action: (
+              <ToastAction altText="Compartir" asChild>
+                <ShareButton 
+                  figureId={figure.id} 
+                  figureName={figure.name} 
+                  isAttitudeShare={true} 
+                  attitude={vote} 
+                  showText={true}
+                  className="h-8"
+                />
+              </ToastAction>
+            )
+          });
+        } else {
+          toast({ title: t('AttitudeVoting.voteToast.removed') });
+        }
+        
         refetch();
 
     } catch (error: any) {

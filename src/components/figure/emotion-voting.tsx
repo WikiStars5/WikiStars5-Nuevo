@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -15,6 +16,7 @@ import { ShareButton } from '../shared/ShareButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
+import { ToastAction } from '@/components/ui/toast';
 
 type EmotionOption = 'alegria' | 'envidia' | 'tristeza' | 'miedo' | 'desagrado' | 'furia';
 
@@ -189,19 +191,26 @@ export default function EmotionVoting({ figure: initialFigure }: EmotionVotingPr
             });
         }
 
-        toast({ 
-          title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered'),
-          action: userVote?.vote !== vote ? (
-            <ShareButton 
-              figureId={figure.id} 
-              figureName={figure.name} 
-              isEmotionShare={true} 
-              emotion={vote} 
-              showText={true}
-              className="h-8"
-            />
-          ) : undefined
-        });
+        if (userVote?.vote !== vote) {
+          toast({ 
+            title: t('AttitudeVoting.voteToast.registered'),
+            action: (
+              <ToastAction altText="Compartir" asChild>
+                <ShareButton 
+                  figureId={figure.id} 
+                  figureName={figure.name} 
+                  isEmotionShare={true} 
+                  emotion={vote} 
+                  showText={true}
+                  className="h-8"
+                />
+              </ToastAction>
+            )
+          });
+        } else {
+          toast({ title: t('AttitudeVoting.voteToast.removed') });
+        }
+        
         refetch();
 
     } catch (error: any) {
