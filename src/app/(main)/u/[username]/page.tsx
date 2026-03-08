@@ -3,8 +3,6 @@ import { getSdks } from '@/firebase/server';
 import PublicProfileClientPage from './client-page';
 import { notFound } from 'next/navigation';
 import { normalizeText } from '@/lib/keywords';
-import { collection, query, where, limit, getDocs } from 'firebase/firestore';
-
 
 interface PublicProfilePageProps {
   params: {
@@ -19,28 +17,17 @@ export default async function PublicProfilePage({ params }: PublicProfilePagePro
     const { firestore } = getSdks();
     const usernameLower = normalizeText(username);
     
-    // First, find the user ID from the username
-    const usernameQuery = query(
-      collection(firestore, 'usernames'),
-      where('__name__', '==', usernameLower),
-      limit(1)
-    );
-
-    const usernameSnapshot = await getDocs(usernameQuery);
+    // Usar sintaxis correcta de Admin SDK para buscar por ID de documento (nombre de usuario)
+    const usernameDoc = await firestore.collection('usernames').doc(usernameLower).get();
     
-    if (usernameSnapshot.empty) {
-      notFound(); // If the username doesn't exist, trigger a 404
+    if (!usernameDoc.exists) {
+      notFound();
     }
     
-    // Pass the already-decoded and found username to the client component.
-    // The client component will handle fetching the full profile based on this.
-    // This balances SEO-friendly URLs with client-side data fetching.
     return <PublicProfileClientPage username={username} />;
 
   } catch (error) {
     console.error("Error on public profile page (server-side check):", error);
-    // In case of a server error during the check, we can still attempt to render
-    // on the client, or just show a 404. Let's be safe and show 404.
     notFound();
   }
 }

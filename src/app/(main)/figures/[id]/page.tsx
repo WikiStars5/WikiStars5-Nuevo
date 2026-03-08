@@ -13,6 +13,18 @@ type FigurePageProps = {
 };
 
 /**
+ * Función para serializar datos de Firestore Admin para componentes de cliente.
+ */
+function serializeFigure(id: string, data: any): Figure {
+  return {
+    ...data,
+    id,
+    createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
+    updatedAt: data.updatedAt?.toDate?.()?.toISOString() || null,
+  } as unknown as Figure;
+}
+
+/**
  * Cached function to get figure data using Firebase Admin SDK.
  * This is optimized for Server Components and SEO.
  */
@@ -20,12 +32,11 @@ const getFigureData = cache(
   async (figureId: string): Promise<Figure | null> => {
     try {
       const { firestore } = getSdks();
-      // Using Admin SDK syntax: .collection().doc().get()
-      const figureRef = firestore.collection('figures').doc(figureId);
-      const docSnap = await figureRef.get();
+      // Usar sintaxis correcta de Admin SDK
+      const docSnap = await firestore.collection('figures').doc(figureId).get();
       
       if (docSnap.exists) {
-        return { id: docSnap.id, ...docSnap.data() } as Figure;
+        return serializeFigure(docSnap.id, docSnap.data());
       }
       return null;
     } catch (error) {
