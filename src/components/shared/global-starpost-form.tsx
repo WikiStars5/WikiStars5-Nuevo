@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -24,9 +25,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Tag, XCircle, Search, User as UserIcon, Sparkles } from 'lucide-react';
+import { Loader2, Send, Tag, XCircle, Search, User as UserIcon, Sparkles, AlertCircle, MessageSquare } from 'lucide-react';
 import StarInput from '@/components/figure/star-input';
-import { Figure, User as AppUser, Achievement } from '@/lib/types';
+import { Figure, User as AppUser, Achievement, Comment } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { normalizeText } from '@/lib/keywords';
@@ -37,6 +38,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import FigureSearchInput from '@/components/figure/figure-search-input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTheme } from 'next-themes';
+import { StarRating } from './star-rating';
+import Link from 'next/link';
 
 const createCommentSchema = (needsIdentity: boolean) => z.object({
   rating: z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0).max(5),
@@ -61,6 +64,37 @@ export default function GlobalStarPostForm() {
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
+  const [existingComment, setExistingComment] = useState<Comment | null>(null);
+  const [isCheckingExisting, setIsCheckingExisting] = useState(false);
+
+  // Check for existing comment when figure or user changes
+  useEffect(() => {
+    const checkExisting = async () => {
+      if (!firestore || !user || !selectedFigure) {
+        setExistingComment(null);
+        return;
+      }
+
+      setIsCheckingExisting(true);
+      try {
+        const commentsRef = collection(firestore, 'figures', selectedFigure.id, 'comments');
+        const q = query(commentsRef, where('userId', '==', user.uid), limit(1));
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          setExistingComment({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Comment);
+        } else {
+          setExistingComment(null);
+        }
+      } catch (error) {
+        console.error("Error checking existing comment:", error);
+      } finally {
+        setIsCheckingExisting(false);
+      }
+    };
+
+    checkExisting();
+  }, [selectedFigure, user, firestore]);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -92,6 +126,11 @@ export default function GlobalStarPostForm() {
       return;
     }
 
+    if (existingComment) {
+      toast({ title: 'Ya has calificado', description: 'No puedes calificar más de una vez al mismo personaje.', variant: 'destructive' });
+      return;
+    }
+
     setIsSubmitting(true);
     let currentUser = user;
 
@@ -117,7 +156,15 @@ export default function GlobalStarPostForm() {
         const figureRef = doc(firestore, 'figures', selectedFigure.id);
         const userRef = doc(firestore, 'users', currentUser!.uid);
         const achievementRef = doc(firestore, `users/${currentUser!.uid}/achievements`, selectedFigure.id);
+        const commentsColRef = collection(firestore, 'figures', selectedFigure.id, 'comments');
         
+        // Anti-bypass check within transaction
+        const existingQuery = query(commentsColRef, where('userId', '==', currentUser!.uid), limit(1));
+        const existingSnap = await getDocs(existingQuery);
+        if (!existingSnap.empty) {
+          throw new Error("Ya has dejado una opinión para este personaje.");
+        }
+
         const [figureSnap, userSnap, achievementSnap] = await Promise.all([
           transaction.get(figureRef),
           transaction.get(userRef),
@@ -242,13 +289,54 @@ export default function GlobalStarPostForm() {
                 <p className="text-xs text-muted-foreground">{selectedFigure.occupation || 'Figura pública'}</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setSelectedFigure(null)}>
+            <Button variant="ghost" size="icon" onClick={() => {
+              setSelectedFigure(null);
+              setExistingComment(null);
+            }}>
               <XCircle className="h-5 w-5" />
             </Button>
           </div>
         )}
 
-        {selectedFigure && (
+        {selectedFigure && isCheckingExisting && (
+          <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <p className="text-sm">Verificando tu historial...</p>
+          </div>
+        )}
+
+        {selectedFigure && !isCheckingExisting && existingComment && (
+          <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
+            <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="text-primary h-6 w-6" />
+            </div>
+            <h3 className="font-bold text-lg mb-2">Ya has calificado a {selectedFigure.name}</h3>
+            <div className="flex flex-col items-center gap-3 mb-6">
+              <StarRating rating={existingComment.rating} />
+              {existingComment.tag && (
+                <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/20">
+                  {commentTags.find(t => t.id === existingComment.tag)?.emoji} {commentTags.find(t => t.id === existingComment.tag)?.label}
+                </div>
+              )}
+              {existingComment.text && (
+                <p className="text-sm text-muted-foreground italic max-w-xs line-clamp-2">
+                  "{existingComment.text}"
+                </p>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Para calificar de nuevo, debes eliminar tu StarPost anterior desde el perfil del personaje.
+            </p>
+            <Button asChild variant="outline" className="w-full">
+              <Link href={`/figures/${selectedFigure.id}`}>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Ir al Perfil para Gestionar
+              </Link>
+            </Button>
+          </div>
+        )}
+
+        {selectedFigure && !isCheckingExisting && !existingComment && (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="flex flex-wrap items-center justify-between gap-4">
