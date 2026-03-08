@@ -189,7 +189,19 @@ export default function EmotionVoting({ figure: initialFigure }: EmotionVotingPr
             });
         }
 
-        toast({ title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
+        toast({ 
+          title: userVote?.vote === vote ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered'),
+          action: userVote?.vote !== vote ? (
+            <ShareButton 
+              figureId={figure.id} 
+              figureName={figure.name} 
+              isEmotionShare={true} 
+              emotion={vote} 
+              showText={true}
+              className="h-8"
+            />
+          ) : undefined
+        });
         refetch();
 
     } catch (error: any) {

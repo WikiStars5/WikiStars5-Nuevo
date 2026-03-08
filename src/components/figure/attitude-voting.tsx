@@ -166,7 +166,7 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
         const streakResult = await updateStreak({
             firestore, figureId: figure.id, figureName: figure.name,
             userId: currentUser!.uid, isAnonymous: currentUser!.isAnonymous,
-            userPhotoURL: currentUser!.photoURL // Aseguramos que la racha use la foto actual
+            userPhotoURL: currentUser!.photoURL
         });
 
         if (streakResult?.streakGained) {
@@ -194,7 +194,19 @@ export default function AttitudeVoting({ figure: initialFigure, onVote, variant 
         }
 
         onVote(isRetracting ? null : vote);
-        toast({ title: isRetracting ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered') });
+        toast({ 
+          title: isRetracting ? t('AttitudeVoting.voteToast.removed') : t('AttitudeVoting.voteToast.registered'),
+          action: !isRetracting ? (
+            <ShareButton 
+              figureId={figure.id} 
+              figureName={figure.name} 
+              isAttitudeShare={true} 
+              attitude={vote} 
+              showText={true}
+              className="h-8"
+            />
+          ) : undefined
+        });
         refetch();
 
     } catch (error: any) {
