@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
+import GlobalStarPostForm from '@/components/shared/global-starpost-form';
 
 // CONFIGURACIÓN DE RENTABILIDAD
 const MAX_FIGURES_TO_CONSULT = 5; // Cada clic consulta 5 figuras al azar
@@ -178,9 +179,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
       <FeaturedFigures />
-      <h2 className="text-2xl font-bold font-headline mb-6 mt-10">
-        Para ti: Lo más reciente
-      </h2>
+      <GlobalStarPostForm />
       {renderContent()}
       <CookieConsentBanner />
     </div>
