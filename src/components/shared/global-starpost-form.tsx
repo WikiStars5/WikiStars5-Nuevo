@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -25,7 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Tag, XCircle, Search, User as UserIcon, Sparkles, AlertCircle, MessageSquare } from 'lucide-react';
+import { Loader2, Send, Tag, XCircle, Search, User as UserIcon, Sparkles, AlertCircle, MessageSquare, Trash2, Pencil } from 'lucide-react';
 import StarInput from '@/components/figure/star-input';
 import { Figure, User as AppUser, Achievement, Comment } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
@@ -40,6 +39,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTheme } from 'next-themes';
 import { StarRating } from './star-rating';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ShareButton } from './ShareButton';
 
 const createCommentSchema = (needsIdentity: boolean) => z.object({
   rating: z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0).max(5),
@@ -63,6 +74,7 @@ export default function GlobalStarPostForm() {
 
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   const [existingComment, setExistingComment] = useState<Comment | null>(null);
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
@@ -120,6 +132,42 @@ export default function GlobalStarPostForm() {
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
 
+  const handleDeleteExisting = async () => {
+    if (!firestore || !user || !selectedFigure || !existingComment) return;
+    
+    setIsDeleting(true);
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const figureRef = doc(firestore, 'figures', selectedFigure.id);
+        const commentRef = doc(firestore, 'figures', selectedFigure.id, 'comments', existingComment.id);
+        const starpostRef = doc(firestore, 'users', user.uid, 'starposts', existingComment.id);
+
+        const figureSnap = await transaction.get(figureRef);
+        if (!figureSnap.exists()) throw new Error("Personaje no encontrado.");
+
+        if (typeof existingComment.rating === 'number' && existingComment.rating >= 0) {
+          transaction.update(figureRef, {
+            ratingCount: increment(-1),
+            totalRating: increment(-existingComment.rating),
+            [`ratingsBreakdown.${existingComment.rating}`]: increment(-1),
+            updatedAt: serverTimestamp()
+          });
+        }
+
+        transaction.delete(commentRef);
+        transaction.delete(starpostRef);
+      });
+
+      toast({ title: 'StarPost eliminado', description: 'Ahora puedes calificar de nuevo.' });
+      setExistingComment(null);
+    } catch (error: any) {
+      console.error("Error deleting existing comment:", error);
+      toast({ title: 'Error', description: 'No se pudo eliminar el StarPost.', variant: 'destructive' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleSubmit = async (data: CommentFormValues) => {
     if (!selectedFigure) {
       toast({ title: 'Selecciona un personaje', description: 'Debes elegir a quién va dirigido tu StarPost.', variant: 'destructive' });
@@ -158,13 +206,6 @@ export default function GlobalStarPostForm() {
         const achievementRef = doc(firestore, `users/${currentUser!.uid}/achievements`, selectedFigure.id);
         const commentsColRef = collection(firestore, 'figures', selectedFigure.id, 'comments');
         
-        // Anti-bypass check within transaction
-        const existingQuery = query(commentsColRef, where('userId', '==', currentUser!.uid), limit(1));
-        const existingSnap = await getDocs(existingQuery);
-        if (!existingSnap.empty) {
-          throw new Error("Ya has dejado una opinión para este personaje.");
-        }
-
         const [figureSnap, userSnap, achievementSnap] = await Promise.all([
           transaction.get(figureRef),
           transaction.get(userRef),
@@ -324,15 +365,43 @@ export default function GlobalStarPostForm() {
                 </p>
               )}
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Para calificar de nuevo, debes eliminar tu StarPost anterior desde el perfil del personaje.
-            </p>
-            <Button asChild variant="outline" className="w-full">
-              <Link href={`/figures/${selectedFigure.id}`}>
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Ir al Perfil para Gestionar
-              </Link>
-            </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full" disabled={isDeleting}>
+                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                    Eliminar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Eliminar tu StarPost?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta acción no se puede deshacer. Se borrarán tus estrellas y tu opinión sobre {selectedFigure.name}.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteExisting}>Eliminar permanentemente</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <Button asChild variant="outline" className="w-full">
+                <Link href={`/figures/${selectedFigure.id}`}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar
+                </Link>
+              </Button>
+
+              <ShareButton 
+                figureId={selectedFigure.id} 
+                figureName={selectedFigure.name} 
+                isRatingShare={true} 
+                rating={existingComment.rating}
+                className="w-full"
+              />
+            </div>
           </div>
         )}
 
