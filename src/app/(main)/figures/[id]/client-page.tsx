@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
+import { useState, Suspense, useCallback, useMemo } from 'react';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -32,79 +31,52 @@ import BlackpinkBiasVoting from '@/components/figure/blackpink-bias-voting';
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
-    website: { label: 'Página Web' },
+    website: { label: 'Web' },
     instagram: { label: 'Instagram' },
-    twitter: { label: 'X (Twitter)' },
+    twitter: { label: 'X' },
     youtube: { label: 'YouTube' },
     facebook: { label: 'Facebook' },
     tiktok: { label: 'TikTok' },
     linkedin: { label: 'LinkedIn' },
-    discord: { label: 'Discord' },
     wikipedia: { label: 'Wikipedia' },
-    fandom: { label: 'Fandom' },
 };
 
 const SocialLink = ({ platform, url }: { platform: string; url: string }) => {
     try {
         const domain = new URL(url).hostname;
-        const config = SOCIAL_MEDIA_CONFIG[platform] || { label: platform.charAt(0).toUpperCase() + platform.slice(1) };
-
+        const config = SOCIAL_MEDIA_CONFIG[platform] || { label: platform };
         return (
-            <Link href={url} target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-2 text-center transition-colors hover:text-primary">
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border bg-muted transition-all group-hover:border-primary group-hover:bg-primary/10">
+            <Link href={url} target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-2">
+                <div className="relative flex h-14 w-14 items-center justify-center rounded-xl border bg-muted transition-all group-hover:border-primary group-hover:bg-primary/10">
                     <Image
                         src={`https://www.google.com/s2/favicons?sz=64&domain_url=${domain}`}
-                        alt={`${config.label} icon`}
-                        width={32}
-                        height={32}
-                        className="h-8 w-8 object-contain"
+                        alt={config.label}
+                        width={24} height={24}
+                        className="h-6 w-6 object-contain"
                     />
                 </div>
-                <span className="text-xs font-medium">{config.label}</span>
+                <span className="text-[10px] font-medium">{config.label}</span>
             </Link>
         );
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
 };
 
 function FigureDetailSkeleton() {
   return (
-    <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
-      <div className="h-[250px] md:h-[320px] w-full rounded-lg bg-muted animate-pulse mb-6" />
-      <div className="mt-6">
-        <Skeleton className="h-10 w-full mb-4" />
-        <Skeleton className="h-64 w-full" />
-      </div>
+    <div className="container mx-auto max-w-4xl px-4 py-8">
+      <Skeleton className="h-[250px] md:h-[320px] w-full rounded-lg mb-6" />
+      <Skeleton className="h-10 w-full mb-4" />
+      <Skeleton className="h-64 w-full" />
     </div>
   );
 }
 
 const formatDate = (dateString?: string): string | null => {
     if (!dateString) return null;
-
-    if (dateString.startsWith('-')) {
-        const year = dateString.substring(1).replace(/[^0-9]/g, '');
-        if (!year) return null;
-        return `Año ${year} a. C.`;
-    }
-
+    if (dateString.startsWith('-')) return `Año ${dateString.substring(1)} a. C.`;
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    
-    const adjustedDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
-
-    const options: Intl.DateTimeFormatOptions = {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    };
-    return adjustedDate.toLocaleDateString('es-ES', options);
-};
-
-const formatHeight = (cm?: number): string | null => {
-    if (!cm) return null;
-    return `${(cm / 100).toFixed(2)} m`;
+    return new Date(date.getTime() + date.getTimezoneOffset() * 60000).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 function FigureDetailContent({ figureId, initialFigure }: { figureId: string, initialFigure: Figure | null }) {
@@ -117,41 +89,25 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
   const { t } = useLanguage();
   const { theme } = useTheme();
 
-  const figureDocRef = useMemoFirebase(() => {
-    if (!firestore || !figureId) return null;
-    return doc(firestore, 'figures', figureId);
-  }, [firestore, figureId]);
-
-  // We use initialFigure as starting point to eliminate the loading state blink
-  const { data: realtimeFigure, isLoading: isRealtimeLoading } = useDoc<Figure>(figureDocRef);
-  
+  const figureDocRef = useMemoFirebase(() => (!firestore || !figureId) ? null : doc(firestore, 'figures', figureId), [firestore, figureId]);
+  const { data: realtimeFigure } = useDoc<Figure>(figureDocRef);
   const figure = realtimeFigure || initialFigure;
 
-  const achievementRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, `users/${user.uid}/achievements`, figureId);
-  }, [firestore, user, figureId]);
-
-  const { data: userAchievements, isLoading: isLoadingAchievements } = useDoc<Achievement>(achievementRef);
+  const achievementRef = useMemoFirebase(() => (!firestore || !user) ? null : doc(firestore, `users/${user.uid}/achievements`, figureId), [firestore, user, figureId]);
+  const { data: userAchievements } = useDoc<Achievement>(achievementRef);
 
   const btsMemberIds = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
   const blackpinkMemberIds = ["jennie", "lalisa-manobal", "rose", "jisoo"];
   const isBtsMember = figureId && btsMemberIds.includes(figureId.toLowerCase());
   const isBlackpinkMember = figureId && blackpinkMemberIds.includes(figureId.toLowerCase());
 
-  const handleVote = useCallback((attitude: AttitudeOption | null) => {
-    setCommentSortPreference(attitude);
-  }, []);
-
   const activeTab = useMemo(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam) return tabParam;
-
     const shareType = searchParams.get('shareType');
     if (shareType === 'emotion') return 'emocion';
     if (shareType === 'bias-bts') return 'bias-bts';
     if (shareType === 'bias-blackpink') return 'bias-blackpink';
-    
     return isBtsMember ? 'reseñas' : 'wiki';
   }, [searchParams, isBtsMember]);
 
@@ -161,66 +117,26 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
-  const hasPioneer = userAchievements?.achievements?.includes('pioneer_1000');
+  if (!figure) return <FigureDetailSkeleton />;
 
-
-  if (!figure) {
-    return <FigureDetailSkeleton />;
-  }
-
-  const getCountryName = (countryKey?: string) => {
-    if (!countryKey) return null;
-    return t(`countries.${countryKey.toLowerCase().replace(/ /g, '_')}`);
-  }
+  const getCountryName = (countryKey?: string) => countryKey ? t(`countries.${countryKey.toLowerCase().replace(/ /g, '_')}`) : null;
 
   const infoItems = [
-    {
-      label: t('FigurePage.detailedInfo.nameLabel'),
-      value: figure.name,
-      icon: User,
-    },
-    {
-      label: t('FigurePage.detailedInfo.genderLabel'),
-      value: figure.gender,
-      icon: Users,
-    },
-    {
-        label: t('FigurePage.detailedInfo.birthDateLabel'),
-        value: formatDate(figure.birthDate),
-        icon: CalendarDays,
-    },
-    {
-        label: t('FigurePage.detailedInfo.deathDateLabel'),
-        value: formatDate(figure.deathDate),
-        icon: CalendarDays,
-    },
-    {
-      label: t('FigurePage.detailedInfo.occupationLabel'),
-      value: figure.occupation,
-      icon: Briefcase,
-    },
-    {
-      label: t('FigurePage.detailedInfo.countryLabel'),
-      value: getCountryName(figure.nationality),
-      icon: Globe,
-    },
-    {
-      label: t('FigurePage.detailedInfo.maritalStatusLabel'),
-      value: figure.maritalStatus,
-      icon: Heart,
-    },
-    {
-      label: t('FigurePage.detailedInfo.heightLabel'),
-      value: formatHeight(figure.height),
-      icon: Ruler,
-    },
+    { label: t('FigurePage.detailedInfo.nameLabel'), value: figure.name, icon: User },
+    { label: t('FigurePage.detailedInfo.genderLabel'), value: figure.gender, icon: Users },
+    { label: t('FigurePage.detailedInfo.birthDateLabel'), value: formatDate(figure.birthDate), icon: CalendarDays },
+    { label: t('FigurePage.detailedInfo.deathDateLabel'), value: formatDate(figure.deathDate), icon: CalendarDays },
+    { label: t('FigurePage.detailedInfo.occupationLabel'), value: figure.occupation, icon: Briefcase },
+    { label: t('FigurePage.detailedInfo.countryLabel'), value: getCountryName(figure.nationality), icon: Globe },
+    { label: t('FigurePage.detailedInfo.maritalStatusLabel'), value: figure.maritalStatus, icon: Heart },
+    { label: t('FigurePage.detailedInfo.heightLabel'), value: figure.height ? `${(figure.height / 100).toFixed(2)} m` : null, icon: Ruler },
   ];
 
   const hasInfo = infoItems.some(item => !!item.value);
   const hasSocialLinks = figure.socialLinks && Object.values(figure.socialLinks).some(link => !!link);
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 pb-8 pt-0 md:pb-16 md:pt-0">
+    <div className="container mx-auto max-w-4xl px-4 pb-8 md:pb-16">
       <ProfileHeader figure={figure} figureId={figure.id} />
 
       <div className="mt-6">
@@ -229,159 +145,62 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
             <TabsList className={cn("inline-flex h-auto", (theme === 'dark' || theme === 'army') && 'bg-black')}>
               {isBtsMember ? (
                 <>
-                  <TabsTrigger value="reseñas">
-                    <Star className="mr-2 h-4 w-4" />
-                    Reseñas
-                  </TabsTrigger>
-                  <TabsTrigger value="bias-bts">
-                    <Heart className="mr-2 h-4 w-4" />
-                    Bias BTS
-                  </TabsTrigger>
-                  <TabsTrigger value="emocion">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
-                    {t('FigurePage.tabs.emotion')}
-                  </TabsTrigger>
-                  <TabsTrigger value="rachas">
-                    <Image
-                      src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire%20(2)%20(1).gif?alt=media&token=032a6759-bcfd-496a-a349-2f0f30a19448"
-                      alt={t('FigurePage.tabs.streaks')}
-                      width={16}
-                      height={16}
-                      unoptimized
-                      className="mr-2"
-                    />
-                    {t('FigurePage.tabs.streaks')}
-                  </TabsTrigger>
-                  <TabsTrigger value="logros">
-                    <Trophy className="mr-2 h-4 w-4" />
-                    Logros
-                  </TabsTrigger>
-                  <TabsTrigger value="wiki">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
-                    Wiki
-                  </TabsTrigger>
+                  <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
+                  <TabsTrigger value="bias-bts"><Heart className="mr-2 h-4 w-4" />Bias BTS</TabsTrigger>
+                  <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
+                  <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
+                  <TabsTrigger value="logros"><Trophy className="mr-2 h-4 w-4" />Logros</TabsTrigger>
+                  <TabsTrigger value="wiki"><InfoIcon className="mr-2 h-4 w-4" />Wiki</TabsTrigger>
                 </>
               ) : (
                 <>
-                  <TabsTrigger value="wiki">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>
-                    Wiki
-                  </TabsTrigger>
-                  <TabsTrigger value="reseñas">
-                    <Star className="mr-2 h-4 w-4" />
-                    Reseñas
-                  </TabsTrigger>
-                  <TabsTrigger value="emocion">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 1 1 0 -18a9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>
-                    {t('FigurePage.tabs.emotion')}
-                  </TabsTrigger>
-                  {isBlackpinkMember && (
-                    <TabsTrigger value="bias-blackpink">
-                      <Heart className="mr-2 h-4 w-4" />
-                      Bias Blackpink
-                    </TabsTrigger>
-                  )}
-                  <TabsTrigger value="rachas">
-                    <Image
-                      src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire%20(2)%20(1).gif?alt=media&token=032a6759-bcfd-496a-a349-2f0f30a19448"
-                      alt={t('FigurePage.tabs.streaks')}
-                      width={16}
-                      height={16}
-                      unoptimized
-                      className="mr-2"
-                    />
-                    {t('FigurePage.tabs.streaks')}
-                  </TabsTrigger>
-                  <TabsTrigger value="logros">
-                    <Trophy className="mr-2 h-4 w-4" />
-                    Logros
-                  </TabsTrigger>
+                  <TabsTrigger value="wiki"><InfoIcon className="mr-2 h-4 w-4" />Wiki</TabsTrigger>
+                  <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
+                  <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
+                  {isBlackpinkMember && <TabsTrigger value="bias-blackpink"><Heart className="mr-2 h-4 w-4" />Bias Blackpink</TabsTrigger>}
+                  <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
+                  <TabsTrigger value="logros"><Trophy className="mr-2 h-4 w-4" />Logros</TabsTrigger>
                 </>
               )}
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
+          
           <TabsContent value="wiki" className="mt-4">
-              {isEditing ? (
-                  <EditInformationForm figure={figure} onFormClose={() => setIsEditing(false)} />
-              ) : (
+              {isEditing ? <EditInformationForm figure={figure} onFormClose={() => setIsEditing(false)} /> : (
                 <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <CardTitle>{t('FigurePage.detailedInfo.title')}</CardTitle>
-                                <CardDescription className="text-muted-foreground">{t('FigurePage.detailedInfo.description').replace('{name}', figure.name)}</CardDescription>
-                            </div>
-                            {user && !user.isAnonymous && (
-                              <Button variant="outline" onClick={() => setIsEditing(true)}>
-                                  <Pencil className="mr-2 h-4 w-4" /> {t('FigurePage.detailedInfo.editButton')}
-                              </Button>
-                            )}
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>{t('FigurePage.detailedInfo.title')}</CardTitle>
+                            <CardDescription className="text-muted-foreground">{t('FigurePage.detailedInfo.description').replace('{name}', figure.name)}</CardDescription>
                         </div>
+                        {user && !user.isAnonymous && <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Pencil className="mr-2 h-4 w-4" />{t('FigurePage.detailedInfo.editButton')}</Button>}
                     </CardHeader>
                     <CardContent className="p-6">
                         {hasInfo ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                                {infoItems.map((item) => {
-                                    if (!item.value) return null;
-                                    
-                                    const countryData = item.label === t('FigurePage.detailedInfo.countryLabel') 
-                                        ? countries.find(c => t(`countries.${c.key}`) === item.value) 
-                                        : null;
-
-                                    return (
-                                        <div key={item.label} className="flex items-start gap-3">
-                                            <item.icon className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
-                                            <div>
-                                                <p className="font-semibold text-sm">{item.label}</p>
-                                                {item.label === t('FigurePage.detailedInfo.countryLabel') && countryData ? (
-                                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                                        <Image
-                                                            src={`https://flagcdn.com/w20/${countryData.code.toLowerCase()}.png`}
-                                                            alt={item.value}
-                                                            width={20}
-                                                            height={15}
-                                                            className="object-contain"
-                                                        />
-                                                        <span>{item.value}</span>
-                                                    </div>
-                                                ) : item.label === t('FigurePage.detailedInfo.genderLabel') ? (
-                                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                                        <span>{item.value}</span>
-                                                        {item.value === 'Masculino' && <span className="text-blue-400 font-bold">♂</span>}
-                                                        {item.value === 'Femenino' && <span className="text-pink-400 font-bold">♀</span>}
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-muted-foreground">{item.value}</p>
-                                                )}
-                                            </div>
+                                {infoItems.map((item) => item.value && (
+                                    <div key={item.label} className="flex items-start gap-3">
+                                        <item.icon className="h-5 w-5 mt-1 text-muted-foreground flex-shrink-0" />
+                                        <div>
+                                            <p className="font-semibold text-sm">{item.label}</p>
+                                            <p className="text-muted-foreground">{item.value}</p>
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                ))}
                             </div>
-                        ) : (
-                             <p className="text-muted-foreground text-center py-4">
-                                {t('FigurePage.detailedInfo.noInfo')}
-                            </p>
-                        )}
-
+                        ) : <p className="text-muted-foreground text-center py-4">{t('FigurePage.detailedInfo.noInfo')}</p>}
                         {hasSocialLinks && (
                             <>
                                 <Separator className="my-6" />
                                 <div className="space-y-4">
-                                    <h3 className="font-semibold text-sm flex items-center gap-2">
-                                        <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                                        {t('FigurePage.detailedInfo.socialMediaTitle')}
-                                    </h3>
-                                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                                        {Object.entries(figure.socialLinks || {}).map(([platform, url]) => (
-                                            url ? <SocialLink key={platform} platform={platform} url={url} /> : null
-                                        ))}
+                                    <h3 className="font-semibold text-sm flex items-center gap-2"><LinkIcon className="h-4 w-4 text-muted-foreground" />{t('FigurePage.detailedInfo.socialMediaTitle')}</h3>
+                                    <div className="flex flex-wrap gap-4">
+                                        {Object.entries(figure.socialLinks || {}).map(([p, u]) => u && <SocialLink key={p} platform={p} url={u} />)}
                                     </div>
                                 </div>
                             </>
                         )}
-                        
                     </CardContent>
                 </Card>
               )}
@@ -406,55 +225,36 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
           </TabsContent>
           <TabsContent value="logros" className="mt-4">
             <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
-              <CardHeader>
-                <CardTitle>Logros Desbloqueados</CardTitle>
-                <CardDescription>Colecciona insignias por tus contribuciones y lealtad.</CardDescription>
-              </CardHeader>
+              <CardHeader><CardTitle>Logros Desbloqueados</CardTitle></CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                   {isLoadingAchievements ? (
-                    <Skeleton className="h-32 w-24" />
-                   ) : (
-                    <div className={cn(
-                        "flex flex-col items-center text-center gap-2 p-4 border-2 rounded-lg bg-muted/50 transition-all",
-                        hasPioneer ? "border-primary" : "border-dashed",
-                        !hasPioneer && "opacity-40"
-                    )}>
-                        <Image
-                            src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero%20(1).png?alt=media&token=6a233ccb-21f7-4b09-a45f-be38e171999d"
-                            alt="Logro Pionero"
-                            width={80}
-                            height={80}
-                            className={cn("h-20 w-20", !hasPioneer && "grayscale")}
-                        />
-                        <div>
-                            <p className="text-sm font-semibold">Pionero</p>
-                            <p className="text-xs text-muted-foreground">Calificó entre los primeros 1000.</p>
-                        </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                    <div className={cn("flex flex-col items-center text-center gap-2 p-4 border-2 rounded-lg", userAchievements?.achievements?.includes('pioneer_1000') ? "border-primary bg-primary/5" : "border-dashed opacity-40")}>
+                        <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/LOGROS%2Fpionero%20(1).png?alt=media&token=6a233ccb-21f7-4b09-a45f-be38e171999d" alt="Pionero" width={64} height={64} />
+                        <p className="text-xs font-bold uppercase tracking-tighter">Pionero</p>
                     </div>
-                   )}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
-          {isBtsMember && (
-            <TabsContent value="bias-bts" className="mt-4">
-              {activeTab === 'bias-bts' && <BtsBiasVoting />}
-            </TabsContent>
-          )}
-          {isBlackpinkMember && (
-            <TabsContent value="bias-blackpink" className="mt-4">
-              {activeTab === 'bias-blackpink' && <BlackpinkBiasVoting />}
-            </TabsContent>
-          )}
+          {isBtsMember && <TabsContent value="bias-bts" className="mt-4">{activeTab === 'bias-bts' && <BtsBiasVoting />}</TabsContent>}
+          {isBlackpinkMember && <TabsContent value="bias-blackpink" className="mt-4">{activeTab === 'bias-blackpink' && <BlackpinkBiasVoting />}</TabsContent>}
         </Tabs>
       </div>
-      
-       <div className="mt-8">
-        <RelatedFigures figure={figure} />
-      </div>
+      <div className="mt-8"><RelatedFigures figure={figure} /></div>
     </div>
   );
+}
+
+function SmileIcon({ className }: { className?: string }) {
+    return <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18z" /><path d="M9 10h.01" /><path d="M15 10h.01" /><path d="M9.5 15a3.5 3.5 0 0 0 5 0" /></svg>;
+}
+
+function InfoIcon({ className }: { className?: string }) {
+    return <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0-18 0" /><path d="M12 9h.01" /><path d="M11 12h1v4h1" /></svg>;
+}
+
+function FlameGifIcon() {
+    return <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire%20(2)%20(1).gif?alt=media&token=032a6759-bcfd-496a-a349-2f0f30a19448" alt="Streak" width={16} height={16} unoptimized className="mr-2" />;
 }
 
 export default function FigureDetailClient({ figureId, initialFigure }: { figureId: string, initialFigure: Figure | null }) {

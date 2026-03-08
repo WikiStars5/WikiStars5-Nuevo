@@ -1,9 +1,7 @@
-
 'use client';
 
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import type { Figure, GoatBattle } from '@/lib/types';
 import PersonalStreak from '../streaks/personal-streak';
 import { ShareButton } from '../shared/ShareButton';
@@ -23,8 +21,6 @@ interface ProfileHeaderProps {
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
-const GOAT_ICON_URL = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/goat%2FGOAT2.png?alt=media&token=50973a60-0bff-4fcb-9c17-986f067d834e";
-
 export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) {
   const firestore = useFirestore();
   const searchParams = useSearchParams();
@@ -38,14 +34,6 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
 
   const { data: battleData } = useDoc<GoatBattle>(battleDocRef);
   
-  const isGoatCandidate = figure.name === 'Lionel Messi' || figure.name === 'Cristiano Ronaldo';
-  const battleWinner = battleData?.winner;
-  const isWinner = 
-    isGoatCandidate &&
-    battleWinner &&
-    ((figure.name === 'Lionel Messi' && battleWinner === 'messi') || 
-     (figure.name === 'Cristiano Ronaldo' && battleWinner === 'ronaldo'));
-
   const isGoatTab = searchParams.get('tab') === 'goat';
   
   const handleVote = useCallback((attitude: AttitudeOption | null) => {
@@ -53,37 +41,37 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
   }, []);
 
   return (
-    <Card className={cn("overflow-hidden shadow-md border-0 md:border md:rounded-lg", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+    <Card className={cn("lcp-wrapper shadow-md border-0 md:border md:rounded-lg", (theme === 'dark' || theme === 'army') && 'bg-black')}>
       <Dialog>
         <DialogTrigger asChild>
-          <div className="relative h-48 md:h-64 bg-muted cursor-pointer">
+          <div className="lcp-hero bg-muted cursor-pointer">
             {figure.coverPhotoUrl && (
                 <Image
                     src={figure.coverPhotoUrl}
-                    alt={`Foto de portada de ${figure.name}`}
+                    alt={`Portada ${figure.name}`}
                     fill
                     className="object-cover"
+                    priority
                 />
             )}
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
           </div>
         </DialogTrigger>
         <DialogContent className="p-2 bg-transparent border-0 max-w-5xl h-screen flex items-center justify-center">
             <DialogHeader className="sr-only">
-              <DialogTitle>Imagen de portada de ${figure.name}</DialogTitle>
-              <DialogDescription>Una vista ampliada de la imagen de portada.</DialogDescription>
+              <DialogTitle>Portada de {figure.name}</DialogTitle>
+              <DialogDescription>Vista ampliada de la portada.</DialogDescription>
             </DialogHeader>
             <div className="relative w-full h-full max-h-[90vh]">
               <Image
                   src={figure.coverPhotoUrl || `https://placehold.co/1200x600?text=${encodeURIComponent(figure.name)}`}
-                  alt={`Foto de portada de ${figure.name}`}
+                  alt={figure.name}
                   fill
                   className="rounded-lg object-contain"
               />
             </div>
         </DialogContent>
       </Dialog>
-
 
       <CardContent className="relative p-6 md:p-8 pt-0">
          <div className="absolute top-4 right-4 z-10">
@@ -94,25 +82,25 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
             showText={false}
           />
         </div>
-        <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8 -mt-16 md:-mt-20">
-          <div className="relative flex-shrink-0">
+        <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
+          <div className="relative flex-shrink-0 lcp-avatar border-4 border-card shadow-lg overflow-hidden bg-black">
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="h-28 w-28 md:h-36 md:w-36 rounded-full border-4 border-card p-0 shadow-lg cursor-pointer overflow-hidden">
+                <div className="relative w-full h-full cursor-pointer">
                     <Image
                         src={figure.imageUrl || `https://placehold.co/400x400?text=${encodeURIComponent(figure.name)}`}
                         alt={figure.name}
                         fill
-                        className="object-cover"
+                        className="object-cover rounded-full"
                         data-ai-hint={figure.imageHint}
-                        priority={true} // Priority loading for LCP optimization
+                        priority
                     />
-                </Button>
+                </div>
               </DialogTrigger>
               <DialogContent className="p-2 bg-transparent border-0 max-w-4xl h-screen flex items-center justify-center">
                  <DialogHeader className="sr-only">
-                    <DialogTitle>Imagen de perfil de ${figure.name}</DialogTitle>
-                    <DialogDescription>Una vista ampliada de la imagen de perfil.</DialogDescription>
+                    <DialogTitle>Foto de {figure.name}</DialogTitle>
+                    <DialogDescription>Vista ampliada.</DialogDescription>
                  </DialogHeader>
                  <div className="relative w-full h-full max-h-[90vh]">
                     <Image
@@ -125,12 +113,10 @@ export default function ProfileHeader({ figure, figureId }: ProfileHeaderProps) 
               </DialogContent>
             </Dialog>
           </div>
-          <div className="flex-1 w-full text-center md:text-left space-y-3">
-            <div className="flex items-center justify-center md:justify-start gap-3">
-              <h1 className="text-3xl md:text-5xl font-bold tracking-tight font-headline">
-                {figure.name}
-              </h1>
-            </div>
+          <div className="flex-1 w-full text-center md:text-left space-y-3 md:mt-2">
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tight font-headline">
+              {figure.name}
+            </h1>
             <div className="flex justify-center md:justify-start">
               <PersonalStreak figureId={figureId} />
             </div>
