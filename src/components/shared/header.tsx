@@ -18,12 +18,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth, useUser, useAdmin, useFirestore, useDoc, useMemoFirebase, useFirebaseApp, requestNotificationPermissionAndGetToken } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote, Heart, Check, Info } from 'lucide-react';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Bell, Moon, Sun, Search, Snowflake, Heart, Check, Info } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
 import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog';
-import InfoDialog from './info-dialog';
+import InfoDialog, { type InfoSection } from './info-dialog';
 import SearchBar from './search-bar';
 import NotificationBell from './notification-bell';
 import Image from 'next/image';
@@ -47,6 +47,7 @@ export default function Header() {
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
   const [isInfoDialogOpen, setIsInfoDialogOpen] = React.useState(false);
+  const [infoSection, setInfoSection] = React.useState<InfoSection>('beta');
   const [isSearchDialogOpen, setIsSearchDialogOpen] = React.useState(false);
   const { setTheme, theme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
@@ -75,7 +76,6 @@ export default function Header() {
     }
     const token = await requestNotificationPermissionAndGetToken(firebaseApp);
     if (token) {
-        // Save the token and update stats
         await saveFcmToken(firestore, user.uid, token);
         toast({ title: "¡Suscrito a las notificaciones!", description: "Ahora recibirás notificaciones sobre la actividad importante." });
     } else {
@@ -90,6 +90,11 @@ export default function Header() {
 
   const isLoading = isUserLoading || (user && isProfileLoading);
   const displayName = userProfile?.username || user?.displayName || user?.email;
+
+  const handleOpenInfo = (section: InfoSection) => {
+    setInfoSection(section);
+    setIsInfoDialogOpen(true);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -137,7 +142,7 @@ export default function Header() {
               </Dialog>
 
               <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
-                <InfoDialog />
+                <InfoDialog section={infoSection} />
               </Dialog>
 
               <DropdownMenu>
@@ -240,10 +245,28 @@ export default function Header() {
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
 
-                  <DropdownMenuItem onSelect={() => setIsInfoDialogOpen(true)}>
-                    <Info className="mr-2 h-4 w-4" />
-                    <span>Información</span>
-                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Info className="mr-2 h-4 w-4" />
+                      <span>Información</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onSelect={() => handleOpenInfo('beta')}>
+                          <span>Versión Beta</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleOpenInfo('rules')}>
+                          <span>Reglas</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleOpenInfo('privacy')}>
+                          <span>Privacidad</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => handleOpenInfo('disclaimer')}>
+                          <span>Aviso Legal</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
 
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
