@@ -16,7 +16,8 @@ import {
   limit, 
   getDocs, 
   Timestamp,
-  updateDoc
+  updateDoc,
+  getDoc
 } from 'firebase/firestore';
 import { signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -26,9 +27,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Tag, XCircle, Search, User as UserIcon, Sparkles, AlertCircle, MessageSquare, Trash2, Pencil } from 'lucide-react';
+import { Loader2, Send, Tag, XCircle, Search, User as UserIcon, Sparkles, AlertCircle, MessageSquare, Trash2, Pencil, Check } from 'lucide-react';
 import StarInput from '@/components/figure/star-input';
-import { Figure, User as AppUser, Achievement, Comment } from '@/lib/types';
+import { Figure, User as AppUser, Achievement, Comment, AttitudeVote } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { normalizeText } from '@/lib/keywords';
@@ -53,9 +54,23 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ShareButton } from './ShareButton';
+import Image from 'next/image';
+
+const attitudeOptions: {
+  id: 'neutral' | 'fan' | 'simp' | 'hater';
+  label: string;
+  gifUrl: string;
+  selectedClass: string;
+}[] = [
+  { id: 'neutral', label: 'Espectador', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fneutral.png?alt=media&token=aac1fe00-4e42-49d1-98a2-3dab605987d3', selectedClass: 'border-gray-400 bg-gray-400/10' },
+  { id: 'fan', label: 'Fan', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Ffan.png?alt=media&token=a937aee9-04b6-48e8-bf37-25eef5f28e90', selectedClass: 'border-yellow-300 bg-yellow-300/10' },
+  { id: 'simp', label: 'Simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', selectedClass: 'border-pink-300 bg-pink-300/10' },
+  { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', selectedClass: 'border-red-400 bg-red-400/10' },
+];
 
 const createCommentSchema = (needsIdentity: boolean) => z.object({
   rating: z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0).max(5),
+  attitude: z.enum(['neutral', 'fan', 'simp', 'hater']).optional(),
   username: needsIdentity 
     ? z.string().min(3, 'Mínimo 3 caracteres.').max(15, 'Máximo 15 caracteres.').regex(/^[a-zA-Z0-9_]+$/, 'Solo letras, números y guiones bajos.')
     : z.string().optional(),
@@ -79,39 +94,9 @@ export default function GlobalStarPostForm() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   const [existingComment, setExistingComment] = useState<Comment | null>(null);
+  const [existingAttitude, setExistingAttitude] = useState<string | null>(null);
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-
-  // Check for existing comment when figure or user changes
-  useEffect(() => {
-    const checkExisting = async () => {
-      if (!firestore || !user || !selectedFigure) {
-        setExistingComment(null);
-        setIsEditing(false);
-        return;
-      }
-
-      setIsCheckingExisting(true);
-      try {
-        const commentsRef = collection(firestore, 'figures', selectedFigure.id, 'comments');
-        const q = query(commentsRef, where('userId', '==', user.uid), limit(1));
-        const snapshot = await getDocs(q);
-        
-        if (!snapshot.empty) {
-          setExistingComment({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Comment);
-        } else {
-          setExistingComment(null);
-          setIsEditing(false);
-        }
-      } catch (error) {
-        console.error("Error checking existing comment:", error);
-      } finally {
-        setIsCheckingExisting(false);
-      }
-    };
-
-    checkExisting();
-  }, [selectedFigure, user, firestore]);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -131,11 +116,59 @@ export default function GlobalStarPostForm() {
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(needsIdentity)),
-    defaultValues: { text: '', rating: 5, username: '', tag: undefined },
+    defaultValues: { text: '', rating: 5, attitude: 'neutral', username: '', tag: undefined },
   });
+
+  // Check for existing comment and attitude when figure or user changes
+  useEffect(() => {
+    const fetchExistingData = async () => {
+      if (!firestore || !user || !selectedFigure) {
+        setExistingComment(null);
+        setExistingAttitude(null);
+        setIsEditing(false);
+        return;
+      }
+
+      setIsCheckingExisting(true);
+      try {
+        const commentsRef = collection(firestore, 'figures', selectedFigure.id, 'comments');
+        const q = query(commentsRef, where('userId', '==', user.uid), limit(1));
+        
+        const attitudeRef = doc(firestore, `users/${user.uid}/attitudeVotes`, selectedFigure.id);
+
+        const [commentSnap, attitudeSnap] = await Promise.all([
+          getDocs(q),
+          getDoc(attitudeRef)
+        ]);
+        
+        if (!commentSnap.empty) {
+          setExistingComment({ id: commentSnap.docs[0].id, ...commentSnap.docs[0].data() } as Comment);
+        } else {
+          setExistingComment(null);
+          setIsEditing(false);
+        }
+
+        if (attitudeSnap.exists()) {
+          const attitude = attitudeSnap.data().vote;
+          setExistingAttitude(attitude);
+          form.setValue('attitude', attitude);
+        } else {
+          setExistingAttitude(null);
+          form.setValue('attitude', 'neutral');
+        }
+      } catch (error) {
+        console.error("Error checking existing data:", error);
+      } finally {
+        setIsCheckingExisting(false);
+      }
+    };
+
+    fetchExistingData();
+  }, [selectedFigure, user, firestore, form]);
 
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
+  const selectedAttitude = form.watch('attitude');
 
   const handleDeleteExisting = async () => {
     if (!firestore || !user || !selectedFigure || !existingComment) return;
@@ -178,6 +211,7 @@ export default function GlobalStarPostForm() {
     if (!existingComment) return;
     form.reset({
       rating: existingComment.rating,
+      attitude: (existingAttitude as any) || 'neutral',
       text: existingComment.text || '',
       tag: existingComment.tag || undefined,
       username: userProfile?.username || '',
@@ -221,6 +255,7 @@ export default function GlobalStarPostForm() {
         const figureRef = doc(firestore, 'figures', selectedFigure.id);
         const userRef = doc(firestore, 'users', currentUser!.uid);
         const achievementRef = doc(firestore, `users/${currentUser!.uid}/achievements`, selectedFigure.id);
+        const attitudeRef = doc(firestore, `users/${currentUser!.uid}/attitudeVotes`, selectedFigure.id);
         
         const [figureSnap, userSnap, achievementSnap] = await Promise.all([
           transaction.get(figureRef),
@@ -255,8 +290,30 @@ export default function GlobalStarPostForm() {
         const country = userProfileData.country || null;
         const gender = userProfileData.gender || null;
 
+        // HANDLE ATTITUDE UPDATE
+        const oldAttitude = existingAttitude;
+        const newAttitude = data.attitude || 'neutral';
+
+        if (oldAttitude !== newAttitude) {
+          if (oldAttitude) {
+            transaction.update(figureRef, { [`attitude.${oldAttitude}`]: increment(-1) });
+          }
+          transaction.update(figureRef, { [`attitude.${newAttitude}`]: increment(1) });
+
+          transaction.set(attitudeRef, {
+            userId: currentUser!.uid,
+            figureId: selectedFigure.id,
+            vote: newAttitude,
+            createdAt: serverTimestamp(),
+            figureName: selectedFigure.name,
+            figureImageUrl: selectedFigure.imageUrl,
+            userCountry: country,
+            userGender: gender,
+          });
+        }
+
         if (existingComment && isEditing) {
-          // UPDATE LOGIC
+          // UPDATE COMMENT LOGIC
           const oldRating = existingComment.rating;
           const newRating = data.rating;
           const ratingDelta = newRating - oldRating;
@@ -279,9 +336,10 @@ export default function GlobalStarPostForm() {
             rating: newRating,
             updatedAt: serverTimestamp(),
             userDisplayName: finalDisplayName,
+            userAttitude: newAttitude,
           });
         } else {
-          // CREATE LOGIC
+          // CREATE COMMENT LOGIC
           transaction.update(figureRef, {
             ratingCount: increment(1),
             totalRating: increment(data.rating),
@@ -303,6 +361,7 @@ export default function GlobalStarPostForm() {
             userPhotoURL: userProfileData.profilePhotoUrl || currentUser!.photoURL,
             userCountry: country,
             userGender: gender,
+            userAttitude: newAttitude,
             likes: 0,
             dislikes: 0,
             parentId: null,
@@ -342,9 +401,10 @@ export default function GlobalStarPostForm() {
         title: isEditing ? '¡StarPost actualizado!' : '¡StarPost publicado!', 
         description: isEditing ? 'Tu opinión ha sido modificada.' : `Has calificado a ${selectedFigure.name}.` 
       });
-      form.reset({ text: '', rating: 5, tag: undefined });
+      form.reset({ text: '', rating: 5, attitude: 'neutral', tag: undefined });
       setSelectedFigure(null);
       setExistingComment(null);
+      setExistingAttitude(null);
       setIsEditing(false);
 
     } catch (error: any) {
@@ -382,6 +442,7 @@ export default function GlobalStarPostForm() {
             <Button variant="ghost" size="icon" onClick={() => {
               setSelectedFigure(null);
               setExistingComment(null);
+              setExistingAttitude(null);
               setIsEditing(false);
             }}>
               <XCircle className="h-5 w-5" />
@@ -403,7 +464,14 @@ export default function GlobalStarPostForm() {
             </div>
             <h3 className="font-bold text-lg mb-2">Ya has calificado a {selectedFigure.name}</h3>
             <div className="flex flex-col items-center gap-3 mb-6">
-              <StarRating rating={existingComment.rating} />
+              <div className="flex items-center gap-4">
+                <StarRating rating={existingComment.rating} />
+                {existingAttitude && (
+                  <div className={cn("text-xs font-black uppercase px-2 py-0.5 rounded border", attitudeOptions.find(o => o.id === existingAttitude)?.selectedClass)}>
+                    {attitudeOptions.find(o => o.id === existingAttitude)?.label}
+                  </div>
+                )}
+              </div>
               {existingComment.tag && (
                 <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/20">
                   {commentTags.find(t => t.id === existingComment.tag)?.emoji} {commentTags.find(t => t.id === existingComment.tag)?.label}
@@ -455,13 +523,40 @@ export default function GlobalStarPostForm() {
 
         {selectedFigure && !isCheckingExisting && ( (!existingComment) || (existingComment && isEditing) ) && (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex flex-wrap items-center justify-between gap-4">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              
+              {/* ATTITUDE SELECTOR */}
+              <div className="space-y-3">
+                <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest">¿Cuál es tu actitud hacia él/ella?</FormLabel>
+                <div className="grid grid-cols-4 gap-2">
+                  {attitudeOptions.map((option) => {
+                    const isSelected = selectedAttitude === option.id;
+                    return (
+                      <Button
+                        key={option.id}
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "h-20 flex-col gap-1 p-2 border-2 transition-all",
+                          isSelected ? option.selectedClass : "hover:bg-muted/50 border-dashed"
+                        )}
+                        onClick={() => form.setValue('attitude', option.id)}
+                      >
+                        <Image src={option.gifUrl} alt={option.label} width={32} height={32} unoptimized className="h-8 w-8" />
+                        <span className="text-[10px] font-bold">{option.label}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
                 <FormField
                   control={form.control}
                   name="rating"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Calificación</FormLabel>
                       <FormControl>
                         <StarInput value={field.value} onChange={field.onChange} />
                       </FormControl>
@@ -475,9 +570,10 @@ export default function GlobalStarPostForm() {
                   name="tag"
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Etiqueta</FormLabel>
                       <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" size="sm" className={cn("h-9", !field.value && "text-muted-foreground")}>
+                          <Button variant="outline" size="sm" className={cn("h-9 min-w-[100px]", !field.value && "text-muted-foreground")}>
                             {selectedTag ? `${selectedTag.emoji} ${selectedTag.label}` : <><Tag className="mr-2 h-4 w-4" /> Etiqueta</>}
                           </Button>
                         </PopoverTrigger>
@@ -557,5 +653,3 @@ export default function GlobalStarPostForm() {
     </Card>
   );
 }
-
-    
