@@ -63,15 +63,21 @@ export default function InfoDialog({ section }: InfoDialogProps) {
         );
       case 'rules':
         return (
-          <div className="space-y-4">
-            <ul className="space-y-3">
+          <div className="space-y-6">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {t('RulesPage.description')}
+            </p>
+            <ul className="space-y-4">
               {rulesKeys.map((ruleKey, index) => (
-                <li key={index} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                <li key={index} className="flex items-start gap-3 text-sm text-foreground/90">
+                  <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                   <span>{t(`RulesPage.${ruleKey}`)}</span>
                 </li>
               ))}
             </ul>
+            <p className="text-sm text-muted-foreground pt-6 border-t leading-relaxed">
+              {t('RulesPage.conclusion')}
+            </p>
           </div>
         );
       case 'privacy':
@@ -119,7 +125,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
   };
 
   return (
-    <DialogContent className="sm:max-w-xl max-h-[80vh] flex flex-col p-0 overflow-hidden dark:bg-black">
+    <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden dark:bg-black">
       <DialogHeader className="p-6 pb-2">
         <DialogTitle className="text-2xl font-headline flex items-center gap-2">
           {getIcon()}
