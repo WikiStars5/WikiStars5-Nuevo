@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -92,6 +91,7 @@ export default function GlobalStarPostForm() {
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isVoting, setIsVoting] = useState(false); // Estado para votos instantáneos
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   const [existingComment, setExistingComment] = useState<Comment | null>(null);
   const [existingAttitude, setExistingAttitude] = useState<string | null>(null);
@@ -119,7 +119,7 @@ export default function GlobalStarPostForm() {
     defaultValues: { text: '', rating: 5, attitude: 'neutral', username: '', tag: undefined },
   });
 
-  // Check for existing comment and attitude when figure or user changes
+  // Carga de historial al seleccionar personaje
   useEffect(() => {
     const fetchExistingData = async () => {
       if (!firestore || !user || !selectedFigure) {
@@ -169,6 +169,92 @@ export default function GlobalStarPostForm() {
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
   const selectedAttitude = form.watch('attitude');
+
+  // ACCIÓN INSTANTÁNEA: handleAttitudeChange
+  const handleAttitudeChange = async (newAttitude: 'neutral' | 'fan' | 'simp' | 'hater') => {
+    if (!selectedFigure || !firestore || isVoting) return;
+    
+    let currentUser = user;
+    if (!currentUser && auth) {
+        try {
+            const userCredential = await signInAnonymously(auth);
+            currentUser = userCredential.user;
+            await reloadUser();
+        } catch (error) {
+            toast({ title: 'Error de autenticación', variant: "destructive" });
+            return;
+        }
+    }
+
+    if (!currentUser) return;
+
+    setIsVoting(true);
+    const oldAttitude = existingAttitude;
+    const isRetracting = oldAttitude === newAttitude;
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const figureRef = doc(firestore, 'figures', selectedFigure.id);
+            const userRef = doc(firestore, 'users', currentUser!.uid);
+            const attitudeRef = doc(firestore, `users/${currentUser!.uid}/attitudeVotes`, selectedFigure.id);
+
+            const [figureSnap, userSnap] = await Promise.all([
+                transaction.get(figureRef),
+                transaction.get(userRef)
+            ]);
+
+            if (!figureSnap.exists()) throw new Error("Personaje no encontrado.");
+            if (!userSnap.exists()) {
+                transaction.set(userRef, { id: currentUser!.uid, createdAt: serverTimestamp() });
+            }
+
+            const country = userProfile?.country || null;
+            const gender = userProfile?.gender || null;
+
+            if (isRetracting) {
+                transaction.update(figureRef, { [`attitude.${newAttitude}`]: increment(-1) });
+                transaction.delete(attitudeRef);
+            } else {
+                if (oldAttitude) {
+                    transaction.update(figureRef, { [`attitude.${oldAttitude}`]: increment(-1) });
+                }
+                transaction.update(figureRef, { [`attitude.${newAttitude}`]: increment(1) });
+                transaction.set(attitudeRef, {
+                    userId: currentUser!.uid,
+                    figureId: selectedFigure.id,
+                    vote: newAttitude,
+                    createdAt: serverTimestamp(),
+                    figureName: selectedFigure.name,
+                    figureImageUrl: selectedFigure.imageUrl,
+                    userCountry: country,
+                    userGender: gender,
+                });
+            }
+        });
+
+        const streakResult = await updateStreak({
+            firestore, figureId: selectedFigure.id, figureName: selectedFigure.name,
+            userId: currentUser.uid, isAnonymous: currentUser.isAnonymous,
+            userPhotoURL: currentUser.photoURL
+        });
+
+        if (streakResult?.streakGained) {
+            showStreakAnimation(streakResult.newStreakCount, { 
+                showPrompt: true, figureId: selectedFigure.id, figureName: selectedFigure.name
+            });
+        }
+
+        setExistingAttitude(isRetracting ? null : newAttitude);
+        form.setValue('attitude', isRetracting ? 'neutral' : newAttitude);
+        toast({ title: isRetracting ? 'Voto eliminado' : '¡Voto registrado!' });
+
+    } catch (error: any) {
+        console.error(error);
+        toast({ title: 'Error al votar', description: error.message, variant: 'destructive' });
+    } finally {
+        setIsVoting(false);
+    }
+  };
 
   const handleDeleteExisting = async () => {
     if (!firestore || !user || !selectedFigure || !existingComment) return;
@@ -225,11 +311,6 @@ export default function GlobalStarPostForm() {
       return;
     }
 
-    if (existingComment && !isEditing) {
-      toast({ title: 'Ya has calificado', description: 'No puedes calificar más de una vez al mismo personaje.', variant: 'destructive' });
-      return;
-    }
-
     setIsSubmitting(true);
     let currentUser = user;
 
@@ -254,18 +335,14 @@ export default function GlobalStarPostForm() {
       await runTransaction(firestore, async (transaction) => {
         const figureRef = doc(firestore, 'figures', selectedFigure.id);
         const userRef = doc(firestore, 'users', currentUser!.uid);
-        const achievementRef = doc(firestore, `users/${currentUser!.uid}/achievements`, selectedFigure.id);
-        const attitudeRef = doc(firestore, `users/${currentUser!.uid}/attitudeVotes`, selectedFigure.id);
         
-        const [figureSnap, userSnap, achievementSnap] = await Promise.all([
+        const [figureSnap, userSnap] = await Promise.all([
           transaction.get(figureRef),
-          transaction.get(userRef),
-          transaction.get(achievementRef)
+          transaction.get(userRef)
         ]);
 
         if (!figureSnap.exists()) throw new Error("Personaje no encontrado.");
 
-        const figureData = figureSnap.data() as Figure;
         const userProfileData = userSnap.exists() ? userSnap.data() as AppUser : {};
         
         if (data.username && needsIdentity) {
@@ -290,38 +367,12 @@ export default function GlobalStarPostForm() {
         const country = userProfileData.country || null;
         const gender = userProfileData.gender || null;
 
-        // HANDLE ATTITUDE UPDATE
-        const oldAttitude = existingAttitude;
-        const newAttitude = data.attitude || 'neutral';
-
-        if (oldAttitude !== newAttitude) {
-          if (oldAttitude) {
-            transaction.update(figureRef, { [`attitude.${oldAttitude}`]: increment(-1) });
-          }
-          transaction.update(figureRef, { [`attitude.${newAttitude}`]: increment(1) });
-
-          transaction.set(attitudeRef, {
-            userId: currentUser!.uid,
-            figureId: selectedFigure.id,
-            vote: newAttitude,
-            createdAt: serverTimestamp(),
-            figureName: selectedFigure.name,
-            figureImageUrl: selectedFigure.imageUrl,
-            userCountry: country,
-            userGender: gender,
-          });
-        }
-
         if (existingComment && isEditing) {
-          // UPDATE COMMENT LOGIC
           const oldRating = existingComment.rating;
           const newRating = data.rating;
           const ratingDelta = newRating - oldRating;
 
-          const figureUpdates: any = {
-            updatedAt: serverTimestamp()
-          };
-
+          const figureUpdates: any = { updatedAt: serverTimestamp() };
           if (ratingDelta !== 0) {
             figureUpdates.totalRating = increment(ratingDelta);
             figureUpdates[`ratingsBreakdown.${oldRating}`] = increment(-1);
@@ -336,10 +387,9 @@ export default function GlobalStarPostForm() {
             rating: newRating,
             updatedAt: serverTimestamp(),
             userDisplayName: finalDisplayName,
-            userAttitude: newAttitude,
+            userAttitude: existingAttitude,
           });
         } else {
-          // CREATE COMMENT LOGIC
           transaction.update(figureRef, {
             ratingCount: increment(1),
             totalRating: increment(data.rating),
@@ -361,7 +411,7 @@ export default function GlobalStarPostForm() {
             userPhotoURL: userProfileData.profilePhotoUrl || currentUser!.photoURL,
             userCountry: country,
             userGender: gender,
-            userAttitude: newAttitude,
+            userAttitude: existingAttitude,
             likes: 0,
             dislikes: 0,
             parentId: null,
@@ -381,19 +431,14 @@ export default function GlobalStarPostForm() {
       });
 
       const streakResult = await updateStreak({
-        firestore,
-        figureId: selectedFigure.id,
-        figureName: selectedFigure.name,
-        userId: currentUser.uid,
-        isAnonymous: currentUser.isAnonymous,
+        firestore, figureId: selectedFigure.id, figureName: selectedFigure.name,
+        userId: currentUser.uid, isAnonymous: currentUser.isAnonymous,
         userPhotoURL: currentUser.photoURL
       });
 
       if (streakResult?.streakGained) {
         showStreakAnimation(streakResult.newStreakCount, { 
-          showPrompt: true,
-          figureId: selectedFigure.id,
-          figureName: selectedFigure.name
+          showPrompt: true, figureId: selectedFigure.id, figureName: selectedFigure.name
         });
       }
 
@@ -525,7 +570,7 @@ export default function GlobalStarPostForm() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
               
-              {/* ATTITUDE SELECTOR */}
+              {/* ATTITUDE SELECTOR (INSTANTÁNEO) */}
               <div className="space-y-3">
                 <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest">¿Cuál es tu actitud hacia él/ella?</FormLabel>
                 <div className="grid grid-cols-4 gap-2">
@@ -536,14 +581,21 @@ export default function GlobalStarPostForm() {
                         key={option.id}
                         type="button"
                         variant="outline"
+                        disabled={isVoting}
                         className={cn(
                           "h-20 flex-col gap-1 p-2 border-2 transition-all",
                           isSelected ? option.selectedClass : "hover:bg-muted/50 border-dashed"
                         )}
-                        onClick={() => form.setValue('attitude', option.id)}
+                        onClick={() => handleAttitudeChange(option.id)}
                       >
-                        <Image src={option.gifUrl} alt={option.label} width={32} height={32} unoptimized className="h-8 w-8" />
-                        <span className="text-[10px] font-bold">{option.label}</span>
+                        {isVoting && isSelected ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                            <>
+                                <Image src={option.gifUrl} alt={option.label} width={32} height={32} unoptimized className="h-8 w-8" />
+                                <span className="text-[10px] font-bold">{option.label}</span>
+                            </>
+                        )}
                       </Button>
                     );
                   })}

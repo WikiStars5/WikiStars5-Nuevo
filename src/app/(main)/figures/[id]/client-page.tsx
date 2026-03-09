@@ -90,7 +90,9 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
   const { theme } = useTheme();
 
   const figureDocRef = useMemoFirebase(() => (!firestore || !figureId) ? null : doc(firestore, 'figures', figureId), [firestore, figureId]);
-  const { data: realtimeFigure } = useDoc<Figure>(figureDocRef);
+  
+  // ACTIVADO: Tiempo real para que los votos se vean al instante
+  const { data: realtimeFigure } = useDoc<Figure>(figureDocRef, { realtime: true });
   const figure = realtimeFigure || initialFigure;
 
   const achievementRef = useMemoFirebase(() => (!firestore || !user) ? null : doc(firestore, `users/${user.uid}/achievements`, figureId), [firestore, user, figureId]);
