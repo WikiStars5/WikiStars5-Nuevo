@@ -43,12 +43,22 @@ export default function InfoDialog({ section }: InfoDialogProps) {
               <Info className="h-4 w-4" />
               <AlertTitle>¿Qué significa que estamos en "Beta"?</AlertTitle>
               <AlertDescription>
-                Significa que nuestra plataforma está en desarrollo activo. Es funcional y emocionante, pero todavía estamos ajustando detalles.
+                Significa que nuestra plataforma es como un auto de carreras recién ensamblado: es funcional y emocionante, pero todavía estamos en la pista de pruebas ajustando los tornillos.
               </AlertDescription>
             </Alert>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Estás utilizando una versión temprana de WikiStars5. Estamos trabajando constantemente para añadir nuevas funcionalidades y pulir la experiencia general. Tu feedback es fundamental en este proceso.
-            </p>
+            <div className="text-sm text-muted-foreground space-y-4 leading-relaxed">
+              <p>
+                Estás utilizando una versión temprana de WikiStars5. Todas las características principales que ves están activas y funcionales, pero esto es solo el comienzo. Estar en fase "Beta" significa que:
+              </p>
+              <ul className="list-disc list-inside space-y-2 pl-2">
+                <li><strong>Desarrollo Activo:</strong> Estamos trabajando constantemente para añadir nuevas funcionalidades, mejorar las existentes y pulir la experiencia general.</li>
+                <li><strong>Posibles Errores:</strong> Aunque hacemos nuestro mejor esfuerzo, es posible que encuentres algunos bugs o comportamientos inesperados. ¡Somos humanos!</li>
+                <li><strong>Tu Opinión es Oro:</strong> Esta es la etapa donde tu feedback es más valioso. Si algo no funciona como esperas o tienes una idea genial, nos encantaría saberlo. Eres parte fundamental del proceso de construcción.</li>
+              </ul>
+              <p>
+                Gracias por ser uno de nuestros primeros usuarios y por ayudarnos a construir la mejor plataforma de opinión sobre figuras públicas.
+              </p>
+            </div>
           </div>
         );
       case 'rules':
@@ -92,7 +102,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
 
   const getTitle = () => {
     switch (section) {
-      case 'beta': return 'Versión Beta';
+      case 'beta': return 'Versión Beta de WikiStars5';
       case 'rules': return 'Reglas de la Comunidad';
       case 'privacy': return 'Política de Privacidad';
       case 'disclaimer': return 'Aviso Legal';
