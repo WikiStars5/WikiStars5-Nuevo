@@ -14,7 +14,7 @@ import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, runTransaction, increment, serverTimestamp, onSnapshot, getDocs, collection as firestoreCollection, updateDoc } from 'firebase/firestore';
+import { doc, runTransaction, increment, serverTimestamp, getDoc, getDocs, collection as firestoreCollection, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
 import { isDateActive } from '@/lib/streaks';
@@ -77,17 +77,22 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   }, [firestore, initialPost.figureId, initialPost.id]);
 
   useEffect(() => {
-    if (!commentRef) return;
-    const unsubscribe = onSnapshot(commentRef, (doc) => {
-        if (doc.exists()) {
-            const updatedPost = { id: doc.id, ...doc.data() } as Comment;
-            setPost(updatedPost);
-            if (!isEditing) { // Prevent overwriting user's edits
-              setEditText(updatedPost.text);
-            }
+    const fetchPost = async () => {
+      if (!commentRef) return;
+      try {
+        const docSnap = await getDoc(commentRef);
+        if (docSnap.exists()) {
+          const updatedPost = { id: docSnap.id, ...docSnap.data() } as Comment;
+          setPost(updatedPost);
+          if (!isEditing) { // Prevent overwriting user's edits
+            setEditText(updatedPost.text);
+          }
         }
-    });
-    return () => unsubscribe();
+      } catch (error) {
+        console.error("Error fetching starpost data:", error);
+      }
+    };
+    fetchPost();
   }, [commentRef, isEditing]);
 
 

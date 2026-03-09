@@ -1,4 +1,4 @@
-'use client';
+['use client';
 
 import { useState, Suspense, useCallback, useMemo } from 'react';
 import { doc } from 'firebase/firestore';
@@ -91,9 +91,9 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
 
   const figureDocRef = useMemoFirebase(() => (!firestore || !figureId) ? null : doc(firestore, 'figures', figureId), [firestore, figureId]);
   
-  // ACTIVADO: Tiempo real para que los votos se vean al instante
-  const { data: realtimeFigure } = useDoc<Figure>(figureDocRef, { realtime: true });
-  const figure = realtimeFigure || initialFigure;
+  // Tiempo real desactivado para optimizar lecturas (ahora requiere recarga manual o navegación)
+  const { data: fetchedFigure } = useDoc<Figure>(figureDocRef);
+  const figure = fetchedFigure || initialFigure;
 
   const achievementRef = useMemoFirebase(() => (!firestore || !user) ? null : doc(firestore, `users/${user.uid}/achievements`, figureId), [firestore, user, figureId]);
   const { data: userAchievements } = useDoc<Achievement>(achievementRef);
