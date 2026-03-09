@@ -14,8 +14,6 @@ import {
   where, 
   limit, 
   getDocs, 
-  Timestamp,
-  updateDoc,
   getDoc
 } from 'firebase/firestore';
 import { signInAnonymously, User as FirebaseUser } from 'firebase/auth';
@@ -26,9 +24,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Tag, XCircle, Search, User as UserIcon, Sparkles, AlertCircle, MessageSquare, Trash2, Pencil, Check } from 'lucide-react';
+import { Loader2, Send, Tag, XCircle, AlertCircle, Trash2, Pencil, Save, X } from 'lucide-react';
 import StarInput from '@/components/figure/star-input';
-import { Figure, User as AppUser, Achievement, Comment, AttitudeVote } from '@/lib/types';
+import { Figure, User as AppUser, Comment, AttitudeVote } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { normalizeText } from '@/lib/keywords';
@@ -40,7 +38,6 @@ import FigureSearchInput from '@/components/figure/figure-search-input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTheme } from 'next-themes';
 import { StarRating } from './star-rating';
-import Link from 'next/link';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -91,7 +88,7 @@ export default function GlobalStarPostForm() {
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isVoting, setIsVoting] = useState(false); // Estado para votos instantáneos
+  const [isVoting, setIsVoting] = useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   const [existingComment, setExistingComment] = useState<Comment | null>(null);
   const [existingAttitude, setExistingAttitude] = useState<string | null>(null);
@@ -119,7 +116,6 @@ export default function GlobalStarPostForm() {
     defaultValues: { text: '', rating: 5, attitude: 'neutral', username: '', tag: undefined },
   });
 
-  // Carga de historial al seleccionar personaje
   useEffect(() => {
     const fetchExistingData = async () => {
       if (!firestore || !user || !selectedFigure) {
@@ -170,7 +166,6 @@ export default function GlobalStarPostForm() {
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
   const selectedAttitude = form.watch('attitude');
 
-  // ACCIÓN INSTANTÁNEA: handleAttitudeChange
   const handleAttitudeChange = async (newAttitude: 'neutral' | 'fan' | 'simp' | 'hater') => {
     if (!selectedFigure || !firestore || isVoting) return;
     
@@ -208,9 +203,6 @@ export default function GlobalStarPostForm() {
                 transaction.set(userRef, { id: currentUser!.uid, createdAt: serverTimestamp() });
             }
 
-            const country = userProfile?.country || null;
-            const gender = userProfile?.gender || null;
-
             if (isRetracting) {
                 transaction.update(figureRef, { [`attitude.${newAttitude}`]: increment(-1) });
                 transaction.delete(attitudeRef);
@@ -226,8 +218,8 @@ export default function GlobalStarPostForm() {
                     createdAt: serverTimestamp(),
                     figureName: selectedFigure.name,
                     figureImageUrl: selectedFigure.imageUrl,
-                    userCountry: country,
-                    userGender: gender,
+                    userCountry: userProfile?.country || null,
+                    userGender: userProfile?.gender || null,
                 });
             }
         });
@@ -464,7 +456,7 @@ export default function GlobalStarPostForm() {
     <Card className={cn("mb-8 border-primary/20", (theme === 'dark' || theme === 'army') && "bg-black border-primary/40")}>
       <CardHeader className="pb-4">
         <CardTitle className="text-xl flex items-center gap-2">
-          <Sparkles className="text-primary h-5 w-5" />
+          <Send className="text-primary h-5 w-5" />
           ¿A quién quieres calificar hoy?
         </CardTitle>
         <CardDescription>Publica un StarPost al instante sin salir del feed.</CardDescription>
@@ -513,7 +505,7 @@ export default function GlobalStarPostForm() {
                 <StarRating rating={existingComment.rating} />
                 {existingAttitude && (
                   <div className={cn("text-xs font-black uppercase px-2 py-0.5 rounded border", attitudeOptions.find(o => o.id === existingAttitude)?.selectedClass)}>
-                    {attitudeOptions.find(o => o.id === existingAttitude)?.label}
+                    {attitudeOptions.find(o => o.id === (existingAttitude as any))?.label}
                   </div>
                 )}
               </div>
@@ -569,8 +561,6 @@ export default function GlobalStarPostForm() {
         {selectedFigure && !isCheckingExisting && ( (!existingComment) || (existingComment && isEditing) ) && (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-              
-              {/* ATTITUDE SELECTOR (INSTANTÁNEO) */}
               <div className="space-y-3">
                 <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest">¿Cuál es tu actitud hacia él/ella?</FormLabel>
                 <div className="grid grid-cols-4 gap-2">
@@ -678,7 +668,7 @@ export default function GlobalStarPostForm() {
                     <FormControl>
                       <Textarea 
                         {...field} 
-                        placeholder={`¿Qué tienes que decir sobre ${selectedFigure.name}?`}
+                        placeholder={`¿Qué tienes que decir sobre ${selectedFigure?.name}?`}
                         className="resize-none min-h-[80px]"
                       />
                     </FormControl>
@@ -694,7 +684,7 @@ export default function GlobalStarPostForm() {
                   </Button>
                 )}
                 <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   {isEditing ? 'Actualizar StarPost' : 'Publicar StarPost'}
                 </Button>
               </div>

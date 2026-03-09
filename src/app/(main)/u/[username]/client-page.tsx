@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,9 +7,8 @@ import Image from "next/image";
 import UserActivity from "@/components/profile/user-activity";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Info, Activity } from "lucide-react";
-import { useFirestore, useCollection } from "@/firebase";
-import { collection, query, where, limit } from "firebase/firestore";
-import { useMemoFirebase } from "@/firebase/provider";
+import { useFirestore } from "@/firebase";
+import { collection, query, where, limit, getDocs, getDoc, doc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { normalizeText } from "@/lib/keywords";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -67,43 +65,48 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
           limit(1)
         );
 
-        const usernameSnapshot = await getDocs(usernameQuery);
+        try {
+            const usernameSnapshot = await getDocs(usernameQuery);
 
-        if (usernameSnapshot.empty) {
-          setIsLoading(false);
-          notFound(); // Trigger a 404 page
-          return;
+            if (usernameSnapshot.empty) {
+              setIsLoading(false);
+              notFound();
+              return;
+            }
+
+            const userId = usernameSnapshot.docs[0].data().userId;
+            if (!userId) {
+              setIsLoading(false);
+              notFound();
+              return;
+            }
+
+            const userDocRef = doc(firestore, 'users', userId);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (!userDocSnap.exists()) {
+              setIsLoading(false);
+              notFound();
+              return;
+            }
+            
+            const userData = userDocSnap.data();
+            const publicUserData = {
+                id: userDocSnap.id,
+                username: userData.username || 'Usuario',
+                country: userData.country || null,
+                gender: userData.gender || null,
+                description: userData.description || null,
+                profilePhotoUrl: userData.profilePhotoUrl || null,
+                coverPhotoUrl: userData.coverPhotoUrl || null,
+            };
+
+            setUserProfile(publicUserData);
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
+        } finally {
+            setIsLoading(false);
         }
-
-        const userId = usernameSnapshot.docs[0].data().userId;
-        if (!userId) {
-          setIsLoading(false);
-          notFound();
-          return;
-        }
-
-        const userDocRef = doc(firestore, 'users', userId);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (!userDocSnap.exists()) {
-          setIsLoading(false);
-          notFound();
-          return;
-        }
-        
-        const userData = userDocSnap.data();
-        const publicUserData = {
-            id: userDocSnap.id,
-            username: userData.username || 'Usuario',
-            country: userData.country || null,
-            gender: userData.gender || null,
-            description: userData.description || null,
-            profilePhotoUrl: userData.profilePhotoUrl || null,
-            coverPhotoUrl: userData.coverPhotoUrl || null,
-        };
-
-        setUserProfile(publicUserData);
-        setIsLoading(false);
       };
 
       fetchUserProfile();
@@ -114,8 +117,6 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
     }
     
     if (!userProfile) {
-        // This case is handled by calling notFound() in the effect,
-        // but as a fallback, we can show a message.
         return <div>Usuario no encontrado.</div>;
     }
     
@@ -123,8 +124,6 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
         return userProfile.username.charAt(0).toUpperCase() || 'U';
     }
 
-    const country = userProfile.country ? countries.find(c => c.name === userProfile.country) : null;
-    
     return (
         <div className="container mx-auto max-w-4xl px-0 md:px-4 pb-8 md:pb-12">
             <Card className="overflow-hidden shadow-lg dark:bg-black border-0 md:border md:rounded-lg">
@@ -192,5 +191,3 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
         </div>
     );
 }
-
-    

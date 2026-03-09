@@ -1,4 +1,4 @@
-['use client';
+'use client';
 
 import { useState, Suspense, useCallback, useMemo } from 'react';
 import { doc } from 'firebase/firestore';
@@ -21,7 +21,6 @@ import RelatedFigures from '@/components/figure/related-figures';
 import TopStreaks from '@/components/streaks/top-streaks';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { countries } from '@/lib/countries';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -85,13 +84,11 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [commentSortPreference, setCommentSortPreference] = useState<AttitudeOption | null>(null);
   const { t } = useLanguage();
   const { theme } = useTheme();
 
   const figureDocRef = useMemoFirebase(() => (!firestore || !figureId) ? null : doc(firestore, 'figures', figureId), [firestore, figureId]);
   
-  // Tiempo real desactivado para optimizar lecturas (ahora requiere recarga manual o navegación)
   const { data: fetchedFigure } = useDoc<Figure>(figureDocRef);
   const figure = fetchedFigure || initialFigure;
 
@@ -211,7 +208,7 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
             {activeTab === 'reseñas' && (
               <>
                 <CommunityRatings figure={figure} />
-                <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={commentSortPreference} />
+                <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={null} />
               </>
             )}
           </TabsContent>
