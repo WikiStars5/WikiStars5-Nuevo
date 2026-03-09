@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -36,6 +37,7 @@ import { Textarea } from '../ui/textarea';
 import { ShareButton } from './ShareButton';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
+import FollowButton from './follow-button';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -84,7 +86,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
         if (docSnap.exists()) {
           const updatedPost = { id: docSnap.id, ...docSnap.data() } as Comment;
           setPost(updatedPost);
-          if (!isEditing) { // Prevent overwriting user's edits
+          if (!isEditing) {
             setEditText(updatedPost.text);
           }
         }
@@ -103,14 +105,14 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
       return doc(firestore, votePath, user.uid);
   }, [firestore, user, votePath]);
 
-  const { data: userVote, isLoading: isVoteLoading, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user, realtime: true });
+  const { data: userVote, refetch: refetchVote } = useDoc<CommentVote>(userVoteRef, { enabled: !!user, realtime: true });
 
   const userStreakRef = useMemoFirebase(() => {
     if (!firestore || !post.userId || !post.figureId) return null;
     return doc(firestore, `users/${post.userId}/streaks`, post.figureId);
   }, [firestore, post.userId, post.figureId]);
 
-  const { data: userStreak, isLoading: isStreakLoading } = useDoc<Streak>(userStreakRef, {realtime: true});
+  const { data: userStreak } = useDoc<Streak>(userStreakRef, {realtime: true});
 
   const handleDelete = async () => {
     if (!firestore || !isOwner) return;
@@ -130,12 +132,11 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
             repliesSnapshot.forEach(replyDoc => transaction.delete(replyDoc.ref));
 
             if (typeof post.rating === 'number' && post.rating >= 0) {
-                const ratingUpdates = {
+                transaction.update(figureRef, {
                     ratingCount: increment(-1),
                     totalRating: increment(-post.rating),
                     [`ratingsBreakdown.${post.rating}`]: increment(-1),
-                };
-                transaction.update(figureRef, ratingUpdates);
+                });
             }
 
             transaction.delete(commentRef);
@@ -196,18 +197,17 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
     const commentRef = doc(firestore, 'figures', post.figureId, 'comments', post.id);
     const voteRef = doc(firestore, votePath, user.uid);
 
-    // Optimistic Update
     setPost(currentPost => {
         const newPost = { ...currentPost };
         const existingVote = userVote?.vote;
 
-        if (existingVote === voteType) { // Retracting vote
+        if (existingVote === voteType) {
             newPost[`${voteType}s`] = (newPost[`${voteType}s`] ?? 1) - 1;
-        } else if (existingVote) { // Changing vote
+        } else if (existingVote) {
             const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
             newPost[`${voteType}s`] = (newPost[`${voteType}s`] ?? 0) + 1;
             newPost[`${otherVoteType}s`] = (newPost[`${otherVoteType}s`] ?? 1) - 1;
-        } else { // First vote
+        } else {
             newPost[`${voteType}s`] = (newPost[`${voteType}s`] ?? 0) + 1;
         }
         return newPost;
@@ -219,7 +219,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
             const existingVote = voteDoc.exists() ? voteDoc.data().vote : null;
             const updates: { [key: string]: any } = {};
 
-            if (existingVote === voteType) { // Retracting vote
+            if (existingVote === voteType) {
                 updates[`${voteType}s`] = increment(-1);
                 transaction.delete(voteRef);
                 toast({ title: t("CommentThread.toast.voteRemoved") });
@@ -236,7 +236,6 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
             transaction.update(commentRef, updates);
         });
 
-        // Update streak for the voter
         const streakResult = await updateStreak({
             firestore,
             figureId: post.figureId,
@@ -257,7 +256,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
         refetchVote();
     } catch (error: any) {
         console.error("Error al votar:", error);
-        setPost(initialPost); // Revert optimistic update on error
+        setPost(initialPost);
         toast({
             title: t("CommentThread.toast.voteErrorTitle"),
             description: error.message || t("CommentThread.toast.voteErrorDescription"),
@@ -268,9 +267,8 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
     }
   };
 
-  const handleReplySuccess = (newReply: Comment) => {
+  const handleReplySuccess = () => {
     setIsReplying(false);
-    // Realtime listener will handle updating replyCount
   };
 
   if (!post.figureId || !post.figureName) {
@@ -303,6 +301,12 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                             {post.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
                             {post.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
                             {country && (<Image src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`} alt={country.name} width={20} height={15} className="object-contain" title={country.name}/>)}
+                            
+                            <FollowButton 
+                              targetUserId={post.userId}
+                              targetUsername={post.userDisplayName}
+                              targetPhotoUrl={post.userPhotoURL}
+                            />
                         </div>
                     </div>
 
@@ -407,7 +411,6 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                     )}
                 </div>
 
-                {/* Character Thumbnail on the right */}
                 {post.figureImageUrl && (
                     <Link href={`/figures/${post.figureId}`} className="flex-shrink-0 group">
                         <div className="relative h-10 w-10 sm:h-14 sm:w-14 rounded-full overflow-hidden border-2 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-sm">

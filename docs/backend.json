@@ -17,19 +17,32 @@
         "description": { "type": "string", "maxLength": 160 },
         "role": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "fcmTokens": { "type": "array", "items": { "type": "string" } },
-        "tokenCount": { "type": "number" },
         "referralCount": { "type": "number" },
+        "followerCount": { "type": "number", "description": "Number of users following this user." },
+        "followingCount": { "type": "number", "description": "Number of users this user follows." },
         "visitCount": { "type": "number" },
         "lastVisit": { "type": "string", "format": "date-time" }
       },
       "required": ["id"]
     },
-    "NotificationStats": {
-      "title": "NotificationStats",
+    "Follower": {
+      "title": "Follower",
       "type": "object",
       "properties": {
-        "totalSubscribers": { "type": "number" }
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "profilePhotoUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Following": {
+      "title": "Following",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "profilePhotoUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     },
     "AdCampaign": {
@@ -47,33 +60,6 @@
         "results": { "type": "number" }
       },
       "required": ["id", "userId", "campaignName", "status", "type"]
-    },
-    "PublicFigure": {
-      "title": "PublicFigure",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "activeStreakCount": { "type": "number" }
-      }
-    },
-    "Comment": {
-      "title": "Comment",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "text": { "type": "string" }
-      }
-    },
-    "Notification": {
-      "title": "Notification",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "message": { "type": "string" }
-      }
     }
   },
   "auth": {
@@ -83,11 +69,15 @@
     "structure": [
       {
         "path": "/users/{userId}",
-        "definition": { "entityName": "User", "description": "Stores user profiles including push tokens." }
+        "definition": { "entityName": "User", "description": "Stores user profiles." }
       },
       {
-        "path": "/stats/notifications",
-        "definition": { "entityName": "NotificationStats", "description": "Global counter for push subscribers." }
+        "path": "/users/{userId}/followers/{followerId}",
+        "definition": { "entityName": "Follower", "description": "List of users following this user." }
+      },
+      {
+        "path": "/users/{userId}/following/{followedId}",
+        "definition": { "entityName": "Following", "description": "List of users this user follows." }
       }
     ]
   }

@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useAuth, useAdmin } from '@/firebase';
-import { doc, getDoc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useAuth, useAdmin, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, getDoc, setDoc, runTransaction, serverTimestamp, collection, query, orderBy } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare, Edit } from "lucide-react";
+import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare, Users, UserCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
@@ -29,7 +29,7 @@ import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import UserStarPosts from '@/components/profile/user-starposts';
 import { useTheme } from 'next-themes';
-import { cn } from '@/lib/utils';
+import { cn, formatCompactNumber } from '@/lib/utils';
 
 
 export const dynamic = 'force-dynamic';
@@ -116,6 +116,14 @@ function ProfilePageContent() {
             fetchUserData();
         }
     }, [user, firestore, isUserLoading, profileForm, t]);
+
+    // Query for followed users
+    const followingQuery = useMemoFirebase(() => {
+      if (!firestore || !user) return null;
+      return query(collection(firestore, 'users', user.uid, 'following'), orderBy('createdAt', 'desc'));
+    }, [firestore, user]);
+
+    const { data: followingList, isLoading: isFollowingLoading } = useCollection(followingQuery);
 
 
     const onProfileSubmit = async (data: ProfileFormValues) => {
@@ -291,14 +299,27 @@ function ProfilePageContent() {
                 </Dialog>
 
                 <h1 className="text-4xl font-bold tracking-tight font-headline">{displayName}</h1>
-                <p className="text-muted-foreground mt-2">{userData?.description || (user.isAnonymous ? t('ProfilePage.anonymousUser') : user.email)}</p>
+                
+                <div className="flex items-center gap-6 mt-4">
+                  <div className="text-center">
+                    <p className="text-xl font-bold">{formatCompactNumber(userData?.followerCount || 0)}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Seguidores</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-bold">{formatCompactNumber(userData?.followingCount || 0)}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Seguidos</p>
+                  </div>
+                </div>
+
+                <p className="text-muted-foreground mt-4">{userData?.description || (user.isAnonymous ? t('ProfilePage.anonymousUser') : user.email)}</p>
             </div>
             
             <div className="mt-8">
                  <Tabs defaultValue="info" className="w-full">
-                    <TabsList className={cn("grid w-full grid-cols-3", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+                    <TabsList className={cn("grid w-full grid-cols-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
                         <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
                         <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
+                        <TabsTrigger value="seguidos"><UserCheck className="mr-2 h-4 w-4"/>Seguidos</TabsTrigger>
                         <TabsTrigger value="starposts"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
                     </TabsList>
                     <TabsContent value="info" className="mt-4">
@@ -462,6 +483,46 @@ function ProfilePageContent() {
                     <TabsContent value="activity" className="mt-4">
                         <UserActivity userId={user.uid} />
                     </TabsContent>
+                    <TabsContent value="seguidos" className="mt-4">
+                        <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
+                          <CardHeader>
+                            <CardTitle>Usuarios que sigues</CardTitle>
+                            <CardDescription>Personas cuyas opiniones sigues de cerca.</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            {isFollowingLoading ? (
+                              <div className="space-y-4">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                              </div>
+                            ) : followingList && followingList.length > 0 ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {followingList.map((followed) => (
+                                  <Link 
+                                    key={followed.userId} 
+                                    href={`/u/${followed.username}`}
+                                    className="flex items-center gap-3 p-3 rounded-lg border hover:border-primary transition-colors"
+                                  >
+                                    <Avatar className="h-10 w-10">
+                                      <AvatarImage src={followed.profilePhotoUrl || undefined} />
+                                      <AvatarFallback>{followed.username[0]}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-bold text-sm truncate">{followed.username}</p>
+                                      <p className="text-xs text-muted-foreground">Ver perfil</p>
+                                    </div>
+                                  </Link>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                                <Users className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
+                                <p className="text-sm text-muted-foreground">Aún no sigues a ningún usuario.</p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                    </TabsContent>
                     <TabsContent value="starposts" className="mt-4">
                         <UserStarPosts userId={user.uid} />
                     </TabsContent>
@@ -476,5 +537,3 @@ export default function ProfilePage() {
         <ProfilePageContent />
     )
 }
-
-    

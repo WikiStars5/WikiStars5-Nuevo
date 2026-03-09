@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,13 +7,15 @@ import { countries } from "@/lib/countries";
 import Image from "next/image";
 import UserActivity from "@/components/profile/user-activity";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, Activity } from "lucide-react";
+import { Info, Activity, Users } from "lucide-react";
 import { useFirestore } from "@/firebase";
 import { collection, query, where, limit, getDocs, getDoc, doc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { normalizeText } from "@/lib/keywords";
 import { Skeleton } from "@/components/ui/skeleton";
 import { notFound } from "next/navigation";
+import FollowButton from "@/components/shared/follow-button";
+import { formatCompactNumber } from "@/lib/utils";
 
 
 interface PublicUserProfile {
@@ -23,6 +26,8 @@ interface PublicUserProfile {
     description: string | null;
     profilePhotoUrl?: string | null;
     coverPhotoUrl?: string | null;
+    followerCount?: number;
+    followingCount?: number;
 }
 
 interface PublicProfileClientPageProps {
@@ -91,7 +96,7 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
             }
             
             const userData = userDocSnap.data();
-            const publicUserData = {
+            const publicUserData: PublicUserProfile = {
                 id: userDocSnap.id,
                 username: userData.username || 'Usuario',
                 country: userData.country || null,
@@ -99,6 +104,8 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
                 description: userData.description || null,
                 profilePhotoUrl: userData.profilePhotoUrl || null,
                 coverPhotoUrl: userData.coverPhotoUrl || null,
+                followerCount: userData.followerCount || 0,
+                followingCount: userData.followingCount || 0,
             };
 
             setUserProfile(publicUserData);
@@ -148,9 +155,30 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
                             </Avatar>
                          </div>
                          <div className="flex-1 text-center md:text-left md:pb-4">
-                            <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">{userProfile.username}</h1>
+                            <div className="flex flex-col md:flex-row items-center gap-4">
+                              <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">{userProfile.username}</h1>
+                              <FollowButton 
+                                targetUserId={userProfile.id}
+                                targetUsername={userProfile.username}
+                                targetPhotoUrl={userProfile.profilePhotoUrl || null}
+                                size="default"
+                                className="h-9 px-6 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="flex items-center justify-center md:justify-start gap-6 mt-4">
+                              <div className="text-center">
+                                <p className="text-xl font-bold">{formatCompactNumber(userProfile.followerCount || 0)}</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Seguidores</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xl font-bold">{formatCompactNumber(userProfile.followingCount || 0)}</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Seguidos</p>
+                              </div>
+                            </div>
+
                             {userProfile.description && (
-                                <p className="mt-1 text-muted-foreground">{userProfile.description}</p>
+                                <p className="mt-4 text-muted-foreground">{userProfile.description}</p>
                             )}
                          </div>
                     </div>

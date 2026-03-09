@@ -5,89 +5,36 @@ service cloud.firestore {
   match /databases/{database}/documents {
   
       // --- App Check Enforcement ---
-    // Require a valid App Check token for any write operation.
-    // Allow reads to be public. This is a broad rule, specific rules below will be more restrictive.
     match /{path=**} {
       allow read: if true;
       allow write: if request.app.token.app_id != null;
     }
 
     // --- Funciones de Utilidad Reutilizables ---
-    
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    function isIncrement(field, count) {
-      return (resource.data[field] == null && request.resource.data[field] == count) || 
-             (request.resource.data[field] == resource.data[field] + count);
-    }
-
-    function isDecrement(field, count) {
-      return request.resource.data[field] == resource.data[field] - count;
-    }
-    
-    function getGlobalSettings() {
-      return get(/databases/$(database)/documents/settings/global).data;
-    }
-
-    function areCommentsEnabled() {
-      return getGlobalSettings().isCommentingEnabled == true;
-    }
-    
-    function areRepliesEnabled() {
-      return getGlobalSettings().isReplyEnabled == true;
-    }
-    
-    function areRatingsEnabled() {
-      return getGlobalSettings().isRatingEnabled == true;
-    }
-    
-    // --- Funciones de Validación de Votos ---
-    
-    function isVoteIncrement(voteType, voteField) {
-      let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
-      let nextVoteMap = request.resource.data[voteType];
-      let prevCount = prevVoteMap[voteField] != null ? prevVoteMap[voteField] : 0;
-      return nextVoteMap[voteField] == prevCount + 1 && nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
-    }
-
-    function isVoteDecrement(voteType, voteField) {
-      let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
-      let nextVoteMap = request.resource.data[voteType];
-      let prevCount = prevVoteMap[voteField];
-      return prevCount != null && nextVoteMap[voteField] == prevCount - 1 && nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([voteField]);
-    }
-
-    function isChangingVote(voteType, oldVoteField, newVoteField) {
-      let prevVoteMap = resource.data[voteType] != null ? resource.data[voteType] : {};
-      let nextVoteMap = request.resource.data[voteType];
-      let prevOldCount = prevVoteMap[oldVoteField];
-      let prevNewCount = prevVoteMap[newVoteField] != null ? prevVoteMap[newVoteField] : 0;
-      return prevOldCount != null && nextVoteMap[oldVoteField] == prevOldCount - 1 && nextVoteMap[newVoteField] == prevNewCount + 1 && nextVoteMap.diff(prevVoteMap).affectedKeys().hasOnly([oldVoteField, newVoteField]);
-    }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return request.auth.uid == userId; }
+    function isAdmin() { return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)); }
     
     // --- Reglas de Colecciones ---
 
     match /users/{userId} {
-      allow get: if (isSignedIn() && isOwner(userId)) || isAdmin();
+      allow get: if true;
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      allow update: if isSignedIn(); // Allow anyone to update follower counts via transaction
       allow delete: if isOwner(userId) || isAdmin();
 
+      match /followers/{followerId} {
+        allow read: if true;
+        allow write: if isSignedIn() && request.auth.uid == followerId;
+      }
+      match /following/{followedId} {
+        allow read: if true;
+        allow write: if isOwner(userId);
+      }
+      match /starposts/{postId} { allow read, write, delete: if isOwner(userId); }
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
-      match /btsBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
-      match /blackpinkBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
       match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
       match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
@@ -97,180 +44,46 @@ service cloud.firestore {
 
     match /usernames/{username} {
       allow get: if true; 
-      allow list: if false;
       allow create: if isSignedIn(); 
       allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
-      allow update: if false;
     }
 
     match /figures/{figureId} {
       allow get, list: if true;
-      allow create: if isSignedIn() && isAdmin();
+      allow create: if isAdmin();
       allow delete: if isAdmin();
-      
-      allow update: if isAdmin() || (
-        isSignedIn() && (
-          // Regla 1: Permite a los usuarios editar campos de información básica.
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'coverPhotoUrl', 'nationality', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
-          
-          // Regla 2: Valida los cambios en los votos de actitud.
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attitude', 'updatedAt', '__oldVote', '__newVote']) && (
-        (request.resource.data.__oldVote == null && isVoteIncrement('attitude', request.resource.data.__newVote)) ||
-        (request.resource.data.__newVote == null && isVoteDecrement('attitude', request.resource.data.__oldVote)) || // Permite des-votar (null)
-        (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('attitude', request.resource.data.__oldVote)) ||
-        (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('attitude', request.resource.data.__oldVote, request.resource.data.__newVote))
-          )) ||
-
-          // Regla 3: Valida los cambios en los votos de emoción.
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emotion', 'updatedAt', '__oldVote', '__newVote']) && (
-        (request.resource.data.__oldVote == null && isVoteIncrement('emotion', request.resource.data.__newVote)) ||
-        (request.resource.data.__newVote == null && isVoteDecrement('emotion', request.resource.data.__oldVote)) || // Permite des-votar (null)
-        (request.resource.data.__oldVote == request.resource.data.__newVote && isVoteDecrement('emotion', request.resource.data.__oldVote)) ||
-        (request.resource.data.__oldVote != request.resource.data.__newVote && isChangingVote('emotion', request.resource.data.__oldVote, request.resource.data.__newVote))
-          )) ||
-
-          // Regla 4: Valida los cambios en las calificaciones al crear un comentario.
-          (
-            request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
-            request.resource.data.ratingCount == resource.data.ratingCount + 1
-          ) ||
-
-          // NUEVA Regla 5: Permite la actualización de contadores al eliminar un comentario
-          (
-            request.resource.data.diff(resource.data).affectedKeys().hasAny(['ratingCount', 'totalRating', 'ratingsBreakdown']) &&
-            isDecrement('ratingCount', 1)
-                    ) ||
-          
-          // Regla 6: Permite la actualización del contador de rachas activas (para la función de actualización de rachas)
-          (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeStreakCount']) &&
-            (isIncrement('activeStreakCount', 1) || isDecrement('activeStreakCount', 1))
-                    ) ||
-           // Regla 7: Permite la actualización del contador de votos de bias de BTS
-          (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['btsBiasVoteCount']) &&
-            (isIncrement('btsBiasVoteCount', 1) || isDecrement('btsBiasVoteCount', 1))
-          ) ||
-          // Regla 8: Permite la actualización del contador de votos de bias de Blackpink
-          (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['blackpinkBiasVoteCount']) &&
-            (isIncrement('blackpinkBiasVoteCount', 1) || isDecrement('blackpinkBiasVoteCount', 1))
-          )
-        )
-      );
-      
-      match /attitudeStats/{statId} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
-      match /emotionStats/{statId} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
-      match /ratingStats/{rating} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
-      match /streakStats/{day} { allow read, list: if true; allow write: if isSignedIn() || isAdmin(); }
+      allow update: if isAdmin() || isSignedIn();
       
       match /comments/{commentId} {
         allow get, list: if true;
-        
-        allow create: if request.resource.data.userId == request.auth.uid && (
-          (areRatingsEnabled() && request.resource.data.rating >= 0 && request.resource.data.rating <= 5) ||
-          (areCommentsEnabled() && request.resource.data.text is string)
-        );
-        
-        // Regla simplificada para permitir actualizaciones de likes/dislikes
+        allow create: if request.resource.data.userId == request.auth.uid;
         allow update: if isSignedIn();
-        
         allow delete: if resource.data.userId == request.auth.uid || isAdmin();
-
-        match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
-
+        match /votes/{userId} { allow get, write: if isOwner(userId); }
         match /replies/{replyId} {
           allow get, list: if true;
-          
-          allow create: if (isAdmin()) || (
-            isSignedIn() && 
-            areRepliesEnabled() && 
-            request.resource.data.userId == request.auth.uid && 
-            request.resource.data.text is string && 
-            request.resource.data.text.size() > 0
-          );
-          
-          // Regla simplificada
+          allow create: if isSignedIn();
           allow update: if isSignedIn();
-          
-          allow delete: if resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/figures/$(figureId)/comments/$(commentId)).data.userId == request.auth.uid || isAdmin();
-          
-          match /votes/{userId} { allow get, write: if isOwner(userId); allow list: if false; }
+          allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+          match /votes/{userId} { allow get, write: if isOwner(userId); }
         }
       }
-
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
     }
     
-    match /starposts/{commentId} {
+    match /stats/notifications {
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin();
-    }
-    
-    match /{path=**}/comments/{commentId} {
-      allow read;
-      allow write: if false;
-    }
-    
-    match /achievements/{achievementId} { allow get, list: if true; allow write: if isAdmin(); }
-    
-    match /related_figures/{relatedFigureId} { 
-      allow get, list: if true; 
-      allow create, delete: if isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
-      allow update: if false; 
+      allow update: if isSignedIn() || isAdmin();
+      allow create: if isSignedIn() || isAdmin();
     }
 
+    match /stats/{statId} { allow read: if true; allow write: if isAdmin(); }
+    match /roles_admin/{userId} { allow get: if isOwner(userId) || isAdmin(); allow write, list: if isAdmin(); }
+    match /settings/{settingId} { allow read: if true; allow write: if isAdmin(); }
     match /goat_battles/{battleId} {
         allow get, list: if true;
-        allow create, delete, update: if isAdmin(); // Simplificado
-        
-        match /votes/{userId} { 
-          allow get: if isOwner(userId) || isAdmin(); 
-          allow write: if isOwner(userId); 
-          allow list: if isAdmin(); 
-        }
-    }
-    
-    match /roles_admin/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow write: if isAdmin();
-      allow list: if isAdmin();
-    }
-    
-    match /settings/{settingId} { 
-      allow read: if true; 
-      allow write: if isAdmin(); 
-    }
-    
-    match /stats/{statId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    
-    match /user_stats/{statId} {
-      allow read: if true;
-      allow write: if true; // Allow client-side transactional updates
-    }
-    match /featured_figures/{figureId} {
-      allow read: if true;
-      allow write, delete: if isAdmin();
-    }
-    
-    // NEW: Rules for election candidates
-    match /election_candidates_2026/{candidateId} {
-      allow read, list: if true;
-      allow create, write, delete: if isAdmin();
-    }
-    
-    // NEW: Rules for Bias battles
-    match /bts_bias_members/{figureId} {
-      allow read: if true;
-      allow write, delete: if isAdmin();
-    }
-    match /blackpink_bias_members/{figureId} {
-      allow read: if true;
-      allow write, delete: if isAdmin();
+        allow create, delete, update: if isAdmin();
+        match /votes/{userId} { allow get: if isOwner(userId) || isAdmin(); allow write: if isOwner(userId); }
     }
   }
 }
