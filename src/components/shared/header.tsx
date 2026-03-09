@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -18,29 +17,26 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Logo } from '@/components/icons';
-import { useAuth, useUser, useAdmin, useFirestore, signInWithPopup, GoogleAuthProvider, useDoc, useMemoFirebase, useFirebaseApp, requestNotificationPermissionAndGetToken } from '@/firebase';
-import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote, Heart, Check, Users } from 'lucide-react';
+import { useAuth, useUser, useAdmin, useFirestore, useDoc, useMemoFirebase, useFirebaseApp, requestNotificationPermissionAndGetToken } from '@/firebase';
+import { Gem, Globe, LogIn, LogOut, User as UserIcon, UserPlus, Ghost, Bell, Moon, Sun, Search, Download, Snowflake, Vote, Heart, Check, Info } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
+import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
 import CreateProfileFromWikipedia from '../figure/create-profile-from-wikipedia';
 import CreateProfileFromWebDialog from '../figure/create-profile-from-web-dialog';
+import InfoDialog from './info-dialog';
 import SearchBar from './search-bar';
 import NotificationBell from './notification-bell';
 import Image from 'next/image';
-import { collection, getDocs, doc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { ThemeToggle } from './ThemeToggle';
-import { InstallPwaButton } from '../layout/InstallPwaButton';
 import { useTheme } from 'next-themes';
+import { InstallPwaButton } from '../layout/InstallPwaButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSnow } from '@/context/SnowContext';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveFcmToken } from '@/firebase/notifications';
 
-
 export default function Header() {
-  const { user, isUserLoading, reloadUser } = useUser();
+  const { user, isUserLoading } = useUser();
   const { isAdmin } = useAdmin();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -49,38 +45,20 @@ export default function Header() {
   const { toast } = useToast();
   const [isCharacterDialogOpen, setIsCharacterDialogOpen] = React.useState(false);
   const [isWebProfileDialogOpen, setIsWebProfileDialogOpen] = React.useState(false);
+  const [isInfoDialogOpen, setIsInfoDialogOpen] = React.useState(false);
   const [isSearchDialogOpen, setIsSearchDialogOpen] = React.useState(false);
   const { setTheme, theme } = useTheme();
-  const { t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const { isSnowing, toggleSnow } = useSnow();
 
   const firebaseApp = useFirebaseApp();
 
-  // New logic: Check if a user profile document exists for the current user
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef, { realtime: true });
   
-  React.useEffect(() => {
-    // This effect runs only on the client after hydration
-    const searchParams = new URLSearchParams(window.location.search);
-    const referrerId = searchParams.get('ref');
-    const figureMatch = window.location.pathname.match(/\/figures\/([^?\/]+)/);
-    const sourceFigureId = figureMatch ? figureMatch[1] : null;
-
-    if (referrerId) {
-      localStorage.setItem('referrerId', referrerId);
-      if (sourceFigureId) {
-        localStorage.setItem('sourceFigureId', sourceFigureId);
-      } else {
-        // If there's a referrer but no figure, clear any old sourceFigureId
-        localStorage.removeItem('sourceFigureId');
-      }
-    }
-  }, [pathname]); // Rerun if the path changes
-
   const handleLogout = () => {
     if (auth) {
       auth.signOut().then(() => {
@@ -89,34 +67,18 @@ export default function Header() {
     }
   };
 
-  const handleLogin = () => {
-    router.push('/login');
-  }
-
   const handleSubscribe = async () => {
     if (!firebaseApp || !firestore || !user) {
-      toast({
-          title: "Error",
-          description: "Debes estar conectado para suscribirte.",
-          variant: "destructive",
-      });
+      toast({ title: "Error", description: "Firebase no está inicializado.", variant: "destructive" });
       return;
     }
     const token = await requestNotificationPermissionAndGetToken(firebaseApp);
     if (token) {
         // Save the token and update stats
         await saveFcmToken(firestore, user.uid, token);
-        
-        toast({
-            title: "¡Suscrito a las notificaciones!",
-            description: "Ahora recibirás notificaciones sobre la actividad importante.",
-        });
+        toast({ title: "¡Suscrito a las notificaciones!", description: "Ahora recibirás notificaciones sobre la actividad importante." });
     } else {
-        toast({
-            title: "No se concedió el permiso",
-            description: "No se pudieron activar las notificaciones.",
-            variant: "destructive"
-        })
+        toast({ title: "No se concedió el permiso", description: "No se pudieron activar las notificaciones.", variant: "destructive" });
     }
   };
 
@@ -126,7 +88,6 @@ export default function Header() {
   }
 
   const isLoading = isUserLoading || (user && isProfileLoading);
-  
   const displayName = userProfile?.username || user?.displayName || user?.email;
 
   return (
@@ -155,10 +116,6 @@ export default function Header() {
                 </Button>
             </DialogTrigger>
             <DialogContent className="top-20 translate-y-0 sm:top-1/2 sm:-translate-y-1/2">
-                <DialogHeader className="sr-only">
-                    <DialogTitle>Buscar</DialogTitle>
-                    <DialogDescription>Busca un perfil en WikiStars5.</DialogDescription>
-                </DialogHeader>
                 <SearchBar onResultClick={() => setIsSearchDialogOpen(false)} />
             </DialogContent>
           </Dialog>
@@ -169,12 +126,17 @@ export default function Header() {
             <>
               <InstallPwaButton />
               <NotificationBell />
+              
               <Dialog open={isCharacterDialogOpen} onOpenChange={setIsCharacterDialogOpen}>
                 <CreateProfileFromWikipedia onProfileCreated={() => setIsCharacterDialogOpen(false)} />
               </Dialog>
 
                <Dialog open={isWebProfileDialogOpen} onOpenChange={setIsWebProfileDialogOpen}>
                 <CreateProfileFromWebDialog onProfileCreated={() => setIsWebProfileDialogOpen(false)} />
+              </Dialog>
+
+              <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
+                <InfoDialog />
               </Dialog>
 
               <DropdownMenu>
@@ -228,18 +190,6 @@ export default function Header() {
                                 <span>{t('Header.adminPanel')}</span>
                                 </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <Link href="/admin/subscribers">
-                                  <Users className="mr-2 h-4 w-4" />
-                                  <span>Suscriptores</span>
-                                </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <Link href="/elecciones-2026">
-                                <Vote className="mr-2 h-4 w-4" />
-                                <span>Elecciones 2026</span>
-                                </Link>
-                            </DropdownMenuItem>
                           </>
                       )}
                     </>
@@ -289,6 +239,31 @@ export default function Header() {
                     </DropdownMenuPortal>
                   </DropdownMenuSub>
 
+                  <DropdownMenuItem onSelect={() => setIsInfoDialogOpen(true)}>
+                    <Info className="mr-2 h-4 w-4" />
+                    <span>Información</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Globe className="mr-2 h-4 w-4" />
+                      <span>{t('Footer.language')}</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onSelect={() => setLanguage('es')} className={cn(language === 'es' && 'bg-accent/50')}>
+                          Español {language === 'es' && <Check className="ml-auto h-4 w-4" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setLanguage('en')} className={cn(language === 'en' && 'bg-accent/50')}>
+                          English {language === 'en' && <Check className="ml-auto h-4 w-4" />}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setLanguage('pt')} className={cn(language === 'pt' && 'bg-accent/50')}>
+                          Português {language === 'pt' && <Check className="ml-auto h-4 w-4" />}
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+
                   <DropdownMenuItem onSelect={toggleSnow}>
                     <Snowflake className="mr-2 h-4 w-4" />
                     <span>{isSnowing ? t('Header.disableSnow') : t('Header.enableSnow')}</span>
@@ -312,12 +287,19 @@ export default function Header() {
               </DropdownMenu>
             </>
           ) : (
-            pathname === '/' && (
-              <Button onClick={handleLogin}>
-                <LogIn className="mr-2 h-4 w-4" />
-                {t('Header.login')}
-              </Button>
-            )
+            <div className="flex items-center gap-2">
+              <InstallPwaButton />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon"><Globe className="h-5 w-5" /></Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setLanguage('es')}>Español</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setLanguage('en')}>English</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setLanguage('pt')}>Português</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
         </div>
       </div>

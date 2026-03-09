@@ -2,6 +2,7 @@
 
 import Footer from '@/components/shared/footer';
 import Header from '@/components/shared/header';
+import BottomNav from '@/components/shared/bottom-nav';
 import SnowAnimation from '@/components/shared/snow-animation';
 import { useSnow } from '@/context/SnowContext';
 import KonamiCodeListener from '@/components/shared/KonamiCodeListener';
@@ -20,8 +21,9 @@ export default function MainLayout({
         {isSnowing && <SnowAnimation />}
         <KonamiCodeListener />
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-16 md:pb-0">{children}</main>
         <Footer />
+        <BottomNav />
       </div>
   );
 }
