@@ -30,6 +30,7 @@ import UserStarPosts from '@/components/profile/user-starposts';
 import { useTheme } from 'next-themes';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import FollowListDialog from '@/components/shared/follow-list-dialog';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 
 export const dynamic = 'force-dynamic';
@@ -318,11 +319,14 @@ function ProfilePageContent() {
             
             <div className="mt-8">
                  <Tabs defaultValue="info" className="w-full">
-                    <TabsList className={cn("grid w-full grid-cols-3", (theme === 'dark' || theme === 'army') && 'bg-black')}>
-                        <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
-                        <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
-                        <TabsTrigger value="starposts"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
-                    </TabsList>
+                    <ScrollArea className="w-full whitespace-nowrap">
+                        <TabsList className={cn("inline-flex h-auto justify-start w-full", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+                            <TabsTrigger value="info" className="flex-1"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
+                            <TabsTrigger value="activity" className="flex-1"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
+                            <TabsTrigger value="starposts" className="flex-1"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
+                        </TabsList>
+                        <ScrollBar orientation="horizontal" className="h-1.5" />
+                    </ScrollArea>
                     <TabsContent value="info" className="mt-4">
                       <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
                         <CardHeader>

@@ -17,6 +17,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { useTheme } from 'next-themes';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 
 // The fetched votes will now contain the denormalized data
@@ -296,20 +297,26 @@ export default function UserActivity({ userId }: UserActivityProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="attitudes" className="w-full">
-          <TabsList className={cn("grid w-full grid-cols-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
-            <TabsTrigger value="attitudes">{t('UserActivity.tabs.attitudes')}</TabsTrigger>
-            <TabsTrigger value="emotions">{t('UserActivity.tabs.emotions')}</TabsTrigger>
-            <TabsTrigger value="streaks">{t('UserActivity.tabs.streaks')}</TabsTrigger>
-            <TabsTrigger value="achievements">Logros</TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className={cn("inline-flex h-auto justify-start", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+              <TabsTrigger value="attitudes" className="px-4 py-2">{t('UserActivity.tabs.attitudes')}</TabsTrigger>
+              <TabsTrigger value="emotions" className="px-4 py-2">{t('UserActivity.tabs.emotions')}</TabsTrigger>
+              <TabsTrigger value="streaks" className="px-4 py-2">{t('UserActivity.tabs.streaks')}</TabsTrigger>
+              <TabsTrigger value="achievements" className="px-4 py-2">Logros</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" className="h-1.5" />
+          </ScrollArea>
           
           <TabsContent value="attitudes" className="mt-4">
              <Tabs defaultValue="neutral">
-                <TabsList className={cn("grid w-full grid-cols-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
-                    {attitudeOptions.map(opt => (
-                        <TabsTrigger key={opt.id} value={opt.id}>{opt.label}</TabsTrigger>
-                    ))}
-                </TabsList>
+                <ScrollArea className="w-full whitespace-nowrap">
+                    <TabsList className={cn("inline-flex h-auto justify-start", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+                        {attitudeOptions.map(opt => (
+                            <TabsTrigger key={opt.id} value={opt.id} className="px-4 py-2">{opt.label}</TabsTrigger>
+                        ))}
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" className="h-1.5" />
+                </ScrollArea>
                 {attitudeOptions.map(opt => (
                     <TabsContent key={opt.id} value={opt.id}>
                         <ActivityDisplay
@@ -323,11 +330,14 @@ export default function UserActivity({ userId }: UserActivityProps) {
 
           <TabsContent value="emotions" className="mt-4">
              <Tabs defaultValue="alegria">
-                <TabsList className={cn("grid w-full grid-cols-3 sm:grid-cols-6", (theme === 'dark' || theme === 'army') && 'bg-black')}>
-                    {emotionOptions.map(opt => (
-                        <TabsTrigger key={opt.id} value={opt.id}>{opt.label}</TabsTrigger>
-                    ))}
-                </TabsList>
+                <ScrollArea className="w-full whitespace-nowrap">
+                    <TabsList className={cn("inline-flex h-auto justify-start", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+                        {emotionOptions.map(opt => (
+                            <TabsTrigger key={opt.id} value={opt.id} className="px-4 py-2">{opt.label}</TabsTrigger>
+                        ))}
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" className="h-1.5" />
+                </ScrollArea>
                  {emotionOptions.map(opt => (
                     <TabsContent key={opt.id} value={opt.id}>
                         <ActivityDisplay
