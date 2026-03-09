@@ -409,8 +409,8 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
 
                 {/* Character Thumbnail on the right */}
                 {post.figureImageUrl && (
-                    <Link href={`/figures/${post.figureId}`} className="flex-shrink-0 group hidden sm:block">
-                        <div className="relative h-14 w-14 rounded-full overflow-hidden border-2 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-sm">
+                    <Link href={`/figures/${post.figureId}`} className="flex-shrink-0 group">
+                        <div className="relative h-10 w-10 sm:h-14 sm:w-14 rounded-full overflow-hidden border-2 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-sm">
                             <Image 
                                 src={post.figureImageUrl}
                                 alt={post.figureName}
