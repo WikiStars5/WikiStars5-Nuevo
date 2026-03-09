@@ -64,6 +64,14 @@ const attitudeOptions: {
   { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', selectedClass: 'border-red-400 bg-red-400/10' },
 ];
 
+const ratingSounds: { [key: number]: string } = {
+    1: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar1.mp3?alt=media&token=c867fe4c-a39f-49a1-ab99-b6fdac84b2e8',
+    2: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar2.mp3?alt=media&token=f0a09d9e-8a99-498b-b9ea-0a61b07e4173',
+    3: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar3.mp3?alt=media&token=40943193-e45d-443d-9cc2-40ff8fa98076',
+    4: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar4.mp3?alt=media&token=75b19307-5b2c-4c89-a252-b584727469da',
+    5: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar5.mp3?alt=media&token=11cd84e2-7377-4972-a9b0-e0e716e2df46',
+};
+
 const createCommentSchema = (needsIdentity: boolean) => z.object({
   rating: z.number({ required_error: 'Debes seleccionar una calificación.' }).min(0).max(5),
   attitude: z.enum(['neutral', 'fan', 'simp', 'hater']).optional(),
@@ -432,6 +440,11 @@ export default function GlobalStarPostForm() {
         showStreakAnimation(streakResult.newStreakCount, { 
           showPrompt: true, figureId: selectedFigure.id, figureName: selectedFigure.name
         });
+      }
+
+      if (typeof data.rating === 'number' && ratingSounds[data.rating]) {
+          const audio = new Audio(ratingSounds[data.rating]);
+          audio.play().catch(e => console.error("Error playing sound", e));
       }
 
       toast({ 
