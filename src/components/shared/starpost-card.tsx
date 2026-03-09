@@ -294,14 +294,14 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
                 </Link>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2 flex-wrap">
                             <Link href={`/u/${post.userDisplayName}`} className="font-semibold text-sm hover:underline">{post.userDisplayName}</Link>
                             {attitudeStyle && (<p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>)}
                             {showStreak && (<div className="flex items-center gap-1 text-orange-500 font-bold text-xs" title={`${userStreak.currentStreak} días de racha`}><Flame className="h-3 w-3" /><span>{userStreak.currentStreak}</span></div>)}
                             {post.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
-                            {post.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Feminino">♀</span>}
+                            {post.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
                             {country && (<Image src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`} alt={country.name} width={20} height={15} className="object-contain" title={country.name}/>)}
                         </div>
                     </div>
@@ -406,6 +406,20 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                         </div>
                     )}
                 </div>
+
+                {/* Character Thumbnail on the right */}
+                {post.figureImageUrl && (
+                    <Link href={`/figures/${post.figureId}`} className="flex-shrink-0 group hidden sm:block">
+                        <div className="relative h-14 w-14 rounded-full overflow-hidden border-2 border-primary/20 group-hover:border-primary transition-all duration-300 shadow-sm">
+                            <Image 
+                                src={post.figureImageUrl}
+                                alt={post.figureName}
+                                fill
+                                className="object-cover"
+                            />
+                        </div>
+                    </Link>
+                )}
             </div>
         </Card>
         <StarPostThreadDialog
