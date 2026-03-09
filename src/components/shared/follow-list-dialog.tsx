@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -8,12 +9,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from 'next/link';
 import { Skeleton } from "@/components/ui/skeleton";
 import FollowButton from "./follow-button";
 import { ScrollArea } from "../ui/scroll-area";
+import { Button } from "../ui/button";
 
 interface FollowListDialogProps {
   userId: string;
@@ -22,20 +24,40 @@ interface FollowListDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const INITIAL_LIMIT = 5;
+const LIMIT_INCREMENT = 5;
+
 /**
- * Dialog component that displays a list of followers or followed users.
+ * Dialog component that displays a list of followers or followed users with pagination.
  */
 export default function FollowListDialog({ userId, type, open, onOpenChange }: FollowListDialogProps) {
   const firestore = useFirestore();
+  const [displayLimit, setDisplayLimit] = React.useState(INITIAL_LIMIT);
   
   const listQuery = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
-    return query(collection(firestore, 'users', userId, type), orderBy('createdAt', 'desc'));
-  }, [firestore, userId, type]);
+    return query(
+      collection(firestore, 'users', userId, type), 
+      orderBy('createdAt', 'desc'),
+      limit(displayLimit)
+    );
+  }, [firestore, userId, type, displayLimit]);
 
   const { data: users, isLoading } = useCollection(listQuery, { realtime: true });
 
   const title = type === 'followers' ? 'Seguidores' : 'Seguidos';
+
+  // Reset limit when dialog closes to save reads next time it opens
+  React.useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        setDisplayLimit(INITIAL_LIMIT);
+      }, 300); // Wait for closing animation
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
+  const hasMore = users && users.length === displayLimit;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -45,8 +67,8 @@ export default function FollowListDialog({ userId, type, open, onOpenChange }: F
         </DialogHeader>
         <ScrollArea className="h-[400px]">
           <div className="p-2 space-y-1">
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
+            {isLoading && !users ? (
+              Array.from({ length: INITIAL_LIMIT }).map((_, i) => (
                 <div key={i} className="flex items-center gap-3 p-2">
                   <Skeleton className="h-10 w-10 rounded-full" />
                   <div className="flex-1 space-y-2">
@@ -55,32 +77,51 @@ export default function FollowListDialog({ userId, type, open, onOpenChange }: F
                 </div>
               ))
             ) : users && users.length > 0 ? (
-              users.map((item) => (
-                <div key={item.userId} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <Link 
-                    href={`/u/${item.username}`} 
-                    className="flex items-center gap-3 flex-1 min-w-0"
-                    onClick={() => onOpenChange(false)}
-                  >
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={item.profilePhotoUrl || undefined} />
-                      <AvatarFallback>{item.username[0].toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <span className="font-bold text-sm truncate">{item.username}</span>
-                  </Link>
-                  <FollowButton 
-                    targetUserId={item.userId} 
-                    targetUsername={item.username} 
-                    targetPhotoUrl={item.profilePhotoUrl || null}
-                    unfollowText="Dejar de seguir"
-                    className="ml-2"
-                  />
-                </div>
-              ))
+              <>
+                {users.map((item) => (
+                  <div key={item.userId} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                    <Link 
+                      href={`/u/${item.username}`} 
+                      className="flex items-center gap-3 flex-1 min-w-0"
+                      onClick={() => onOpenChange(false)}
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={item.profilePhotoUrl || undefined} />
+                        <AvatarFallback>{item.username[0].toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-bold text-sm truncate">{item.username}</span>
+                    </Link>
+                    <FollowButton 
+                      targetUserId={item.userId} 
+                      targetUsername={item.username} 
+                      targetPhotoUrl={item.profilePhotoUrl || null}
+                      unfollowText={type === 'following' ? "Dejar de seguir" : undefined}
+                      className="ml-2"
+                    />
+                  </div>
+                ))}
+                {hasMore && (
+                  <div className="p-2 pt-4 flex justify-center border-t mt-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs text-primary font-bold hover:bg-primary/10"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setDisplayLimit(prev => prev + LIMIT_INCREMENT);
+                      }}
+                    >
+                      Ver más
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="text-center py-12 text-muted-foreground text-sm">
-                No hay {title.toLowerCase()} para mostrar.
-              </div>
+              !isLoading && (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  No hay {title.toLowerCase()} para mostrar.
+                </div>
+              )
             )}
           </div>
         </ScrollArea>
