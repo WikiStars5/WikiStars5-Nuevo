@@ -29,7 +29,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import UserStarPosts from '@/components/profile/user-starposts';
 import { useTheme } from 'next-themes';
 import { cn, formatCompactNumber } from '@/lib/utils';
-import FollowButton from "@/components/shared/follow-button";
+import FollowListDialog from '@/components/shared/follow-list-dialog';
 
 
 export const dynamic = 'force-dynamic';
@@ -72,6 +72,10 @@ function ProfilePageContent() {
 
     const [userData, setUserData] = useState<any>(null);
     const [isUserDataLoading, setIsUserDataLoading] = useState(true);
+    const [followList, setFollowList] = useState<{ open: boolean; type: 'followers' | 'following' }>({
+        open: false,
+        type: 'followers'
+    });
     
     const profileSchema = createProfileSchema(t);
 
@@ -116,14 +120,6 @@ function ProfilePageContent() {
             fetchUserData();
         }
     }, [user, firestore, isUserLoading, profileForm, t]);
-
-    // Query for followed users
-    const followingQuery = useMemoFirebase(() => {
-      if (!firestore || !user) return null;
-      return query(collection(firestore, 'users', user.uid, 'following'), orderBy('createdAt', 'desc'));
-    }, [firestore, user]);
-
-    const { data: followingList, isLoading: isFollowingLoading } = useCollection(followingQuery, { realtime: true });
 
 
     const onProfileSubmit = async (data: ProfileFormValues) => {
@@ -301,14 +297,20 @@ function ProfilePageContent() {
                 <h1 className="text-4xl font-bold tracking-tight font-headline">{displayName}</h1>
                 
                 <div className="flex items-center gap-6 mt-4">
-                  <div className="text-center">
+                  <button 
+                    onClick={() => setFollowList({ open: true, type: 'followers' })}
+                    className="text-center hover:opacity-70 transition-opacity"
+                  >
                     <p className="text-xl font-bold">{formatCompactNumber(userData?.followerCount || 0)}</p>
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Seguidores</p>
-                  </div>
-                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Seguidores</p>
+                  </button>
+                  <button 
+                    onClick={() => setFollowList({ open: true, type: 'following' })}
+                    className="text-center hover:opacity-70 transition-opacity"
+                  >
                     <p className="text-xl font-bold">{formatCompactNumber(userData?.followingCount || 0)}</p>
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Seguidos</p>
-                  </div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Seguidos</p>
+                  </button>
                 </div>
 
                 <p className="text-muted-foreground mt-4">{userData?.description || (user.isAnonymous ? t('ProfilePage.anonymousUser') : user.email)}</p>
@@ -316,10 +318,9 @@ function ProfilePageContent() {
             
             <div className="mt-8">
                  <Tabs defaultValue="info" className="w-full">
-                    <TabsList className={cn("grid w-full grid-cols-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+                    <TabsList className={cn("grid w-full grid-cols-3", (theme === 'dark' || theme === 'army') && 'bg-black')}>
                         <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
                         <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
-                        <TabsTrigger value="seguidos"><UserCheck className="mr-2 h-4 w-4"/>Seguidos</TabsTrigger>
                         <TabsTrigger value="starposts"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
                     </TabsList>
                     <TabsContent value="info" className="mt-4">
@@ -483,63 +484,18 @@ function ProfilePageContent() {
                     <TabsContent value="activity" className="mt-4">
                         <UserActivity userId={user.uid} />
                     </TabsContent>
-                    <TabsContent value="seguidos" className="mt-4">
-                        <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
-                          <CardHeader>
-                            <CardTitle>Usuarios que sigues</CardTitle>
-                            <CardDescription>Personas cuyas opiniones sigues de cerca.</CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            {isFollowingLoading ? (
-                              <div className="space-y-4">
-                                <Skeleton className="h-12 w-full" />
-                                <Skeleton className="h-12 w-full" />
-                              </div>
-                            ) : followingList && followingList.length > 0 ? (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {followingList.map((followed) => (
-                                  <div 
-                                    key={followed.userId} 
-                                    className="flex items-center justify-between p-3 rounded-lg border hover:border-primary/50 transition-colors group"
-                                  >
-                                    <Link 
-                                      href={`/u/${followed.username}`}
-                                      className="flex items-center gap-3 flex-1 min-w-0"
-                                    >
-                                      <Avatar className="h-10 w-10">
-                                        <AvatarImage src={followed.profilePhotoUrl || undefined} />
-                                        <AvatarFallback>{followed.username[0]}</AvatarFallback>
-                                      </Avatar>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-sm truncate">{followed.username}</p>
-                                        <p className="text-xs text-muted-foreground">Ver perfil</p>
-                                      </div>
-                                    </Link>
-                                    <FollowButton 
-                                      targetUserId={followed.userId}
-                                      targetUsername={followed.username}
-                                      targetPhotoUrl={followed.profilePhotoUrl || null}
-                                      size="sm"
-                                      unfollowText="Dejar de seguir"
-                                      className="ml-2 whitespace-nowrap"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                                <Users className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
-                                <p className="text-sm text-muted-foreground">Aún no sigues a ningún usuario.</p>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                    </TabsContent>
                     <TabsContent value="starposts" className="mt-4">
                         <UserStarPosts userId={user.uid} />
                     </TabsContent>
                 </Tabs>
             </div>
+
+            <FollowListDialog 
+                userId={user.uid} 
+                type={followList.type} 
+                open={followList.open} 
+                onOpenChange={(open) => setFollowList(prev => ({ ...prev, open }))} 
+            />
         </div>
     )
 }

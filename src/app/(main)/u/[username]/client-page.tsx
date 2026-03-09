@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { notFound } from "next/navigation";
 import FollowButton from "@/components/shared/follow-button";
 import { formatCompactNumber } from "@/lib/utils";
+import FollowListDialog from '@/components/shared/follow-list-dialog';
 
 
 interface PublicUserProfile {
@@ -57,6 +57,10 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
     const firestore = useFirestore();
     const [userProfile, setUserProfile] = useState<PublicUserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [followList, setFollowList] = useState<{ open: boolean; type: 'followers' | 'following' }>({
+        open: false,
+        type: 'followers'
+    });
 
     useEffect(() => {
       const fetchUserProfile = async () => {
@@ -167,14 +171,20 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
                             </div>
                             
                             <div className="flex items-center justify-center md:justify-start gap-6 mt-4">
-                              <div className="text-center">
+                              <button 
+                                onClick={() => setFollowList({ open: true, type: 'followers' })}
+                                className="text-center hover:opacity-70 transition-opacity"
+                              >
                                 <p className="text-xl font-bold">{formatCompactNumber(userProfile.followerCount || 0)}</p>
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Seguidores</p>
-                              </div>
-                              <div className="text-center">
+                              </button>
+                              <button 
+                                onClick={() => setFollowList({ open: true, type: 'following' })}
+                                className="text-center hover:opacity-70 transition-opacity"
+                              >
                                 <p className="text-xl font-bold">{formatCompactNumber(userProfile.followingCount || 0)}</p>
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Seguidos</p>
-                              </div>
+                              </button>
                             </div>
 
                             {userProfile.description && (
@@ -216,6 +226,13 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
                     </TabsContent>
                 </Tabs>
             </div>
+
+            <FollowListDialog 
+                userId={userProfile.id} 
+                type={followList.type} 
+                open={followList.open} 
+                onOpenChange={(open) => setFollowList(prev => ({ ...prev, open }))} 
+            />
         </div>
     );
 }
