@@ -34,7 +34,9 @@ export default function FollowButton({
     return doc(firestore, 'users', user.uid, 'following', targetUserId);
   }, [firestore, user, targetUserId]);
 
-  const { data: followDoc, isLoading: isCheckLoading } = useDoc(followRef);
+  // ACTIVAMOS REALTIME: true para que el componente escuche cambios en la subcolección de seguidos
+  // Esto permite que el botón cambie de estado instantáneamente tras la transacción.
+  const { data: followDoc, isLoading: isCheckLoading } = useDoc(followRef, { realtime: true });
 
   const isFollowing = !!followDoc;
 
