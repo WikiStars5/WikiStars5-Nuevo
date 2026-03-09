@@ -82,12 +82,52 @@ export default function InfoDialog({ section }: InfoDialogProps) {
         );
       case 'privacy':
         return (
-          <div className="space-y-4 text-sm text-muted-foreground">
-            <p>{t('PrivacyPolicyPage.sections.1.content')}</p>
-            <div className="space-y-2 border-t pt-4">
-              <p className="font-semibold text-foreground">{t('PrivacyPolicyPage.sections.2.title')}</p>
-              <p>{t('PrivacyPolicyPage.sections.2.intro')}</p>
-            </div>
+          <div className="space-y-6 text-sm text-muted-foreground leading-relaxed">
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">1. Introducción</h3>
+              <p>Bienvenido a WikiStars5. Tu privacidad es de suma importancia para nosotros. Esta Política de Privacidad explica qué datos recopilamos, por qué los recopilamos y cómo puedes ver y gestionar tu información.</p>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">2. Qué Información Recopilamos</h3>
+              <p className="mb-2">Recopilamos información para proporcionar y mejorar nuestros servicios. Esto incluye:</p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Información que nos proporcionas:</strong> Al registrarte con Google, nos proporcionas tu nombre, dirección de correo electrónico y foto de perfil. También puedes añadir voluntariamente en tu perfil un nombre de usuario, país, sexo y una breve descripción.</li>
+                <li><strong>Contenido que generas:</strong> Recopilamos el contenido que creas en nuestra plataforma, como los comentarios que publicas, los votos de actitud y emoción que emites y las rachas que generas. Esta información es pública por naturaleza.</li>
+                <li><strong>Información de Actividad:</strong> Recopilamos información sobre tu actividad en nuestro servicio, como tu estado en línea (online/offline), para mejorar la experiencia de la comunidad.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">3. Por Qué Recopilamos Datos</h3>
+              <p className="mb-2">Utilizamos la información que recopilamos para los siguientes propósitos:</p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Proporcionar nuestros servicios: Para operar las funciones principales de WikiStars5, como mostrar tu perfil público, tus comentarios, votos y rachas.</li>
+                <li>Mantener y mejorar nuestros servicios: Para entender cómo se utiliza nuestra plataforma y poder mejorarla.</li>
+                <li>Comunicarnos contigo: Para enviarte notificaciones importantes, como respuestas a tus comentarios.</li>
+                <li>Proteger nuestra plataforma y a nuestros usuarios: Usamos la información para ayudar a mejorar la fiabilidad de nuestros servicios.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">4. Compartir tu Información</h3>
+              <p className="mb-2">No compartimos tu información personal con empresas, organizaciones o individuos fuera de WikiStars5, excepto en los siguientes casos:</p>
+              <ul className="list-disc pl-5 space-y-2">
+                <li><strong>Contenido público:</strong> Tu nombre de usuario, tu foto de perfil (si la tienes) y todo el contenido que generas (comentarios, votos, etc.) son visibles públicamente para otros usuarios de la plataforma.</li>
+                <li><strong>Proveedores de servicios:</strong> Utilizamos Google Firebase para la autenticación, base de datos y alojamiento. Google tiene sus propias políticas de privacidad que rigen cómo procesan los datos.</li>
+                <li><strong>Por razones legales:</strong> Compartiremos información personal si creemos de buena fe que el acceso, uso, preservación o divulgación de la información es razonablemente necesario para cumplir con la ley aplicable, regulación, proceso legal o solicitud gubernamental exigible.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">5. Tus Controles de Privacidad</h3>
+              <p className="mb-2">Tienes control sobre la información que proporcionas y tu actividad. Desde tu página de perfil, puedes:</p>
+              <ul className="list-disc pl-5 space-y-2 mb-4">
+                <li>Ver y editar la información de tu perfil, como tu nombre de usuario, país, sexo y descripción.</li>
+                <li>Ver un resumen de tu actividad, incluyendo tus votos y rachas.</li>
+              </ul>
+              <p>Si deseas eliminar tu cuenta y toda la información asociada, por favor, contáctanos.</p>
+            </section>
           </div>
         );
       case 'disclaimer':
