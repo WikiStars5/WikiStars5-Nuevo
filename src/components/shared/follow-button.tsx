@@ -14,6 +14,7 @@ interface FollowButtonProps {
   targetPhotoUrl: string | null;
   className?: string;
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  unfollowText?: string;
 }
 
 export default function FollowButton({
@@ -22,6 +23,7 @@ export default function FollowButton({
   targetPhotoUrl,
   className,
   size = 'sm',
+  unfollowText,
 }: FollowButtonProps) {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -141,7 +143,7 @@ export default function FollowButton({
         <Loader2 className="h-3 w-3 animate-spin" />
       ) : isFollowing ? (
         <>
-          <UserMinus className="h-3 w-3 mr-1" /> Siguiendo
+          <UserMinus className="h-3 w-3 mr-1" /> {unfollowText || 'Siguiendo'}
         </>
       ) : (
         <>

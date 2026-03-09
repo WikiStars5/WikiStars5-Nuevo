@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,6 +29,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import UserStarPosts from '@/components/profile/user-starposts';
 import { useTheme } from 'next-themes';
 import { cn, formatCompactNumber } from '@/lib/utils';
+import FollowButton from "@/components/shared/follow-button";
 
 
 export const dynamic = 'force-dynamic';
@@ -123,7 +123,7 @@ function ProfilePageContent() {
       return query(collection(firestore, 'users', user.uid, 'following'), orderBy('createdAt', 'desc'));
     }, [firestore, user]);
 
-    const { data: followingList, isLoading: isFollowingLoading } = useCollection(followingQuery);
+    const { data: followingList, isLoading: isFollowingLoading } = useCollection(followingQuery, { realtime: true });
 
 
     const onProfileSubmit = async (data: ProfileFormValues) => {
@@ -498,20 +498,32 @@ function ProfilePageContent() {
                             ) : followingList && followingList.length > 0 ? (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {followingList.map((followed) => (
-                                  <Link 
+                                  <div 
                                     key={followed.userId} 
-                                    href={`/u/${followed.username}`}
-                                    className="flex items-center gap-3 p-3 rounded-lg border hover:border-primary transition-colors"
+                                    className="flex items-center justify-between p-3 rounded-lg border hover:border-primary/50 transition-colors group"
                                   >
-                                    <Avatar className="h-10 w-10">
-                                      <AvatarImage src={followed.profilePhotoUrl || undefined} />
-                                      <AvatarFallback>{followed.username[0]}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-bold text-sm truncate">{followed.username}</p>
-                                      <p className="text-xs text-muted-foreground">Ver perfil</p>
-                                    </div>
-                                  </Link>
+                                    <Link 
+                                      href={`/u/${followed.username}`}
+                                      className="flex items-center gap-3 flex-1 min-w-0"
+                                    >
+                                      <Avatar className="h-10 w-10">
+                                        <AvatarImage src={followed.profilePhotoUrl || undefined} />
+                                        <AvatarFallback>{followed.username[0]}</AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-sm truncate">{followed.username}</p>
+                                        <p className="text-xs text-muted-foreground">Ver perfil</p>
+                                      </div>
+                                    </Link>
+                                    <FollowButton 
+                                      targetUserId={followed.userId}
+                                      targetUsername={followed.username}
+                                      targetPhotoUrl={followed.profilePhotoUrl || null}
+                                      size="sm"
+                                      unfollowText="Dejar de seguir"
+                                      className="ml-2 whitespace-nowrap"
+                                    />
+                                  </div>
                                 ))}
                               </div>
                             ) : (
