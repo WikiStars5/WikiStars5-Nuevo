@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -5,8 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { countries } from "@/lib/countries";
 import Image from "next/image";
 import UserActivity from "@/components/profile/user-activity";
+import UserStarPosts from "@/components/profile/user-starposts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, Activity, Users } from "lucide-react";
+import { Info, Activity, Users, MessagesSquare } from "lucide-react";
 import { useFirestore } from "@/firebase";
 import { collection, query, where, limit, getDocs, getDoc, doc } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -16,6 +18,9 @@ import { notFound } from "next/navigation";
 import FollowButton from "@/components/shared/follow-button";
 import { formatCompactNumber } from "@/lib/utils";
 import FollowListDialog from '@/components/shared/follow-list-dialog';
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 
 
 interface PublicUserProfile {
@@ -55,6 +60,7 @@ function ProfileSkeleton() {
 
 export default function PublicProfileClientPage({ username }: PublicProfileClientPageProps) {
     const firestore = useFirestore();
+    const { theme } = useTheme();
     const [userProfile, setUserProfile] = useState<PublicUserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [followList, setFollowList] = useState<{ open: boolean; type: 'followers' | 'following' }>({
@@ -196,13 +202,17 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
             </Card>
 
             <div className="mt-6 px-4 md:px-0">
-                <Tabs defaultValue="activity" className="w-full">
-                    <TabsList>
-                        <TabsTrigger value="info"><Info className="mr-2 h-4 w-4"/>Información</TabsTrigger>
-                        <TabsTrigger value="activity"><Activity className="mr-2 h-4 w-4"/>Actividad</TabsTrigger>
-                    </TabsList>
+                <Tabs defaultValue="starposts" className="w-full">
+                    <ScrollArea className="w-full whitespace-nowrap">
+                        <TabsList className={cn("inline-flex h-auto justify-start w-full", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+                            <TabsTrigger value="info" className="flex-1"><Info className="mr-2 h-4 w-4"/>Información</TabsTrigger>
+                            <TabsTrigger value="activity" className="flex-1"><Activity className="mr-2 h-4 w-4"/>Actividad</TabsTrigger>
+                            <TabsTrigger value="starposts" className="flex-1"><MessagesSquare className="mr-2 h-4 w-4" />Starposts</TabsTrigger>
+                        </TabsList>
+                        <ScrollBar orientation="horizontal" className="h-1.5" />
+                    </ScrollArea>
                     <TabsContent value="info" className="mt-4">
-                       <Card>
+                       <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
                         <CardContent className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
                                 <div className="space-y-1">
@@ -223,6 +233,9 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
                     </TabsContent>
                     <TabsContent value="activity" className="mt-4">
                         <UserActivity userId={userProfile.id} />
+                    </TabsContent>
+                    <TabsContent value="starposts" className="mt-4">
+                        <UserStarPosts userId={userProfile.id} />
                     </TabsContent>
                 </Tabs>
             </div>

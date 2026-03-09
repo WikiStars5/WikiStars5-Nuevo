@@ -32,7 +32,10 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isOwner(userId);
       }
-      match /starposts/{postId} { allow read, write, delete: if isOwner(userId); }
+      match /starposts/{postId} { 
+        allow read: if true; 
+        allow write, delete: if isOwner(userId); 
+      }
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
