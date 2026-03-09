@@ -685,7 +685,7 @@ export default function GlobalStarPostForm() {
                 )}
                 <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                  {isEditing ? 'Actualizar StarPost' : 'Publicar StarPost'}
+                  {isEditing ? 'Actualizar StarPost' : '¡Estrellar!'}
                 </Button>
               </div>
             </form>
