@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -72,8 +70,10 @@ export function useCollection<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(options.enabled ?? true); 
   const [error, setError] = useState<FirestoreError | Error | null>(null);
   
+  const isEnabled = options.enabled !== false;
+
   const fetchData = useCallback(async () => {
-    if (!memoizedTargetRefOrQuery || (options.enabled === false)) {
+    if (!memoizedTargetRefOrQuery || !isEnabled) {
       setIsLoading(false);
       setData(null);
       setError(null);
@@ -113,7 +113,7 @@ export function useCollection<T = any>(
     } finally {
         setIsLoading(false);
     }
-  }, [memoizedTargetRefOrQuery, options.enabled, options.onNewData]);
+  }, [memoizedTargetRefOrQuery, isEnabled, options.onNewData]);
   
   useEffect(() => {
     if (!options.realtime) {
@@ -122,7 +122,7 @@ export function useCollection<T = any>(
     }
 
     // Real-time logic
-    if (!options.enabled || !memoizedTargetRefOrQuery) {
+    if (!isEnabled || !memoizedTargetRefOrQuery) {
       setIsLoading(false);
       setData(null);
       setError(null);
@@ -163,7 +163,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery, options.enabled, options.realtime, options.onNewData, fetchData]);
+  }, [memoizedTargetRefOrQuery, isEnabled, options.realtime, options.onNewData, fetchData]);
 
   return { data, isLoading, error, refetch: fetchData };
 }

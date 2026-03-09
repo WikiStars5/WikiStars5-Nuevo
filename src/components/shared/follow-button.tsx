@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -34,9 +33,10 @@ export default function FollowButton({
     return doc(firestore, 'users', user.uid, 'following', targetUserId);
   }, [firestore, user, targetUserId]);
 
-  // ACTIVAMOS REALTIME: true para que el componente escuche cambios en la subcolección de seguidos
-  // Esto permite que el botón cambie de estado instantáneamente tras la transacción.
-  const { data: followDoc, isLoading: isCheckLoading } = useDoc(followRef, { realtime: true });
+  const { data: followDoc, isLoading: isCheckLoading } = useDoc(followRef, { 
+    enabled: true,
+    realtime: true 
+  });
 
   const isFollowing = !!followDoc;
 

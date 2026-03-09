@@ -1,4 +1,3 @@
-
 'use client';
     
 import { useState, useEffect, useCallback } from 'react';
@@ -55,8 +54,10 @@ export function useDoc<T = any>(
   const [isLoading, setIsLoading] = useState<boolean>(options.enabled ?? true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
+  const isEnabled = options.enabled !== false;
+
   const fetchData = useCallback(async () => {
-    if (!options.enabled || !memoizedDocRef) {
+    if (!isEnabled || !memoizedDocRef) {
       setIsLoading(false);
       setData(null);
       setError(null);
@@ -88,7 +89,7 @@ export function useDoc<T = any>(
     } finally {
         setIsLoading(false);
     }
-  }, [memoizedDocRef, options.enabled]);
+  }, [memoizedDocRef, isEnabled]);
 
    useEffect(() => {
     // If not realtime, just fetch once.
@@ -98,7 +99,7 @@ export function useDoc<T = any>(
     }
 
     // Real-time logic
-    if (!options.enabled || !memoizedDocRef) {
+    if (!isEnabled || !memoizedDocRef) {
       setIsLoading(false);
       setData(null);
       setError(null);
@@ -131,7 +132,7 @@ export function useDoc<T = any>(
     );
 
     return unsubscribe;
-  }, [memoizedDocRef, options.enabled, options.realtime, fetchData]);
+  }, [memoizedDocRef, isEnabled, options.realtime, fetchData]);
 
   return { data, isLoading, error, refetch: fetchData };
 }
