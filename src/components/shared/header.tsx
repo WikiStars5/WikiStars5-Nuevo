@@ -34,6 +34,7 @@ import { InstallPwaButton } from '../layout/InstallPwaButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { useSnow } from '@/context/SnowContext';
 import { saveFcmToken } from '@/firebase/notifications';
+import { cn } from '@/lib/utils';
 
 export default function Header() {
   const { user, isUserLoading } = useUser();
