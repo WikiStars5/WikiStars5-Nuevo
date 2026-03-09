@@ -105,7 +105,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
                 <li>Proporcionar nuestros servicios: Para operar las funciones principales de WikiStars5, como mostrar tu perfil público, tus comentarios, votos y rachas.</li>
                 <li>Mantener y mejorar nuestros servicios: Para entender cómo se utiliza nuestra plataforma y poder mejorarla.</li>
                 <li>Comunicarnos contigo: Para enviarte notificaciones importantes, como respuestas a tus comentarios.</li>
-                <li>Proteger nuestra plataforma y a nuestros usuarios: Usamos la información para ayudar a mejorar la fiabilidad de nuestros servicios.</li>
+                <li>Proteger nuestra plataforma y a nuestros usuarios: Usamos la información para ayudar a mejorar la seguridad y fiabilidad de nuestros servicios.</li>
               </ul>
             </section>
 
@@ -132,15 +132,32 @@ export default function InfoDialog({ section }: InfoDialogProps) {
         );
       case 'disclaimer':
         return (
-          <div className="space-y-4 text-sm text-muted-foreground leading-relaxed italic">
-            <p>
-              <strong>{t('DisclaimerPage.paragraphs.1_strong')}</strong>
-              {t('DisclaimerPage.paragraphs.1')}
-            </p>
-            <p>
-              <strong>{t('DisclaimerPage.paragraphs.2_strong')}</strong>
-              {t('DisclaimerPage.paragraphs.2')}
-            </p>
+          <div className="space-y-6 text-sm text-muted-foreground leading-relaxed">
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">Naturaleza del Sitio</h3>
+              <p>WikiStars5 es una plataforma de opinión y entretenimiento. Creemos firmemente en la libertad de expresión y nuestro propósito es permitir que los usuarios expresen y discutan libremente sus percepciones sobre figuras públicas. El contenido de este sitio, incluyendo las calificaciones, votos, y comentarios, representa las opiniones subjetivas de nuestros usuarios y no debe ser interpretado como una declaración de hechos.</p>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">Reflejo de la Percepción Pública</h3>
+              <p>Las percepciones, ya sean de admiración u odio, que se reflejan en esta plataforma son el resultado de las acciones y la reputación de las propias figuras públicas. WikiStars5 no crea ni controla estas opiniones; simplemente actúa como un foro para su expresión. La responsabilidad de la imagen pública recae enteramente en la figura pública, no en la plataforma que permite la discusión sobre ella. En resumen: <strong>no es nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.</strong></p>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">Sin Afiliación ni Respaldo</h3>
+              <p>Este sitio web no está afiliado, asociado, autorizado, respaldado por, ni de ninguna manera conectado oficialmente con ninguna de las figuras públicas mencionadas en él, ni con ninguna de sus subsidiarias o afiliadas.</p>
+              <p className="mt-2 italic">Los nombres, así como cualquier imagen, marca registrada y derecho de autor relacionados, son propiedad de sus respectivos dueños. El uso de estos nombres e imágenes tiene fines de identificación, comentario y crítica, en el marco del derecho a la libertad de expresión.</p>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">Contenido Generado por el Usuario</h3>
+              <p>Todo el contenido generado por los usuarios, como comentarios y votos, es responsabilidad exclusiva de la persona que lo publica. WikiStars5 no se hace responsable de la exactitud, veracidad o legalidad de dicho contenido. Nos reservamos el derecho de moderar o eliminar contenido que viole nuestras políticas, pero no tenemos la obligación de hacerlo.</p>
+            </section>
+
+            <section>
+              <h3 className="font-bold text-foreground text-base mb-2">Sin Fines de Lucro Directo con la Imagen</h3>
+              <p>La plataforma no utiliza la imagen o el nombre de las figuras públicas para la venta directa de productos o servicios. El propósito es fomentar la discusión y el debate público.</p>
+            </section>
           </div>
         );
     }
