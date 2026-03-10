@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -8,7 +7,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/context/LanguageContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info, CheckCircle, Shield, FileText } from 'lucide-react';
@@ -21,6 +19,7 @@ interface InfoDialogProps {
 
 /**
  * Component that renders specific institutional information based on the selected section.
+ * Re-structured to ensure proper scrolling on all devices.
  */
 export default function InfoDialog({ section }: InfoDialogProps) {
   const { t } = useLanguage();
@@ -114,7 +113,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
               <h3 className="font-bold text-foreground text-base mb-2">4. Compartir tu Información</h3>
               <p className="mb-2">No compartimos tu información personal con empresas, organizaciones o individuos fuera de WikiStars5, excepto en los siguientes casos:</p>
               <ul className="list-disc pl-5 space-y-2">
-                <li><strong>Contenido público:</strong> Tu nombre de usuario, tu foto de perfil (si la tienes) y todo el contenido que generas (comentarios, votos, etc.) son visibles públicamente para otros usuarios de la plataforma.</li>
+                <li><strong>Contenido público:</strong> Tu nombre de usuario, tu foto de perfil (si la tienes) e todo el contenido que generas (comentarios, votos, etc.) son visibles públicamente para otros usuarios de la plataforma.</li>
                 <li><strong>Proveedores de servicios:</strong> Utilizamos Google Firebase para la autenticación, base de datos y alojamiento. Google tiene sus propias políticas de privacidad que rigen cómo procesan los datos.</li>
                 <li><strong>Por razones legales:</strong> Compartiremos información personal si creemos de buena fe que el acceso, uso, preservación o divulgación de la información es razonablemente necesario para cumplir con la ley aplicable, regulación, proceso legal o solicitud gubernamental exigible.</li>
               </ul>
@@ -183,8 +182,8 @@ export default function InfoDialog({ section }: InfoDialogProps) {
   };
 
   return (
-    <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden dark:bg-black">
-      <DialogHeader className="p-6 pb-2 flex-shrink-0">
+    <DialogContent className="sm:max-w-xl max-h-[90vh] w-[95vw] flex flex-col p-0 gap-0 overflow-hidden dark:bg-black border-border/40">
+      <DialogHeader className="p-6 pb-4 flex-shrink-0 border-b border-border/40">
         <DialogTitle className="text-2xl font-headline flex items-center gap-2">
           {getIcon()}
           {getTitle()}
@@ -193,13 +192,9 @@ export default function InfoDialog({ section }: InfoDialogProps) {
           Información institucional sobre {getTitle()}.
         </DialogDescription>
       </DialogHeader>
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="px-6 pb-6">
-          <div className="py-4">
-            {renderContent()}
-          </div>
-        </div>
-      </ScrollArea>
+      <div className="flex-1 overflow-y-auto min-h-0 px-6 py-6">
+        {renderContent()}
+      </div>
     </DialogContent>
   );
 }
