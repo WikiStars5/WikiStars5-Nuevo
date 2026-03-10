@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
@@ -174,6 +173,10 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 const figureDoc = await transaction.get(figureRef);
                 if (!figureDoc.exists()) throw new Error("Figure not found.");
 
+                // Clean up user's own reference to this post
+                const starpostRef = doc(firestore, 'users', comment.userId, 'starposts', comment.id);
+                transaction.delete(starpostRef);
+
                 let repliesSnapshot;
                 if (!isReply) {
                     const repliesRef = collection(firestore, commentRef.path, 'replies');
@@ -191,8 +194,6 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                         ratingCount: increment(-1),
                         totalRating: increment(-comment.rating),
                         [`ratingsBreakdown.${comment.rating}`]: increment(-1),
-                        __ratingCount_delta: -comment.rating,
-                        __totalRating_delta: -1,
                         updatedAt: serverTimestamp(),
                      };
                      transaction.update(figureRef, ratingUpdates);

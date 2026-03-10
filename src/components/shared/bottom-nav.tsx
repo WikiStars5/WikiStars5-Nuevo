@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, User, Ghost } from 'lucide-react';
+import { Home, User, Ghost, Users } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,12 @@ export default function BottomNav() {
       href: '/',
       icon: Home,
       isActive: pathname === '/',
+    },
+    {
+      label: 'SIGUIENDO',
+      href: '/siguiendo',
+      icon: Users,
+      isActive: pathname === '/siguiendo',
     },
     {
       label: 'MI PERFIL',

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -124,8 +123,8 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
     
     try {
         await runTransaction(firestore, async (transaction) => {
-            const figureDoc = await transaction.get(figureRef);
-            if (!figureDoc.exists()) throw new Error("Figure not found.");
+            const figureSnap = await transaction.get(figureRef);
+            if (!figureSnap.exists()) throw new Error("Figure not found.");
 
             const repliesRef = firestoreCollection(firestore, commentRef.path, 'replies');
             const repliesSnapshot = await getDocs(repliesRef);
@@ -139,6 +138,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                 });
             }
 
+            // Sync: delete from figure comments AND user's personal starposts collection
             transaction.delete(commentRef);
             transaction.delete(starpostRef);
         });
