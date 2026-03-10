@@ -23,6 +23,9 @@ import GlobalStarPostForm from '@/components/shared/global-starpost-form';
 const MAX_FIGURES_TO_CONSULT = 5; // Cada clic consulta 5 figuras al azar
 const POSTS_PER_FIGURE = 1;       // Trae solo el post más reciente de cada una
 
+// LISTA POR DEFECTO: Miembros de BTS (Bias BTS)
+const DEFAULT_FEED_IDS = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
+
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -55,6 +58,11 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     return attitudeVotes.map(vote => vote.id); 
   }, [attitudeVotes]);
   
+  // Determinamos qué IDs vamos a usar para el feed: Favoritos o BTS por defecto
+  const activeFeedIds = React.useMemo(() => {
+    return votedFigureIds.length > 0 ? votedFigureIds : DEFAULT_FEED_IDS;
+  }, [votedFigureIds]);
+
   // 2. Función de carga: Puede REEMPLAZAR o ACUMULAR (append)
   const fetchFeed = React.useCallback(async (figureIds: string[], append = false) => {
     if (!firestore || figureIds.length === 0) {
@@ -67,7 +75,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     else setIsLoading(true);
 
     try {
-      // Tómbola: Elegimos 5 figuras al azar de su lista de favoritos
+      // Tómbola: Elegimos 5 figuras al azar de la lista proporcionada
       const randomFigures = shuffleArray(figureIds).slice(0, MAX_FIGURES_TO_CONSULT);
 
       const postPromises = randomFigures.map(figureId => {
@@ -108,12 +116,10 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
 
   // 3. Efecto de carga inicial
   React.useEffect(() => {
-    if (!isLoadingVotes && votedFigureIds.length > 0) {
-      fetchFeed(votedFigureIds);
-    } else if (!isLoadingVotes && votedFigureIds.length === 0) {
-      setIsLoading(false);
+    if (!isLoadingVotes) {
+      fetchFeed(activeFeedIds);
     }
-  }, [votedFigureIds, isLoadingVotes, fetchFeed]);
+  }, [activeFeedIds, isLoadingVotes, fetchFeed]);
 
   const renderContent = () => {
     const isReadyForFeed = !isUserLoading && !isLoadingVotes;
@@ -131,13 +137,8 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
       ));
     }
 
-    if (!isReadyForFeed || (votedFigureIds.length === 0 && !isLoading)) {
-       return (
-        <div className="text-center py-20 bg-slate-50 dark:bg-card/50 rounded-2xl border-2 border-dashed">
-          <p className="text-lg font-medium text-muted-foreground">Tu feed está vacío</p>
-          <p className="text-sm text-muted-foreground mb-6">¡Vota por tus figuras favoritas para ver sus StarPosts!</p>
-        </div>
-      );
+    if (!isReadyForFeed) {
+       return null;
     }
     
     if (feedComments.length > 0) {
@@ -155,14 +156,14 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
                 <Button 
                     variant="outline" 
                     className="w-full py-6 flex gap-2 text-lg font-medium border-primary/20 hover:bg-primary/5"
-                    onClick={() => fetchFeed(votedFigureIds, true)} 
+                    onClick={() => fetchFeed(activeFeedIds, true)} 
                     disabled={isAppending}
                 >
                     <RefreshCw className={`h-5 w-5 ${isAppending ? 'animate-spin' : ''}`} />
                     {isAppending ? 'Buscando más contenido...' : 'Ver más StarPosts'}
                 </Button>
                 <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest">
-                  Mezclando tus favoritos al azar
+                  {votedFigureIds.length > 0 ? 'Mezclando tus favoritos al azar' : 'Mostrando contenido recomendado para ti'}
                 </p>
             </div>
         </>
@@ -170,8 +171,9 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     }
 
     return (
-      <div className="text-center py-20">
-        <p className="text-muted-foreground">No encontramos posts de tus figuras favoritas.</p>
+      <div className="text-center py-20 bg-slate-50 dark:bg-card/50 rounded-2xl border-2 border-dashed">
+        <p className="text-lg font-medium text-muted-foreground">Tu feed está tranquilo por ahora</p>
+        <p className="text-sm text-muted-foreground mb-6">¡Vota por tus figuras favoritas para ver sus StarPosts!</p>
       </div>
     );
   };
