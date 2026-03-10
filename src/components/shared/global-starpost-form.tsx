@@ -121,7 +121,7 @@ export default function GlobalStarPostForm() {
 
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(createCommentSchema(needsIdentity)),
-    defaultValues: { text: '', rating: 5, attitude: 'neutral', username: '', tag: undefined },
+    defaultValues: { text: '', rating: 5, attitude: undefined, username: '', tag: undefined },
   });
 
   useEffect(() => {
@@ -158,7 +158,7 @@ export default function GlobalStarPostForm() {
           form.setValue('attitude', attitude);
         } else {
           setExistingAttitude(null);
-          form.setValue('attitude', 'neutral');
+          form.setValue('attitude', undefined as any);
         }
       } catch (error) {
         console.error("Error checking existing data:", error);
@@ -245,7 +245,7 @@ export default function GlobalStarPostForm() {
         }
 
         setExistingAttitude(isRetracting ? null : newAttitude);
-        form.setValue('attitude', isRetracting ? 'neutral' : newAttitude);
+        form.setValue('attitude', isRetracting ? undefined : newAttitude);
         toast({ title: isRetracting ? 'Voto eliminado' : '¡Voto registrado!' });
 
     } catch (error: any) {
@@ -297,7 +297,7 @@ export default function GlobalStarPostForm() {
     if (!existingComment) return;
     form.reset({
       rating: existingComment.rating,
-      attitude: (existingAttitude as any) || 'neutral',
+      attitude: (existingAttitude as any) || undefined,
       text: existingComment.text || '',
       tag: existingComment.tag || undefined,
       username: userProfile?.username || '',
@@ -451,7 +451,7 @@ export default function GlobalStarPostForm() {
         title: isEditing ? '¡StarPost actualizado!' : '¡StarPost publicado!', 
         description: isEditing ? 'Tu opinión ha sido modificada.' : `Has calificado a ${selectedFigure.name}.` 
       });
-      form.reset({ text: '', rating: 5, attitude: 'neutral', tag: undefined });
+      form.reset({ text: '', rating: 5, attitude: undefined, tag: undefined });
       setSelectedFigure(null);
       setExistingComment(null);
       setExistingAttitude(null);
