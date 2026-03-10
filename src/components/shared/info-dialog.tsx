@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -182,16 +183,21 @@ export default function InfoDialog({ section }: InfoDialogProps) {
   };
 
   return (
-    <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden dark:bg-black">
-      <DialogHeader className="p-6 pb-2">
+    <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden dark:bg-black">
+      <DialogHeader className="p-6 pb-2 flex-shrink-0">
         <DialogTitle className="text-2xl font-headline flex items-center gap-2">
           {getIcon()}
           {getTitle()}
         </DialogTitle>
+        <DialogDescription className="sr-only">
+          Información institucional sobre {getTitle()}.
+        </DialogDescription>
       </DialogHeader>
-      <ScrollArea className="flex-1 px-6 pb-6">
-        <div className="py-4">
-          {renderContent()}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="px-6 pb-6">
+          <div className="py-4">
+            {renderContent()}
+          </div>
         </div>
       </ScrollArea>
     </DialogContent>
