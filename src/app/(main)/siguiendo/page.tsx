@@ -1,13 +1,13 @@
-
 'use client';
 
 import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, limit, collectionGroup, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, limit, orderBy } from 'firebase/firestore';
 import type { Comment } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, UserPlus } from 'lucide-react';
+import { Users, UserPlus, ChevronDown } from 'lucide-react'; // Icono para el botón
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -23,10 +23,13 @@ function shuffleArray<T>(array: T[]): T[] {
 export default function FollowingFeedPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const [feedPosts, setFeedPosts] = React.useState<Comment[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [feedPosts, setFeedPosts] = useState<Comment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // CONTROL DE PAGINACIÓN
+  const [visibleCount, setVisibleCount] = useState(10); // Cuántos IDs de amigos procesar
+  const [hasMore, setHasMore] = useState(false);
 
-  // 1. Obtener a quién sigue el usuario
   const followingQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return collection(firestore, 'users', user.uid, 'following');
@@ -34,7 +37,7 @@ export default function FollowingFeedPage() {
 
   const { data: following, isLoading: isLoadingFollowing } = useCollection(followingQuery, { enabled: !!user });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchFollowingPosts = async () => {
       if (!firestore || !user || isLoadingFollowing) return;
 
@@ -46,39 +49,43 @@ export default function FollowingFeedPage() {
 
       setIsLoading(true);
       try {
-        // Obtenemos los IDs de los usuarios seguidos
-        const followedUserIds = following.map(f => f.userId);
+        // 1. Tomamos solo los IDs según el límite actual (visibleCount)
+        const followedUserIds = following.map(f => f.id).slice(0, visibleCount);
         
-        // Firestore limita el operador 'in' a 30 elementos. Tomamos los 30 más recientes o activos.
-        const targetIds = followedUserIds.slice(0, 30);
+        // Verificamos si hay más amigos para cargar después
+        setHasMore(following.length > visibleCount);
 
-        // Usamos collectionGroup para buscar comentarios de estos usuarios en cualquier figura
-        const commentsRef = collectionGroup(firestore, 'comments');
-        const q = query(
-          commentsRef, 
-          where('userId', 'in', targetIds),
-          orderBy('createdAt', 'desc'),
-          limit(20)
-        );
+        // 2. Traemos Starposts de esos usuarios
+        const fetchPromises = followedUserIds.map(async (followedId) => {
+          const starPostsRef = collection(firestore, 'users', followedId, 'starposts');
+          const q = query(starPostsRef, orderBy('createdAt', 'desc'), limit(3)); // 3 de cada uno para variedad
+          const snapshot = await getDocs(q);
+          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
+        });
 
-        const snapshot = await getDocs(q);
-        const posts = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Comment));
+        const results = await Promise.all(fetchPromises);
+        const allPosts = results.flat();
 
-        // Mezclamos un poco para que no sea siempre lo mismo en el mismo orden
-        setFeedPosts(shuffleArray(posts));
+        // 3. Mezclamos y limitamos el feed final a 10 resultados exactos
+        // Si quieres ver más de 10 totales, sube este número
+        setFeedPosts(shuffleArray(allPosts).slice(0, 10)); 
+
       } catch (error) {
-        console.error("Error fetching following feed:", error);
+        console.error("Error fetching feed:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchFollowingPosts();
-  }, [firestore, user, following, isLoadingFollowing]);
+  }, [firestore, user, following, isLoadingFollowing, visibleCount]); // Se dispara cuando cambia visibleCount
 
+  // Función para el botón "Mostrar más"
+  const handleLoadMore = () => {
+    setVisibleCount(prev => prev + 10); // Aumenta de 10 en 10
+  };
+
+  // Renderizado de carga y estados vacíos (Igual que antes...)
   if (isUserLoading || isLoadingFollowing || (isLoading && feedPosts.length === 0)) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-8 space-y-6">
@@ -98,19 +105,6 @@ export default function FollowingFeedPage() {
     );
   }
 
-  if (!user || user.isAnonymous) {
-    return (
-      <div className="container mx-auto max-w-2xl px-4 py-20 text-center">
-        <Users className="mx-auto h-16 w-16 text-muted-foreground/30 mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Inicia sesión para seguir a otros</h2>
-        <p className="text-muted-foreground mb-6">Podrás ver qué opinan tus amigos y otros usuarios sobre sus figuras favoritas.</p>
-        <Button asChild>
-          <Link href="/login">Ir a Iniciar Sesión</Link>
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold font-headline mb-6 flex items-center gap-2">
@@ -122,13 +116,27 @@ export default function FollowingFeedPage() {
           {feedPosts.map((post) => (
             <StarPostCard key={post.id} post={post} />
           ))}
+
+          {/* BOTÓN MOSTRAR MÁS */}
+          {hasMore && (
+            <div className="pt-4 flex justify-center">
+              <Button 
+                onClick={handleLoadMore} 
+                variant="ghost" 
+                className="gap-2 text-muted-foreground hover:text-primary"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Cargando...' : 'Ver más StarPosts'}
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-20 bg-slate-50 dark:bg-card/50 rounded-2xl border-2 border-dashed">
           <UserPlus className="mx-auto h-16 w-16 text-muted-foreground/30 mb-4" />
           <p className="text-lg font-medium text-muted-foreground">Tu feed de amigos está vacío</p>
-          <p className="text-sm text-muted-foreground mb-6">Sigue a otros usuarios para ver sus StarPosts aquí.</p>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="mt-4">
             <Link href="/figures">Explorar Personajes</Link>
           </Button>
         </div>
