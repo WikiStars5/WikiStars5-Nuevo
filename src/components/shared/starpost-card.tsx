@@ -62,6 +62,10 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   const { showStreakAnimation } = useContext(StreakAnimationContext);
   
   const [post, setPost] = useState(initialPost);
+  const [authorData, setAuthorData] = useState({
+    displayName: initialPost.userDisplayName,
+    photoURL: initialPost.userPhotoURL
+  });
   const [isReplying, setIsReplying] = useState(false);
   const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
   const [isThreadOpen, setIsThreadOpen] = useState(false);
@@ -76,6 +80,23 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
     if (!firestore || !initialPost.figureId || !initialPost.id) return null;
     return doc(firestore, 'figures', initialPost.figureId, 'comments', initialPost.id);
   }, [firestore, initialPost.figureId, initialPost.id]);
+
+  useEffect(() => {
+    if (!firestore || !post.userId) return;
+  
+    const fetchAuthor = async () => {
+      const userRef = doc(firestore, 'users', post.userId);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        setAuthorData({
+          displayName: data.displayName || data.username || post.userDisplayName,
+          photoURL: data.photoURL || post.userPhotoURL
+        });
+      }
+    };
+    fetchAuthor();
+  }, [firestore, post.userId]);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -286,16 +307,16 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
     <Dialog open={isThreadOpen} onOpenChange={setIsThreadOpen}>
         <Card className={cn("hover:border-primary/50 transition-colors p-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
             <div className="flex items-start gap-4">
-                <Link href={`/u/${post.userDisplayName}`} className="flex-shrink-0">
+                <Link href={`/u/${authorData.displayName}`} className="flex-shrink-0">
                     <Avatar className="h-10 w-10">
-                        <AvatarImage src={post.userPhotoURL || undefined} alt={post.userDisplayName} />
+                        <AvatarImage src={authorData.photoURL || undefined} alt={authorData.displayName} />
                         <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
                 </Link>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <Link href={`/u/${post.userDisplayName}`} className="font-semibold text-sm hover:underline">{post.userDisplayName}</Link>
+                        <Link href={`/u/${authorData.displayName}`} className="font-semibold text-sm hover:underline">{authorData.displayName}</Link>
                             {attitudeStyle && (<p className={cn("text-xs font-bold", attitudeStyle.color)}>{attitudeStyle.text}</p>)}
                             {showStreak && (<div className="flex items-center gap-1 text-orange-500 font-bold text-xs" title={`${userStreak.currentStreak} días de racha`}><Flame className="h-3 w-3" /><span>{userStreak.currentStreak}</span></div>)}
                             {post.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
