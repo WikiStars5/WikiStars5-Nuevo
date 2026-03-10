@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -33,7 +34,7 @@ export default function FollowingFeedPage() {
 
   const { data: following, isLoading: isLoadingFollowing } = useCollection(followingQuery, { enabled: !!user });
 
-  useEffect(() => {
+  React.useEffect(() => {
     const fetchFollowingPosts = async () => {
       if (!firestore || !user || isLoadingFollowing) return;
 
