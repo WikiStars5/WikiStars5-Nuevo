@@ -20,7 +20,7 @@ import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
 import GlobalStarPostForm from '@/components/shared/global-starpost-form';
 
 // CONFIGURACIÓN DE RENTABILIDAD
-const MAX_FIGURES_TO_CONSULT = 5; // Cada clic consulta 5 figuras al azar
+const MAX_FIGURES_TO_CONSULT = 10; // Cada clic consulta 10 figuras al azar (antes era 5)
 const POSTS_PER_FIGURE = 1;       // Trae solo el post más reciente de cada una
 
 // LISTA POR DEFECTO: Miembros de BTS (Bias BTS)
@@ -75,7 +75,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     else setIsLoading(true);
 
     try {
-      // Tómbola: Elegimos 5 figuras al azar de la lista proporcionada
+      // Tómbola: Elegimos figuras al azar de la lista proporcionada
       const randomFigures = shuffleArray(figureIds).slice(0, MAX_FIGURES_TO_CONSULT);
 
       const postPromises = randomFigures.map(figureId => {
@@ -100,7 +100,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
       const shuffledNewPosts = shuffleArray(newPosts);
 
       if (append) {
-        // SUMAMOS a lo que ya existe (5 + 5 + 5...)
+        // SUMAMOS a lo que ya existe
         setFeedComments(prev => [...prev, ...shuffledNewPosts]);
       } else {
         // Carga inicial
@@ -151,7 +151,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
                 ))}
             </div>
             
-            {/* BOTÓN DE CRECIMIENTO: Agrega 5 más al azar */}
+            {/* BOTÓN DE CRECIMIENTO: Agrega más al azar */}
             <div className="mt-8 flex flex-col items-center">
                 <Button 
                     variant="outline" 
