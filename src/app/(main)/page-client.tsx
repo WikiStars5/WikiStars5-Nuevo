@@ -19,9 +19,10 @@ import { RefreshCw } from 'lucide-react';
 import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
 import GlobalStarPostForm from '@/components/shared/global-starpost-form';
 
-// CONFIGURACIÓN DE RENTABILIDAD
-const MAX_FIGURES_TO_CONSULT = 10; // Cada clic consulta 10 figuras al azar (antes era 5)
-const POSTS_PER_FIGURE = 1;       // Trae solo el post más reciente de cada una
+// CONFIGURACIÓN DE RENTABILIDAD Y VARIEDAD
+const MAX_FIGURES_TO_CONSULT = 10; // Consultamos 10 figuras al azar
+const POSTS_PER_FIGURE = 10;       // Traemos un búfer de 10 posts por figura para tener de donde elegir sin repetir
+const MAX_POSTS_TO_SHOW_PER_BATCH = 10; // Cuántos posts nuevos queremos añadir realmente por clic
 
 // LISTA POR DEFECTO: Miembros de BTS (Bias BTS)
 const DEFAULT_FEED_IDS = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
@@ -40,9 +41,12 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
   const { user, isUserLoading } = useUser();
   const [feedComments, setFeedComments] = React.useState<Comment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isAppending, setIsAppending] = React.useState(false); // Estado para el botón de "Ver más"
+  const [isAppending, setIsAppending] = React.useState(false);
 
-  // 1. Obtener IDs de figuras votadas por el usuario (incluyendo anónimos)
+  // Mantenemos un registro de IDs vistos para evitar duplicados en la sesión
+  const seenPostIdsRef = React.useRef<Set<string>>(new Set());
+
+  // 1. Obtener IDs de figuras votadas por el usuario
   const attitudeVotesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return collection(firestore, 'users', user.uid, 'attitudeVotes');
@@ -63,7 +67,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     return votedFigureIds.length > 0 ? votedFigureIds : DEFAULT_FEED_IDS;
   }, [votedFigureIds]);
 
-  // 2. Función de carga: Puede REEMPLAZAR o ACUMULAR (append)
+  // 2. Función de carga: Filtra por IDs vistos
   const fetchFeed = React.useCallback(async (figureIds: string[], append = false) => {
     if (!firestore || figureIds.length === 0) {
       if (!append) setFeedComments([]);
@@ -72,39 +76,54 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     }
 
     if (append) setIsAppending(true);
-    else setIsLoading(true);
+    else {
+      setIsLoading(true);
+      seenPostIdsRef.current.clear(); // Reset al recargar de cero
+    }
 
     try {
-      // Tómbola: Elegimos figuras al azar de la lista proporcionada
+      // Elegimos figuras al azar de la lista
       const randomFigures = shuffleArray(figureIds).slice(0, MAX_FIGURES_TO_CONSULT);
 
       const postPromises = randomFigures.map(figureId => {
         const commentsRef = collection(firestore, 'figures', figureId, 'comments');
+        // Traemos un búfer de posts para evitar que se acaben rápido si el usuario sigue a poca gente
         const q = query(commentsRef, orderBy('createdAt', 'desc'), limit(POSTS_PER_FIGURE));
         return getDocs(q);
       });
 
       const snapshots = await Promise.all(postPromises);
       
-      const newPosts = snapshots.flatMap(snapshot => 
-        snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-            createdAt: data.createdAt,
-          } as unknown as Comment;
-        })
-      );
+      let newPostsPool: Comment[] = [];
       
-      const shuffledNewPosts = shuffleArray(newPosts);
+      snapshots.forEach(snapshot => {
+        snapshot.docs.forEach(doc => {
+          const id = doc.id;
+          // SOLO añadimos si no ha sido visto antes
+          if (!seenPostIdsRef.current.has(id)) {
+            const data = doc.data();
+            newPostsPool.push({
+              ...data,
+              id: id,
+              createdAt: data.createdAt,
+            } as unknown as Comment);
+          }
+        });
+      });
+      
+      // Mezclamos los posts únicos encontrados
+      const shuffledPool = shuffleArray(newPostsPool);
+      
+      // Tomamos solo la cantidad deseada para este lote
+      const batchToShow = shuffledPool.slice(0, MAX_POSTS_TO_SHOW_PER_BATCH);
+
+      // Registramos los nuevos como vistos
+      batchToShow.forEach(post => seenPostIdsRef.current.add(post.id));
 
       if (append) {
-        // SUMAMOS a lo que ya existe
-        setFeedComments(prev => [...prev, ...shuffledNewPosts]);
+        setFeedComments(prev => [...prev, ...batchToShow]);
       } else {
-        // Carga inicial
-        setFeedComments(shuffledNewPosts);
+        setFeedComments(batchToShow);
       }
     } catch (error) {
       console.error("Error al armar el feed:", error);
@@ -124,7 +143,6 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
   const renderContent = () => {
     const isReadyForFeed = !isUserLoading && !isLoadingVotes;
     
-    // Skeleton solo para la carga inicial de la página
     if (isLoading && feedComments.length === 0) {
       return Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="p-4 border rounded-lg space-y-3 animate-pulse mb-4">
@@ -137,21 +155,17 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
       ));
     }
 
-    if (!isReadyForFeed) {
-       return null;
-    }
+    if (!isReadyForFeed) return null;
     
     if (feedComments.length > 0) {
       return (
         <>
-            {/* El feed que va creciendo */}
             <div className="space-y-6">
                 {feedComments.map((post, index) => (
                     <StarPostCard key={`${post.id}-${index}`} post={post} />
                 ))}
             </div>
             
-            {/* BOTÓN DE CRECIMIENTO: Agrega más al azar */}
             <div className="mt-8 flex flex-col items-center">
                 <Button 
                     variant="outline" 
@@ -160,10 +174,10 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
                     disabled={isAppending}
                 >
                     <RefreshCw className={`h-5 w-5 ${isAppending ? 'animate-spin' : ''}`} />
-                    {isAppending ? 'Buscando más contenido...' : 'Ver más StarPosts'}
+                    {isAppending ? 'Buscando contenido nuevo...' : 'Ver más StarPosts'}
                 </Button>
                 <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest">
-                  {votedFigureIds.length > 0 ? 'Mezclando tus favoritos al azar' : 'Mostrando contenido recomendado para ti'}
+                  {votedFigureIds.length > 0 ? 'Mezclando tus favoritos sin repeticiones' : 'Mostrando contenido recomendado para ti'}
                 </p>
             </div>
         </>
