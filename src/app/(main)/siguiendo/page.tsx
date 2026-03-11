@@ -1,15 +1,20 @@
 'use client';
 
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, getDocs, limit, orderBy } from 'firebase/firestore';
 import type { Comment } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, UserPlus, ChevronDown, Sparkles } from 'lucide-react';
+import { Users, UserPlus, RefreshCw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+
+// CONFIGURACIÓN DE RENDIMIENTO
+const MAX_FOLLOWED_TO_CONSULT = 10; // Límite de figuras a consultar por lote
+const POSTS_PER_USER = 10;          // Cuántos posts traer por cada usuario para filtrar
+const MAX_POSTS_TO_SHOW = 10;       // Cuántos posts nuevos mostrar realmente por clic
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -25,8 +30,10 @@ export default function FollowingFeedPage() {
   const firestore = useFirestore();
   const [feedPosts, setFeedPosts] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(10); 
-  const [hasMoreUsers, setHasMoreUsers] = useState(false);
+  const [isAppending, setIsAppending] = useState(false);
+
+  // Registro de IDs vistos para evitar repeticiones en la sesión actual
+  const seenPostIdsRef = useRef<Set<string>>(new Set());
 
   const followingQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -35,46 +42,78 @@ export default function FollowingFeedPage() {
 
   const { data: following, isLoading: isLoadingFollowing } = useCollection(followingQuery, { enabled: !!user });
 
-  useEffect(() => {
-    const fetchFollowingPosts = async () => {
-      // Si aún está cargando la lista de seguidos, no hacemos nada
-      if (!firestore || !user || isLoadingFollowing) return;
+  const fetchFollowingPosts = useCallback(async (followingList: any[], append = false) => {
+    if (!firestore || followingList.length === 0) {
+      if (!append) setFeedPosts([]);
+      setIsLoading(false);
+      return;
+    }
 
-      // Si la lista de seguidos terminó de cargar y está vacía
-      if (!following || following.length === 0) {
-        setFeedPosts([]);
-        setIsLoading(false);
-        return;
-      }
-
+    if (append) setIsAppending(true);
+    else {
       setIsLoading(true);
-      try {
-        const followedUserIds = following.map(f => f.id).slice(0, visibleCount);
-        setHasMoreUsers(following.length > visibleCount);
+      seenPostIdsRef.current.clear();
+    }
 
-        const fetchPromises = followedUserIds.map(async (followedId) => {
-          const starPostsRef = collection(firestore, 'users', followedId, 'starposts');
-          const q = query(starPostsRef, orderBy('createdAt', 'desc'), limit(5));
-          const snapshot = await getDocs(q);
-          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Comment));
+    try {
+      // Elegimos hasta 10 usuarios seguidos al azar
+      const randomUsers = shuffleArray(followingList).slice(0, MAX_FOLLOWED_TO_CONSULT);
+
+      const fetchPromises = randomUsers.map(async (f) => {
+        // En la colección 'following', el ID del documento es el ID del usuario seguido
+        const followedId = f.userId || f.id;
+        const starPostsRef = collection(firestore, 'users', followedId, 'starposts');
+        const q = query(starPostsRef, orderBy('createdAt', 'desc'), limit(POSTS_PER_USER));
+        const snapshot = await getDocs(q);
+        
+        // Obtenemos los datos completos del post desde la referencia
+        const postPromises = snapshot.docs.map(async (starRefDoc) => {
+            const refData = starRefDoc.data();
+            const postDocRef = doc(firestore, 'figures', refData.figureId, 'comments', starRefDoc.id);
+            const postDoc = await getDoc(postDocRef);
+            if (postDoc.exists()) {
+                return { id: postDoc.id, ...postDoc.data() } as Comment;
+            }
+            return null;
         });
 
-        const results = await Promise.all(fetchPromises);
-        const allPosts = results.flat();
-        setFeedPosts(shuffleArray(allPosts).slice(0, 20));
-      } catch (error) {
-        console.error("Error:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        const resolvedPosts = await Promise.all(postPromises);
+        return resolvedPosts.filter((p): p is Comment => p !== null);
+      });
 
-    fetchFollowingPosts();
-  }, [firestore, user, following, isLoadingFollowing, visibleCount]);
+      const results = await Promise.all(fetchPromises);
+      const allPostsPool = results.flat();
+      
+      // Filtrar por no vistos para evitar repeticiones
+      const uniqueNewPosts = allPostsPool.filter(post => !seenPostIdsRef.current.has(post.id));
+      
+      // Mezclar para que no salgan todos los de un mismo usuario juntos y tomar el lote
+      const batchToShow = shuffleArray(uniqueNewPosts).slice(0, MAX_POSTS_TO_SHOW);
+
+      // Registrar los nuevos como vistos
+      batchToShow.forEach(post => seenPostIdsRef.current.add(post.id));
+
+      if (append) {
+        setFeedPosts(prev => [...prev, ...batchToShow]);
+      } else {
+        setFeedPosts(batchToShow);
+      }
+    } catch (error) {
+      console.error("Error al cargar feed de seguidos:", error);
+    } finally {
+      setIsLoading(false);
+      setIsAppending(false);
+    }
+  }, [firestore]);
+
+  useEffect(() => {
+    if (!isLoadingFollowing && following) {
+      fetchFollowingPosts(following);
+    }
+  }, [following, isLoadingFollowing, fetchFollowingPosts]);
 
   // --- PRIORIDAD DE RENDERIZADO ---
 
-  // 1. Cargando sesión o lista inicial
   if (isUserLoading || (isLoadingFollowing && !following)) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-8 space-y-6">
@@ -94,7 +133,6 @@ export default function FollowingFeedPage() {
     );
   }
 
-  // 2. No hay usuario
   if (!user || user.isAnonymous) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-20 text-center">
@@ -105,7 +143,6 @@ export default function FollowingFeedPage() {
     );
   }
 
-  // 3. LOGUEADO PERO NO SIGUE A NADIE (Esta es la que te faltaba)
   if (!isLoadingFollowing && (!following || following.length === 0)) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-8">
@@ -126,25 +163,44 @@ export default function FollowingFeedPage() {
     );
   }
 
-  // 4. Feed con contenido
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
       <h1 className="text-2xl font-bold font-headline mb-6 flex items-center gap-2">
         <Users className="text-primary" /> Siguiendo
       </h1>
 
-      {feedPosts.length > 0 ? (
+      {isLoading && feedPosts.length === 0 ? (
+         <div className="space-y-6">
+            {[1, 2, 3].map((i) => (
+                <div key={i} className="p-4 border rounded-xl space-y-3 animate-pulse bg-card/50">
+                    <div className="flex items-center space-x-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <Skeleton className="h-4 w-[150px]" />
+                    </div>
+                    <Skeleton className="h-4 w-full" />
+                </div>
+            ))}
+         </div>
+      ) : feedPosts.length > 0 ? (
         <div className="space-y-6">
-          {feedPosts.map((post) => (
-            <StarPostCard key={post.id} post={post} />
+          {feedPosts.map((post, index) => (
+            <StarPostCard key={`${post.id}-${index}`} post={post} />
           ))}
-          {hasMoreUsers && (
-            <div className="flex justify-center pt-4">
-              <Button onClick={() => setVisibleCount(v => v + 10)} variant="ghost" className="gap-2">
-                Ver más <ChevronDown className="h-4 w-4" />
-              </Button>
+          
+          <div className="mt-8 flex flex-col items-center">
+                <Button 
+                    variant="outline" 
+                    className="w-full py-6 flex gap-2 text-lg font-medium border-primary/20 hover:bg-primary/5"
+                    onClick={() => fetchFollowingPosts(following!, true)} 
+                    disabled={isAppending}
+                >
+                    <RefreshCw className={`h-5 w-5 ${isAppending ? 'animate-spin' : ''}`} />
+                    {isAppending ? 'Buscando contenido nuevo...' : 'Ver más de mis seguidos'}
+                </Button>
+                <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest">
+                  Mezclando publicaciones de tus amigos sin repeticiones
+                </p>
             </div>
-          )}
         </div>
       ) : (
         <div className="text-center py-20 bg-card/40 rounded-2xl border border-dashed">
@@ -155,3 +211,6 @@ export default function FollowingFeedPage() {
     </div>
   );
 }
+
+// Helper local para obtener un documento específico
+import { getDoc, doc } from 'firebase/firestore';
