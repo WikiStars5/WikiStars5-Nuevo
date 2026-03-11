@@ -13,7 +13,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth, signInAnonymously } from '@/firebase';
 import { doc, runTransaction, increment, serverTimestamp, getDoc, getDocs, collection as firestoreCollection, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
@@ -56,6 +56,7 @@ interface StarPostCardProps {
 export default function StarPostCard({ post: initialPost, onDeleteSuccess }: StarPostCardProps) {
   const { language, t } = useLanguage();
   const { user } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
   const { theme } = useTheme();
@@ -212,11 +213,29 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
 
 
   const handleVote = async (voteType: 'like' | 'dislike') => {
-    if (!firestore || !user || isVoting) return;
+    if (!firestore || isVoting || !auth) return;
     setIsVoting(voteType);
 
+    let currentUser = user;
+    if (!currentUser) {
+      try {
+        const userCredential = await signInAnonymously(auth);
+        currentUser = userCredential.user;
+      } catch (error) {
+        console.error("Anonymous sign in failed:", error);
+        toast({ title: 'Error de conexión', description: 'No se pudo iniciar una sesión para votar.', variant: 'destructive' });
+        setIsVoting(null);
+        return;
+      }
+    }
+
+    if (!currentUser) {
+      setIsVoting(null);
+      return;
+    }
+
     const commentRef = doc(firestore, 'figures', post.figureId, 'comments', post.id);
-    const voteRef = doc(firestore, votePath, user.uid);
+    const voteRef = doc(firestore, votePath, currentUser.uid);
 
     setPost(currentPost => {
         const newPost = { ...currentPost };
@@ -261,9 +280,9 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
             firestore,
             figureId: post.figureId,
             figureName: post.figureName,
-            userId: user.uid,
-            isAnonymous: user.isAnonymous,
-            userPhotoURL: user.photoURL
+            userId: currentUser.uid,
+            isAnonymous: currentUser.isAnonymous,
+            userPhotoURL: currentUser.photoURL
         });
 
         if (streakResult?.streakGained) {
@@ -362,10 +381,10 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                     {!isEditing && (
                         <div className="mt-2 space-y-1">
                             <div className="flex items-center gap-1 text-muted-foreground">
-                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('like')} disabled={!user || !!isVoting}>
+                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('like')} disabled={!!isVoting}>
                                     <ThumbsUp className={cn("h-4 w-4 mr-1", userVote?.vote === 'like' && 'text-primary' )} /> {formatCompactNumber(post.likes ?? 0)}
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('dislike')} disabled={!user || !!isVoting}>
+                                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => handleVote('dislike')} disabled={!!isVoting}>
                                     <ThumbsDown className={cn("h-4 w-4 mr-1", userVote?.vote === 'dislike' && 'text-destructive' )} /> {formatCompactNumber(post.dislikes ?? 0)}
                                 </Button>
                             </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking, useAdmin } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, addDocumentNonBlocking, useAdmin, useAuth, signInAnonymously } from '@/firebase';
 import type { Comment as CommentType, CommentVote, GlobalSettings, Streak } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -58,6 +58,7 @@ interface CommentItemProps {
 
 function CommentItem({ comment, figureId, figureName, isReply = false, onReplySuccess, onDeleteSuccess, areRepliesEnabled }: CommentItemProps) {
     const { user } = useUser();
+    const auth = useAuth();
     const firestore = useFirestore();
     const { isAdmin } = useAdmin();
     const { toast } = useToast();
@@ -98,15 +99,33 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     const showStreak = userStreak && userStreak.currentStreak > 0 && isDateActive(userStreak.lastCommentDate);
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
-        if (!firestore || !user || isVoting) return;
+        if (!firestore || isVoting || !auth) return;
         setIsVoting(voteType);
+
+        let currentUser = user;
+        if (!currentUser) {
+          try {
+            const userCredential = await signInAnonymously(auth);
+            currentUser = userCredential.user;
+          } catch (error) {
+            console.error("Anonymous sign in failed:", error);
+            toast({ title: 'Error de conexión', description: 'No se pudo iniciar una sesión para votar.', variant: 'destructive' });
+            setIsVoting(null);
+            return;
+          }
+        }
+
+        if (!currentUser) {
+          setIsVoting(null);
+          return;
+        }
     
         const commentPath = isReply
             ? `figures/${figureId}/comments/${comment.parentId}/replies/${comment.id}`
             : `figures/${figureId}/comments/${comment.id}`;
                 
         const commentRef = doc(firestore, commentPath);
-        const voteRef = doc(firestore, votePath, user.uid);
+        const voteRef = doc(firestore, votePath, currentUser.uid);
     
         try {
             await runTransaction(firestore, async (transaction) => {
@@ -137,9 +156,9 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 firestore,
                 figureId,
                 figureName,
-                userId: user.uid,
-                isAnonymous: user.isAnonymous,
-                userPhotoURL: user.photoURL
+                userId: currentUser.uid,
+                isAnonymous: currentUser.isAnonymous,
+                userPhotoURL: currentUser.photoURL
             });
 
             if (streakResult?.streakGained) {
@@ -392,7 +411,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                                 size="icon" 
                                 className={cn("h-8 w-8", userVote?.vote === 'like' && 'text-primary' )}
                                 onClick={() => handleVote('like')}
-                                disabled={!user || !!isVoting}
+                                disabled={!!isVoting}
                             >
                                 {isVoting === 'like' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsUp className="h-4 w-4" />}
                             </Button>
@@ -402,7 +421,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                                 size="icon" 
                                 className={cn("h-8 w-8", userVote?.vote === 'dislike' && 'text-destructive' )}
                                 onClick={() => handleVote('dislike')}
-                                disabled={!user || !!isVoting}
+                                disabled={!!isVoting}
                             >
                                 {isVoting === 'dislike' ? <Loader2 className="h-4 w-4 animate-spin"/> : <ThumbsDown className="h-4 w-4" />}
                             </Button>
