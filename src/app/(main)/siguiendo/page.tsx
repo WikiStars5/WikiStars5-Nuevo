@@ -3,18 +3,18 @@
 import * as React from 'react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs, limit, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, limit, orderBy, getDoc, doc } from 'firebase/firestore';
 import type { Comment } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, UserPlus, RefreshCw, Sparkles } from 'lucide-react';
+import { Users, UserPlus, RefreshCw, Sparkles, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 // CONFIGURACIÓN DE RENDIMIENTO
-const MAX_FOLLOWED_TO_CONSULT = 10; // Límite de figuras a consultar por lote
-const POSTS_PER_USER = 10;          // Cuántos posts traer por cada usuario para filtrar
-const MAX_POSTS_TO_SHOW = 10;       // Cuántos posts nuevos mostrar realmente por clic
+const MAX_FOLLOWED_TO_CONSULT = 10; 
+const POSTS_PER_USER = 10;          
+const MAX_POSTS_TO_SHOW = 10;       
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -60,7 +60,6 @@ export default function FollowingFeedPage() {
       const randomUsers = shuffleArray(followingList).slice(0, MAX_FOLLOWED_TO_CONSULT);
 
       const fetchPromises = randomUsers.map(async (f) => {
-        // En la colección 'following', el ID del documento es el ID del usuario seguido
         const followedId = f.userId || f.id;
         const starPostsRef = collection(firestore, 'users', followedId, 'starposts');
         const q = query(starPostsRef, orderBy('createdAt', 'desc'), limit(POSTS_PER_USER));
@@ -109,12 +108,12 @@ export default function FollowingFeedPage() {
   useEffect(() => {
     if (!isLoadingFollowing && following) {
       fetchFollowingPosts(following);
+    } else if (!isLoadingFollowing && !following && user) {
+        setIsLoading(false);
     }
-  }, [following, isLoadingFollowing, fetchFollowingPosts]);
+  }, [following, isLoadingFollowing, fetchFollowingPosts, user]);
 
-  // --- PRIORIDAD DE RENDERIZADO ---
-
-  if (isUserLoading || (isLoadingFollowing && !following)) {
+  if (isUserLoading) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-8 space-y-6">
         <h1 className="text-2xl font-bold font-headline mb-6 flex items-center gap-2">
@@ -133,12 +132,13 @@ export default function FollowingFeedPage() {
     );
   }
 
-  if (!user || user.isAnonymous) {
+  if (!user) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-20 text-center">
         <Users className="mx-auto h-16 w-16 text-muted-foreground/30 mb-4" />
-        <h2 className="text-2xl font-bold mb-6">Inicia sesión para ver tu feed</h2>
-        <Button asChild><Link href="/login">Iniciar Sesión</Link></Button>
+        <h2 className="text-2xl font-bold mb-2">¡Sigue a tus favoritos!</h2>
+        <p className="text-muted-foreground mb-8">Empieza a seguir usuarios para ver sus publicaciones aquí mismo.</p>
+        <Button asChild><Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Iniciar Sesión</Link></Button>
       </div>
     );
   }
@@ -153,7 +153,7 @@ export default function FollowingFeedPage() {
           <UserPlus className="mx-auto h-16 w-16 text-muted-foreground/20 mb-4" />
           <h2 className="text-xl font-bold mb-2">Tu feed está vacío</h2>
           <p className="text-muted-foreground mb-8 max-w-xs mx-auto">
-            Sigue a otros usuarios para ver sus publicaciones aquí.
+            Sigue a otros usuarios (incluso si eres invitado) para ver sus publicaciones aquí.
           </p>
           <Button asChild size="lg" className="rounded-full shadow-lg shadow-primary/20">
             <Link href="/figures">Explorar Usuarios</Link>
@@ -211,6 +211,3 @@ export default function FollowingFeedPage() {
     </div>
   );
 }
-
-// Helper local para obtener un documento específico
-import { getDoc, doc } from 'firebase/firestore';

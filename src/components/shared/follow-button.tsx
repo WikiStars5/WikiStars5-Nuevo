@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Loader2, UserPlus, UserMinus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { signInAnonymously } from 'firebase/auth';
 
 interface FollowButtonProps {
   targetUserId: string;
@@ -26,6 +27,7 @@ export default function FollowButton({
   unfollowText,
 }: FollowButtonProps) {
   const { user } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -36,7 +38,7 @@ export default function FollowButton({
   }, [firestore, user, targetUserId]);
 
   const { data: followDoc, isLoading: isCheckLoading } = useDoc(followRef, { 
-    enabled: true,
+    enabled: !!user,
     realtime: true 
   });
 
@@ -46,34 +48,49 @@ export default function FollowButton({
     e.preventDefault();
     e.stopPropagation();
 
-    if (!user || user.isAnonymous) {
-      toast({
-        title: 'Inicia sesión',
-        description: 'Debes tener una cuenta registrada para seguir a otros usuarios.',
-        variant: 'destructive',
-      });
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    let currentUser = user;
+    
+    // 1. Manejo de autenticación automática (Sesión anónima si no está logueado)
+    if (!currentUser && auth) {
+      try {
+        const userCredential = await signInAnonymously(auth);
+        currentUser = userCredential.user;
+      } catch (error) {
+        console.error("Anonymous sign in failed:", error);
+        toast({ 
+          title: 'Error de conexión', 
+          description: 'No se pudo iniciar una sesión para seguir usuarios.', 
+          variant: 'destructive' 
+        });
+        setIsProcessing(false);
+        return;
+      }
+    }
+
+    if (!currentUser || !firestore) {
+      setIsProcessing(false);
       return;
     }
 
-    if (user.uid === targetUserId) {
+    if (currentUser.uid === targetUserId) {
       toast({
         title: 'Error',
         description: 'No puedes seguirte a ti mismo.',
         variant: 'destructive',
       });
+      setIsProcessing(false);
       return;
     }
 
-    if (!firestore || isProcessing) return;
-
-    setIsProcessing(true);
-
     try {
       await runTransaction(firestore, async (transaction) => {
-        const followerRef = doc(firestore, 'users', targetUserId, 'followers', user.uid);
-        const followingRef = doc(firestore, 'users', user.uid, 'following', targetUserId);
+        const followerRef = doc(firestore, 'users', targetUserId, 'followers', currentUser!.uid);
+        const followingRef = doc(firestore, 'users', currentUser!.uid, 'following', targetUserId);
         const targetUserRef = doc(firestore, 'users', targetUserId);
-        const currentUserRef = doc(firestore, 'users', user.uid);
+        const currentUserRef = doc(firestore, 'users', currentUser!.uid);
 
         const [followerSnap, targetUserSnap, currentUserSnap] = await Promise.all([
           transaction.get(followerRef),
@@ -84,18 +101,37 @@ export default function FollowButton({
         const currentUserData = currentUserSnap.exists() ? currentUserSnap.data() : {};
         const isCurrentlyFollowing = followerSnap.exists();
 
+        // Asegurar que el documento del usuario objetivo exista
+        if (!targetUserSnap.exists()) {
+            transaction.set(targetUserRef, { 
+                id: targetUserId, 
+                username: targetUsername, 
+                profilePhotoUrl: targetPhotoUrl,
+                createdAt: serverTimestamp() 
+            });
+        }
+
+        // Asegurar que el documento del usuario actual exista
+        if (!currentUserSnap.exists()) {
+            transaction.set(currentUserRef, { 
+                id: currentUser!.uid, 
+                createdAt: serverTimestamp() 
+            });
+        }
+
         if (isCurrentlyFollowing) {
-          // Unfollow
+          // Dejar de seguir
           transaction.delete(followerRef);
           transaction.delete(followingRef);
           transaction.update(targetUserRef, { followerCount: increment(-1) });
           transaction.update(currentUserRef, { followingCount: increment(-1) });
         } else {
-          // Follow
+          // Seguir
+          const myName = currentUserData.username || currentUser!.displayName || `Invitado_${currentUser!.uid.substring(0, 4)}`;
           transaction.set(followerRef, {
-            userId: user.uid,
-            username: currentUserData.username || user.displayName || 'Usuario',
-            profilePhotoUrl: currentUserData.profilePhotoUrl || user.photoURL || null,
+            userId: currentUser!.uid,
+            username: myName,
+            profilePhotoUrl: currentUserData.profilePhotoUrl || currentUser!.photoURL || null,
             createdAt: serverTimestamp(),
           });
           transaction.set(followingRef, {
