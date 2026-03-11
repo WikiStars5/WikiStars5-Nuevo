@@ -17,7 +17,7 @@ interface UpdateStreakParams {
     figureName: string;
     userId: string;
     isAnonymous: boolean;
-    userPhotoURL?: string | null; // Nuevo parámetro para asegurar la imagen más reciente
+    userPhotoURL?: string | null;
 }
 
 interface StreakUpdateResult {
@@ -80,31 +80,30 @@ export async function updateStreak({
             const userGender = userData.gender || 'unknown';
             const userDisplayName = userData.username || (isAnonymous ? `Invitado_${userId.substring(0, 4)}` : 'Invitado');
             
-            // Priorizamos la foto enviada por el componente (Auth) sobre la de Firestore (UserData)
             const finalPhotoURL = userPhotoURL || userData.profilePhotoUrl || null;
             const figureImageUrl = figureDoc.data()?.imageUrl || null;
 
             const attitude = attitudeVoteDoc.exists() ? (attitudeVoteDoc.data() as AttitudeVote).vote : null;
 
             const now = new Date();
-            let wasActiveBefore = false;
-            let streakIsNowActive = true; 
+            
+            // Determinar si el usuario ya contaba como "activo" en el sistema
+            const oldStreakData = privateStreakDoc.exists() ? privateStreakDoc.data() as Streak : null;
+            const wasActive = oldStreakData ? isDateActive(oldStreakData.lastCommentDate) : false;
 
-            if (!privateStreakDoc.exists()) {
+            if (!oldStreakData) {
                 finalStreakCount = 1;
                 streakGained = true;
                 finalLivesCount = 0;
             } else {
-                const streakData = privateStreakDoc.data() as Streak;
-                wasActiveBefore = streakData.isActive;
-                finalLivesCount = streakData.lives || 0;
-                const lastCommentDate = streakData.lastCommentDate.toDate();
+                finalLivesCount = oldStreakData.lives || 0;
+                const lastCommentDate = oldStreakData.lastCommentDate.toDate();
 
                 if (isSameDay(lastCommentDate, now)) {
-                    finalStreakCount = streakData.currentStreak;
+                    finalStreakCount = oldStreakData.currentStreak;
                     streakGained = false;
                 } else if (isYesterday(lastCommentDate, now)) {
-                    finalStreakCount = (streakData.currentStreak || 0) + 1;
+                    finalStreakCount = (oldStreakData.currentStreak || 0) + 1;
                     streakGained = true;
                     if (finalStreakCount > 0 && finalStreakCount % 10 === 0) {
                         finalLivesCount += 1;
@@ -114,9 +113,8 @@ export async function updateStreak({
                     if (finalLivesCount > 0) {
                         finalLivesCount -= 1;
                         livesChange = -1;
-                        finalStreakCount = streakData.currentStreak; 
+                        finalStreakCount = oldStreakData.currentStreak; 
                         streakGained = false;
-                        streakIsNowActive = true;
                     } else {
                         finalStreakCount = 1;
                         streakGained = true;
@@ -124,26 +122,22 @@ export async function updateStreak({
                 }
             }
             
-            if (!wasActiveBefore && streakIsNowActive) {
+            // Si el usuario no estaba activo (es nuevo o su racha expiró), incrementamos el contador global
+            if (!wasActive) {
                 transaction.update(figureRef, { activeStreakCount: increment(1) });
-            } else if (wasActiveBefore && !streakIsNowActive) {
-                if (finalStreakCount === 1 && wasActiveBefore) {
-                    transaction.update(figureRef, { activeStreakCount: increment(-1) });
-                }
             }
-
 
             const streakPayload: Streak = {
                 id: figureId,
                 userId,
                 figureId,
-                isActive: streakIsNowActive,
+                isActive: true,
                 currentStreak: finalStreakCount,
                 lives: finalLivesCount,
                 lastCommentDate: Timestamp.now(),
                 attitude: attitude,
                 userDisplayName: userDisplayName,
-                userPhotoURL: finalPhotoURL, // Guardamos la URL resuelta
+                userPhotoURL: finalPhotoURL,
                 userCountry: userCountry,
                 userGender: userGender,
                 figureName: figureName,

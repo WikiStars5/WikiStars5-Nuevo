@@ -20,26 +20,29 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
-import type { Figure } from '@/lib/types';
-import { ArrowLeft, ChevronLeft, ChevronRight, Flame } from 'lucide-react';
-import { formatCompactNumber } from '@/lib/utils';
+import { collection, query, orderBy, getDocs, writeBatch, doc } from 'firebase/firestore';
+import type { Figure, Streak } from '@/lib/types';
+import { ArrowLeft, ChevronLeft, ChevronRight, Flame, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { formatCompactNumber, cn } from '@/lib/utils';
+import { isDateActive } from '@/lib/streaks';
+import { useToast } from '@/hooks/use-toast';
 
 const ITEMS_PER_PAGE = 20;
 
 export default function LoyaltyDashboardPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [isCleaning, setIsCleaning] = React.useState<string | null>(null);
 
   const figuresQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'figures'), orderBy('activeStreakCount', 'desc'));
   }, [firestore]);
 
-  const { data: figures, isLoading } = useCollection<Figure>(figuresQuery);
+  const { data: figures, isLoading, refetch } = useCollection<Figure>(figuresQuery, { realtime: true });
 
   const totalPages = figures ? Math.ceil(figures.length / ITEMS_PER_PAGE) : 1;
 
@@ -49,6 +52,53 @@ export default function LoyaltyDashboardPage() {
     const endIndex = startIndex + ITEMS_PER_PAGE;
     return figures.slice(startIndex, endIndex);
   }, [figures, currentPage]);
+
+  const handleCleanup = async (figure: Figure) => {
+    if (!firestore) return;
+    setIsCleaning(figure.id);
+
+    try {
+        // 1. Obtener todas las rachas del personaje
+        const streaksRef = collection(firestore, `figures/${figure.id}/streaks`);
+        const snap = await getDocs(streaksRef);
+        
+        let activeCount = 0;
+        const batch = writeBatch(firestore);
+        let deletedCount = 0;
+
+        snap.docs.forEach(sDoc => {
+            const data = sDoc.data() as Streak;
+            if (isDateActive(data.lastCommentDate)) {
+                activeCount++;
+            } else {
+                // Eliminar registro vencido de ambos lugares para limpiar la DB
+                batch.delete(sDoc.ref);
+                batch.delete(doc(firestore, `users/${data.userId}/streaks`, figure.id));
+                deletedCount++;
+            }
+        });
+
+        // 2. Actualizar el contador real en el documento del personaje
+        batch.update(doc(firestore, 'figures', figure.id), {
+            activeStreakCount: activeCount
+        });
+
+        await batch.commit();
+        
+        toast({
+            title: "Base de datos limpia",
+            description: `Se eliminaron ${deletedCount} registros vencidos para ${figure.name}.`,
+        });
+    } catch (error) {
+        console.error("Error en limpieza:", error);
+        toast({
+            title: "Error en la limpieza",
+            variant: "destructive"
+        });
+    } finally {
+        setIsCleaning(null);
+    }
+  };
 
   return (
     <Card>
@@ -60,7 +110,7 @@ export default function LoyaltyDashboardPage() {
               Panel de Lealtad
             </CardTitle>
             <CardDescription>
-              Figuras ordenadas por el número de usuarios con rachas activas.
+              Gestiona los registros de rachas y mantén la base de datos limpia de usuarios inactivos.
             </CardDescription>
           </div>
           <Button variant="outline" asChild>
@@ -75,7 +125,8 @@ export default function LoyaltyDashboardPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Perfil de Figura</TableHead>
-              <TableHead className="text-right">Usuarios Leales (Rachas Activas)</TableHead>
+              <TableHead className="text-right">Usuarios Leales</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -91,12 +142,15 @@ export default function LoyaltyDashboardPage() {
                   <TableCell className="text-right">
                     <Skeleton className="h-5 w-16 ml-auto" />
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-8 w-20 ml-auto" />
+                  </TableCell>
                 </TableRow>
               ))}
             {!isLoading && paginatedFigures.length === 0 && (
               <TableRow>
-                <TableCell colSpan={2} className="h-24 text-center">
-                  Aún no hay datos de lealtad. ¡Los usuarios necesitan empezar a comentar!
+                <TableCell colSpan={3} className="h-24 text-center">
+                  Aún no hay datos de lealtad.
                 </TableCell>
               </TableRow>
             )}
@@ -117,6 +171,22 @@ export default function LoyaltyDashboardPage() {
                 </TableCell>
                 <TableCell className="text-right font-bold text-lg text-orange-500">
                   {formatCompactNumber(figure.activeStreakCount || 0)}
+                </TableCell>
+                <TableCell className="text-right">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2"
+                        onClick={() => handleCleanup(figure)}
+                        disabled={!!isCleaning}
+                    >
+                        {isCleaning === figure.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Sparkles className="h-4 w-4 text-primary" />
+                        )}
+                        Limpiar IDs
+                    </Button>
                 </TableCell>
               </TableRow>
             ))}
