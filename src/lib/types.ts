@@ -25,6 +25,10 @@ export interface NotificationStats {
   totalSubscribers: number;
 }
 
+export interface TrafficStats {
+  instagramJumps: number;
+}
+
 export interface GlobalSettings {
   isRatingEnabled: boolean;
   isVotingEnabled?: boolean;

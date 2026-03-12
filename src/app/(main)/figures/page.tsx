@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState } from 'react';
-import { collection, query, orderBy, limit, startAfter, endBefore, getDocs, DocumentSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, startAfter, DocumentSnapshot } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import FigureCard from '@/components/shared/figure-card';
 import { Button } from '@/components/ui/button';
@@ -10,15 +9,12 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Figure } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
-
 const ITEMS_PER_PAGE = 10;
 
 export default function ExplorePage() {
   const firestore = useFirestore();
   const [page, setPage] = useState(1);
   const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
-  const [firstVisible, setFirstVisible] = useState<DocumentSnapshot | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [direction, setDirection] = useState<'next' | 'prev' | 'none'>('none');
   const [pageSnapshots, setPageSnapshots] = useState<Record<number, DocumentSnapshot>>({});
@@ -36,10 +32,6 @@ export default function ExplorePage() {
       q = query(q, startAfter(lastVisible));
     }
     
-    // Note: Firestore doesn't directly support `endBefore` with `limit` for previous page logic well.
-    // A more robust implementation might require fetching IDs and then documents, or keeping track of cursors.
-    // For simplicity, we'll keep a basic forward navigation. The "previous" logic will be handled manually.
-    
     return q;
   }, [firestore, page, lastVisible, direction]);
 
@@ -47,7 +39,6 @@ export default function ExplorePage() {
   const { data: figures, isLoading, error } = useCollection<Figure>(figuresCollection, {
     onNewData: (snapshot) => {
         if (snapshot && !snapshot.empty) {
-            setFirstVisible(snapshot.docs[0]);
             setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
         }
         setIsFetching(false);
@@ -64,15 +55,9 @@ export default function ExplorePage() {
   const handlePrevPage = () => {
     if (page <= 1) return;
     setDirection('prev');
-    const prevPageCursor = pageSnapshots[page - 1];
-    // This is a simplified approach. Firestore cursors work best with startAfter.
-    // Going "back" often requires re-querying from a known point.
-    // For this implementation, we will reset to page 1 if we go back.
-    // A full implementation would need a more complex state management of cursors.
     setPage(1); 
     setLastVisible(null);
     setPageSnapshots({});
-    
   };
   
   const hasMore = figures && figures.length === ITEMS_PER_PAGE;

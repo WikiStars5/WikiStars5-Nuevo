@@ -1,9 +1,7 @@
-
 'use client';
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
-// Import message files
 import esMessages from '@/messages/es.json';
 import enMessages from '@/messages/en.json';
 import ptMessages from '@/messages/pt.json';
@@ -20,7 +18,6 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-// Define which messages to use for each language
 const messages: Record<Language, any> = {
   es: esMessages,
   en: enMessages,
@@ -31,23 +28,18 @@ function getNestedValue(obj: any, key: string): string | undefined {
   return key.split('.').reduce((o, i) => (o ? o[i] : undefined), obj);
 }
 
-
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>('es'); // Default to Spanish initially
+  const [language, setLanguageState] = useState<Language>('es');
 
   useEffect(() => {
-    // This effect runs only on the client side
     const savedLanguage = localStorage.getItem('wikistars5-lang') as Language;
-    
     if (savedLanguage && supportedLanguages.includes(savedLanguage)) {
       setLanguageState(savedLanguage);
     } else {
-      // If no language is saved, detect from browser
       const browserLang = navigator.language.split('-')[0] as Language;
       if (supportedLanguages.includes(browserLang)) {
         setLanguageState(browserLang);
       }
-      // Otherwise, it stays on the default 'es'
     }
   }, []);
 
@@ -62,18 +54,13 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const t = (key: string, values: Record<string, string | number> = {}): string => {
     let message = getNestedValue(messages[language], key);
-    
-    // Fallback to English if translation is missing
     if (message === undefined || message === '') {
         message = getNestedValue(messages['en'], key) || key;
     }
-
-    // Replace placeholders like {count}
     return message.replace(/\{(\w+)\}/g, (placeholder, placeholderKey) => {
         return values[placeholderKey]?.toString() || placeholder;
     });
   };
-
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
@@ -85,8 +72,12 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    // Default fallback for SSR or missing provider
+    return {
+      language: 'es' as Language,
+      setLanguage: () => {},
+      t: (key: string) => key,
+    };
   }
   return context;
 };
-

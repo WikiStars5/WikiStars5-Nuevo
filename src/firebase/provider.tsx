@@ -1,13 +1,10 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, getDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, signInAnonymously, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { UserHookResult } from './auth/use-user';
-import { normalizeText } from '@/lib/keywords';
 import type { User as AppUser } from '@/lib/types';
 
 interface FirebaseProviderProps {
@@ -46,13 +43,11 @@ export interface FirebaseServicesAndUser {
 
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-// Helper function to check if two dates are on the same day.
 const isSameDay = (date1: Date, date2: Date) => {
     return date1.getFullYear() === date2.getFullYear() &&
            date1.getMonth() === date2.getMonth() &&
            date1.getDate() === date2.getDate();
 };
-
 
 export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   children,
@@ -72,7 +67,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     if (auth?.currentUser) {
       try {
         await auth.currentUser.reload();
-        // Manually update state after reload if needed, though onAuthStateChanged should catch it.
         setUserAuthState(prev => ({...prev, user: auth.currentUser}));
       } catch (error) {
         console.error("Error reloading user:", error);
@@ -83,7 +77,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   useEffect(() => {
     if (!areServicesReady || !auth) {
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Firebase services not available.") });
+      setUserAuthState({ user: null, isUserLoading: false, userError: null });
       return;
     }
 
@@ -92,7 +86,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         (firebaseUser) => {
             setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
 
-            // --- Daily Visit Tracking Logic ---
             if (firebaseUser && firestore) {
                 const userRef = doc(firestore, 'users', firebaseUser.uid);
                 getDoc(userRef).then(userSnap => {
@@ -100,7 +93,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                     const lastVisitDate = userData?.lastVisit?.toDate();
                     const today = new Date();
 
-                    // Check if it's a new day or the very first visit
                     if (!lastVisitDate || !isSameDay(lastVisitDate, today)) {
                          setDoc(userRef, { 
                             visitCount: increment(1),
@@ -111,17 +103,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
                     console.error("Error tracking user visit:", error);
                 });
             }
-            // --- End Daily Visit Tracking Logic ---
-
         },
         (error) => {
             console.error("FirebaseProvider: onAuthStateChanged error:", error);
-            if (error.code === 'auth/user-token-expired' && auth) {
-                console.warn("User token expired. Signing out to refresh session.");
-                auth.signOut();
-            } else {
-                setUserAuthState({ user: null, isUserLoading: false, userError: error });
-            }
+            setUserAuthState({ user: null, isUserLoading: false, userError: error });
         }
     );
 
@@ -150,61 +135,45 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   );
 };
 
-export const useFirebase = (): FirebaseServicesAndUser => {
+export const useFirebase = (): FirebaseContextState => {
   const context = useContext(FirebaseContext);
-
   if (context === undefined) {
-    throw new Error('useFirebase must be used within a FirebaseProvider.');
+    return {
+      areServicesAvailable: false,
+      firebaseApp: null,
+      firestore: null,
+      auth: null,
+      user: null,
+      isUserLoading: true,
+      userError: null,
+      reloadUser: async () => {},
+    };
   }
+  return context;
+};
 
-  if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth) {
-    // This case should ideally not be hit if the provider handles loading state correctly.
-    // However, it's a safeguard.
-    // In a server component context, or before hydration, this might be expected.
-    // We throw an error to make it clear that services are not ready.
-    throw new Error('Firebase core services not available. This might be due to accessing the context before Firebase is initialized.');
-  }
-
-  return {
-    firebaseApp: context.firebaseApp,
-    firestore: context.firestore,
-    auth: context.auth,
-    user: context.user,
-    isUserLoading: context.isUserLoading,
-    userError: context.userError,
-    reloadUser: context.reloadUser,
-  };
+export const useUser = () => {
+  const { user, isUserLoading, userError, reloadUser } = useFirebase();
+  return { user, isUserLoading, userError, reloadUser };
 };
 
 export const useAuth = (): Auth | null => {
   const context = useContext(FirebaseContext);
-   if (context === undefined) {
-    // During SSR or initial render, context can be undefined. Return null.
-    return null;
-  }
-  return context.auth;
+  return context?.auth || null;
 };
-
 
 export const useFirestore = (): Firestore | null => {
     const context = useContext(FirebaseContext);
-     if (context === undefined) {
-        return null;
-    }
-    return context.firestore;
+    return context?.firestore || null;
 };
 
 export const useFirebaseApp = (): FirebaseApp | null => {
     const context = useContext(FirebaseContext);
-    if (context === undefined) {
-        return null;
-    }
-    return context.firebaseApp;
+    return context?.firebaseApp || null;
 };
 
 export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
   const memoized = useMemo(factory, deps);
-
   if (memoized && typeof memoized === 'object') {
     Object.defineProperty(memoized, '__memo', {
       value: true,
@@ -213,6 +182,5 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T {
       configurable: false,
     });
   }
-
   return memoized as T;
 }

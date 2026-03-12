@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessagesSquare, MessageCircle, Share2, Bot, Calendar as CalendarIcon, Clock, Flame, Bell } from 'lucide-react';
+import { List, PlusCircle, Users, Trophy, Loader2, StarOff, Smile, Sparkles, MessageSquare, MessagesSquare, MessageCircle, Share2, Bot, Calendar as CalendarIcon, Clock, Flame, Bell, Globe } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, setDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc, runTransaction, Timestamp, serverTimestamp, increment } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import type { GlobalSettings, FigureStats, NotificationStats } from '@/lib/types';
+import type { GlobalSettings, FigureStats, NotificationStats, TrafficStats } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -80,6 +80,15 @@ export default function AdminDashboard() {
   const { data: notifStats, isLoading: isLoadingNotifs } = useDoc<NotificationStats>(notifStatsDocRef);
 
   const totalSubscribers = notifStats?.totalSubscribers ?? 0;
+
+  // --- Traffic Logic ---
+  const trafficStatsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'stats', 'traffic');
+  }, [firestore]);
+  const { data: trafficStats, isLoading: isLoadingTraffic } = useDoc<TrafficStats>(trafficStatsDocRef);
+
+  const totalInstagramJumps = trafficStats?.instagramJumps ?? 0;
 
 
   const usersCollection = useMemoFirebase(() => {
@@ -232,7 +241,7 @@ export default function AdminDashboard() {
             </Button>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between">
@@ -270,6 +279,18 @@ export default function AdminDashboard() {
             <Button variant="link" size="sm" asChild className="p-0 h-auto mt-2 text-xs">
                 <Link href="/admin/subscribers">Ver lista completa →</Link>
             </Button>
+          </CardContent>
+        </Card>
+        <Card className="border-blue-500/20 bg-blue-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-blue-500 flex justify-between">
+                Tráfico de Redes Sociales
+                <Globe className="h-4 w-4" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingTraffic ? <Skeleton className="h-9 w-1/4" /> : <div className="text-3xl font-bold text-blue-500">{totalInstagramJumps}</div>}
+            <p className="text-xs text-muted-foreground mt-1">saltos desde Instagram/FB</p>
           </CardContent>
         </Card>
       </div>
