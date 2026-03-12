@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect, useCallback } from 'react';
@@ -518,8 +517,8 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                     </FormLabel>
                     
                     {instaImageUrl ? (
-                        <div className="relative group aspect-video w-full max-w-[200px] rounded-xl overflow-hidden border-2 border-primary/20 bg-muted">
-                            <Image src={instaImageUrl} alt="Instagram preview" fill className="object-cover" />
+                        <div className="relative group w-full max-w-[250px] min-h-[200px] rounded-xl overflow-hidden border-2 border-primary/20 bg-muted flex items-center justify-center">
+                            <Image src={instaImageUrl} alt="Instagram preview" fill className="object-contain" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <Button 
                                     type="button" 

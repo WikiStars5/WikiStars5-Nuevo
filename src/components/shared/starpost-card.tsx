@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -161,7 +160,6 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                 });
             }
 
-            // Sync: delete from figure comments AND user's personal starposts collection
             transaction.delete(commentRef);
             transaction.delete(starpostRef);
         });
@@ -379,8 +377,8 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                         )}
 
                         {post.instagramImageUrl && (
-                            <div className="relative aspect-video w-full max-w-sm rounded-xl overflow-hidden border border-border shadow-sm mt-3 group">
-                                <Image src={post.instagramImageUrl} alt="Instagram content" fill className="object-cover transition-transform group-hover:scale-105 duration-500" />
+                            <div className="relative w-full rounded-xl overflow-hidden border border-border shadow-sm mt-3 group bg-muted/30 flex items-center justify-center min-h-[250px] max-h-[600px]">
+                                <Image src={post.instagramImageUrl} alt="Instagram content" fill className="object-contain transition-transform group-hover:scale-105 duration-500" />
                             </div>
                         )}
                     </div>

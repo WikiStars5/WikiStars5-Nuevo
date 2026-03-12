@@ -1,4 +1,3 @@
-
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
@@ -404,8 +403,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                     <>
                         {renderCommentText()}
                         {comment.instagramImageUrl && (
-                            <div className="relative aspect-video w-full max-w-sm rounded-xl overflow-hidden border border-border shadow-sm mt-3 group">
-                                <Image src={comment.instagramImageUrl} alt="Instagram content" fill className="object-cover transition-transform group-hover:scale-105 duration-500" />
+                            <div className="relative w-full rounded-xl overflow-hidden border border-border shadow-sm mt-3 group bg-muted/30 flex items-center justify-center min-h-[250px] max-h-[600px]">
+                                <Image src={comment.instagramImageUrl} alt="Instagram content" fill className="object-contain transition-transform group-hover:scale-105 duration-500" />
                             </div>
                         )}
                     </>

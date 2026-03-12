@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -567,7 +566,7 @@ export default function GlobalStarPostForm() {
               <div className="flex items-center gap-4">
                 <StarRating rating={existingComment.rating} />
                 {existingAttitude && (
-                  <div className={cn("text-xs font-black uppercase px-2 py-0.5 rounded border", attitudeOptions.find(o => o.id === existingAttitude)?.selectedClass)}>
+                  <div className={cn("text-xs font-black uppercase px-2 py-0.5 rounded border", attitudeOptions.find(o => o.id === (existingAttitude as any))?.selectedClass)}>
                     {attitudeOptions.find(o => o.id === (existingAttitude as any))?.label}
                   </div>
                 )}
@@ -583,8 +582,8 @@ export default function GlobalStarPostForm() {
                 </p>
               )}
               {existingComment.instagramImageUrl && (
-                <div className="relative aspect-video w-full max-w-[200px] rounded-lg overflow-hidden border mt-2">
-                    <Image src={existingComment.instagramImageUrl} alt="Instagram attachment" fill className="object-cover" />
+                <div className="relative w-full rounded-xl overflow-hidden border mt-2 flex items-center justify-center bg-muted/30 min-h-[250px] max-h-[600px]">
+                    <Image src={existingComment.instagramImageUrl} alt="Instagram attachment" fill className="object-contain" />
                 </div>
               )}
             </div>
@@ -753,8 +752,8 @@ export default function GlobalStarPostForm() {
                 </FormLabel>
                 
                 {instaImageUrl ? (
-                    <div className="relative group aspect-video w-full max-w-[200px] rounded-xl overflow-hidden border-2 border-primary/20 bg-muted">
-                        <Image src={instaImageUrl} alt="Instagram preview" fill className="object-cover" />
+                    <div className="relative group w-full rounded-xl overflow-hidden border-2 border-primary/20 bg-muted flex items-center justify-center min-h-[250px] max-h-[600px]">
+                        <Image src={instaImageUrl} alt="Instagram preview" fill className="object-contain" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Button 
                                 type="button" 
