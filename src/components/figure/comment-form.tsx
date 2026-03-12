@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect, useCallback } from 'react';
@@ -13,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle, User as UserIcon, Tag } from 'lucide-react';
+import { Loader2, MessageSquare, Send, Flame, Lock, Edit, MessageCircle, User as UserIcon, Tag, Instagram, Image as ImageIcon, Trash2 } from 'lucide-react';
 import StarInput from './star-input';
 import { Comment, Streak, GlobalSettings, Figure, User as AppUser, AttitudeVote, Achievement } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
@@ -71,6 +72,11 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
   const { t } = useLanguage();
   const { theme } = useTheme();
 
+  // Instagram Image Integration
+  const [instaUrl, setInstaUrl] = useState('');
+  const [instaImageUrl, setInstaImageUrl] = useState<string | null>(null);
+  const [isFetchingInsta, setIsFetchingInsta] = useState(false);
+
   const settingsDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'global') : null, [firestore]);
   const { data: globalSettings } = useDoc<GlobalSettings>(settingsDocRef);
   const isRatingEnabled = (globalSettings?.isRatingEnabled ?? true);
@@ -106,6 +112,38 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
   
+  const handleFetchInstaImage = async () => {
+    if (!instaUrl.trim()) return;
+    
+    const match = instaUrl.match(/\/p\/([a-zA-Z0-9_-]+)/) || instaUrl.match(/\/reel\/([a-zA-Z0-9_-]+)/);
+    if (!match) {
+        toast({ title: "Enlace inválido", description: "Asegúrate de que sea un link de post o reel de Instagram.", variant: "destructive" });
+        return;
+    }
+
+    setIsFetchingInsta(true);
+    try {
+        const postId = match[1];
+        const cleanUrl = `https://www.instagram.com/p/${postId}/media/?size=l`;
+        const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
+
+        const imgTester = new window.Image();
+        imgTester.onload = () => {
+            setInstaImageUrl(proxiedUrl);
+            setIsFetchingInsta(false);
+            setInstaUrl('');
+        };
+        imgTester.onerror = () => {
+            setIsFetchingInsta(false);
+            toast({ title: "Error", description: "No se pudo obtener la imagen. ¿La cuenta es pública?", variant: "destructive" });
+        };
+        imgTester.src = proxiedUrl;
+    } catch (e) {
+        setIsFetchingInsta(false);
+        toast({ title: "Error", description: "Ocurrió un error inesperado al procesar el link.", variant: "destructive" });
+    }
+  };
+
   const handleIdentityAndSubmit = async (data: CommentFormValues) => {
     setIsSubmitting(true);
     let currentUser = user;
@@ -240,6 +278,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 text: data.text || '', 
                 tag: data.tag || null,
                 rating: newRating,
+                instagramImageUrl: instaImageUrl || null,
                 createdAt: serverTimestamp(), 
                 updatedAt: serverTimestamp(),
                 userDisplayName: finalDisplayName, 
@@ -291,6 +330,8 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
 
         toast({ title: t('CommentForm.toast.opinionPosted'), description: t('CommentForm.toast.thanks') });
         form.reset({ text: '', rating: null as any, username: '', tag: undefined });
+        setInstaImageUrl(null);
+        setInstaUrl('');
         onCommentPosted();
     } catch (error: any) {
         console.error('Error al publicar comentario:', error);
@@ -468,6 +509,51 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                     />
                   </div>
                 )}
+
+                {/* Instagram Image Input */}
+                <div className="space-y-3">
+                    <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                        <Instagram className="h-4 w-4 text-pink-500" />
+                        Imagen de Instagram (opcional)
+                    </FormLabel>
+                    
+                    {instaImageUrl ? (
+                        <div className="relative group aspect-video w-full max-w-[200px] rounded-xl overflow-hidden border-2 border-primary/20 bg-muted">
+                            <Image src={instaImageUrl} alt="Instagram preview" fill className="object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Button 
+                                    type="button" 
+                                    variant="destructive" 
+                                    size="sm" 
+                                    className="h-8"
+                                    onClick={() => setInstaImageUrl(null)}
+                                >
+                                    <Trash2 className="h-4 w-4 mr-1" /> Quitar
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex gap-2">
+                            <Input 
+                                value={instaUrl}
+                                onChange={(e) => setInstaUrl(e.target.value)}
+                                placeholder="Link: https://www.instagram.com/p/..."
+                                className="h-9 text-sm"
+                            />
+                            <Button 
+                                type="button" 
+                                variant="secondary" 
+                                size="sm" 
+                                className="h-9 whitespace-nowrap"
+                                disabled={isFetchingInsta || !instaUrl.trim()}
+                                onClick={handleFetchInstaImage}
+                            >
+                                {isFetchingInsta ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ImageIcon className="h-4 w-4 mr-1" /> Ver Imagen</>}
+                            </Button>
+                        </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Publicaciones y reels públicos únicamente</p>
+                </div>
 
               <div className="flex justify-end">
                 <Button type="submit" disabled={isSubmitting}>

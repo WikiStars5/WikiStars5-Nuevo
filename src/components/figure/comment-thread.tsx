@@ -1,3 +1,4 @@
+
 'use client';
 
 import { collection, query, orderBy, doc, runTransaction, increment, serverTimestamp, deleteDoc, updateDoc, writeBatch, getDocs, where, limit, onSnapshot } from 'firebase/firestore';
@@ -400,7 +401,14 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                         </div>
                     </div>
                 ) : (
-                    renderCommentText()
+                    <>
+                        {renderCommentText()}
+                        {comment.instagramImageUrl && (
+                            <div className="relative aspect-video w-full max-w-sm rounded-xl overflow-hidden border border-border shadow-sm mt-3 group">
+                                <Image src={comment.instagramImageUrl} alt="Instagram content" fill className="object-cover transition-transform group-hover:scale-105 duration-500" />
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {!isEditing && (

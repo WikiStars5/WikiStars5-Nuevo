@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -24,7 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Tag, XCircle, AlertCircle, Trash2, Pencil, Save, X } from 'lucide-react';
+import { Loader2, Send, Tag, XCircle, AlertCircle, Trash2, Pencil, Save, X, Instagram, Image as ImageIcon } from 'lucide-react';
 import StarInput from '@/components/figure/star-input';
 import { Figure, User as AppUser, Comment, AttitudeVote } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
@@ -103,6 +104,11 @@ export default function GlobalStarPostForm() {
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Instagram Image Integration
+  const [instaUrl, setInstaUrl] = useState('');
+  const [instaImageUrl, setInstaImageUrl] = useState<string | null>(null);
+  const [isFetchingInsta, setIsFetchingInsta] = useState(false);
+
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -130,6 +136,8 @@ export default function GlobalStarPostForm() {
         setExistingComment(null);
         setExistingAttitude(null);
         setIsEditing(false);
+        setInstaImageUrl(null);
+        setInstaUrl('');
         return;
       }
 
@@ -146,10 +154,13 @@ export default function GlobalStarPostForm() {
         ]);
         
         if (!commentSnap.empty) {
-          setExistingComment({ id: commentSnap.docs[0].id, ...commentSnap.docs[0].data() } as Comment);
+          const comment = { id: commentSnap.docs[0].id, ...commentSnap.docs[0].data() } as Comment;
+          setExistingComment(comment);
+          setInstaImageUrl(comment.instagramImageUrl || null);
         } else {
           setExistingComment(null);
           setIsEditing(false);
+          setInstaImageUrl(null);
         }
 
         if (attitudeSnap.exists()) {
@@ -173,6 +184,38 @@ export default function GlobalStarPostForm() {
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
   const selectedAttitude = form.watch('attitude');
+
+  const handleFetchInstaImage = async () => {
+    if (!instaUrl.trim()) return;
+    
+    const match = instaUrl.match(/\/p\/([a-zA-Z0-9_-]+)/) || instaUrl.match(/\/reel\/([a-zA-Z0-9_-]+)/);
+    if (!match) {
+        toast({ title: "Enlace inválido", description: "Asegúrate de que sea un link de post o reel de Instagram.", variant: "destructive" });
+        return;
+    }
+
+    setIsFetchingInsta(true);
+    try {
+        const postId = match[1];
+        const cleanUrl = `https://www.instagram.com/p/${postId}/media/?size=l`;
+        const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
+
+        const imgTester = new window.Image();
+        imgTester.onload = () => {
+            setInstaImageUrl(proxiedUrl);
+            setIsFetchingInsta(false);
+            setInstaUrl('');
+        };
+        imgTester.onerror = () => {
+            setIsFetchingInsta(false);
+            toast({ title: "Error", description: "No se pudo obtener la imagen. ¿La cuenta es pública?", variant: "destructive" });
+        };
+        imgTester.src = proxiedUrl;
+    } catch (e) {
+        setIsFetchingInsta(false);
+        toast({ title: "Error", description: "Ocurrió un error inesperado al procesar el link.", variant: "destructive" });
+    }
+  };
 
   const handleAttitudeChange = async (newAttitude: 'neutral' | 'fan' | 'simp' | 'hater') => {
     if (!selectedFigure || !firestore || isVoting) return;
@@ -284,6 +327,7 @@ export default function GlobalStarPostForm() {
 
       toast({ title: 'StarPost eliminado', description: 'Ahora puedes calificar de nuevo.' });
       setExistingComment(null);
+      setInstaImageUrl(null);
       setIsEditing(false);
     } catch (error: any) {
       console.error("Error deleting existing comment:", error);
@@ -385,6 +429,7 @@ export default function GlobalStarPostForm() {
             text: data.text || '',
             tag: data.tag || null,
             rating: newRating,
+            instagramImageUrl: instaImageUrl || null,
             updatedAt: serverTimestamp(),
             userDisplayName: finalDisplayName,
             userAttitude: existingAttitude,
@@ -406,6 +451,7 @@ export default function GlobalStarPostForm() {
             text: data.text || '',
             tag: data.tag || null,
             rating: data.rating,
+            instagramImageUrl: instaImageUrl || null,
             createdAt: serverTimestamp(),
             userDisplayName: finalDisplayName,
             userPhotoURL: userProfileData.profilePhotoUrl || currentUser!.photoURL,
@@ -455,6 +501,8 @@ export default function GlobalStarPostForm() {
       setSelectedFigure(null);
       setExistingComment(null);
       setExistingAttitude(null);
+      setInstaImageUrl(null);
+      setInstaUrl('');
       setIsEditing(false);
 
     } catch (error: any) {
@@ -494,6 +542,8 @@ export default function GlobalStarPostForm() {
               setExistingComment(null);
               setExistingAttitude(null);
               setIsEditing(false);
+              setInstaImageUrl(null);
+              setInstaUrl('');
             }}>
               <XCircle className="h-5 w-5" />
             </Button>
@@ -531,6 +581,11 @@ export default function GlobalStarPostForm() {
                 <p className="text-sm text-muted-foreground italic max-w-xs line-clamp-2">
                   "{existingComment.text}"
                 </p>
+              )}
+              {existingComment.instagramImageUrl && (
+                <div className="relative aspect-video w-full max-w-[200px] rounded-lg overflow-hidden border mt-2">
+                    <Image src={existingComment.instagramImageUrl} alt="Instagram attachment" fill className="object-cover" />
+                </div>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
@@ -689,6 +744,51 @@ export default function GlobalStarPostForm() {
                   </FormItem>
                 )}
               />
+
+              {/* Instagram Image Input */}
+              <div className="space-y-3">
+                <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                    <Instagram className="h-4 w-4 text-pink-500" />
+                    Imagen de Instagram (opcional)
+                </FormLabel>
+                
+                {instaImageUrl ? (
+                    <div className="relative group aspect-video w-full max-w-[200px] rounded-xl overflow-hidden border-2 border-primary/20 bg-muted">
+                        <Image src={instaImageUrl} alt="Instagram preview" fill className="object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Button 
+                                type="button" 
+                                variant="destructive" 
+                                size="sm" 
+                                className="h-8"
+                                onClick={() => setInstaImageUrl(null)}
+                            >
+                                <Trash2 className="h-4 w-4 mr-1" /> Quitar
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex gap-2">
+                        <Input 
+                            value={instaUrl}
+                            onChange={(e) => setInstaUrl(e.target.value)}
+                            placeholder="Pega el link aquí: https://www.instagram.com/p/..."
+                            className="h-9 text-sm"
+                        />
+                        <Button 
+                            type="button" 
+                            variant="secondary" 
+                            size="sm" 
+                            className="h-9 whitespace-nowrap"
+                            disabled={isFetchingInsta || !instaUrl.trim()}
+                            onClick={handleFetchInstaImage}
+                        >
+                            {isFetchingInsta ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ImageIcon className="h-4 w-4 mr-1" /> Ver Imagen</>}
+                        </Button>
+                    </div>
+                )}
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Publicaciones y reels públicos únicamente</p>
+              </div>
 
               <div className="flex justify-end gap-2">
                 {isEditing && (
