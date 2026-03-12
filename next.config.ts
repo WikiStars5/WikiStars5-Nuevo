@@ -17,7 +17,8 @@ const nextConfig = {
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
       { protocol: 'https', hostname: 'i.pinimg.com' },
       { protocol: 'https', hostname: 'flagcdn.com' },
-      { protocol: 'https', hostname: 'www.google.com' }
+      { protocol: 'https', hostname: 'www.google.com' },
+      { protocol: 'https', hostname: 'images.weserv.nl' }
     ]
   },
   headers: async () => {
