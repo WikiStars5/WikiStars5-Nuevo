@@ -38,7 +38,7 @@ import {
   Loader2, 
   Send, 
   Instagram, 
-  Image as ImageIcon, 
+  ImageIcon, 
   Trash2, 
   Cloud, 
   MessageCircle, 
@@ -424,6 +424,7 @@ function ThoughtItem({
     const [replies, setReplies] = useState<Thought[]>([]);
     const [showReplies, setShowReplies] = useState(false);
     const [isLoadingReplies, setIsLoadingReplies] = useState(false);
+    const [visibleRepliesCount, setVisibleRepliesCount] = useState(5);
 
     useEffect(() => {
         if (!showReplies || !firestore) return;
@@ -476,7 +477,10 @@ function ThoughtItem({
                         variant="link" 
                         size="sm" 
                         className="text-xs p-0 h-auto" 
-                        onClick={() => setShowReplies(!showReplies)}
+                        onClick={() => {
+                            setShowReplies(!showReplies);
+                            if (!showReplies) setVisibleRepliesCount(5);
+                        }}
                     >
                         {showReplies 
                             ? 'Ocultar respuestas' 
@@ -487,7 +491,7 @@ function ThoughtItem({
                 {showReplies && (
                     <div className="mt-4 space-y-6 pl-4 border-l-2">
                         {isLoadingReplies ? <Skeleton className="h-10 w-full" /> : 
-                            replies.map(reply => (
+                            replies.slice(0, visibleRepliesCount).map(reply => (
                                 <ThoughtDisplay 
                                     key={reply.id}
                                     thought={{ ...reply, parentId: thought.id }}
@@ -499,6 +503,17 @@ function ThoughtItem({
                                 />
                             ))
                         }
+                        
+                        {!isLoadingReplies && replies.length > visibleRepliesCount && (
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-xs text-primary font-bold hover:bg-primary/5 h-8 w-full justify-start"
+                                onClick={() => setVisibleRepliesCount(prev => prev + 5)}
+                            >
+                                Ver más respuestas...
+                            </Button>
+                        )}
                     </div>
                 )}
             </CardContent>
@@ -519,7 +534,7 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
   const [instaImageUrl, setInstaImageUrl] = useState<string | null>(null);
   const [isFetchingInsta, setIsFetchingInsta] = useState(false);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
-  const [isLoadingThoughts, setIsLoadingLoading] = useState(true);
+  const [isLoadingThoughts, setIsLoadingThoughts] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
 
   const form = useForm<ThoughtFormValues>({
@@ -538,10 +553,10 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setThoughts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Thought)));
-      setIsLoadingLoading(false);
+      setIsLoadingThoughts(false);
     }, (error) => {
       console.error("Error al escuchar pensamientos:", error);
-      setIsLoadingLoading(false);
+      setIsLoadingThoughts(false);
     });
     return () => unsubscribe();
   }, [firestore, figureId]);
