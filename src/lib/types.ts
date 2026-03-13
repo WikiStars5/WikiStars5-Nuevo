@@ -249,6 +249,28 @@ export interface Comment {
   userAttitude?: 'neutral' | 'fan' | 'simp' | 'hater' | null;
 }
 
+export interface Thought {
+    id: string;
+    userId: string;
+    text: string;
+    figureId: string;
+    figureName: string;
+    figureImageUrl?: string | null;
+    instagramImageUrl?: string | null;
+    createdAt: any;
+    updatedAt?: any;
+    userDisplayName: string;
+    userPhotoURL: string | null;
+    userCountry?: string | null;
+    userGender?: string | null;
+    userAttitude?: string | null;
+    likes?: number;
+    dislikes?: number;
+    replyCount?: number;
+    isFeatured?: boolean;
+    parentId?: string | null;
+}
+
 export interface CommentVote {
   id: string;
   userId: string;

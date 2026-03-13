@@ -1,16 +1,18 @@
+
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useEffect, useState, useContext } from 'react';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, orderBy, doc, getDoc, limit } from 'firebase/firestore';
-import type { Thought } from '@/components/figure/thoughts-section';
+import type { Thought, Streak } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Cloud, ArrowRight, Heart } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Cloud } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn, formatCompactNumber } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
+import { useLanguage } from '@/context/LanguageContext';
+import { ThoughtDisplay } from '@/components/figure/thoughts-section';
 
 interface UserThoughtsProps {
     userId: string;
@@ -22,74 +24,80 @@ interface ThoughtReference {
     createdAt: any;
 }
 
+function ThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: ThoughtReference, onDeleteSuccess: () => void }) {
+    const firestore = useFirestore();
+    const [thought, setThought] = useState<Thought | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchThought = async () => {
+            if (!firestore || !refData.figureId || !refData.thoughtId) return;
+            try {
+                const thoughtDocRef = doc(firestore, 'figures', refData.figureId, 'thoughts', refData.thoughtId);
+                const snap = await getDoc(thoughtDocRef);
+                if (snap.exists()) {
+                    setThought({ id: snap.id, ...snap.data() } as Thought);
+                }
+            } catch (error) {
+                console.error("Error fetching individual thought:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchThought();
+    }, [firestore, refData]);
+
+    if (isLoading) return <Skeleton className="h-32 w-full rounded-xl mb-4" />;
+    if (!thought) return null;
+
+    return (
+        <Card className="hover:border-primary/50 transition-all group mb-4 overflow-hidden dark:bg-black">
+            <CardContent className="p-4">
+                <ThoughtDisplay 
+                    thought={thought} 
+                    figureId={thought.figureId} 
+                    figureName={thought.figureName} 
+                    onDeleteSuccess={onDeleteSuccess}
+                />
+                <div className="mt-2 pt-2 border-t flex justify-between items-center">
+                    <p className="text-xs text-muted-foreground">
+                        Publicado en <Link href={`/figures/${thought.figureId}`} className="text-primary hover:underline font-bold">{thought.figureName}</Link>
+                    </p>
+                    <Button variant="link" size="sm" asChild className="h-auto p-0 text-xs font-bold">
+                        <Link href={`/figures/${thought.figureId}?tab=pensamientos`}>
+                            Ir al hilo →
+                        </Link>
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+import { Button } from '@/components/ui/button';
+
 export default function UserThoughts({ userId }: UserThoughtsProps) {
     const firestore = useFirestore();
     const { theme } = useTheme();
-    const [thoughts, setThoughts] = useState<Thought[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
 
     const referencesQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
-        // Referencias guardadas en users/ID/thoughts para consistencia con starposts
         return query(collection(firestore, 'users', userId, 'thoughts'), orderBy('createdAt', 'desc'), limit(50));
     }, [firestore, userId]);
 
     const { data: references, isLoading: isLoadingReferences } = useCollection<ThoughtReference>(referencesQuery);
 
-    useEffect(() => {
-        if (isLoadingReferences) {
-            setIsLoading(true);
-            return;
-        }
-
-        if (!references || references.length === 0 || !firestore) {
-            setThoughts([]);
-            setIsLoading(false);
-            return;
-        }
-
-        const fetchThoughts = async () => {
-            setIsLoading(true);
-            try {
-                const thoughtPromises = references.map(ref => {
-                    if (ref.figureId && ref.thoughtId) {
-                        const thoughtDocRef = doc(firestore, 'figures', ref.figureId, 'thoughts', ref.thoughtId);
-                        return getDoc(thoughtDocRef);
-                    }
-                    return Promise.resolve(null);
-                });
-
-                const snapshots = await Promise.all(thoughtPromises);
-
-                const fetchedThoughts = snapshots
-                    .filter((snap): snap is any => snap !== null && snap.exists())
-                    .map(snap => ({ id: snap.id, ...snap.data() } as Thought));
-                
-                setThoughts(fetchedThoughts);
-
-            } catch (error) {
-                console.error("Error fetching user thoughts:", error);
-                setThoughts([]);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchThoughts();
-
-    }, [references, isLoadingReferences, firestore]);
-
-    if (isLoading) {
+    if (isLoadingReferences) {
         return (
             <div className="space-y-4">
-                <Skeleton className="h-24 w-full rounded-xl" />
-                <Skeleton className="h-24 w-full rounded-xl" />
-                <Skeleton className="h-24 w-full rounded-xl" />
+                <Skeleton className="h-32 w-full rounded-xl" />
+                <Skeleton className="h-32 w-full rounded-xl" />
+                <Skeleton className="h-32 w-full rounded-xl" />
             </div>
         );
     }
 
-    if (thoughts.length === 0) {
+    if (!references || references.length === 0) {
         return (
             <div className="text-center py-16 border-2 border-dashed rounded-xl">
                 <Cloud className="mx-auto h-12 w-12 text-muted-foreground/30" />
@@ -100,33 +108,13 @@ export default function UserThoughts({ userId }: UserThoughtsProps) {
     }
 
     return (
-        <div className="space-y-4">
-            {thoughts.map(thought => (
-                <Link key={thought.id} href={`/figures/${thought.figureId}?tab=pensamientos`}>
-                    <Card className={cn("hover:border-primary/50 transition-all group mb-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
-                        <CardContent className="p-4 flex gap-4">
-                            <Avatar className="h-10 w-10 border border-primary/20">
-                                <AvatarImage src={thought.figureImageUrl || undefined} />
-                                <AvatarFallback>{thought.figureName[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-1">
-                                    <p className="font-bold text-sm text-primary group-hover:underline">{thought.figureName}</p>
-                                    <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
-                                        Ir al hilo <ArrowRight className="h-3 w-3" />
-                                    </div>
-                                </div>
-                                <p className="text-sm text-foreground/90 line-clamp-2 italic">"{thought.text}"</p>
-                                {thought.likes && thought.likes > 0 && (
-                                    <div className="flex items-center gap-1 mt-2 text-pink-500 text-xs font-bold">
-                                        <Heart className="h-3 w-3 fill-current" />
-                                        <span>{formatCompactNumber(thought.likes)} corazones</span>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </Link>
+        <div className="space-y-2">
+            {references.map(ref => (
+                <ThoughtCardWrapper 
+                    key={ref.thoughtId} 
+                    refData={ref} 
+                    onDeleteSuccess={() => { /* Handled by realtime query eventually */ }} 
+                />
             ))}
         </div>
     );

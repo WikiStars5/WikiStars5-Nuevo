@@ -1,3 +1,4 @@
+
 'use client';
 
 /**
@@ -73,35 +74,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import ReplyForm from './reply-form';
 import { isDateActive } from '@/lib/streaks';
-import { commentTags, type CommentTagId } from '@/lib/tags';
+import type { Thought } from '@/lib/types';
 
 const createThoughtSchema = z.object({
   text: z.string().min(1, 'El pensamiento no puede estar vacío.').max(250, 'Máximo 250 caracteres.'),
 });
 
 type ThoughtFormValues = z.infer<typeof createThoughtSchema>;
-
-export interface Thought {
-    id: string;
-    userId: string;
-    text: string;
-    figureId: string;
-    figureName: string;
-    figureImageUrl?: string | null;
-    instagramImageUrl?: string | null;
-    createdAt: any;
-    updatedAt?: any;
-    userDisplayName: string;
-    userPhotoURL: string | null;
-    userCountry?: string | null;
-    userGender?: string | null;
-    userAttitude?: string | null;
-    likes?: number;
-    dislikes?: number;
-    replyCount?: number;
-    isFeatured?: boolean;
-    parentId?: string | null;
-}
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 type FilterType = 'featured' | 'popular' | 'newest' | 'mine';
@@ -134,7 +113,7 @@ const calculateHotScore = (thought: Thought): number => {
     return z - decay;
 }
 
-function ThoughtDisplay({ 
+export function ThoughtDisplay({ 
     thought, 
     figureId, 
     figureName,
@@ -153,7 +132,7 @@ function ThoughtDisplay({
     const firestore = useFirestore();
     const auth = useAuth();
     const { toast } = useToast();
-    const { t, language } = useLanguage();
+    const { language } = useLanguage();
     const { showStreakAnimation } = useContext(StreakAnimationContext);
 
     const [isVoting, setIsVoting] = useState(false);
@@ -176,11 +155,11 @@ function ThoughtDisplay({
     const { data: userVote } = useDoc<any>(userVoteRef, { enabled: !!user, realtime: true });
 
     const userStreakRef = useMemoFirebase(() => {
-        if (!firestore || !thought.userId) return null;
+        if (!firestore || !thought.userId || !figureId) return null;
         return doc(firestore, `users/${thought.userId}/streaks`, figureId);
     }, [firestore, thought.userId, figureId]);
 
-    const { data: userStreak } = useDoc<Streak>(userStreakRef, { realtime: true });
+    const { data: userStreak } = useDoc<any>(userStreakRef, { realtime: true });
 
     const country = thought.userCountry ? countries.find(c => c.key === thought.userCountry?.toLowerCase()) : null;
     const attitudeStyle = thought.userAttitude ? attitudeStyles[thought.userAttitude as AttitudeOption] : null;
@@ -339,6 +318,9 @@ function ThoughtDisplay({
                             className="object-contain"
                         />
                     )}
+                    <span className="text-[10px] text-muted-foreground ml-auto">
+                        {thought.createdAt?.toDate ? formatDateDistance(thought.createdAt.toDate(), language) : ''}
+                    </span>
                 </div>
 
                 {isEditing ? (
