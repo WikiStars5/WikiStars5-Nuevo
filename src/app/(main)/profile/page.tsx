@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare, Users, UserCheck, Instagram } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
@@ -550,7 +550,7 @@ function ProfilePageContent() {
                     <TabsContent value="starposts" className="mt-4">
                         <UserStarPosts userId={user.uid} />
                     </TabsContent>
-                </Tabs>
+                 </Tabs>
             </div>
 
             <FollowListDialog 

@@ -151,7 +151,7 @@ function ThoughtDisplay({
     const firestore = useFirestore();
     const auth = useAuth();
     const { toast } = useToast();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const { showStreakAnimation } = useContext(StreakAnimationContext);
 
     const [isVoting, setIsVoting] = useState(false);
@@ -436,6 +436,9 @@ function ThoughtItem({
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setReplies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Thought)));
             setIsLoadingReplies(false);
+        }, (error) => {
+            console.error(error);
+            setIsLoadingReplies(false);
         });
         return () => unsubscribe();
     }, [showReplies, firestore, figureId, thought.id]);
@@ -546,6 +549,7 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
 
   useEffect(() => {
     if (!firestore || !figureId) return;
+    setIsLoadingThoughts(true);
     const q = query(
       collection(firestore, 'figures', figureId, 'thoughts'),
       orderBy('createdAt', 'desc'),
@@ -700,16 +704,6 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
     return result;
   }, [thoughts, activeFilter, user]);
 
-  const FilterButton = ({ filter, children, isActive }: { filter: FilterType; children: React.ReactNode; isActive: boolean; }) => (
-    <Button
-        variant={isActive ? 'default' : 'ghost'}
-        className={`h-8 px-3 ${isActive ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
-        onClick={() => setActiveFilter(filter)}
-    >
-        {children}
-    </Button>
-  );
-
   return (
     <div className="space-y-6">
       <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
@@ -780,9 +774,29 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
       </Card>
 
       <div className="flex items-center gap-2 flex-wrap mb-4">
-          <FilterButton filter="featured" isActive={activeFilter === 'featured'}>Destacados</FilterButton>
-          <FilterButton filter="popular" isActive={activeFilter === 'popular'}>Populares</FilterButton>
-          {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>Mi opinión</FilterButton>}
+          <Button
+              variant={activeFilter === 'featured' ? 'default' : 'ghost'}
+              className={cn("h-8 px-3", activeFilter === 'featured' && "bg-primary text-primary-foreground")}
+              onClick={() => setActiveFilter('featured')}
+          >
+              Destacados
+          </Button>
+          <Button
+              variant={activeFilter === 'popular' ? 'default' : 'ghost'}
+              className={cn("h-8 px-3", activeFilter === 'popular' && "bg-primary text-primary-foreground")}
+              onClick={() => setActiveFilter('popular')}
+          >
+              Populares
+          </Button>
+          {user && (
+            <Button
+                variant={activeFilter === 'mine' ? 'default' : 'ghost'}
+                className={cn("h-8 px-3", activeFilter === 'mine' && "bg-primary text-primary-foreground")}
+                onClick={() => setActiveFilter('mine')}
+            >
+                Mi opinión
+            </Button>
+          )}
       </div>
 
       <div className="space-y-4">
