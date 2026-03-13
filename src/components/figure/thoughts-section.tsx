@@ -260,7 +260,7 @@ function ThoughtDisplay({
 
                 // Borrar referencia en el perfil del usuario si es un pensamiento principal
                 if (!isReply) {
-                    const userThoughtRef = doc(firestore, 'users', thought.userId, 'thought_refs', thought.id);
+                    const userThoughtRef = doc(firestore, 'users', thought.userId, 'thoughts', thought.id);
                     transaction.delete(userThoughtRef);
                 }
                 
@@ -661,8 +661,8 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
         await runTransaction(firestore, async (transaction) => {
             transaction.set(thoughtRef, payload);
 
-            // Guardar referencia en el perfil del usuario para el 4to Tab
-            const userThoughtRef = doc(firestore, 'users', currentUser!.uid, 'thought_refs', thoughtRef.id);
+            // Guardar referencia en el perfil del usuario (Colección /thoughts igual que starposts)
+            const userThoughtRef = doc(firestore, 'users', currentUser!.uid, 'thoughts', thoughtRef.id);
             transaction.set(userThoughtRef, {
                 figureId: figureId,
                 thoughtId: thoughtRef.id,

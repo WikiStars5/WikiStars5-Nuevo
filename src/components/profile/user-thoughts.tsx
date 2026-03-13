@@ -5,7 +5,7 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, getDoc, limit } from 'firebase/firestore';
 import type { Thought } from '@/components/figure/thoughts-section';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Cloud, ArrowRight } from 'lucide-react';
+import { Cloud, ArrowRight, Heart } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn, formatCompactNumber } from '@/lib/utils';
@@ -30,7 +30,8 @@ export default function UserThoughts({ userId }: UserThoughtsProps) {
 
     const referencesQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
-        return query(collection(firestore, 'users', userId, 'thought_refs'), orderBy('createdAt', 'desc'), limit(50));
+        // Referencias guardadas en users/ID/thoughts para consistencia con starposts
+        return query(collection(firestore, 'users', userId, 'thoughts'), orderBy('createdAt', 'desc'), limit(50));
     }, [firestore, userId]);
 
     const { data: references, isLoading: isLoadingReferences } = useCollection<ThoughtReference>(referencesQuery);
