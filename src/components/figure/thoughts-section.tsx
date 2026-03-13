@@ -3,6 +3,7 @@
 /**
  * @fileOverview Sección de Pensamientos para perfiles de figuras públicas.
  * Permite a los usuarios publicar textos cortos (estilo Twitter) e imágenes de Instagram.
+ * Incluye sistema de hilos (respuestas), votos y gestión de contenido.
  */
 
 import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
@@ -23,7 +24,8 @@ import {
   updateDoc,
   deleteDoc,
   where,
-  getDocs
+  getDocs,
+  Timestamp
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -47,7 +49,8 @@ import {
   X, 
   Flame, 
   Save, 
-  MessageSquare
+  MessageSquare,
+  Pin
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -72,7 +75,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import ReplyForm from './reply-form';
 import { isDateActive } from '@/lib/streaks';
-import type { Streak } from '@/lib/types';
 
 const createThoughtSchema = z.object({
   text: z.string().min(1, 'El pensamiento no puede estar vacío.').max(250, 'Máximo 250 caracteres.'),
@@ -97,6 +99,7 @@ interface Thought {
     dislikes?: number;
     replyCount?: number;
     isFeatured?: boolean;
+    parentId?: string | null;
 }
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -131,22 +134,28 @@ const calculateHotScore = (thought: Thought): number => {
     return z - decay;
 }
 
-function ThoughtItem({ 
+/**
+ * Componente para renderizar un pensamiento o una respuesta con toda su lógica.
+ */
+function ThoughtDisplay({ 
     thought, 
     figureId, 
     figureName,
-    onDeleteSuccess
+    isReply = false,
+    onDeleteSuccess,
+    onReplyClick
 }: { 
     thought: Thought, 
     figureId: string, 
     figureName: string,
-    onDeleteSuccess: (id: string) => void
+    isReply?: boolean,
+    onDeleteSuccess: (id: string) => void,
+    onReplyClick?: (thought: Thought) => void
 }) {
     const { user } = useUser();
     const firestore = useFirestore();
     const auth = useAuth();
     const { toast } = useToast();
-    const { theme } = useTheme();
     const { showStreakAnimation } = useContext(StreakAnimationContext);
 
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
@@ -154,17 +163,17 @@ function ThoughtItem({
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(thought.text);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
-    const [isReplying, setIsReplying] = useState(false);
-    const [replies, setReplies] = useState<any[]>([]);
-    const [showReplies, setShowReplies] = useState(false);
-    const [isLoadingReplies, setIsLoadingReplies] = useState(false);
 
     const isOwner = user && user.uid === thought.userId;
 
+    const votePath = isReply 
+        ? `figures/${figureId}/thoughts/${thought.parentId}/replies/${thought.id}/votes`
+        : `figures/${figureId}/thoughts/${thought.id}/votes`;
+        
     const userVoteRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
-        return doc(firestore, `figures/${figureId}/thoughts/${thought.id}/votes`, user.uid);
-    }, [firestore, user, figureId, thought.id]);
+        return doc(firestore, votePath, user.uid);
+    }, [firestore, user, votePath]);
 
     const { data: userVote } = useDoc<any>(userVoteRef, { enabled: !!user, realtime: true });
 
@@ -178,20 +187,6 @@ function ThoughtItem({
     const country = thought.userCountry ? countries.find(c => c.key === thought.userCountry?.toLowerCase()) : null;
     const attitudeStyle = thought.userAttitude ? attitudeStyles[thought.userAttitude as AttitudeOption] : null;
     const showStreak = userStreak && userStreak.currentStreak > 0 && isDateActive(userStreak.lastCommentDate);
-
-    useEffect(() => {
-        if (!showReplies || !firestore) return;
-        setIsLoadingReplies(true);
-        const q = query(
-            collection(firestore, 'figures', figureId, 'thoughts', thought.id, 'replies'),
-            orderBy('createdAt', 'asc')
-        );
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            setReplies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            setIsLoadingReplies(false);
-        });
-        return () => unsubscribe();
-    }, [showReplies, firestore, figureId, thought.id]);
 
     const handleVote = async (voteType: 'like' | 'dislike') => {
         if (!firestore || isVoting || !auth) return;
@@ -209,8 +204,12 @@ function ThoughtItem({
             }
         }
 
-        const thoughtRef = doc(firestore, 'figures', figureId, 'thoughts', thought.id);
-        const voteRef = doc(firestore, `figures/${figureId}/thoughts/${thought.id}/votes`, currentUser!.uid);
+        const thoughtPath = isReply
+            ? `figures/${figureId}/thoughts/${thought.parentId}/replies/${thought.id}`
+            : `figures/${figureId}/thoughts/${thought.id}`;
+        
+        const itemRef = doc(firestore, thoughtPath);
+        const voteRef = doc(firestore, votePath, currentUser!.uid);
 
         try {
             await runTransaction(firestore, async (transaction) => {
@@ -229,7 +228,7 @@ function ThoughtItem({
                     }
                     transaction.set(voteRef, { vote: voteType, createdAt: serverTimestamp() });
                 }
-                transaction.update(thoughtRef, updates);
+                transaction.update(itemRef, updates);
             });
 
             const streakResult = await updateStreak({
@@ -253,9 +252,21 @@ function ThoughtItem({
         if (!firestore || !isOwner) return;
         setIsDeleting(true);
         try {
-            const thoughtRef = doc(firestore, 'figures', figureId, 'thoughts', thought.id);
-            await deleteDoc(thoughtRef);
-            toast({ title: 'Pensamiento eliminado' });
+            await runTransaction(firestore, async (transaction) => {
+                const thoughtPath = isReply
+                    ? `figures/${figureId}/thoughts/${thought.parentId}/replies/${thought.id}`
+                    : `figures/${figureId}/thoughts/${thought.id}`;
+                
+                const itemRef = doc(firestore, thoughtPath);
+                
+                if (isReply && thought.parentId) {
+                    const parentRef = doc(firestore, 'figures', figureId, 'thoughts', thought.parentId);
+                    transaction.update(parentRef, { replyCount: increment(-1) });
+                }
+                
+                transaction.delete(itemRef);
+            });
+            toast({ title: 'Contenido eliminado' });
             onDeleteSuccess(thought.id);
         } catch (error) {
             toast({ title: 'Error al eliminar', variant: 'destructive' });
@@ -268,9 +279,12 @@ function ThoughtItem({
         if (!firestore || !isOwner) return;
         setIsSavingEdit(true);
         try {
-            const thoughtRef = doc(firestore, 'figures', figureId, 'thoughts', thought.id);
-            await updateDoc(thoughtRef, { text: editText, updatedAt: serverTimestamp() });
-            toast({ title: 'Pensamiento actualizado' });
+            const thoughtPath = isReply
+                ? `figures/${figureId}/thoughts/${thought.parentId}/replies/${thought.id}`
+                : `figures/${figureId}/thoughts/${thought.id}`;
+            const itemRef = doc(firestore, thoughtPath);
+            await updateDoc(itemRef, { text: editText, updatedAt: serverTimestamp() });
+            toast({ title: 'Contenido actualizado' });
             setIsEditing(false);
         } catch (error) {
             toast({ title: 'Error al actualizar', variant: 'destructive' });
@@ -279,156 +293,202 @@ function ThoughtItem({
         }
     };
 
+    const renderText = () => {
+        const mentionMatch = thought.text.match(/^@\[(.*?)\]/);
+        if (mentionMatch) {
+            const mention = mentionMatch[1];
+            const restOfText = thought.text.substring(mentionMatch[0].length).trim();
+            return (
+                <p className={cn("text-foreground/90 whitespace-pre-wrap", isReply ? "text-xs" : "text-sm")}>
+                    <span className="text-primary font-semibold mr-1">@{mention}</span>
+                    {restOfText}
+                </p>
+            );
+        }
+        return <p className={cn("text-foreground/90 whitespace-pre-wrap", isReply ? "text-xs" : "text-sm")}>{thought.text}</p>;
+    };
+
+    return (
+        <div className="flex gap-3">
+            <Link href={`/u/${thought.userDisplayName}`}>
+                <Avatar className={cn("border flex-shrink-0", isReply ? "h-8 w-8" : "h-10 w-10")}>
+                    <AvatarImage src={thought.userPhotoURL || undefined} />
+                    <AvatarFallback>{thought.userDisplayName[0]}</AvatarFallback>
+                </Avatar>
+            </Link>
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <Link href={`/u/${thought.userDisplayName}`} className="font-bold text-sm hover:underline">{thought.userDisplayName}</Link>
+                    {attitudeStyle && <span className={cn("text-[10px] font-black uppercase", attitudeStyle.color)}>{attitudeStyle.text}</span>}
+                    {showStreak && (
+                        <div className="flex items-center gap-0.5 text-orange-500 font-bold text-[10px]" title={`${userStreak.currentStreak} días de racha`}>
+                            <Flame className="h-3 w-3" />
+                            <span>{userStreak.currentStreak}</span>
+                        </div>
+                    )}
+                    {thought.userGender === 'Masculino' && <span className="text-blue-400 font-bold text-[10px]">♂</span>}
+                    {thought.userGender === 'Femenino' && <span className="text-pink-400 font-bold text-[10px]">♀</span>}
+                    {country && (
+                        <Image
+                            src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                            alt={country.name}
+                            width={16}
+                            height={12}
+                            className="object-contain"
+                        />
+                    )}
+                </div>
+
+                {isEditing ? (
+                    <div className="space-y-2 mt-2">
+                        <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="text-sm min-h-[80px]" maxLength={250} />
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancelar</Button>
+                            <Button size="sm" onClick={handleUpdate} disabled={isSavingEdit}>
+                                {isSavingEdit ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Guardar
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    renderText()
+                )}
+
+                {thought.instagramImageUrl && !isEditing && !isReply && (
+                    <div className="relative w-full max-h-[400px] aspect-square rounded-xl overflow-hidden border mt-3 bg-muted/30">
+                        <Image src={thought.instagramImageUrl} alt="Thought image" fill className="object-contain" />
+                    </div>
+                )}
+
+                <div className="flex items-center gap-4 mt-3">
+                    <Button variant="ghost" size="sm" className={cn("h-8 px-2 text-[10px]", userVote?.vote === 'like' && "text-primary")} onClick={() => handleVote('like')} disabled={!!isVoting}>
+                        <ThumbsUp className="h-3 w-3 mr-1" /> {formatCompactNumber(thought.likes || 0)}
+                    </Button>
+                    <Button variant="ghost" size="sm" className={cn("h-8 px-2 text-[10px]", userVote?.vote === 'dislike' && "text-destructive")} onClick={() => handleVote('dislike')} disabled={!!isVoting}>
+                        <ThumbsDown className="h-3 w-3 mr-1" /> {formatCompactNumber(thought.dislikes || 0)}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-[10px]" onClick={() => onReplyClick?.(thought)}>
+                        <MessageSquare className="h-3 w-3 mr-1" /> Responder
+                    </Button>
+                    
+                    {isOwner && (
+                        <div className="flex items-center gap-1 ml-auto">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(true)}>
+                                <FilePenLine className="h-3 w-3" />
+                            </Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                                        <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Eliminar contenido?</AlertDialogTitle>
+                                        <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ThoughtItem({ 
+    thought, 
+    figureId, 
+    figureName,
+    onDeleteSuccess
+}: { 
+    thought: Thought, 
+    figureId: string, 
+    figureName: string,
+    onDeleteSuccess: (id: string) => void
+}) {
+    const firestore = useFirestore();
+    const { theme } = useTheme();
+
+    const [isReplying, setIsReplying] = useState(false);
+    const [replyTo, setReplyTo] = useState<Thought | null>(null);
+    const [replies, setReplies] = useState<Thought[]>([]);
+    const [showReplies, setShowReplies] = useState(false);
+    const [isLoadingReplies, setIsLoadingReplies] = useState(false);
+
+    useEffect(() => {
+        if (!showReplies || !firestore) return;
+        setIsLoadingReplies(true);
+        const q = query(
+            collection(firestore, 'figures', figureId, 'thoughts', thought.id, 'replies'),
+            orderBy('createdAt', 'asc')
+        );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setReplies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Thought)));
+            setIsLoadingReplies(false);
+        });
+        return () => unsubscribe();
+    }, [showReplies, firestore, figureId, thought.id]);
+
+    const handleReplyClick = (target: Thought) => {
+        setReplyTo(target);
+        setIsReplying(true);
+    };
+
     return (
         <Card className={cn("overflow-hidden border-border/40", (theme === 'dark' || theme === 'army') && 'bg-black')}>
-            <CardContent className="p-4">
-                <div className="flex gap-4">
-                    <Link href={`/u/${thought.userDisplayName}`}>
-                        <Avatar className="h-10 w-10 border flex-shrink-0">
-                            <AvatarImage src={thought.userPhotoURL || undefined} />
-                            <AvatarFallback>{thought.userDisplayName[0]}</AvatarFallback>
-                        </Avatar>
-                    </Link>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <Link href={`/u/${thought.userDisplayName}`} className="font-bold text-sm hover:underline">{thought.userDisplayName}</Link>
-                            {attitudeStyle && <span className={cn("text-[10px] font-black uppercase", attitudeStyle.color)}>{attitudeStyle.text}</span>}
-                            {showStreak && (
-                                <div className="flex items-center gap-0.5 text-orange-500 font-bold text-[10px]" title={`${userStreak.currentStreak} días de racha`}>
-                                    <Flame className="h-3 w-3" />
-                                    <span>{userStreak.currentStreak}</span>
-                                </div>
-                            )}
-                            {thought.userGender === 'Masculino' && <span className="text-blue-400 font-bold text-[10px]">♂</span>}
-                            {thought.userGender === 'Femenino' && <span className="text-pink-400 font-bold text-[10px]">♀</span>}
-                            {country && (
-                                <Image
-                                    src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
-                                    alt={country.name}
-                                    width={16}
-                                    height={12}
-                                    className="object-contain"
-                                />
-                            )}
-                        </div>
+            <CardContent className="p-4 space-y-4">
+                <ThoughtDisplay 
+                    thought={thought} 
+                    figureId={figureId} 
+                    figureName={figureName} 
+                    onDeleteSuccess={onDeleteSuccess}
+                    onReplyClick={handleReplyClick}
+                />
 
-                        {isEditing ? (
-                            <div className="space-y-2 mt-2">
-                                <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="text-sm min-h-[80px]" maxLength={250} />
-                                <div className="flex justify-end gap-2">
-                                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancelar</Button>
-                                    <Button size="sm" onClick={handleUpdate} disabled={isSavingEdit}>
-                                        {isSavingEdit ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Guardar
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <p className="text-sm text-foreground/90 whitespace-pre-wrap">{thought.text}</p>
-                        )}
-
-                        {thought.instagramImageUrl && !isEditing && (
-                            <div className="relative w-full max-h-[400px] aspect-square rounded-xl overflow-hidden border mt-3 bg-muted/30">
-                                <Image src={thought.instagramImageUrl} alt="Thought image" fill className="object-contain" />
-                            </div>
-                        )}
-
-                        <div className="flex items-center gap-4 mt-3">
-                            <Button variant="ghost" size="sm" className={cn("h-8 px-2 text-xs", userVote?.vote === 'like' && "text-primary")} onClick={() => handleVote('like')} disabled={!!isVoting}>
-                                <ThumbsUp className="h-3.5 w-3.5 mr-1" /> {formatCompactNumber(thought.likes || 0)}
-                            </Button>
-                            <Button variant="ghost" size="sm" className={cn("h-8 px-2 text-xs", userVote?.vote === 'dislike' && "text-destructive")} onClick={() => handleVote('dislike')} disabled={!!isVoting}>
-                                <ThumbsDown className="h-3.5 w-3.5 mr-1" /> {formatCompactNumber(thought.dislikes || 0)}
-                            </Button>
-                            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setIsReplying(!isReplying)}>
-                                <MessageSquare className="h-3.5 w-3.5 mr-1" /> Responder
-                            </Button>
-                            
-                            {isOwner && (
-                                <div className="flex items-center gap-1 ml-auto">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
-                                        <FilePenLine className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>¿Eliminar pensamiento?</AlertDialogTitle>
-                                                <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                            )}
-                        </div>
-
-                        {isReplying && (
-                            <div className="mt-4 pt-4 border-t">
-                                <ReplyForm 
-                                    figureId={figureId} 
-                                    figureName={figureName} 
-                                    parentComment={{ id: thought.id, ...thought } as any} 
-                                    replyToComment={{ id: thought.id, ...thought } as any} 
-                                    onReplySuccess={() => setIsReplying(false)}
-                                    parentCollection="thoughts"
-                                />
-                            </div>
-                        )}
-
-                        {thought.replyCount && thought.replyCount > 0 && (
-                            <Button variant="link" size="sm" className="text-xs p-0 h-auto mt-2" onClick={() => setShowReplies(!showReplies)}>
-                                {showReplies ? 'Ocultar respuestas' : `Ver ${thought.replyCount} respuestas`}
-                            </Button>
-                        )}
-
-                        {showReplies && (
-                            <div className="mt-4 space-y-4 pl-4 border-l-2">
-                                {isLoadingReplies ? <Skeleton className="h-10 w-full" /> : 
-                                    replies.map(reply => {
-                                        const replyCountry = reply.userCountry ? countries.find(c => c.key === reply.userCountry?.toLowerCase()) : null;
-                                        const replyAttitude = reply.userAttitude ? attitudeStyles[reply.userAttitude as AttitudeOption] : null;
-                                        
-                                        return (
-                                            <div key={reply.id} className="flex gap-3">
-                                                <Link href={`/u/${reply.userDisplayName}`}>
-                                                    <Avatar className="h-7 w-7 border flex-shrink-0">
-                                                        <AvatarImage src={reply.userPhotoURL} />
-                                                        <AvatarFallback>{reply.userDisplayName[0]}</AvatarFallback>
-                                                    </Avatar>
-                                                </Link>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                        <Link href={`/u/${reply.userDisplayName}`} className="font-bold text-xs hover:underline">{reply.userDisplayName}</Link>
-                                                        {replyAttitude && <span className={cn("text-[9px] font-black uppercase", replyAttitude.color)}>{replyAttitude.text}</span>}
-                                                        {reply.userGender === 'Masculino' && <span className="text-blue-400 font-bold text-[10px]">♂</span>}
-                                                        {reply.userGender === 'Femenino' && <span className="text-pink-400 font-bold text-[10px]">♀</span>}
-                                                        {replyCountry && (
-                                                            <Image
-                                                                src={`https://flagcdn.com/w20/${replyCountry.code.toLowerCase()}.png`}
-                                                                alt={replyCountry.name}
-                                                                width={14}
-                                                                height={10}
-                                                                className="object-contain"
-                                                            />
-                                                        )}
-                                                    </div>
-                                                    <p className="text-xs text-foreground/90 whitespace-pre-wrap">{reply.text}</p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                }
-                            </div>
-                        )}
+                {isReplying && (
+                    <div className="mt-4 pt-4 border-t">
+                        <ReplyForm 
+                            figureId={figureId} 
+                            figureName={figureName} 
+                            parentComment={{ id: thought.id, ...thought } as any} 
+                            replyToComment={{ id: replyTo?.id || thought.id, userDisplayName: replyTo?.userDisplayName || thought.userDisplayName } as any} 
+                            onReplySuccess={() => {
+                                setIsReplying(false);
+                                setShowReplies(true);
+                            }}
+                            parentCollection="thoughts"
+                        />
                     </div>
-                </div>
+                )}
+
+                {thought.replyCount && thought.replyCount > 0 && (
+                    <Button variant="link" size="sm" className="text-xs p-0 h-auto" onClick={() => setShowReplies(!showReplies)}>
+                        {showReplies ? 'Ocultar respuestas' : `Ver ${thought.replyCount} respuestas`}
+                    </Button>
+                )}
+
+                {showReplies && (
+                    <div className="mt-4 space-y-6 pl-4 border-l-2">
+                        {isLoadingReplies ? <Skeleton className="h-10 w-full" /> : 
+                            replies.map(reply => (
+                                <ThoughtDisplay 
+                                    key={reply.id}
+                                    thought={{ ...reply, parentId: thought.id }}
+                                    figureId={figureId}
+                                    figureName={figureName}
+                                    isReply={true}
+                                    onDeleteSuccess={(id) => setReplies(prev => prev.filter(r => r.id !== id))}
+                                    onReplyClick={handleReplyClick}
+                                />
+                            ))
+                        }
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
