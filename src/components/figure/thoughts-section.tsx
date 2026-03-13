@@ -26,7 +26,7 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
-import { useAuth, useFirestore, useUser, useAdmin, useMemoFirebase, useDoc } from '@/firebase';
+import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,14 +47,14 @@ import {
   X, 
   Flame, 
   Save, 
-  MessageSquare,
-  Skeleton
+  MessageSquare
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
+import { cn, formatCompactNumber } from '@/lib/utils';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { countries } from '@/lib/countries';
@@ -72,7 +72,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import ReplyForm from './reply-form';
 import { isDateActive } from '@/lib/streaks';
-import type { Streak, AttitudeVote } from '@/lib/types';
+import type { Streak } from '@/lib/types';
 
 const createThoughtSchema = z.object({
   text: z.string().min(1, 'El pensamiento no puede estar vacío.').max(250, 'Máximo 250 caracteres.'),
@@ -145,7 +145,6 @@ function ThoughtItem({
     const firestore = useFirestore();
     const auth = useAuth();
     const { toast } = useToast();
-    const { language } = useLanguage();
     const { theme } = useTheme();
     const { showStreakAnimation } = useContext(StreakAnimationContext);
 
