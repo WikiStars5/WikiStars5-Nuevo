@@ -1,12 +1,27 @@
+'use server';
+/**
+ * @fileOverview Sección de Pensamientos para perfiles de figuras públicas.
+ * Permite a los usuarios publicar textos cortos (estilo Twitter) e imágenes de Instagram.
+ */
+
 'use client';
 
-import { useState, useContext, useEffect, useCallback } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, serverTimestamp, doc, runTransaction, query, orderBy, getDocs, limit, onSnapshot } from 'firebase/firestore';
+import { 
+  collection, 
+  serverTimestamp, 
+  doc, 
+  runTransaction, 
+  query, 
+  orderBy, 
+  limit, 
+  onSnapshot 
+} from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
-import { useAuth, useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Send, Instagram, Image as ImageIcon, Trash2, Cloud, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -61,7 +77,6 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
 
   const textValue = form.watch('text', '');
 
-  // Fetch thoughts
   useEffect(() => {
     if (!firestore || !figureId) return;
     const q = query(
@@ -71,6 +86,9 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setThoughts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Thought)));
+      setIsLoadingLoading(false);
+    }, (error) => {
+      console.error("Error al escuchar pensamientos:", error);
       setIsLoadingLoading(false);
     });
     return () => unsubscribe();
@@ -96,7 +114,7 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
         };
         imgTester.onerror = () => {
             setIsFetchingInsta(false);
-            toast({ title: "Error", description: "No se pudo obtener la imagen.", variant: "destructive" });
+            toast({ title: "Error", description: "No se pudo obtener la imagen. ¿La cuenta es pública?", variant: "destructive" });
         };
         imgTester.src = proxiedUrl;
     } catch (e) {
@@ -130,8 +148,8 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
     try {
         const thoughtRef = doc(collection(firestore, 'figures', figureId, 'thoughts'));
         const userRef = doc(firestore, 'users', currentUser.uid);
-        const userSnap = await getDocs(query(collection(firestore, 'users'), where('__name__', '==', currentUser.uid), limit(1)));
-        const userData = userSnap.empty ? {} : userSnap.docs[0].data();
+        const userSnap = await getDoc(userRef);
+        const userData = userSnap.exists() ? userSnap.data() : {};
 
         const payload = {
             userId: currentUser.uid,

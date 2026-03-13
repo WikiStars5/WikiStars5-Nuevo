@@ -13,7 +13,7 @@ import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import ThoughtsSection from '@/components/figure/thoughts-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Trophy, Star, MessageCircle } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Trophy, Star, MessageCircle, Cloud } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -146,7 +146,7 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
               {isBtsMember ? (
                 <>
                   <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
-                  <TabsTrigger value="pensamientos"><MessageCircle className="mr-2 h-4 w-4" />Pensamientos</TabsTrigger>
+                  <TabsTrigger value="pensamientos"><Cloud className="mr-2 h-4 w-4" />Pensamientos</TabsTrigger>
                   <TabsTrigger value="bias-bts"><Heart className="mr-2 h-4 w-4" />Bias BTS</TabsTrigger>
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
@@ -157,7 +157,7 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                 <>
                   <TabsTrigger value="wiki"><InfoIcon className="mr-2 h-4 w-4" />Wiki</TabsTrigger>
                   <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
-                  <TabsTrigger value="pensamientos"><MessageCircle className="mr-2 h-4 w-4" />Pensamientos</TabsTrigger>
+                  <TabsTrigger value="pensamientos"><Cloud className="mr-2 h-4 w-4" />Pensamientos</TabsTrigger>
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   {isBlackpinkMember && <TabsTrigger value="bias-blackpink"><Heart className="mr-2 h-4 w-4" />Bias Blackpink</TabsTrigger>}
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
