@@ -55,7 +55,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { cn, formatCompactNumber } from '@/lib/utils';
+import { cn, formatCompactNumber, formatDateDistance } from '@/lib/utils';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { countries } from '@/lib/countries';
@@ -73,6 +73,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import ReplyForm from './reply-form';
 import { isDateActive } from '@/lib/streaks';
+import { commentTags, type CommentTagId } from '@/lib/tags';
 
 const createThoughtSchema = z.object({
   text: z.string().min(1, 'El pensamiento no puede estar vacío.').max(250, 'Máximo 250 caracteres.'),
@@ -422,7 +423,7 @@ function ThoughtItem({
     const [replyTo, setReplyTo] = useState<Thought | null>(null);
     const [replies, setReplies] = useState<Thought[]>([]);
     const [showReplies, setShowReplies] = useState(false);
-    const [isLoadingReplies, setIsLoadingLoading] = useState(false);
+    const [isLoadingReplies, setIsLoadingReplies] = useState(false);
 
     useEffect(() => {
         if (!showReplies || !firestore) return;
@@ -433,7 +434,7 @@ function ThoughtItem({
         );
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setReplies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Thought)));
-            setIsLoadingLoading(false);
+            setIsLoadingReplies(false);
         });
         return () => unsubscribe();
     }, [showReplies, firestore, figureId, thought.id]);
