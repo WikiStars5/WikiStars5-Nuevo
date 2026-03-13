@@ -29,9 +29,10 @@ interface ReplyFormProps {
   parentComment: CommentType; 
   replyToComment: CommentType; 
   onReplySuccess: (newReply: CommentType) => void;
+  parentCollection?: 'comments' | 'thoughts'; // Permite definir dónde se guarda la respuesta
 }
 
-export default function ReplyForm({ figureId, figureName, parentComment, replyToComment, onReplySuccess }: ReplyFormProps) {
+export default function ReplyForm({ figureId, figureName, parentComment, replyToComment, onReplySuccess, parentCollection = 'comments' }: ReplyFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -64,7 +65,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
     let newReply: CommentType | null = null;
 
     try {
-        const parentCommentRef = doc(firestore, 'figures', figureId, 'comments', parentComment.id);
+        const parentCommentRef = doc(firestore, 'figures', figureId, parentCollection, parentComment.id);
         const repliesColRef = collection(parentCommentRef, 'replies');
 
         await runTransaction(firestore, async (transaction) => {
@@ -80,7 +81,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
                 id: newReplyRef.id,
                 figureId: figureId,
                 figureName: figureName,
-                figureImageUrl: parentComment.figureImageUrl,
+                figureImageUrl: parentComment.figureImageUrl || null,
                 userId: user.uid,
                 text: fullText,
                 createdAt: now,
@@ -103,6 +104,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
             const replyToAuthorId = replyToComment.userId;
             if (replyToAuthorId && replyToAuthorId !== user.uid) {
                 const notificationsColRef = collection(firestore, 'users', replyToAuthorId, 'notifications');
+                const tabParam = parentCollection === 'thoughts' ? 'pensamientos' : 'reseñas';
                 const notification = {
                     userId: replyToAuthorId,
                     type: 'comment_reply',
@@ -112,7 +114,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
                     },
                     isRead: false,
                     createdAt: serverTimestamp(),
-                    link: `/figures/${figureId}?thread=${parentComment.id}&reply=${newReplyRef.id}`
+                    link: `/figures/${figureId}?tab=${tabParam}&thread=${parentComment.id}&reply=${newReplyRef.id}`
                 };
                 transaction.set(doc(notificationsColRef), notification);
             }
@@ -125,7 +127,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
         figureName,
         userId: user.uid,
         isAnonymous: user.isAnonymous,
-        userPhotoURL: user.photoURL // Enviamos la foto actual para la racha
+        userPhotoURL: user.photoURL 
       });
 
       if (streakResult?.streakGained) {

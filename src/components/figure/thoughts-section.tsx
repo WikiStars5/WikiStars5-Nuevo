@@ -2,7 +2,7 @@
 
 /**
  * @fileOverview Sección de Pensamientos para perfiles de figuras públicas.
- * Similar a StarPosts pero sin estrellas, estilo Twitter.
+ * Permite a los usuarios publicar textos cortos (estilo Twitter) e imágenes de Instagram.
  */
 
 import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
@@ -84,6 +84,7 @@ interface Thought {
     id: string;
     userId: string;
     text: string;
+    figureImageUrl?: string | null;
     instagramImageUrl?: string | null;
     createdAt: any;
     updatedAt?: any;
@@ -374,6 +375,7 @@ function ThoughtItem({
                                     parentComment={{ id: thought.id, ...thought } as any} 
                                     replyToComment={{ id: thought.id, ...thought } as any} 
                                     onReplySuccess={() => setIsReplying(false)}
+                                    parentCollection="thoughts"
                                 />
                             </div>
                         )}
@@ -505,19 +507,25 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
     try {
         const thoughtRef = doc(collection(firestore, 'figures', figureId, 'thoughts'));
         const userRef = doc(firestore, 'users', currentUser.uid);
+        const figureInfoRef = doc(firestore, 'figures', figureId);
         const attitudeRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
         
-        const [userSnap, attitudeSnap] = await Promise.all([
+        const [userSnap, attitudeSnap, figureSnap] = await Promise.all([
             getDoc(userRef),
-            getDoc(attitudeRef)
+            getDoc(attitudeRef),
+            getDoc(figureInfoRef)
         ]);
 
         const userData = userSnap.exists() ? userSnap.data() : {};
         const attitudeData = attitudeSnap.exists() ? attitudeSnap.data() : {};
+        const figureData = figureSnap.exists() ? figureSnap.data() : {};
 
         const payload = {
             userId: currentUser.uid,
             text: data.text,
+            figureId: figureId,
+            figureName: figureName,
+            figureImageUrl: figureData.imageUrl || null,
             instagramImageUrl: instaImageUrl,
             createdAt: serverTimestamp(),
             userDisplayName: userData.username || currentUser.displayName || `Invitado_${currentUser.uid.substring(0,4)}`,
