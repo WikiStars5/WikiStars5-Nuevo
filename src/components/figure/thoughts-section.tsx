@@ -1,10 +1,9 @@
-'use server';
+'use client';
+
 /**
  * @fileOverview Sección de Pensamientos para perfiles de figuras públicas.
  * Permite a los usuarios publicar textos cortos (estilo Twitter) e imágenes de Instagram.
  */
-
-'use client';
 
 import { useState, useContext, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -18,7 +17,8 @@ import {
   query, 
   orderBy, 
   limit, 
-  onSnapshot 
+  onSnapshot,
+  getDoc
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { useAuth, useFirestore, useUser } from '@/firebase';
@@ -59,7 +59,7 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const { theme } = useTheme();
   const { showStreakAnimation } = useContext(StreakAnimationContext);
 
@@ -171,7 +171,9 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
         });
 
         if (streakResult?.streakGained) {
-            showStreakAnimation(streakResult.newStreakCount, { showPrompt: true, figureId, figureName });
+            showStreakAnimation(streakResult.newStreakCount, { 
+                showPrompt: true, figureId, figureName
+            });
         }
 
         toast({ title: '¡Pensamiento publicado!' });
