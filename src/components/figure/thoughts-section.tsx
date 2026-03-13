@@ -1,4 +1,3 @@
-
 'use client';
 
 /**
@@ -133,7 +132,8 @@ export function ThoughtDisplay({
     const auth = useAuth();
     const { toast } = useToast();
     const { language } = useLanguage();
-    const { showStreakAnimation } = useContext(StreakAnimationContext);
+    const streakContext = useContext(StreakAnimationContext);
+    const showStreakAnimation = streakContext?.showStreakAnimation;
 
     const [isVoting, setIsVoting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -210,7 +210,7 @@ export function ThoughtDisplay({
                 userPhotoURL: currentUser!.photoURL
             });
 
-            if (streakResult?.streakGained) {
+            if (streakResult?.streakGained && showStreakAnimation) {
                 showStreakAnimation(streakResult.newStreakCount, { showPrompt: true, figureId, figureName });
             }
         } catch (error) {
@@ -237,7 +237,6 @@ export function ThoughtDisplay({
                     transaction.update(parentRef, { replyCount: increment(-1) });
                 }
 
-                // Borrar referencia en el perfil del usuario si es un pensamiento principal
                 if (!isReply) {
                     const userThoughtRef = doc(firestore, 'users', thought.userId, 'thoughts', thought.id);
                     transaction.delete(userThoughtRef);
@@ -520,7 +519,8 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
   const auth = useAuth();
   const { toast } = useToast();
   const { theme } = useTheme();
-  const { showStreakAnimation } = useContext(StreakAnimationContext);
+  const streakContext = useContext(StreakAnimationContext);
+  const showStreakAnimation = streakContext?.showStreakAnimation;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [instaUrl, setInstaUrl] = useState('');
@@ -658,7 +658,7 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
             userPhotoURL: currentUser.photoURL
         });
 
-        if (streakResult?.streakGained) {
+        if (streakResult?.streakGained && showStreakAnimation) {
             showStreakAnimation(streakResult.newStreakCount, { 
                 showPrompt: true, figureId, figureName
             });

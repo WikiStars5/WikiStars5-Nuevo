@@ -1,18 +1,16 @@
-
 'use client';
 
-import { useEffect, useState, useContext } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { useEffect, useState } from 'react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, getDoc, limit } from 'firebase/firestore';
-import type { Thought, Streak } from '@/lib/types';
+import type { Thought } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Cloud } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { useLanguage } from '@/context/LanguageContext';
 import { ThoughtDisplay } from '@/components/figure/thoughts-section';
+import { cn } from '@/lib/utils';
 
 interface UserThoughtsProps {
     userId: string;
@@ -28,6 +26,7 @@ function ThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: ThoughtRefe
     const firestore = useFirestore();
     const [thought, setThought] = useState<Thought | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const { theme } = useTheme();
 
     useEffect(() => {
         const fetchThought = async () => {
@@ -51,7 +50,7 @@ function ThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: ThoughtRefe
     if (!thought) return null;
 
     return (
-        <Card className="hover:border-primary/50 transition-all group mb-4 overflow-hidden dark:bg-black">
+        <Card className={cn("hover:border-primary/50 transition-all group mb-4 overflow-hidden", (theme === 'dark' || theme === 'army') && "bg-black")}>
             <CardContent className="p-4">
                 <ThoughtDisplay 
                     thought={thought} 
@@ -59,26 +58,18 @@ function ThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: ThoughtRefe
                     figureName={thought.figureName} 
                     onDeleteSuccess={onDeleteSuccess}
                 />
-                <div className="mt-2 pt-2 border-t flex justify-between items-center">
+                <div className="mt-2 pt-2 border-t">
                     <p className="text-xs text-muted-foreground">
                         Publicado en <Link href={`/figures/${thought.figureId}`} className="text-primary hover:underline font-bold">{thought.figureName}</Link>
                     </p>
-                    <Button variant="link" size="sm" asChild className="h-auto p-0 text-xs font-bold">
-                        <Link href={`/figures/${thought.figureId}?tab=pensamientos`}>
-                            Ir al hilo →
-                        </Link>
-                    </Button>
                 </div>
             </CardContent>
         </Card>
     );
 }
 
-import { Button } from '@/components/ui/button';
-
 export default function UserThoughts({ userId }: UserThoughtsProps) {
     const firestore = useFirestore();
-    const { theme } = useTheme();
 
     const referencesQuery = useMemoFirebase(() => {
         if (!firestore || !userId) return null;
@@ -113,7 +104,7 @@ export default function UserThoughts({ userId }: UserThoughtsProps) {
                 <ThoughtCardWrapper 
                     key={ref.thoughtId} 
                     refData={ref} 
-                    onDeleteSuccess={() => { /* Handled by realtime query eventually */ }} 
+                    onDeleteSuccess={() => { /* Real-time query handle updates eventually */ }} 
                 />
             ))}
         </div>
