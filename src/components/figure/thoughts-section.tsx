@@ -3,7 +3,7 @@
 /**
  * @fileOverview Sección de Pensamientos para perfiles de figuras públicas.
  * Permite a los usuarios publicar textos cortos (estilo Twitter) e imágenes de Instagram.
- * Incluye sistema de hilos (respuestas), votos y gestión de contenido.
+ * Incluye sistema de hilos (respuestas), votos por corazón y gestión de contenido.
  */
 
 import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
@@ -22,7 +22,6 @@ import {
   getDoc,
   increment,
   updateDoc,
-  deleteDoc,
   where,
   getDocs,
   Timestamp
@@ -43,8 +42,7 @@ import {
   Trash2, 
   Cloud, 
   MessageCircle, 
-  ThumbsUp, 
-  ThumbsDown, 
+  Heart,
   FilePenLine, 
   X, 
   Flame, 
@@ -117,10 +115,9 @@ const C_DECAY_CONSTANT = 24.0;
 
 const calculateHotScore = (thought: Thought): number => {
     const likes = thought.likes ?? 0;
-    const dislikes = thought.dislikes ?? 0;
     const replies = thought.replyCount ?? 0;
     
-    const s = (likes) - (dislikes) + K_REPLY_WEIGHT * replies;
+    const s = likes + K_REPLY_WEIGHT * replies;
 
     if (s === 0) return 0;
     
@@ -136,6 +133,7 @@ const calculateHotScore = (thought: Thought): number => {
 
 /**
  * Componente para renderizar un pensamiento o una respuesta con toda su lógica.
+ * Ahora utiliza sistema de corazones en lugar de Like/Dislike.
  */
 function ThoughtDisplay({ 
     thought, 
@@ -156,9 +154,10 @@ function ThoughtDisplay({
     const firestore = useFirestore();
     const auth = useAuth();
     const { toast } = useToast();
+    const { t } = useLanguage();
     const { showStreakAnimation } = useContext(StreakAnimationContext);
 
-    const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
+    const [isVoting, setIsVoting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editText, setEditText] = useState(thought.text);
@@ -188,9 +187,9 @@ function ThoughtDisplay({
     const attitudeStyle = thought.userAttitude ? attitudeStyles[thought.userAttitude as AttitudeOption] : null;
     const showStreak = userStreak && userStreak.currentStreak > 0 && isDateActive(userStreak.lastCommentDate);
 
-    const handleVote = async (voteType: 'like' | 'dislike') => {
+    const handleHeartToggle = async () => {
         if (!firestore || isVoting || !auth) return;
-        setIsVoting(voteType);
+        setIsVoting(true);
 
         let currentUser = user;
         if (!currentUser) {
@@ -199,7 +198,7 @@ function ThoughtDisplay({
                 currentUser = userCredential.user;
             } catch (error) {
                 toast({ title: 'Error de conexión', variant: 'destructive' });
-                setIsVoting(null);
+                setIsVoting(false);
                 return;
             }
         }
@@ -214,19 +213,15 @@ function ThoughtDisplay({
         try {
             await runTransaction(firestore, async (transaction) => {
                 const voteDoc = await transaction.get(voteRef);
-                const existingVote = voteDoc.exists() ? voteDoc.data().vote : null;
+                const isAlreadyLiked = voteDoc.exists();
                 const updates: { [key: string]: any } = {};
 
-                if (existingVote === voteType) {
-                    updates[`${voteType}s`] = increment(-1);
+                if (isAlreadyLiked) {
+                    updates[`likes`] = increment(-1);
                     transaction.delete(voteRef);
                 } else {
-                    updates[`${voteType}s`] = increment(1);
-                    if (existingVote) {
-                        const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
-                        updates[`${otherVoteType}s`] = increment(-1);
-                    }
-                    transaction.set(voteRef, { vote: voteType, createdAt: serverTimestamp() });
+                    updates[`likes`] = increment(1);
+                    transaction.set(voteRef, { vote: 'like', createdAt: serverTimestamp() });
                 }
                 transaction.update(itemRef, updates);
             });
@@ -242,9 +237,9 @@ function ThoughtDisplay({
             }
         } catch (error) {
             console.error(error);
-            toast({ title: 'Error al votar', variant: 'destructive' });
+            toast({ title: 'Error al procesar el corazón', variant: 'destructive' });
         } finally {
-            setIsVoting(null);
+            setIsVoting(false);
         }
     };
 
@@ -308,6 +303,8 @@ function ThoughtDisplay({
         return <p className={cn("text-foreground/90 whitespace-pre-wrap", isReply ? "text-xs" : "text-sm")}>{thought.text}</p>;
     };
 
+    const isLiked = userVote?.vote === 'like';
+
     return (
         <div className="flex gap-3">
             <Link href={`/u/${thought.userDisplayName}`}>
@@ -360,14 +357,19 @@ function ThoughtDisplay({
                 )}
 
                 <div className="flex items-center gap-4 mt-3">
-                    <Button variant="ghost" size="sm" className={cn("h-8 px-2 text-[10px]", userVote?.vote === 'like' && "text-primary")} onClick={() => handleVote('like')} disabled={!!isVoting}>
-                        <ThumbsUp className="h-3 w-3 mr-1" /> {formatCompactNumber(thought.likes || 0)}
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className={cn("h-8 px-2 text-[10px] gap-1.5 transition-all active:scale-125", isLiked && "text-pink-500 hover:text-pink-600")} 
+                        onClick={handleHeartToggle} 
+                        disabled={isVoting}
+                    >
+                        {isVoting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />} 
+                        <span className="font-bold">{formatCompactNumber(thought.likes || 0)}</span>
                     </Button>
-                    <Button variant="ghost" size="sm" className={cn("h-8 px-2 text-[10px]", userVote?.vote === 'dislike' && "text-destructive")} onClick={() => handleVote('dislike')} disabled={!!isVoting}>
-                        <ThumbsDown className="h-3 w-3 mr-1" /> {formatCompactNumber(thought.dislikes || 0)}
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 px-2 text-[10px]" onClick={() => onReplyClick?.(thought)}>
-                        <MessageSquare className="h-3 w-3 mr-1" /> Responder
+                    
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-[10px] gap-1.5" onClick={() => onReplyClick?.(thought)}>
+                        <MessageSquare className="h-3.5 w-3.5" /> Responder
                     </Button>
                     
                     {isOwner && (
