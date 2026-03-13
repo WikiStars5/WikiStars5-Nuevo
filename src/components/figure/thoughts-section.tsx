@@ -81,10 +81,12 @@ const createThoughtSchema = z.object({
 
 type ThoughtFormValues = z.infer<typeof createThoughtSchema>;
 
-interface Thought {
+export interface Thought {
     id: string;
     userId: string;
     text: string;
+    figureId: string;
+    figureName: string;
     figureImageUrl?: string | null;
     instagramImageUrl?: string | null;
     createdAt: any;
@@ -254,6 +256,12 @@ function ThoughtDisplay({
                 if (isReply && thought.parentId) {
                     const parentRef = doc(firestore, 'figures', figureId, 'thoughts', thought.parentId);
                     transaction.update(parentRef, { replyCount: increment(-1) });
+                }
+
+                // Borrar referencia en el perfil del usuario si es un pensamiento principal
+                if (!isReply) {
+                    const userThoughtRef = doc(firestore, 'users', thought.userId, 'thought_refs', thought.id);
+                    transaction.delete(userThoughtRef);
                 }
                 
                 transaction.delete(itemRef);
@@ -652,6 +660,14 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
 
         await runTransaction(firestore, async (transaction) => {
             transaction.set(thoughtRef, payload);
+
+            // Guardar referencia en el perfil del usuario para el 4to Tab
+            const userThoughtRef = doc(firestore, 'users', currentUser!.uid, 'thought_refs', thoughtRef.id);
+            transaction.set(userThoughtRef, {
+                figureId: figureId,
+                thoughtId: thoughtRef.id,
+                createdAt: serverTimestamp(),
+            });
         });
 
         const streakResult = await updateStreak({

@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare, Users, UserCheck, Instagram } from "lucide-react";
+import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare, Users, UserCheck, Instagram, Cloud } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import UserStarPosts from '@/components/profile/user-starposts';
+import UserThoughts from '@/components/profile/user-thoughts';
 import { useTheme } from 'next-themes';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import FollowListDialog from '@/components/shared/follow-list-dialog';
@@ -228,6 +229,8 @@ function ProfilePageContent() {
                 });
             }
         } finally {
+            // Recargar datos para asegurar consistencia
+            reloadUser();
             setIsSaving(false);
         }
     };
@@ -359,6 +362,7 @@ function ProfilePageContent() {
                             <TabsTrigger value="info" className="flex-1"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
                             <TabsTrigger value="activity" className="flex-1"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
                             <TabsTrigger value="starposts" className="flex-1"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
+                            <TabsTrigger value="thoughts" className="flex-1"><Cloud className="mr-2 h-4 w-4" />Mis Pensamientos</TabsTrigger>
                         </TabsList>
                         <ScrollBar orientation="horizontal" className="h-1.5" />
                     </ScrollArea>
@@ -549,6 +553,9 @@ function ProfilePageContent() {
                     </TabsContent>
                     <TabsContent value="starposts" className="mt-4">
                         <UserStarPosts userId={user.uid} />
+                    </TabsContent>
+                    <TabsContent value="thoughts" className="mt-4">
+                        <UserThoughts userId={user.uid} />
                     </TabsContent>
                  </Tabs>
             </div>
