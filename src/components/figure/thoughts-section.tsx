@@ -131,10 +131,6 @@ const calculateHotScore = (thought: Thought): number => {
     return z - decay;
 }
 
-/**
- * Componente para renderizar un pensamiento o una respuesta con toda su lógica.
- * Ahora utiliza sistema de corazones en lugar de Like/Dislike.
- */
 function ThoughtDisplay({ 
     thought, 
     figureId, 
@@ -360,16 +356,22 @@ function ThoughtDisplay({
                     <Button 
                         variant="ghost" 
                         size="sm" 
-                        className={cn("h-8 px-2 text-[10px] gap-1.5 transition-all active:scale-125", isLiked && "text-pink-500 hover:text-pink-600")} 
-                        onClick={handleHeartToggle} 
+                        className={cn(
+                            "h-8 px-2 text-[10px] gap-1.5",
+                            isLiked ? "text-pink-500 hover:text-pink-600" : "text-muted-foreground"
+                        )}
+                        onClick={handleHeartToggle}
                         disabled={isVoting}
                     >
-                        {isVoting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />} 
-                        <span className="font-bold">{formatCompactNumber(thought.likes || 0)}</span>
+                        <Heart className={cn("h-3.5 w-3.5", isLiked && "fill-current")} />
+                        {Number(thought.likes) > 0 && (
+                            <span className="font-bold">{formatCompactNumber(thought.likes || 0)}</span>
+                        )}
                     </Button>
-                    
-                    <Button variant="ghost" size="sm" className="h-8 px-2 text-[10px] gap-1.5" onClick={() => onReplyClick?.(thought)}>
-                        <MessageSquare className="h-3.5 w-3.5" /> Responder
+
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-[10px] gap-1.5 text-muted-foreground" onClick={() => onReplyClick?.(thought)}>
+                        <MessageSquare className="h-3.5 w-3.5" /> 
+                        <span>Responder</span>
                     </Button>
                     
                     {isOwner && (
@@ -420,7 +422,7 @@ function ThoughtItem({
     const [replyTo, setReplyTo] = useState<Thought | null>(null);
     const [replies, setReplies] = useState<Thought[]>([]);
     const [showReplies, setShowReplies] = useState(false);
-    const [isLoadingReplies, setIsLoadingReplies] = useState(false);
+    const [isLoadingReplies, setIsLoadingLoading] = useState(false);
 
     useEffect(() => {
         if (!showReplies || !firestore) return;
@@ -431,7 +433,7 @@ function ThoughtItem({
         );
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setReplies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Thought)));
-            setIsLoadingReplies(false);
+            setIsLoadingLoading(false);
         });
         return () => unsubscribe();
     }, [showReplies, firestore, figureId, thought.id]);
@@ -468,9 +470,16 @@ function ThoughtItem({
                     </div>
                 )}
 
-                {thought.replyCount && thought.replyCount > 0 && (
-                    <Button variant="link" size="sm" className="text-xs p-0 h-auto" onClick={() => setShowReplies(!showReplies)}>
-                        {showReplies ? 'Ocultar respuestas' : `Ver ${thought.replyCount} respuestas`}
+                {Number(thought.replyCount) > 0 && (
+                    <Button 
+                        variant="link" 
+                        size="sm" 
+                        className="text-xs p-0 h-auto" 
+                        onClick={() => setShowReplies(!showReplies)}
+                    >
+                        {showReplies 
+                            ? 'Ocultar respuestas' 
+                            : `Ver ${thought.replyCount} ${thought.replyCount === 1 ? 'respuesta' : 'respuestas'}`}
                     </Button>
                 )}
 
