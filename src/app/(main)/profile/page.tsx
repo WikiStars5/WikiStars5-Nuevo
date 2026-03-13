@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare, Users, UserCheck } from "lucide-react";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/form';
+import { Loader2, Save, User as UserIcon, Image as ImageIcon, Info, Activity, Trash2, Megaphone, MessagesSquare, Users, UserCheck, Instagram } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountrySelector } from '@/components/figure/country-selector';
 import UserActivity from '@/components/profile/user-activity';
@@ -46,7 +46,7 @@ const GoogleIcon = () => (
 const createProfileSchema = (t: (key: string) => string) => z.object({
   username: z.string()
     .min(3, t('ProfilePage.validation.usernameMin'))
-    .max(10, t('ProfilePage.validation.usernameMax'))
+    .max(15, t('ProfilePage.validation.usernameMax'))
     .regex(/^[a-zA-Z0-9_]+$/, t('ProfilePage.validation.usernameRegex')),
   profilePhotoUrl: z.string().url(t('ProfilePage.validation.profilePhotoUrl')).optional().or(z.literal('')),
   country: z.string().optional(),
@@ -75,6 +75,10 @@ function ProfilePageContent() {
         open: false,
         type: 'followers'
     });
+
+    // Instagram state
+    const [instaUrl, setInstaUrl] = useState('');
+    const [isFetchingInsta, setIsFetchingInsta] = useState(false);
     
     const profileSchema = createProfileSchema(t);
 
@@ -119,6 +123,39 @@ function ProfilePageContent() {
             fetchUserData();
         }
     }, [user, firestore, isUserLoading, profileForm, t]);
+
+    const handleFetchInstaImage = async () => {
+        if (!instaUrl.trim()) return;
+        
+        const match = instaUrl.match(/\/p\/([a-zA-Z0-9_-]+)/) || instaUrl.match(/\/reel\/([a-zA-Z0-9_-]+)/);
+        if (!match) {
+            toast({ title: "Enlace inválido", description: "Asegúrate de que sea un link de post o reel de Instagram.", variant: "destructive" });
+            return;
+        }
+
+        setIsFetchingInsta(true);
+        try {
+            const postId = match[1];
+            const cleanUrl = `https://www.instagram.com/p/${postId}/media/?size=l`;
+            const proxiedUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}`;
+
+            const imgTester = new window.Image();
+            imgTester.onload = () => {
+                profileForm.setValue('profilePhotoUrl', proxiedUrl);
+                setIsFetchingInsta(false);
+                setInstaUrl('');
+                toast({ title: "¡Imagen lista!", description: "Se ha cargado tu foto de Instagram." });
+            };
+            imgTester.onerror = () => {
+                setIsFetchingInsta(false);
+                toast({ title: "Error", description: "No se pudo obtener la imagen. ¿La cuenta es pública?", variant: "destructive" });
+            };
+            imgTester.src = proxiedUrl;
+        } catch (e) {
+            setIsFetchingInsta(false);
+            toast({ title: "Error", description: "Ocurrió un error inesperado.", variant: "destructive" });
+        }
+    };
 
 
     const onProfileSubmit = async (data: ProfileFormValues) => {
@@ -339,25 +376,49 @@ function ProfilePageContent() {
                                         name="profilePhotoUrl"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>
+                                                <FormLabel className="flex items-center gap-2">
                                                     {t('ProfilePage.profilePhotoUrlLabel')}
-                                                    <span className="ml-2 font-normal text-xs text-muted-foreground">(pinterest, wikimedia)</span>
+                                                    <span className="font-normal text-xs text-muted-foreground">(Pinterest, Wikimedia o Instagram)</span>
                                                 </FormLabel>
-                                                <div className="relative">
-                                                    <FormControl>
-                                                        <Input {...field} placeholder={t('ProfilePage.profilePhotoUrlPlaceholder')} value={field.value || ''} className="pr-8" />
-                                                    </FormControl>
-                                                    {field.value && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
-                                                            onClick={() => profileForm.setValue('profilePhotoUrl', '')}
+                                                <div className="space-y-3">
+                                                    <div className="relative">
+                                                        <FormControl>
+                                                            <Input {...field} placeholder={t('ProfilePage.profilePhotoUrlPlaceholder')} value={field.value || ''} className="pr-8" />
+                                                        </FormControl>
+                                                        {field.value && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                                onClick={() => profileForm.setValue('profilePhotoUrl', '')}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="flex gap-2">
+                                                        <div className="relative flex-1">
+                                                            <Instagram className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-pink-500" />
+                                                            <Input 
+                                                                value={instaUrl}
+                                                                onChange={(e) => setInstaUrl(e.target.value)}
+                                                                placeholder="O pega link de Instagram aquí..."
+                                                                className="h-9 text-sm pl-8"
+                                                            />
+                                                        </div>
+                                                        <Button 
+                                                            type="button" 
+                                                            variant="secondary" 
+                                                            size="sm" 
+                                                            className="h-9 whitespace-nowrap"
+                                                            disabled={isFetchingInsta || !instaUrl.trim()}
+                                                            onClick={handleFetchInstaImage}
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
+                                                            {isFetchingInsta ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ver Foto"}
                                                         </Button>
-                                                    )}
+                                                    </div>
                                                 </div>
                                                 <FormMessage />
                                             </FormItem>
