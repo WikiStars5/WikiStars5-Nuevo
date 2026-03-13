@@ -47,10 +47,10 @@ import {
   X, 
   Flame, 
   Save, 
-  MessageSquare 
+  MessageSquare,
+  Skeleton
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -95,9 +95,11 @@ interface Thought {
     likes?: number;
     dislikes?: number;
     replyCount?: number;
+    isFeatured?: boolean;
 }
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
+type FilterType = 'featured' | 'popular' | 'newest' | 'mine';
 
 const attitudeStyles: Record<AttitudeOption, { text: string; color: string }> = {
     fan: { text: 'Fan', color: 'text-yellow-400' },
@@ -105,6 +107,28 @@ const attitudeStyles: Record<AttitudeOption, { text: string; color: string }> = 
     simp: { text: 'Simp', color: 'text-pink-400' },
     neutral: { text: 'Espectador', color: 'text-gray-500' },
 };
+
+const K_REPLY_WEIGHT = 1.0;
+const C_DECAY_CONSTANT = 24.0;
+
+const calculateHotScore = (thought: Thought): number => {
+    const likes = thought.likes ?? 0;
+    const dislikes = thought.dislikes ?? 0;
+    const replies = thought.replyCount ?? 0;
+    
+    const s = (likes) - (dislikes) + K_REPLY_WEIGHT * replies;
+
+    if (s === 0) return 0;
+    
+    const y = Math.sign(s);
+    const z = y * Math.log10(Math.max(1, Math.abs(s)));
+
+    const thoughtDate = thought.createdAt?.toDate ? thought.createdAt.toDate() : new Date();
+    const hoursAgo = (new Date().getTime() - thoughtDate.getTime()) / (1000 * 3600);
+    const decay = hoursAgo / C_DECAY_CONSTANT;
+    
+    return z - decay;
+}
 
 function ThoughtItem({ 
     thought, 
@@ -402,6 +426,7 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
   const [isFetchingInsta, setIsFetchingInsta] = useState(false);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [isLoadingThoughts, setIsLoadingLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('featured');
 
   const form = useForm<ThoughtFormValues>({
     resolver: zodResolver(createThoughtSchema),
@@ -415,7 +440,7 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
     const q = query(
       collection(firestore, 'figures', figureId, 'thoughts'),
       orderBy('createdAt', 'desc'),
-      limit(50)
+      limit(100)
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setThoughts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Thought)));
@@ -533,6 +558,43 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
     }
   };
 
+  const sortedAndFilteredThoughts = useMemo(() => {
+    let result = [...thoughts];
+
+    if (activeFilter === 'mine') {
+        if (!user) return [];
+        return result.filter(t => t.userId === user.uid);
+    }
+
+    switch (activeFilter) {
+        case 'featured':
+            result.sort((a, b) => {
+                if (a.isFeatured && !b.isFeatured) return -1;
+                if (!a.isFeatured && b.isFeatured) return 1;
+                return calculateHotScore(b) - calculateHotScore(a);
+            });
+            break;
+        case 'popular':
+            result.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+            break;
+        case 'newest':
+            // Ya vienen ordenados por createdAt desc de la query
+            break;
+    }
+
+    return result;
+  }, [thoughts, activeFilter, user]);
+
+  const FilterButton = ({ filter, children, isActive }: { filter: FilterType; children: React.ReactNode; isActive: boolean; }) => (
+    <Button
+        variant={isActive ? 'default' : 'ghost'}
+        className={`h-8 px-3 ${isActive ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
+        onClick={() => setActiveFilter(filter)}
+    >
+        {children}
+    </Button>
+  );
+
   return (
     <div className="space-y-6">
       <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
@@ -602,11 +664,17 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
         </CardContent>
       </Card>
 
+      <div className="flex items-center gap-2 flex-wrap mb-4">
+          <FilterButton filter="featured" isActive={activeFilter === 'featured'}>Destacados</FilterButton>
+          <FilterButton filter="popular" isActive={activeFilter === 'popular'}>Populares</FilterButton>
+          {user && <FilterButton filter="mine" isActive={activeFilter === 'mine'}>Mi opinión</FilterButton>}
+      </div>
+
       <div className="space-y-4">
         {isLoadingThoughts ? (
             Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)
-        ) : thoughts.length > 0 ? (
-            thoughts.map((t) => (
+        ) : sortedAndFilteredThoughts.length > 0 ? (
+            sortedAndFilteredThoughts.map((t) => (
                 <ThoughtItem 
                     key={t.id} 
                     thought={t} 
