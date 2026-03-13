@@ -284,7 +284,6 @@ function ThoughtItem({
                                     className="object-contain"
                                 />
                             )}
-                            <span className="text-[10px] text-muted-foreground uppercase">{formatDateDistance(thought.createdAt?.toDate() || new Date(), language)}</span>
                         </div>
 
                         {isEditing ? (
@@ -374,7 +373,6 @@ function ThoughtItem({
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <span className="font-bold text-xs">{reply.userDisplayName}</span>
-                                                    <span className="text-[9px] text-muted-foreground uppercase">{formatDateDistance(reply.createdAt?.toDate() || new Date(), language)}</span>
                                                 </div>
                                                 <p className="text-xs text-foreground/90 whitespace-pre-wrap">{reply.text}</p>
                                             </div>
