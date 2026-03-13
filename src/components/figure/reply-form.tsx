@@ -70,9 +70,18 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
 
         await runTransaction(firestore, async (transaction) => {
             const userProfileRef = doc(firestore, 'users', user.uid);
-            const userProfileSnap = await transaction.get(userProfileRef);
+            const attitudeRef = doc(firestore, `users/${user.uid}/attitudeVotes`, figureId);
+            
+            const [userProfileSnap, attitudeSnap] = await Promise.all([
+              transaction.get(userProfileRef),
+              transaction.get(attitudeRef)
+            ]);
+
             const userProfileData = userProfileSnap.exists() ? userProfileSnap.data() : {};
+            const attitudeData = attitudeSnap.exists() ? attitudeSnap.data() : {};
+            
             const displayName = userProfileData.username || user.displayName || 'Usuario';
+            const userAttitude = attitudeData.vote || null;
             
             const newReplyRef = doc(repliesColRef); 
             const now = Timestamp.now();
@@ -89,6 +98,7 @@ export default function ReplyForm({ figureId, figureName, parentComment, replyTo
                 userPhotoURL: userProfileData.profilePhotoUrl || user.photoURL,
                 userCountry: userProfileData.country || null,
                 userGender: userProfileData.gender || null,
+                userAttitude: userAttitude,
                 likes: 0,
                 dislikes: 0,
                 parentId: parentComment.id,

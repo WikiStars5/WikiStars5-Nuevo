@@ -283,13 +283,15 @@ function ThoughtItem({
         <Card className={cn("overflow-hidden border-border/40", (theme === 'dark' || theme === 'army') && 'bg-black')}>
             <CardContent className="p-4">
                 <div className="flex gap-4">
-                    <Avatar className="h-10 w-10 border flex-shrink-0">
-                        <AvatarImage src={thought.userPhotoURL || undefined} />
-                        <AvatarFallback>{thought.userDisplayName[0]}</AvatarFallback>
-                    </Avatar>
+                    <Link href={`/u/${thought.userDisplayName}`}>
+                        <Avatar className="h-10 w-10 border flex-shrink-0">
+                            <AvatarImage src={thought.userPhotoURL || undefined} />
+                            <AvatarFallback>{thought.userDisplayName[0]}</AvatarFallback>
+                        </Avatar>
+                    </Link>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-bold text-sm">{thought.userDisplayName}</span>
+                            <Link href={`/u/${thought.userDisplayName}`} className="font-bold text-sm hover:underline">{thought.userDisplayName}</Link>
                             {attitudeStyle && <span className={cn("text-[10px] font-black uppercase", attitudeStyle.color)}>{attitudeStyle.text}</span>}
                             {showStreak && (
                                 <div className="flex items-center gap-0.5 text-orange-500 font-bold text-[10px]" title={`${userStreak.currentStreak} días de racha`}>
@@ -389,20 +391,39 @@ function ThoughtItem({
                         {showReplies && (
                             <div className="mt-4 space-y-4 pl-4 border-l-2">
                                 {isLoadingReplies ? <Skeleton className="h-10 w-full" /> : 
-                                    replies.map(reply => (
-                                        <div key={reply.id} className="flex gap-3">
-                                            <Avatar className="h-7 w-7 border flex-shrink-0">
-                                                <AvatarImage src={reply.userPhotoURL} />
-                                                <AvatarFallback>{reply.userDisplayName[0]}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="font-bold text-xs">{reply.userDisplayName}</span>
+                                    replies.map(reply => {
+                                        const replyCountry = reply.userCountry ? countries.find(c => c.key === reply.userCountry?.toLowerCase()) : null;
+                                        const replyAttitude = reply.userAttitude ? attitudeStyles[reply.userAttitude as AttitudeOption] : null;
+                                        
+                                        return (
+                                            <div key={reply.id} className="flex gap-3">
+                                                <Link href={`/u/${reply.userDisplayName}`}>
+                                                    <Avatar className="h-7 w-7 border flex-shrink-0">
+                                                        <AvatarImage src={reply.userPhotoURL} />
+                                                        <AvatarFallback>{reply.userDisplayName[0]}</AvatarFallback>
+                                                    </Avatar>
+                                                </Link>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                        <Link href={`/u/${reply.userDisplayName}`} className="font-bold text-xs hover:underline">{reply.userDisplayName}</Link>
+                                                        {replyAttitude && <span className={cn("text-[9px] font-black uppercase", replyAttitude.color)}>{replyAttitude.text}</span>}
+                                                        {reply.userGender === 'Masculino' && <span className="text-blue-400 font-bold text-[10px]">♂</span>}
+                                                        {reply.userGender === 'Femenino' && <span className="text-pink-400 font-bold text-[10px]">♀</span>}
+                                                        {replyCountry && (
+                                                            <Image
+                                                                src={`https://flagcdn.com/w20/${replyCountry.code.toLowerCase()}.png`}
+                                                                alt={replyCountry.name}
+                                                                width={14}
+                                                                height={10}
+                                                                className="object-contain"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-foreground/90 whitespace-pre-wrap">{reply.text}</p>
                                                 </div>
-                                                <p className="text-xs text-foreground/90 whitespace-pre-wrap">{reply.text}</p>
                                             </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 }
                             </div>
                         )}
