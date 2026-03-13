@@ -47,8 +47,7 @@ import {
   X, 
   Flame, 
   Save, 
-  MessageSquare,
-  Pin
+  MessageSquare
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -643,7 +642,7 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
         await runTransaction(firestore, async (transaction) => {
             transaction.set(thoughtRef, payload);
 
-            // Guardar referencia en el perfil del usuario (Colección /thoughts igual que starposts)
+            // Guardar referencia en el perfil del usuario
             const userThoughtRef = doc(firestore, 'users', currentUser!.uid, 'thoughts', thoughtRef.id);
             transaction.set(userThoughtRef, {
                 figureId: figureId,
