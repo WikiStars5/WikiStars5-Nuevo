@@ -5,7 +5,7 @@
  * Similar a StarPosts pero sin estrellas, estilo Twitter.
  */
 
-import { useState, useContext, useEffect, useCallback } from 'react';
+import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,7 +33,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Instagram, Image as ImageIcon, Trash2, Cloud, MessageCircle, ThumbsUp, ThumbsDown, FilePenLine, X, Flame, Save } from 'lucide-react';
+import { 
+  Loader2, 
+  Send, 
+  Instagram, 
+  Image as ImageIcon, 
+  Trash2, 
+  Cloud, 
+  MessageCircle, 
+  ThumbsUp, 
+  ThumbsDown, 
+  FilePenLine, 
+  X, 
+  Flame, 
+  Save, 
+  MessageSquare 
+} from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { updateStreak } from '@/firebase/streaks';
@@ -127,7 +142,7 @@ function ThoughtItem({
         return doc(firestore, `figures/${figureId}/thoughts/${thought.id}/votes`, user.uid);
     }, [firestore, user, figureId, thought.id]);
 
-    const { data: userVote, refetch: refetchVote } = useDoc<any>(userVoteRef, { enabled: !!user, realtime: true });
+    const { data: userVote } = useDoc<any>(userVoteRef, { enabled: !!user, realtime: true });
 
     const userStreakRef = useMemoFirebase(() => {
         if (!firestore || !thought.userId) return null;
