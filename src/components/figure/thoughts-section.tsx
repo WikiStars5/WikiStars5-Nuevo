@@ -2,10 +2,10 @@
 
 /**
  * @fileOverview Sección de Pensamientos para perfiles de figuras públicas.
- * Permite a los usuarios publicar textos cortos (estilo Twitter) e imágenes de Instagram.
+ * Similar a StarPosts pero sin estrellas, estilo Twitter.
  */
 
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,25 +18,46 @@ import {
   orderBy, 
   limit, 
   onSnapshot,
-  getDoc
+  getDoc,
+  increment,
+  updateDoc,
+  deleteDoc,
+  where,
+  getDocs
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useAuth, useFirestore, useUser, useAdmin, useMemoFirebase, useDoc } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Instagram, Image as ImageIcon, Trash2, Cloud, MessageCircle } from 'lucide-react';
+import { Loader2, Send, Instagram, Image as ImageIcon, Trash2, Cloud, MessageCircle, ThumbsUp, ThumbsDown, FilePenLine, X, Flame, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { cn, formatDateDistance } from '@/lib/utils';
+import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
+import { countries } from '@/lib/countries';
+import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import ReplyForm from './reply-form';
+import { isDateActive } from '@/lib/streaks';
+import type { Streak, AttitudeVote } from '@/lib/types';
 
 const createThoughtSchema = z.object({
   text: z.string().min(1, 'El pensamiento no puede estar vacío.').max(250, 'Máximo 250 caracteres.'),
@@ -50,8 +71,308 @@ interface Thought {
     text: string;
     instagramImageUrl?: string | null;
     createdAt: any;
+    updatedAt?: any;
     userDisplayName: string;
     userPhotoURL: string | null;
+    userCountry?: string | null;
+    userGender?: string | null;
+    userAttitude?: string | null;
+    likes?: number;
+    dislikes?: number;
+    replyCount?: number;
+}
+
+type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
+
+const attitudeStyles: Record<AttitudeOption, { text: string; color: string }> = {
+    fan: { text: 'Fan', color: 'text-yellow-400' },
+    hater: { text: 'Hater', color: 'text-red-500' },
+    simp: { text: 'Simp', color: 'text-pink-400' },
+    neutral: { text: 'Espectador', color: 'text-gray-500' },
+};
+
+function ThoughtItem({ 
+    thought, 
+    figureId, 
+    figureName,
+    onDeleteSuccess
+}: { 
+    thought: Thought, 
+    figureId: string, 
+    figureName: string,
+    onDeleteSuccess: (id: string) => void
+}) {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const auth = useAuth();
+    const { toast } = useToast();
+    const { language } = useLanguage();
+    const { theme } = useTheme();
+    const { showStreakAnimation } = useContext(StreakAnimationContext);
+
+    const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editText, setEditText] = useState(thought.text);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [isReplying, setIsReplying] = useState(false);
+    const [replies, setReplies] = useState<any[]>([]);
+    const [showReplies, setShowReplies] = useState(false);
+    const [isLoadingReplies, setIsLoadingReplies] = useState(false);
+
+    const isOwner = user && user.uid === thought.userId;
+
+    const userVoteRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, `figures/${figureId}/thoughts/${thought.id}/votes`, user.uid);
+    }, [firestore, user, figureId, thought.id]);
+
+    const { data: userVote, refetch: refetchVote } = useDoc<any>(userVoteRef, { enabled: !!user, realtime: true });
+
+    const userStreakRef = useMemoFirebase(() => {
+        if (!firestore || !thought.userId) return null;
+        return doc(firestore, `users/${thought.userId}/streaks`, figureId);
+    }, [firestore, thought.userId, figureId]);
+
+    const { data: userStreak } = useDoc<Streak>(userStreakRef, { realtime: true });
+
+    const country = thought.userCountry ? countries.find(c => c.key === thought.userCountry?.toLowerCase()) : null;
+    const attitudeStyle = thought.userAttitude ? attitudeStyles[thought.userAttitude as AttitudeOption] : null;
+    const showStreak = userStreak && userStreak.currentStreak > 0 && isDateActive(userStreak.lastCommentDate);
+
+    useEffect(() => {
+        if (!showReplies || !firestore) return;
+        setIsLoadingReplies(true);
+        const q = query(
+            collection(firestore, 'figures', figureId, 'thoughts', thought.id, 'replies'),
+            orderBy('createdAt', 'asc')
+        );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setReplies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setIsLoadingReplies(false);
+        });
+        return () => unsubscribe();
+    }, [showReplies, firestore, figureId, thought.id]);
+
+    const handleVote = async (voteType: 'like' | 'dislike') => {
+        if (!firestore || isVoting || !auth) return;
+        setIsVoting(voteType);
+
+        let currentUser = user;
+        if (!currentUser) {
+            try {
+                const userCredential = await signInAnonymously(auth);
+                currentUser = userCredential.user;
+            } catch (error) {
+                toast({ title: 'Error de conexión', variant: 'destructive' });
+                setIsVoting(null);
+                return;
+            }
+        }
+
+        const thoughtRef = doc(firestore, 'figures', figureId, 'thoughts', thought.id);
+        const voteRef = doc(firestore, `figures/${figureId}/thoughts/${thought.id}/votes`, currentUser!.uid);
+
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const voteDoc = await transaction.get(voteRef);
+                const existingVote = voteDoc.exists() ? voteDoc.data().vote : null;
+                const updates: { [key: string]: any } = {};
+
+                if (existingVote === voteType) {
+                    updates[`${voteType}s`] = increment(-1);
+                    transaction.delete(voteRef);
+                } else {
+                    updates[`${voteType}s`] = increment(1);
+                    if (existingVote) {
+                        const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
+                        updates[`${otherVoteType}s`] = increment(-1);
+                    }
+                    transaction.set(voteRef, { vote: voteType, createdAt: serverTimestamp() });
+                }
+                transaction.update(thoughtRef, updates);
+            });
+
+            const streakResult = await updateStreak({
+                firestore, figureId, figureName,
+                userId: currentUser!.uid, isAnonymous: currentUser!.isAnonymous,
+                userPhotoURL: currentUser!.photoURL
+            });
+
+            if (streakResult?.streakGained) {
+                showStreakAnimation(streakResult.newStreakCount, { showPrompt: true, figureId, figureName });
+            }
+        } catch (error) {
+            console.error(error);
+            toast({ title: 'Error al votar', variant: 'destructive' });
+        } finally {
+            setIsVoting(null);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!firestore || !isOwner) return;
+        setIsDeleting(true);
+        try {
+            const thoughtRef = doc(firestore, 'figures', figureId, 'thoughts', thought.id);
+            await deleteDoc(thoughtRef);
+            toast({ title: 'Pensamiento eliminado' });
+            onDeleteSuccess(thought.id);
+        } catch (error) {
+            toast({ title: 'Error al eliminar', variant: 'destructive' });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleUpdate = async () => {
+        if (!firestore || !isOwner) return;
+        setIsSavingEdit(true);
+        try {
+            const thoughtRef = doc(firestore, 'figures', figureId, 'thoughts', thought.id);
+            await updateDoc(thoughtRef, { text: editText, updatedAt: serverTimestamp() });
+            toast({ title: 'Pensamiento actualizado' });
+            setIsEditing(false);
+        } catch (error) {
+            toast({ title: 'Error al actualizar', variant: 'destructive' });
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
+
+    return (
+        <Card className={cn("overflow-hidden border-border/40", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+            <CardContent className="p-4">
+                <div className="flex gap-4">
+                    <Avatar className="h-10 w-10 border flex-shrink-0">
+                        <AvatarImage src={thought.userPhotoURL || undefined} />
+                        <AvatarFallback>{thought.userDisplayName[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="font-bold text-sm">{thought.userDisplayName}</span>
+                            {attitudeStyle && <span className={cn("text-[10px] font-black uppercase", attitudeStyle.color)}>{attitudeStyle.text}</span>}
+                            {showStreak && (
+                                <div className="flex items-center gap-0.5 text-orange-500 font-bold text-[10px]" title={`${userStreak.currentStreak} días de racha`}>
+                                    <Flame className="h-3 w-3" />
+                                    <span>{userStreak.currentStreak}</span>
+                                </div>
+                            )}
+                            {thought.userGender === 'Masculino' && <span className="text-blue-400 font-bold text-[10px]">♂</span>}
+                            {thought.userGender === 'Femenino' && <span className="text-pink-400 font-bold text-[10px]">♀</span>}
+                            {country && (
+                                <Image
+                                    src={`https://flagcdn.com/w20/${country.code.toLowerCase()}.png`}
+                                    alt={country.name}
+                                    width={16}
+                                    height={12}
+                                    className="object-contain"
+                                />
+                            )}
+                            <span className="text-[10px] text-muted-foreground uppercase">{formatDateDistance(thought.createdAt?.toDate() || new Date(), language)}</span>
+                        </div>
+
+                        {isEditing ? (
+                            <div className="space-y-2 mt-2">
+                                <Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="text-sm min-h-[80px]" maxLength={250} />
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancelar</Button>
+                                    <Button size="sm" onClick={handleUpdate} disabled={isSavingEdit}>
+                                        {isSavingEdit ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-1" />} Guardar
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-foreground/90 whitespace-pre-wrap">{thought.text}</p>
+                        )}
+
+                        {thought.instagramImageUrl && !isEditing && (
+                            <div className="relative w-full max-h-[400px] aspect-square rounded-xl overflow-hidden border mt-3 bg-muted/30">
+                                <Image src={thought.instagramImageUrl} alt="Thought image" fill className="object-contain" />
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-4 mt-3">
+                            <Button variant="ghost" size="sm" className={cn("h-8 px-2 text-xs", userVote?.vote === 'like' && "text-primary")} onClick={() => handleVote('like')} disabled={!!isVoting}>
+                                <ThumbsUp className="h-3.5 w-3.5 mr-1" /> {formatCompactNumber(thought.likes || 0)}
+                            </Button>
+                            <Button variant="ghost" size="sm" className={cn("h-8 px-2 text-xs", userVote?.vote === 'dislike' && "text-destructive")} onClick={() => handleVote('dislike')} disabled={!!isVoting}>
+                                <ThumbsDown className="h-3.5 w-3.5 mr-1" /> {formatCompactNumber(thought.dislikes || 0)}
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setIsReplying(!isReplying)}>
+                                <MessageSquare className="h-3.5 w-3.5 mr-1" /> Responder
+                            </Button>
+                            
+                            {isOwner && (
+                                <div className="flex items-center gap-1 ml-auto">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
+                                        <FilePenLine className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>¿Eliminar pensamiento?</AlertDialogTitle>
+                                                <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            )}
+                        </div>
+
+                        {isReplying && (
+                            <div className="mt-4 pt-4 border-t">
+                                <ReplyForm 
+                                    figureId={figureId} 
+                                    figureName={figureName} 
+                                    parentComment={{ id: thought.id, ...thought } as any} 
+                                    replyToComment={{ id: thought.id, ...thought } as any} 
+                                    onReplySuccess={() => setIsReplying(false)}
+                                />
+                            </div>
+                        )}
+
+                        {thought.replyCount && thought.replyCount > 0 && (
+                            <Button variant="link" size="sm" className="text-xs p-0 h-auto mt-2" onClick={() => setShowReplies(!showReplies)}>
+                                {showReplies ? 'Ocultar respuestas' : `Ver ${thought.replyCount} respuestas`}
+                            </Button>
+                        )}
+
+                        {showReplies && (
+                            <div className="mt-4 space-y-4 pl-4 border-l-2">
+                                {isLoadingReplies ? <Skeleton className="h-10 w-full" /> : 
+                                    replies.map(reply => (
+                                        <div key={reply.id} className="flex gap-3">
+                                            <Avatar className="h-7 w-7 border flex-shrink-0">
+                                                <AvatarImage src={reply.userPhotoURL} />
+                                                <AvatarFallback>{reply.userDisplayName[0]}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="font-bold text-xs">{reply.userDisplayName}</span>
+                                                    <span className="text-[9px] text-muted-foreground uppercase">{formatDateDistance(reply.createdAt?.toDate() || new Date(), language)}</span>
+                                                </div>
+                                                <p className="text-xs text-foreground/90 whitespace-pre-wrap">{reply.text}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
 }
 
 export default function ThoughtsSection({ figureId, figureName }: { figureId: string, figureName: string }) {
@@ -59,7 +380,6 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
-  const { language } = useLanguage();
   const { theme } = useTheme();
   const { showStreakAnimation } = useContext(StreakAnimationContext);
 
@@ -148,8 +468,15 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
     try {
         const thoughtRef = doc(collection(firestore, 'figures', figureId, 'thoughts'));
         const userRef = doc(firestore, 'users', currentUser.uid);
-        const userSnap = await getDoc(userRef);
+        const attitudeRef = doc(firestore, `users/${currentUser.uid}/attitudeVotes`, figureId);
+        
+        const [userSnap, attitudeSnap] = await Promise.all([
+            getDoc(userRef),
+            getDoc(attitudeRef)
+        ]);
+
         const userData = userSnap.exists() ? userSnap.data() : {};
+        const attitudeData = attitudeSnap.exists() ? attitudeSnap.data() : {};
 
         const payload = {
             userId: currentUser.uid,
@@ -158,6 +485,12 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
             createdAt: serverTimestamp(),
             userDisplayName: userData.username || currentUser.displayName || `Invitado_${currentUser.uid.substring(0,4)}`,
             userPhotoURL: userData.profilePhotoUrl || currentUser.photoURL || null,
+            userCountry: userData.country || null,
+            userGender: userData.gender || null,
+            userAttitude: attitudeData.vote || null,
+            likes: 0,
+            dislikes: 0,
+            replyCount: 0,
         };
 
         await runTransaction(firestore, async (transaction) => {
@@ -261,26 +594,13 @@ export default function ThoughtsSection({ figureId, figureName }: { figureId: st
             Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)
         ) : thoughts.length > 0 ? (
             thoughts.map((t) => (
-                <Card key={t.id} className={cn("overflow-hidden border-border/40", (theme === 'dark' || theme === 'army') && 'bg-black')}>
-                    <CardContent className="p-4 flex gap-4">
-                        <Avatar className="h-10 w-10 border">
-                            <AvatarImage src={t.userPhotoURL || undefined} />
-                            <AvatarFallback>{t.userDisplayName[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className="font-bold text-sm">{t.userDisplayName}</span>
-                                <span className="text-[10px] text-muted-foreground uppercase">{formatDateDistance(t.createdAt?.toDate() || new Date(), language)}</span>
-                            </div>
-                            <p className="text-sm text-foreground/90 whitespace-pre-wrap">{t.text}</p>
-                            {t.instagramImageUrl && (
-                                <div className="relative w-full max-h-[400px] aspect-square rounded-xl overflow-hidden border mt-3 bg-muted/30">
-                                    <Image src={t.instagramImageUrl} alt="Thought image" fill className="object-contain" />
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+                <ThoughtItem 
+                    key={t.id} 
+                    thought={t} 
+                    figureId={figureId} 
+                    figureName={figureName}
+                    onDeleteSuccess={(id) => setThoughts(prev => prev.filter(item => item.id !== id))}
+                />
             ))
         ) : (
             <div className="text-center py-12 border-2 border-dashed rounded-xl">
