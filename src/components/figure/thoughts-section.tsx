@@ -1,4 +1,3 @@
-
 'use client';
 
 /**
@@ -405,16 +404,16 @@ export function ThoughtDisplay({
                     {!isReply && (
                         <Button 
                             variant="ghost" 
-                            size="sm" 
+                            size="icon" 
                             className={cn(
-                                "h-8 px-2 text-[10px] gap-1.5",
+                                "h-8 w-8",
                                 isSaved ? "text-primary" : "text-muted-foreground"
                             )}
                             onClick={handleSaveToggle}
                             disabled={isSaving || !user}
+                            title={isSaved ? "Quitar de guardados" : "Guardar pensamiento"}
                         >
                             {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isSaved ? <BookmarkCheck className="h-3.5 w-3.5 fill-current" /> : <Bookmark className="h-3.5 w-3.5" />}
-                            <span>{isSaved ? 'Guardado' : 'Guardar'}</span>
                         </Button>
                     )}
                     
