@@ -1,3 +1,4 @@
+
 'use client';
 
 /**
@@ -24,7 +25,8 @@ import {
   updateDoc,
   where,
   getDocs,
-  Timestamp
+  Timestamp,
+  deleteDoc
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -47,7 +49,9 @@ import {
   X, 
   Flame, 
   Save, 
-  MessageSquare
+  MessageSquare,
+  Bookmark,
+  BookmarkCheck
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -137,6 +141,7 @@ export function ThoughtDisplay({
     const [isVoting, setIsVoting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [editText, setEditText] = useState(thought.text);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
 
@@ -152,6 +157,15 @@ export function ThoughtDisplay({
     }, [firestore, user, votePath]);
 
     const { data: userVote } = useDoc<any>(userVoteRef, { enabled: !!user, realtime: true });
+
+    // Save functionality
+    const savedRef = useMemoFirebase(() => {
+        if (!firestore || !user || !thought.id) return null;
+        return doc(firestore, `users/${user.uid}/saved_thoughts`, thought.id);
+    }, [firestore, user, thought.id]);
+
+    const { data: savedDoc } = useDoc(savedRef, { enabled: !!user, realtime: true });
+    const isSaved = !!savedDoc;
 
     const userStreakRef = useMemoFirebase(() => {
         if (!firestore || !thought.userId || !figureId) return null;
@@ -217,6 +231,31 @@ export function ThoughtDisplay({
             toast({ title: 'Error al procesar el corazón', variant: 'destructive' });
         } finally {
             setIsVoting(false);
+        }
+    };
+
+    const handleSaveToggle = async () => {
+        if (!firestore || !user || isSaving) return;
+        setIsSaving(true);
+        try {
+            if (isSaved) {
+                await deleteDoc(savedRef!);
+                toast({ title: 'Eliminado de guardados' });
+            } else {
+                await runTransaction(firestore, async (transaction) => {
+                    transaction.set(savedRef!, {
+                        figureId: figureId,
+                        thoughtId: thought.id,
+                        createdAt: serverTimestamp(),
+                    });
+                });
+                toast({ title: 'Pensamiento guardado' });
+            }
+        } catch (error) {
+            console.error(error);
+            toast({ title: 'Error al guardar', variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -362,6 +401,22 @@ export function ThoughtDisplay({
                         <MessageSquare className="h-3.5 w-3.5" /> 
                         <span>Responder</span>
                     </Button>
+
+                    {!isReply && (
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={cn(
+                                "h-8 px-2 text-[10px] gap-1.5",
+                                isSaved ? "text-primary" : "text-muted-foreground"
+                            )}
+                            onClick={handleSaveToggle}
+                            disabled={isSaving || !user}
+                        >
+                            {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isSaved ? <BookmarkCheck className="h-3.5 w-3.5 fill-current" /> : <Bookmark className="h-3.5 w-3.5" />}
+                            <span>{isSaved ? 'Guardado' : 'Guardar'}</span>
+                        </Button>
+                    )}
                     
                     {isOwner && (
                         <div className="flex items-center gap-1 ml-auto">

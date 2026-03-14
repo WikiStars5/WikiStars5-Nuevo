@@ -223,6 +223,12 @@ export interface StarPostReference {
   createdAt: Timestamp;
 }
 
+export interface ThoughtReference {
+    figureId: string;
+    thoughtId: string;
+    createdAt: Timestamp;
+}
+
 export interface Comment {
   id: string;
   userId: string;
