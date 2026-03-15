@@ -1,4 +1,3 @@
-
 import { ImageResponse } from 'next/og'
 
 // Image metadata
@@ -10,7 +9,7 @@ export const contentType = 'image/png'
 
 // Image generation
 export default function Icon() {
-  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528";
+  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Festrellados%20(3).jpg?alt=media&token=4c5ff945-b737-4bd6-bb41-98b609c654c9";
   
   return new ImageResponse(
     (
@@ -25,16 +24,14 @@ export default function Icon() {
           alignItems: 'center',
           justifyContent: 'center',
           color: 'white',
-          borderRadius: '50%'
+          borderRadius: '50%',
+          overflow: 'hidden'
         }}
       >
-        <img src={logoUrl} alt="WikiStars5 Logo" width="32" height="32" />
+        <img src={logoUrl} alt="Starryz5 Logo" width="32" height="32" style={{ objectFit: 'cover' }} />
       </div>
     ),
-    // ImageResponse options
     {
-      // For convenience, we can re-use the exported icons size metadata
-      // config to also set the ImageResponse's width and height.
       ...size,
     }
   )

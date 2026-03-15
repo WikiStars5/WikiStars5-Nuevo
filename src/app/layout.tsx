@@ -31,6 +31,15 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   openGraph: {
     siteName: 'Starryz5',
+    title: 'Starryz5 | El YELP de las Celebridades',
+    description: 'Vota, califica y comparte tus pensamientos sobre figuras públicas.',
+    images: ['https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Festrellados%20(3).jpg?alt=media&token=4c5ff945-b737-4bd6-bb41-98b609c654c9'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Starryz5 | El YELP de las Celebridades',
+    description: 'Vota, califica y comparte tus pensamientos sobre figuras públicas.',
+    images: ['https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Festrellados%20(3).jpg?alt=media&token=4c5ff945-b737-4bd6-bb41-98b609c654c9'],
   },
   robots: {
     index: true,
@@ -51,19 +60,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
         <link rel="manifest" href="/manifest.json" />
-        {/* Critical Path CSS for LCP */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          .lcp-wrapper { position: relative; overflow: hidden; background: #000; border-radius: 0.5rem; }
-          .lcp-hero { height: 192px; width: 100%; position: relative; background: #111; }
-          @media (min-width: 768px) { .lcp-hero { height: 256px; } }
-          .lcp-avatar { width: 112px; height: 112px; border-radius: 9999px; border: 4px solid #000; margin-top: -64px; position: relative; z-index: 10; background: #222; }
-          @media (min-width: 768px) { .lcp-avatar { width: 144px; height: 144px; margin-top: -80px; } }
-        ` }} />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
         <ThemeProvider
