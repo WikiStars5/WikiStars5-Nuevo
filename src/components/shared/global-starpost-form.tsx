@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect } from 'react';
@@ -21,6 +20,7 @@ import { signInAnonymously, User as FirebaseUser } from 'firebase/auth';
 import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -588,271 +588,7 @@ export default function GlobalStarPostForm() {
     }
   };
 
-  const hasContentInCurrentTab = (contentType === 'starpost' ? existingComment : existingThought);
-
-  return (
-    <Card className={cn("mb-8 border-primary/20", (theme === 'dark' || theme === 'army') && "bg-black border-primary/40")}>
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl flex items-center gap-2">
-          <Send className="text-primary h-5 w-5" />
-          ¿Qué quieres compartir hoy?
-        </CardTitle>
-        <CardDescription>Publica un StarPost o un pensamiento rápido al instante.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!selectedFigure ? (
-          <FigureSearchInput onFigureSelect={setSelectedFigure} className="max-w-full" />
-        ) : (
-          <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-dashed">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10 border-2 border-primary/50">
-                <AvatarImage src={selectedFigure.imageUrl} />
-                <AvatarFallback>{selectedFigure.name[0]}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-bold text-sm">{selectedFigure.name}</p>
-                <p className="text-xs text-muted-foreground">{selectedFigure.occupation || 'Figura pública'}</p>
-              </div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => {
-              setSelectedFigure(null);
-              setExistingComment(null);
-              setExistingThought(null);
-              setExistingAttitude(null);
-              setIsEditing(false);
-              setInstaImageUrl(null);
-              setInstaUrl('');
-            }}>
-              <XCircle className="h-5 w-5" />
-            </Button>
-          </div>
-        )}
-
-        {selectedFigure && isCheckingExisting && (
-          <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <p className="text-sm">Sincronizando con el servidor...</p>
-          </div>
-        )}
-
-        {selectedFigure && !isCheckingExisting && (
-          <>
-            <div className="space-y-3">
-                <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest">¿Cuál es tu actitud hacia él/ella?</FormLabel>
-                <div className="grid grid-cols-4 gap-2">
-                  {attitudeOptions.map((option) => {
-                    const isSelected = selectedAttitude === option.id;
-                    return (
-                      <Button
-                        key={option.id}
-                        type="button"
-                        variant="outline"
-                        disabled={isVoting}
-                        className={cn(
-                          "h-20 flex-col gap-1 p-2 border-2 transition-all",
-                          isSelected ? option.selectedClass : "hover:bg-muted/50 border-dashed"
-                        )}
-                        onClick={() => handleAttitudeChange(option.id)}
-                      >
-                        {isVoting && isSelected ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                            <>
-                                <Image src={option.gifUrl} alt={option.label} width={32} height={32} unoptimized className="h-8 w-8" />
-                                <span className="text-[10px] font-bold">{option.label}</span>
-                            </>
-                        )}
-                      </Button>
-                    );
-                  })}
-                </div>
-            </div>
-
-            <Tabs value={contentType} onValueChange={(v) => { setContentType(v as any); setIsEditing(false); }} className="w-full">
-                <TabsList className={cn("grid w-full grid-cols-2", (theme === 'dark' || theme === 'army') && "bg-black")}>
-                    <TabsTrigger value="starpost" className="gap-2">
-                        <MessageSquare className="h-4 w-4" /> StarPost
-                    </TabsTrigger>
-                    <TabsTrigger value="thought" className="gap-2">
-                        <Cloud className="h-4 w-4" /> Post
-                    </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="starpost" className="pt-4">
-                    {existingComment && !isEditing ? (
-                        <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
-                            <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <AlertCircle className="text-primary h-6 w-6" />
-                            </div>
-                            <h3 className="font-bold text-lg mb-2">Ya has calificado a {selectedFigure.name}</h3>
-                            <div className="flex flex-col items-center gap-3 mb-6">
-                                <div className="flex items-center gap-4">
-                                    <StarRating rating={existingComment.rating} />
-                                </div>
-                                {existingComment.tag && (
-                                    <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/20">
-                                        {commentTags.find(t => t.id === existingComment.tag)?.emoji} {commentTags.find(t => t.id === existingComment.tag)?.label}
-                                    </div>
-                                )}
-                                {existingComment.text && (
-                                    <p className="text-sm text-muted-foreground italic max-w-xs line-clamp-2">
-                                        "{existingComment.text}"
-                                    </p>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-                                <Button variant="outline" className="w-full" onClick={handleEditClick}>
-                                    <Pencil className="mr-2 h-4 w-4" /> Editar Reseña
-                                </Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" className="w-full" disabled={isDeleting}>
-                                            <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>¿Eliminar tu StarPost?</AlertDialogTitle>
-                                            <AlertDialogDescription>Se borrarán tus estrellas y tu opinión sobre {selectedFigure.name}.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleDeleteExisting}>Eliminar permanentemente</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                        </div>
-                    ) : (
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-                                <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="rating"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Calificación</FormLabel>
-                                                <FormControl>
-                                                    <StarInput value={field.value!} onChange={field.onChange} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="tag"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Etiqueta</FormLabel>
-                                                <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
-                                                    <PopoverTrigger asChild>
-                                                        <Button variant="outline" size="sm" className={cn("h-9 min-w-[100px]", !field.value && "text-muted-foreground")}>
-                                                            {selectedTag ? `${selectedTag.emoji} ${selectedTag.label}` : <><Tag className="mr-2 h-4 w-4" /> Etiqueta</>}
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[300px] p-2" align="end">
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            {commentTags.map(tag => (
-                                                                <Button
-                                                                    key={tag.id}
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className={cn("justify-start h-9 text-xs", selectedTagId === tag.id && "bg-muted")}
-                                                                    onClick={() => {
-                                                                        form.setValue('tag', selectedTagId === tag.id ? undefined : tag.id);
-                                                                        setIsTagPopoverOpen(false);
-                                                                    }}
-                                                                >
-                                                                    <span className="mr-2">{tag.emoji}</span> {tag.label}
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <FormField
-                                    control={form.control}
-                                    name="text"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <Textarea {...field} placeholder={`¿Qué tienes que decir sobre ${selectedFigure?.name}?`} className="resize-none min-h-[80px]" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                {renderSharedFields()}
-                            </form>
-                        </Form>
-                    )}
-                </TabsContent>
-
-                <TabsContent value="thought" className="pt-4">
-                    {existingThought && !isEditing ? (
-                        <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
-                            <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Cloud className="text-primary h-6 w-6" />
-                            </div>
-                            <h3 className="font-bold text-lg mb-2">Ya has publicado un pensamiento</h3>
-                            <p className="text-sm text-muted-foreground italic max-w-xs mx-auto mb-6">"{existingThought.text}"</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-                                <Button variant="outline" className="w-full" onClick={handleEditClick}>
-                                    <Pencil className="mr-2 h-4 w-4" /> Editar Post
-                                </Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" className="w-full" disabled={isDeleting}>
-                                            <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>¿Eliminar tu pensamiento?</AlertDialogTitle>
-                                            <AlertDialogDescription>Esta acción es permanente.</AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleDeleteExisting}>Eliminar permanentemente</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                        </div>
-                    ) : (
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-                                <FormField
-                                    control={form.control}
-                                    name="text"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <Textarea {...field} placeholder={`Comparte un pensamiento rápido sobre ${selectedFigure?.name}...`} className="resize-none min-h-[100px]" />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                {renderSharedFields()}
-                            </form>
-                        </Form>
-                    )}
-                </TabsContent>
-            </Tabs>
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-
-  function renderSharedFields() {
+  const renderSharedFields = () => {
     return (
         <div className="space-y-6">
             {needsIdentity && (
@@ -861,7 +597,7 @@ export default function GlobalStarPostForm() {
                     name="username"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel className="text-xs">Nombre de usuario para tu post</FormLabel>
+                            <Label className="text-xs">Nombre de usuario para tu post</Label>
                             <FormControl>
                                 <Input {...field} placeholder="Ej: FanReal_99" className="h-9" />
                             </FormControl>
@@ -872,9 +608,9 @@ export default function GlobalStarPostForm() {
             )}
 
             <div className="space-y-3">
-                <FormLabel className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                     <Instagram className="h-4 w-4 text-pink-500" /> Imagen de Instagram (opcional)
-                </FormLabel>
+                </Label>
                 
                 {instaImageUrl ? (
                     <div className="relative group w-full rounded-xl overflow-hidden border-2 border-primary/20 bg-muted flex items-center justify-center min-h-[250px] max-h-[600px]">
@@ -907,4 +643,264 @@ export default function GlobalStarPostForm() {
         </div>
     );
   }
+
+  return (
+    <Card className={cn("mb-8 border-primary/20", (theme === 'dark' || theme === 'army') && "bg-black border-primary/40")}>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-xl flex items-center gap-2">
+          <Send className="text-primary h-5 w-5" />
+          ¿Qué quieres compartir hoy?
+        </CardTitle>
+        <CardDescription>Publica un StarPost o un pensamiento rápido al instante.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Form {...form}>
+          {!selectedFigure ? (
+            <FigureSearchInput onFigureSelect={setSelectedFigure} className="max-w-full" />
+          ) : (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-dashed">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 border-2 border-primary/50">
+                  <AvatarImage src={selectedFigure.imageUrl} />
+                  <AvatarFallback>{selectedFigure.name[0]}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-bold text-sm">{selectedFigure.name}</p>
+                  <p className="text-xs text-muted-foreground">{selectedFigure.occupation || 'Figura pública'}</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => {
+                setSelectedFigure(null);
+                setExistingComment(null);
+                setExistingThought(null);
+                setExistingAttitude(null);
+                setIsEditing(false);
+                setInstaImageUrl(null);
+                setInstaUrl('');
+              }}>
+                <XCircle className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
+
+          {selectedFigure && isCheckingExisting && (
+            <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <p className="text-sm">Sincronizando con el servidor...</p>
+            </div>
+          )}
+
+          {selectedFigure && !isCheckingExisting && (
+            <>
+              <div className="space-y-3">
+                  <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">¿Cuál es tu actitud hacia él/ella?</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {attitudeOptions.map((option) => {
+                      const isSelected = selectedAttitude === option.id;
+                      return (
+                        <Button
+                          key={option.id}
+                          type="button"
+                          variant="outline"
+                          disabled={isVoting}
+                          className={cn(
+                            "h-20 flex-col gap-1 p-2 border-2 transition-all",
+                            isSelected ? option.selectedClass : "hover:bg-muted/50 border-dashed"
+                          )}
+                          onClick={() => handleAttitudeChange(option.id)}
+                        >
+                          {isVoting && isSelected ? (
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                              <>
+                                  <Image src={option.gifUrl} alt={option.label} width={32} height={32} unoptimized className="h-8 w-8" />
+                                  <span className="text-[10px] font-bold">{option.label}</span>
+                              </>
+                          )}
+                        </Button>
+                      );
+                    })}
+                  </div>
+              </div>
+
+              <Tabs value={contentType} onValueChange={(v) => { setContentType(v as any); setIsEditing(false); }} className="w-full">
+                  <TabsList className={cn("grid w-full grid-cols-2", (theme === 'dark' || theme === 'army') && "bg-black")}>
+                      <TabsTrigger value="starpost" className="gap-2">
+                          <MessageSquare className="h-4 w-4" /> StarPost
+                      </TabsTrigger>
+                      <TabsTrigger value="thought" className="gap-2">
+                          <Cloud className="h-4 w-4" /> Post
+                      </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="starpost" className="pt-4">
+                      {existingComment && !isEditing ? (
+                          <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
+                              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <AlertCircle className="text-primary h-6 w-6" />
+                              </div>
+                              <h3 className="font-bold text-lg mb-2">Ya has calificado a {selectedFigure.name}</h3>
+                              <div className="flex flex-col items-center gap-3 mb-6">
+                                  <div className="flex items-center gap-4">
+                                      <StarRating rating={existingComment.rating} />
+                                  </div>
+                                  {existingComment.tag && (
+                                      <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/20">
+                                          {commentTags.find(t => t.id === existingComment.tag)?.emoji} {commentTags.find(t => t.id === existingComment.tag)?.label}
+                                      </div>
+                                  )}
+                                  {existingComment.text && (
+                                      <p className="text-sm text-muted-foreground italic max-w-xs line-clamp-2">
+                                          "{existingComment.text}"
+                                      </p>
+                                  )}
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+                                  <Button variant="outline" className="w-full" onClick={handleEditClick}>
+                                      <Pencil className="mr-2 h-4 w-4" /> Editar Reseña
+                                  </Button>
+                                  <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                          <Button variant="destructive" className="w-full" disabled={isDeleting}>
+                                              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                                          </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                              <AlertDialogTitle>¿Eliminar tu StarPost?</AlertDialogTitle>
+                                              <AlertDialogDescription>Se borrarán tus estrellas y tu opinión sobre {selectedFigure.name}.</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction onClick={handleDeleteExisting}>Eliminar permanentemente</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                  </AlertDialog>
+                              </div>
+                          </div>
+                      ) : (
+                          <div className="space-y-6">
+                              <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                                  <FormField
+                                      control={form.control}
+                                      name="rating"
+                                      render={({ field }) => (
+                                          <FormItem>
+                                              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Calificación</Label>
+                                              <FormControl>
+                                                  <StarInput value={field.value!} onChange={field.onChange} />
+                                              </FormControl>
+                                              <FormMessage />
+                                          </FormItem>
+                                      )}
+                                  />
+                                  <FormField
+                                      control={form.control}
+                                      name="tag"
+                                      render={({ field }) => (
+                                          <FormItem>
+                                              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Etiqueta</Label>
+                                              <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
+                                                  <PopoverTrigger asChild>
+                                                      <Button variant="outline" size="sm" className={cn("h-9 min-w-[100px]", !field.value && "text-muted-foreground")}>
+                                                          {selectedTag ? `${selectedTag.emoji} ${selectedTag.label}` : <><Tag className="mr-2 h-4 w-4" /> Etiqueta</>}
+                                                      </Button>
+                                                  </PopoverTrigger>
+                                                  <PopoverContent className="w-[300px] p-2" align="end">
+                                                      <div className="grid grid-cols-2 gap-2">
+                                                          {commentTags.map(tag => (
+                                                              <Button
+                                                                  key={tag.id}
+                                                                  type="button"
+                                                                  variant="ghost"
+                                                                  size="sm"
+                                                                  className={cn("justify-start h-9 text-xs", selectedTagId === tag.id && "bg-muted")}
+                                                                  onClick={() => {
+                                                                      form.setValue('tag', selectedTagId === tag.id ? undefined : tag.id);
+                                                                      setIsTagPopoverOpen(false);
+                                                                  }}
+                                                              >
+                                                                  <span className="mr-2">{tag.emoji}</span> {tag.label}
+                                                              </Button>
+                                                          ))}
+                                                      </div>
+                                                  </PopoverContent>
+                                              </Popover>
+                                          </FormItem>
+                                      )}
+                                  />
+                              </div>
+                              <FormField
+                                  control={form.control}
+                                  name="text"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                          <FormControl>
+                                              <Textarea {...field} placeholder={`¿Qué tienes que decir sobre ${selectedFigure?.name}?`} className="resize-none min-h-[80px]" />
+                                          </FormControl>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                              {renderSharedFields()}
+                          </div>
+                      )}
+                  </TabsContent>
+
+                  <TabsContent value="thought" className="pt-4">
+                      {existingThought && !isEditing ? (
+                          <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
+                              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <Cloud className="text-primary h-6 w-6" />
+                              </div>
+                              <h3 className="font-bold text-lg mb-2">Ya has publicado un pensamiento</h3>
+                              <p className="text-sm text-muted-foreground italic max-w-xs mx-auto mb-6">"{existingThought.text}"</p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+                                  <Button variant="outline" className="w-full" onClick={handleEditClick}>
+                                      <Pencil className="mr-2 h-4 w-4" /> Editar Post
+                                  </Button>
+                                  <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                          <Button variant="destructive" className="w-full" disabled={isDeleting}>
+                                              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                                          </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                              <AlertDialogTitle>¿Eliminar tu pensamiento?</AlertDialogTitle>
+                                              <AlertDialogDescription>Esta acción es permanente.</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                              <AlertDialogAction onClick={handleDeleteExisting}>Eliminar permanentemente</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                  </AlertDialog>
+                              </div>
+                          </div>
+                      ) : (
+                          <div className="space-y-6">
+                              <FormField
+                                  control={form.control}
+                                  name="text"
+                                  render={({ field }) => (
+                                      <FormItem>
+                                          <FormControl>
+                                              <Textarea {...field} placeholder={`Comparte un pensamiento rápido sobre ${selectedFigure?.name}...`} className="resize-none min-h-[100px]" />
+                                          </FormControl>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                              {renderSharedFields()}
+                          </div>
+                      )}
+                  </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </Form>
+      </CardContent>
+    </Card>
+  );
 }
