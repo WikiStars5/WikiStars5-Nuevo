@@ -102,10 +102,10 @@ export default function Header() {
         <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 font-bold text-lg">
                 <Link href="/">
-                    <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528" alt="WikiStars5 Logo" width={24} height={24} className="h-6 w-6" />
+                    <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Festrellados%20(3).jpg?alt=media&token=4c5ff945-b737-4bd6-bb41-98b609c654c9" alt="Starryz5 Logo" width={32} height={32} className="h-8 w-8 rounded-full" />
                 </Link>
                 <span className="font-headline text-primary">
-                    <Link href="/">WikiStars5</Link>
+                    <Link href="/">Starryz5</Link>
                 </span>
             </div>
             <div className="hidden md:block w-96">

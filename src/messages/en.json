@@ -1,4 +1,3 @@
-
 {
   "Footer": {
     "rules": "Rules",
@@ -10,12 +9,12 @@
     "welcome": {
       "title": {
         "part1": "Welcome to",
-        "part2": "WikiStars5"
+        "part2": "Starryz5"
       },
       "searchHint": "Type a name and press enter or click search."
     },
     "howItWorks": {
-      "title": "How WikiStars5 Works"
+      "title": "How Starryz5 Works"
     },
     "features": {
       "discover": {
@@ -92,7 +91,7 @@
       "accountLinkedDescription": "You have connected your Google account. Your activity has been saved.",
       "linkErrorTitle": "Linking Error",
       "linkErrorDescription": "Could not link the account. Please try again.",
-      "linkErrorInUse": "This Google account is already associated with another WikiStars5 user."
+      "linkErrorInUse": "This Google account is already associated with another Starryz5 user."
     },
     "validation": {
       "usernameMin": "Username must be at least 3 characters.",
@@ -112,7 +111,7 @@
       "welcomeBackDescription": "You have successfully logged in.",
       "usernameInUseTitle": "Username in use",
       "usernameInUseDescription": "The Google name \"{displayName}\" is already in use. A temporary one has been assigned to you. You can change it in your profile.",
-      "welcomeTitle": "Welcome to WikiStars5!",
+      "welcomeTitle": "Welcome to Starryz5!",
       "welcomeDescription": "Your account has been created.",
       "profileErrorTitle": "Profile Error",
       "profileErrorDescription": "Could not create your user profile.",
@@ -512,7 +511,7 @@
     },
     "toast": {
       "blockedTitle": "Profile Creation Blocked",
-      "blockedDescription": "This figure is not part of the WikiStars5 categories (Entertainment, Sports, Showbiz). Please search for an influencer or celebrity.",
+      "blockedDescription": "This figure is not part of the Starryz5 categories (Entertainment, Sports, Showbiz). Please search for an influencer or celebrity.",
       "duplicateTitle": "Duplicate Profile",
       "duplicateDescription": "A profile for \"{name}\" already exists.",
       "duplicateDescriptionRedirect": "A profile for {name} already exists. Redirecting...",
@@ -526,14 +525,14 @@
     "title": "Disclaimer",
     "paragraphs": {
       "1_strong": "Nature of the Site:",
-      "1": " WikiStars5 is an opinion and entertainment platform. We strongly believe in freedom of speech, and our purpose is to allow users to freely express and discuss their perceptions of public figures. The content on this site, including ratings, votes, and comments, represents the subjective opinions of our users and should not be interpreted as a statement of fact.",
+      "1": " Starryz5 is an opinion and entertainment platform. We strongly believe in freedom of speech, and our purpose is to allow users to freely express and discuss their perceptions of public figures. The content on this site, including ratings, votes, and comments, represents the subjective opinions of our users and should not be interpreted as a statement of fact.",
       "2_strong": "Reflection of Public Perception:",
-      "2": " The perceptions, whether of admiration or hatred, reflected on this platform are the result of the public figures' own actions and reputation. WikiStars5 does not create or control these opinions; it simply acts as a forum for their expression. The responsibility for public image lies entirely with the public figure, not with the platform that allows discussion about it. In short: it's not our fault if you make yourself loved or hated; that responsibility is entirely yours and not under our control.",
+      "2": " The perceptions, whether of admiration or hatred, reflected on this platform are the result of the public figures' own actions and reputation. Starryz5 does not create or control these opinions; it simply acts as a forum for their expression. The responsibility for public image lies entirely with the public figure, not with the platform that allows discussion about it. In short: it's not our fault if you make yourself loved or hated; that responsibility is entirely yours and not under our control.",
       "3_strong": "No Affiliation or Endorsement:",
       "3": " This website is not affiliated, associated, authorized, endorsed by, or in any way officially connected with any of the public figures mentioned on it, nor with any of their subsidiaries or affiliates.",
       "4": "The names, as well as any related images, trademarks, and copyrights, are the property of their respective owners. The use of these names and images is for identification, commentary, and criticism purposes, within the framework of the right to freedom of expression.",
       "5_strong": "User-Generated Content:",
-      "5": " All user-generated content, such as comments and votes, is the sole responsibility of the person who posts it. WikiStars5 is not responsible for the accuracy, truthfulness, or legality of such content. We reserve the right to moderate or remove content that violates our policies, but we are not obligated to do so.",
+      "5": " All user-generated content, such as comments and votes, is the sole responsibility of the person who posts it. Starryz5 is not responsible for the accuracy, truthfulness, or legality of such content. We reserve the right to moderate or remove content that violates our policies, but we are not obligated to do so.",
       "6_strong": "No Direct Profit from Image:",
       "6": " The platform does not use the image or name of public figures for the direct sale of products or services. The purpose is to foster public discussion and debate."
     }
@@ -543,7 +542,7 @@
     "sections": {
       "1": {
         "title": "1. Introduction",
-        "content": "Welcome to WikiStars5. Your privacy is of utmost importance to us. This Privacy Policy explains what data we collect, why we collect it, and how you can view and manage your information."
+        "content": "Welcome to Starryz5. Your privacy is of utmost importance to us. This Privacy Policy explains what data we collect, why we collect it, and how you can view and manage your information."
       },
       "2": {
         "title": "2. What Information We Collect",
@@ -567,7 +566,7 @@
         "title": "3. Why We Collect Data",
         "intro": "We use the information we collect for the following purposes:",
         "points": [
-          "To provide our services: To operate the core functions of WikiStars5, such as displaying your public profile, comments, votes, and streaks.",
+          "To provide our services: To operate the core functions of Starryz5, such as displaying your public profile, comments, votes, and streaks.",
           "To maintain and improve our services: To understand how our platform is used so we can improve it.",
           "To communicate with you: To send you important notifications, such as replies to your comments.",
           "To protect our platform and our users: We use the information to help improve the security and reliability of our services."
@@ -575,7 +574,7 @@
       },
       "4": {
         "title": "4. Sharing Your Information",
-        "intro": "We do not share your personal information with companies, organizations, or individuals outside of WikiStars5, except in the following cases:",
+        "intro": "We do not share your personal information with companies, organizations, or individuals outside of Starryz5, except in the following cases:",
         "points": [
           {
             "strong": "Public content:",
@@ -872,7 +871,7 @@
     "uruguay": "Uruguay",
     "uzbekistan": "Uzbekistan",
     "vanuatu": "Vanuatu",
-    "vatican_city": "Vatican City",
+    "vatican_city": "Vatikan City",
     "venezuela": "Venezuela",
     "vietnam": "Vietnam",
     "wallis_and_futuna": "Wallis and Futuna",

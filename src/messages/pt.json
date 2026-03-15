@@ -1,4 +1,3 @@
-
 {
   "Footer": {
     "rules": "Regras",
@@ -10,12 +9,12 @@
     "welcome": {
       "title": {
         "part1": "Bem-vindo ao",
-        "part2": "WikiStars5"
+        "part2": "Starryz5"
       },
       "searchHint": "Digite um nome e pressione enter ou clique em pesquisar."
     },
     "howItWorks": {
-      "title": "Como Funciona o WikiStars5"
+      "title": "Como Funciona o Starryz5"
     },
     "features": {
       "discover": {
@@ -92,7 +91,7 @@
       "accountLinkedDescription": "Você conectou sua conta do Google. Sua atividade foi salva.",
       "linkErrorTitle": "Erro ao Vincular",
       "linkErrorDescription": "Não foi possível vincular a conta. Tente novamente.",
-      "linkErrorInUse": "Esta conta do Google já está associada a outro usuário do WikiStars5."
+      "linkErrorInUse": "Esta conta do Google já está associada a outro usuário do Starryz5."
     },
     "validation": {
       "usernameMin": "O nome de usuário deve ter pelo menos 3 caracteres.",
@@ -112,7 +111,7 @@
       "welcomeBackDescription": "Você fez login com sucesso.",
       "usernameInUseTitle": "Nome de usuário em uso",
       "usernameInUseDescription": "O nome do Google \"{displayName}\" já está em uso. Um nome temporário foi atribuído a você. Você pode alterá-lo em seu perfil.",
-      "welcomeTitle": "Bem-vindo ao WikiStars5!",
+      "welcomeTitle": "Bem-vindo ao Starryz5!",
       "welcomeDescription": "Sua conta foi criada.",
       "profileErrorTitle": "Erro de Perfil",
       "profileErrorDescription": "Não foi possível criar seu perfil de usuário.",
@@ -145,7 +144,7 @@
     },
     "validation": {
       "notEmpty": "A resposta não pode estar vazia.",
-      "maxLength": "A resposta não pode exceder 1000 caracteres."
+      "maxLength": "A resposta não pode exceder os 1000 caracteres."
     }
   },
   "SearchBar": {
@@ -468,7 +467,7 @@
     },
     "FamousBirthdays": {
       "planBTitle": "Plano B: Verificação Manual",
-      "planBDescription": "Não encontrado na Wikipédia. Cole o link do perfil em pt.famousbirthdays.com para verificar manualmente.",
+      "planBDescription": "Não encontrado na Wikipédia. Cole o link do perfil em pt.famousbirthdays.com para verifique manualmente.",
       "urlLabel": "URL do FamousBirthdays.com",
       "placeholder": "https://pt.famousbirthdays.com/people/...",
       "verifyButton": "Verificar com URL",
@@ -507,7 +506,7 @@
     },
     "toast": {
       "blockedTitle": "Criação de Perfil Bloqueada",
-      "blockedDescription": "Esta figura não faz parte das categorias do WikiStars5 (Entretenimento, Esportes, Famosos). Por favor, procure por um influenciador ou celebridade.",
+      "blockedDescription": "Esta figura não faz parte das categorias do Starryz5 (Entretenimento, Esportes, Famosos). Por favor, procure por um influenciador ou celebridade.",
       "duplicateTitle": "Perfil Duplicado",
       "duplicateDescription": "Já existe um perfil para \"{name}\".",
       "duplicateDescriptionRedirect": "Já existe um perfil para {name}. Redirecionando...",
@@ -521,16 +520,16 @@
     "title": "Aviso Legal",
     "paragraphs": {
       "1_strong": "Natureza do Site:",
-      "1": " O WikiStars5 é uma plataforma de opinião e entretenimento. Acreditamos firmemente na liberdade de expressão, e nosso propósito é permitir que os usuários expressem e discutam livremente suas percepções sobre figuras públicas. O conteúdo deste site, incluindo avaliações, votos e comentários, representa as opiniões subjetivas de nossos usuários e não deve ser interpretado como uma declaração de fato.",
+      "1": " O Starryz5 é uma plataforma de opinião e entretenimento. Acreditamos firmemente na liberdade de expressão, e nosso propósito é permitir que os usuários expressem e discutam livremente suas percepções sobre figuras públicas. O conteúdo deste site, incluindo avaliações, votos e comentários, representa as opiniões subjetivas de nossos usuários e não deve ser interpretado como uma declaração de fato.",
       "2_strong": "Reflexo da Percepção Pública:",
-      "2": " As percepções, sejam de admiração ou ódio, refletidas nesta plataforma são resultado das próprias ações e reputação das figuras públicas. O WikiStars5 não cria nem controla essas opiniões; simplesmente atua como um fórum para sua expressão. A responsabilidade pela imagem pública recai inteiramente sobre a figura pública, não sobre a plataforma que permite a discussão sobre ela. En resumo: não é nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.",
+      "2": " Las percepções, sejam de admiração ou ódio, refletidas nesta plataforma são resultado das próprias ações e reputação das figuras públicas. O Starryz5 não cria nem controla essas opiniões; simplesmente atua como um fórum para sua expressão. A responsabilidade pela imagem pública recai inteiramente sobre a figura pública, não sobre a plataforma que permite a discussão sobre ela. En resumo: não é nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.",
       "3_strong": "Sem Afiliação ou Endosso:",
       "3": " Este site não é afiliado, associado, autorizado, endossado por, ou de qualquer forma oficialmente conectado a nenhuma das figuras públicas mencionadas nele, nem a nenhuma de suas subsidiárias ou afiliadas.",
       "4": "Os nomes, bem como quaisquer imagens, marcas registradas e direitos autorais relacionados, são propriedade de seus respectivos donos. O uso desses nomes e imagens é para fins de identificação, comentário e crítica, no âmbito do direito à liberdade de expressão.",
       "5_strong": "Conteúdo Gerado pelo Usuário:",
-      "5": " Todo o conteúdo gerado pelo usuário, como comentários e votos, é de responsabilidade exclusiva da pessoa que o publica. O WikiStars5 não se responsabiliza pela precisão, veracidade ou legalidade de tal conteúdo. Reservamo-nos o direito de moderar ou remover conteúdo que viole nossas políticas, mas não somos obrigados a fazê-lo.",
+      "5": " Todo o conteúdo gerado pelo usuário, como comentários e votos, é de responsabilidade exclusiva da pessoa que o publica. O Starryz5 não se responsabiliza pela precisão, veracidade ou legalidade de tal conteúdo. Reservamo-nos o direito de moderar ou remover conteúdo que viole nossas políticas, mas não somos obrigados a fazê-lo.",
       "6_strong": "Sem Lucro Direto com a Imagem:",
-      "6": " A plataforma não utiliza a imagem ou o nome de figuras públicas para a venda direta de produtos ou servicios. El propósito es fomentar la discusión y el debate público."
+      "6": " A plataforma não utiliza a imagem ou o nome de figuras públicas para a venta directa de produtos ou servicios. El propósito es fomentar la discusión y el debate público."
     }
   },
   "PrivacyPolicyPage": {
@@ -538,7 +537,7 @@
     "sections": {
       "1": {
         "title": "1. Introdução",
-        "content": "Bem-vindo ao WikiStars5. Sua privacidade é de extrema importância para nós. Esta Política de Privacidade explica quais dados coletamos, por que os coletamos e como você pode visualizar e gerenciar suas informações."
+        "content": "Bem-vindo ao Starryz5. Sua privacidade é de extrema importância para nós. Esta Política de Privacidade explica quais dados coletamos, por que os coletamos e como você pode visualizar e gerenciar suas informações."
       },
       "2": {
         "title": "2. Quais Informações Coletamos",
@@ -550,7 +549,7 @@
           },
           {
             "strong": "Conteúdo que você gera:",
-            "text": " Coletamos o conteúdo que você cria em nossa plataforma, como comentários que você publica, votos de atitude e emoção que você lança e sequências que você gera. Esta informação é de natureza pública."
+            "text": " Coletamos o conteúdo que você cria em nossa plataforma, como comentários que você publica, votos de atitude e emoção que você lança e sequências que você genera. Esta informação é de natureza pública."
           },
           {
             "strong": "Informações de Atividade:",
@@ -562,19 +561,19 @@
         "title": "3. Por Que Coletamos Dados",
         "intro": "Usamos as informações que coletamos para os seguintes propósitos:",
         "points": [
-          "Para fornecer nossos serviços: Para operar as funções principais do WikiStars5, como exibir seu perfil público, comentários, votos e sequências.",
+          "Para fornecer nossos serviços: Para operar as funções principais do Starryz5, como exibir seu perfil público, comentários, votos e sequências.",
           "Para manter e melhorar nossos serviços: Para entender como nossa plataforma é usada para que possamos melhorá-la.",
           "Para nos comunicarmos com você: Para enviar notificações importantes, como respostas aos seus comentários.",
-          "Para proteger nossa plataforma e nossos usuários: Usamos as informações para ajudar a melhorar a segurança e a confiabilidade de nossos serviços."
+          "Para proteger nossa plataforma e nossos usuários: Usamos las informações para ajudar a melhorar a segurança e a confiabilidade de nossos serviços."
         ]
       },
       "4": {
         "title": "4. Compartilhando Suas Informações",
-        "intro": "Não compartilhamos suas informações pessoais con empresas, organizaciones o individuos fuera de WikiStars5, excepto en los siguientes casos:",
+        "intro": "Não compartilhamos suas informações pessoais con empresas, organizaciones o individuos fuera de Starryz5, excepto en los siguientes casos:",
         "points": [
           {
             "strong": "Conteúdo público:",
-            "text": " Seu nome de usuário, sua foto de perfil (se você tiver uma) e todo o conteúdo que você gera (comentários, votos, etc.) são publicamente visíveis para outros usuários da plataforma."
+            "text": " Seu nome de usuário, sua foto de perfil (si você tiver uma) e todo o conteúdo que você gera (comentários, votos, etc.) são publicamente visíveis para outros usuários da plataforma."
           },
           {
             "strong": "Provedores de serviços:",
@@ -683,7 +682,7 @@
     "denmark": "Dinamarca",
     "dominica": "Dominica",
     "ecuador": "Equador",
-    "egypt": "Egito",
+    "egipto": "Egito",
     "el_salvador": "El Salvador",
     "united_arab_emirates": "Emirados Árabes Unidos",
     "eritrea": "Eritreia",
@@ -710,7 +709,7 @@
     "guam": "Guam",
     "guatemala": "Guatemala",
     "french_guiana": "Guiana Francesa",
-    "guernsey": "Guernsey",
+    "guernsey": "Guernesey",
     "guinea": "Guiné",
     "guinea_bissau": "Guiné-Bissau",
     "equatorial_guinea": "Guiné Equatorial",
@@ -758,7 +757,7 @@
     "laos": "Laos",
     "lesotho": "Lesoto",
     "latvia": "Letônia",
-    "lebanon": "Líbano",
+    "lebanon": "Libano",
     "liberia": "Libéria",
     "libya": "Líbia",
     "liechtenstein": "Liechtenstein",
@@ -786,7 +785,7 @@
     "montserrat": "Montserrat",
     "mozambique": "Moçambique",
     "myanmar": "Mianmar",
-    "namibia": "Namíbia",
+    "namibia": "Namíbie",
     "nauru": "Nauru",
     "nepal": "Nepal",
     "nicaragua": "Nicarágua",
