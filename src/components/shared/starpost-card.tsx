@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import type { Comment, CommentVote, Streak } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -38,6 +38,7 @@ import { ShareButton } from './ShareButton';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import FollowButton from './follow-button';
+import { trackView } from '@/lib/view-tracker';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -63,6 +64,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   const { theme } = useTheme();
   const streakContext = useContext(StreakAnimationContext);
   const showStreakAnimation = streakContext?.showStreakAnimation;
+  const containerRef = useRef<HTMLDivElement>(null);
   
   const [post, setPost] = useState(initialPost);
   const [authorData, setAuthorData] = useState({
@@ -93,6 +95,27 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
 
   const { data: savedDoc } = useDoc(savedRef, { enabled: !!user, realtime: true });
   const isSaved = !!savedDoc;
+
+  // View Tracking Implementation
+  useEffect(() => {
+    if (!firestore || !post.id || !post.figureId || typeof window === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          trackView(firestore, `figures/${post.figureId}/comments`, post.id);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 } // Track when at least 50% of the card is visible
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [firestore, post.id, post.figureId]);
 
   useEffect(() => {
     if (!firestore || !post.userId) return;
@@ -351,7 +374,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
 
   return (
     <Dialog open={isThreadOpen} onOpenChange={setIsThreadOpen}>
-        <Card className={cn("hover:border-primary/50 transition-colors p-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+        <Card ref={containerRef} id={`starpost-${post.id}`} className={cn("hover:border-primary/50 transition-colors p-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
             <div className="flex items-start gap-4">
                 <Link href={`/u/${authorData.displayName}`} className="flex-shrink-0">
                     <Avatar className="h-10 w-10">

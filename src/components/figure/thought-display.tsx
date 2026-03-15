@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect, useRef } from 'react';
 import { 
   doc, 
   runTransaction, 
@@ -47,6 +47,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import type { Thought, Streak } from '@/lib/types';
 import { isDateActive } from '@/lib/streaks';
+import { trackView } from '@/lib/view-tracker';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -79,6 +80,7 @@ export function ThoughtDisplay({
     const { language } = useLanguage();
     const streakContext = useContext(StreakAnimationContext);
     const showStreakAnimation = streakContext?.showStreakAnimation;
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const [isVoting, setIsVoting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -108,6 +110,30 @@ export function ThoughtDisplay({
 
     const { data: savedDoc } = useDoc(savedRef, { enabled: !!user, realtime: true });
     const isSaved = !!savedDoc;
+
+    // View Tracking Implementation
+    useEffect(() => {
+      if (!firestore || !thought.id || !figureId || typeof window === 'undefined') return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            const path = isReply 
+              ? `figures/${figureId}/thoughts/${thought.parentId}/replies`
+              : `figures/${figureId}/thoughts`;
+            trackView(firestore, path, thought.id);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.5 }
+      );
+
+      if (containerRef.current) {
+        observer.observe(containerRef.current);
+      }
+
+      return () => observer.disconnect();
+    }, [firestore, thought.id, figureId, isReply, thought.parentId]);
 
     const userStreakRef = useMemoFirebase(() => {
         if (!firestore || !thought.userId || !figureId) return null;
@@ -280,7 +306,7 @@ export function ThoughtDisplay({
     const isLiked = userVote?.vote === 'like';
 
     return (
-        <div className="flex gap-3">
+        <div ref={containerRef} className="flex gap-3">
             <Link href={`/u/${thought.userDisplayName}`}>
                 <Avatar className={cn("border flex-shrink-0", isReply ? "h-8 w-8" : "h-10 w-10")}>
                     <AvatarImage src={thought.userPhotoURL || undefined} />

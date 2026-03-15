@@ -240,6 +240,7 @@ export interface Comment {
   likes?: number;
   dislikes?: number;
   saveCount?: number;
+  viewCount?: number;
   parentId: string | null;
   replyCount?: number; 
   threadId?: string; 
@@ -268,6 +269,7 @@ export interface Thought {
     likes?: number;
     dislikes?: number;
     saveCount?: number;
+    viewCount?: number;
     replyCount?: number;
     isFeatured?: boolean;
     parentId?: string | null;
