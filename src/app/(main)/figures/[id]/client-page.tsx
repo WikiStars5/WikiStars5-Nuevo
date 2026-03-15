@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, Suspense, useCallback, useMemo } from 'react';
+import { useState, Suspense, useCallback, useMemo, useEffect } from 'react';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -27,6 +28,7 @@ import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import BtsBiasVoting from '@/components/figure/bts-bias-voting';
 import BlackpinkBiasVoting from '@/components/figure/blackpink-bias-voting';
+import { trackView } from '@/lib/view-tracker';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -92,6 +94,13 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
   
   const { data: fetchedFigure } = useDoc<Figure>(figureDocRef);
   const figure = fetchedFigure || initialFigure;
+
+  // View tracking
+  useEffect(() => {
+    if (firestore && figure?.id) {
+      trackView(firestore, 'figures', figure.id);
+    }
+  }, [firestore, figure?.id]);
 
   const achievementRef = useMemoFirebase(() => (!firestore || !user) ? null : doc(firestore, `users/${user.uid}/achievements`, figureId), [firestore, user, figureId]);
   const { data: userAchievements } = useDoc<Achievement>(achievementRef);

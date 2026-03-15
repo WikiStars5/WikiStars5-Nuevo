@@ -21,6 +21,7 @@ import FollowListDialog from '@/components/shared/follow-list-dialog';
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { trackView } from "@/lib/view-tracker";
 
 
 interface PublicUserProfile {
@@ -119,6 +120,10 @@ export default function PublicProfileClientPage({ username }: PublicProfileClien
             };
 
             setUserProfile(publicUserData);
+            
+            // Track view for user profile
+            trackView(firestore, 'users', publicUserData.id);
+
         } catch (error) {
             console.error("Error fetching user profile:", error);
         } finally {

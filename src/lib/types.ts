@@ -12,6 +12,7 @@ export interface User {
   tokenCount?: number; // Optimization for querying subscribers
   referralCount?: number;
   visitCount?: number;
+  viewCount?: number; // Internal view tracking
   lastVisit?: Timestamp;
   country?: string | null;
   gender?: 'Masculino' | 'Femenino' | 'Otro' | 'Prefiero no decirlo' | null;
@@ -84,6 +85,7 @@ export interface Figure {
   maritalStatus?: 'Soltero/a' | 'Casado/a' | 'Divorciado/a' | 'Viudo/a' | 'Separado/Ex-Conviviente';
   height?: number;
   activeStreakCount?: number;
+  viewCount?: number; // Internal view tracking
   socialLinks?: {
     instagram?: string;
     twitter?: string;
