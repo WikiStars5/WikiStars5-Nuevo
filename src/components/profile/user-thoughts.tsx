@@ -1,27 +1,22 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, getDoc, limit, onSnapshot } from 'firebase/firestore';
-import type { Thought } from '@/lib/types';
+import type { Thought, ThoughtReference } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Cloud } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { ThoughtDisplay } from '@/components/figure/thoughts-section';
+import { ThoughtDisplay } from '@/components/figure/thought-display';
 import { cn } from '@/lib/utils';
 import ReplyForm from '@/components/figure/reply-form';
 
 interface UserThoughtsProps {
     userId: string;
-}
-
-interface ThoughtReference {
-    figureId: string;
-    thoughtId: string;
-    createdAt: any;
 }
 
 function ThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: ThoughtReference, onDeleteSuccess: () => void }) {
@@ -98,10 +93,8 @@ function ThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: ThoughtRefe
                     </p>
                     
                     {Number(thought.replyCount) > 0 && (
-                        <Button 
-                            variant="link" 
-                            size="sm" 
-                            className="text-[10px] p-0 h-auto font-black uppercase tracking-widest text-primary" 
+                        <button 
+                            className="text-[10px] p-0 h-auto font-black uppercase tracking-widest text-primary hover:underline" 
                             onClick={() => {
                                 setShowReplies(!showReplies);
                                 if (!showReplies) setVisibleRepliesCount(5);
@@ -110,7 +103,7 @@ function ThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: ThoughtRefe
                             {showReplies 
                                 ? 'Ocultar respuestas' 
                                 : `Ver ${thought.replyCount} ${thought.replyCount === 1 ? 'respuesta' : 'respuestas'}`}
-                        </Button>
+                        </button>
                     )}
                 </div>
 

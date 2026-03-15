@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getSdks } from '@/firebase/server';
 import type { Figure } from '@/lib/types';
 
-const URL = 'https://wikistars5.com';
+const URL = 'https://starryz5.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { firestore } = getSdks();

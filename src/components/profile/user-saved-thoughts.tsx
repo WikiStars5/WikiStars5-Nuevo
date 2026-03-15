@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { ThoughtDisplay } from '@/components/figure/thoughts-section';
+import { ThoughtDisplay } from '@/components/figure/thought-display';
 import { cn } from '@/lib/utils';
 import ReplyForm from '@/components/figure/reply-form';
 
@@ -42,7 +42,6 @@ function SavedThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: Though
                 if (snap.exists()) {
                     setThought({ id: snap.id, ...snap.data() } as Thought);
                 } else {
-                    // Si el pensamiento original fue borrado, la referencia debería limpiarse o ignorarse
                     setThought(null);
                 }
             } catch (error) {
@@ -96,10 +95,8 @@ function SavedThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: Though
                     </p>
                     
                     {Number(thought.replyCount) > 0 && (
-                        <Button 
-                            variant="link" 
-                            size="sm" 
-                            className="text-[10px] p-0 h-auto font-black uppercase tracking-widest text-primary" 
+                        <button 
+                            className="text-[10px] p-0 h-auto font-black uppercase tracking-widest text-primary hover:underline" 
                             onClick={() => {
                                 setShowReplies(!showReplies);
                                 if (!showReplies) setVisibleRepliesCount(5);
@@ -108,7 +105,7 @@ function SavedThoughtCardWrapper({ refData, onDeleteSuccess }: { refData: Though
                             {showReplies 
                                 ? 'Ocultar respuestas' 
                                 : `Ver ${thought.replyCount} ${thought.replyCount === 1 ? 'respuesta' : 'respuestas'}`}
-                        </Button>
+                        </button>
                     )}
                 </div>
 

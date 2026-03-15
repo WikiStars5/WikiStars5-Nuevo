@@ -11,6 +11,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/admin/', '/profile/', '/login/'],
     },
-    sitemap: 'https://wikistars5.com/sitemap.xml',
+    sitemap: 'https://starryz5.com/sitemap.xml',
   }
 }

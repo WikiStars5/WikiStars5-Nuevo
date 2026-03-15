@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import FigureDetailClient from './client-page';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -63,38 +62,38 @@ export async function generateMetadata({ params, searchParams }: FigurePageProps
   const attitude = searchParams.attitude as string | undefined;
   const rating = searchParams.rating as string | undefined;
   
-  let title = `Perfil de ${figureName} - WikiStars5`;
-  let description = `Explora el perfil, las opiniones y las calificaciones de ${figureName} en WikiStars5. El YELP de las celebridades.`;
+  let title = `Perfil de ${figureName} - Starryz5`;
+  let description = `Explora el perfil, las opiniones y las calificaciones de ${figureName} en Starryz5. El YELP de las celebridades.`;
   
-  // Default WikiStars5 logo for fallback
-  const defaultImageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia.png?alt=media&token=fb7367da-8db6-4f1d-a1f0-d03f57e6b9f6';
+  // Default Starryz5 logo for fallback
+  const defaultImageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Festrellados%20(3).jpg?alt=media&token=4c5ff945-b737-4bd6-bb41-98b609c654c9';
   
   // Crucial: Extract the actual profile image URL
   let imageUrl = figure?.imageUrl || defaultImageUrl;
-  let imageAlt = figure?.name || 'WikiStars5';
+  let imageAlt = figure?.name || 'Starryz5';
 
   // Customize title and description based on share intent
   if (shareType === 'emotion' && emotion) {
       const emotionText = emotion.charAt(0).toUpperCase() + emotion.slice(1);
       title = `${figureName} me genera ${emotionText}. ¿Y a ti?`;
-      description = `Descubre qué emociones genera ${figureName} en los demás. Entra, vota y comenta en WikiStars5.`;
+      description = `Descubre qué emociones genera ${figureName} en los demás. Entra, vota y comenta en Starryz5.`;
   } else if (shareType === 'attitude' && attitude) {
       const attitudeText = attitude.charAt(0).toUpperCase() + attitude.slice(1);
       title = `Soy ${attitudeText} de ${figureName}. ¿Cuál es tu actitud?`;
-      description = `Define tu actitud hacia ${figureName} y ve lo que piensa la comunidad. ¡Vota ahora en WikiStars5!`;
+      description = `Define tu actitud hacia ${figureName} y ve lo que piensa la comunidad. ¡Vota ahora en Starryz5!`;
   } else if (shareType === 'rating' && rating) {
       title = `¡Califiqué a ${figureName} con ${rating} ${parseInt(rating) > 1 ? 'estrellas' : 'estrella'}!`;
-      description = `¿Estás de acuerdo con mi calificación? Entra a WikiStars5, deja tu propia reseña y únete al debate.`;
+      description = `¿Estás de acuerdo con mi calificación? Entra a Starryz5, deja tu propia reseña y únete al debate.`;
   }
 
   return {
     title: title,
     description: description,
     openGraph: {
-      siteName: 'WikiStars5',
+      siteName: 'Starryz5',
       title: title,
       description: description,
-      url: `https://wikistars5.com/figures/${id}`,
+      url: `https://starryz5.com/figures/${id}`,
       type: 'profile',
       images: [
         {

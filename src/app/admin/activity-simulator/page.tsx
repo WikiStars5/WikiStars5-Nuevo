@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -16,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, writeBatch, serverTimestamp, increment, query, where, runTransaction, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, increment, query, where, runTransaction } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Bot, User, Image as ImageIcon, Send, XCircle, Trash2, Tag } from 'lucide-react';
 import type { Figure, Comment } from '@/lib/types';
 import FigureSearchInput from '@/components/figure/figure-search-input';
