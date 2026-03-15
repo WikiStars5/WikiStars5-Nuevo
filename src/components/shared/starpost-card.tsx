@@ -150,23 +150,29 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   const handleSaveToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!firestore || !user || isSavingContent) return;
+    if (!firestore || !user || isSavingContent || !commentRef || !savedRef) return;
     setIsSavingContent(true);
     try {
-        if (isSaved) {
-            await deleteDoc(savedRef!);
-            toast({ title: 'Eliminado de guardados' });
-        } else {
-            await setDoc(savedRef!, {
-                figureId: post.figureId,
-                commentId: post.id,
-                createdAt: serverTimestamp(),
-            });
-            toast({ title: 'Reseña guardada' });
-        }
+        await runTransaction(firestore, async (transaction) => {
+            const savedDocSnap = await transaction.get(savedRef);
+            const isAlreadySaved = savedDocSnap.exists();
+
+            if (isAlreadySaved) {
+                transaction.delete(savedRef);
+                transaction.update(commentRef, { saveCount: increment(-1) });
+            } else {
+                transaction.set(savedRef, {
+                    figureId: post.figureId,
+                    commentId: post.id,
+                    createdAt: serverTimestamp(),
+                });
+                transaction.update(commentRef, { saveCount: increment(1) });
+            }
+        });
+        toast({ title: isSaved ? 'Eliminado de guardados' : 'Reseña guardada' });
     } catch (error) {
         console.error(error);
-        toast({ title: 'Error al guardar', variant: 'destructive' });
+        toast({ title: 'Error al procesar guardado', variant: 'destructive' });
     } finally {
         setIsSavingContent(false);
     }

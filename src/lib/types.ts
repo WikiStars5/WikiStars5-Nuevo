@@ -239,6 +239,7 @@ export interface Comment {
   updatedAt?: Timestamp;
   likes?: number;
   dislikes?: number;
+  saveCount?: number;
   parentId: string | null;
   replyCount?: number; 
   threadId?: string; 
@@ -266,6 +267,7 @@ export interface Thought {
     userAttitude?: string | null;
     likes?: number;
     dislikes?: number;
+    saveCount?: number;
     replyCount?: number;
     isFeatured?: boolean;
     parentId?: string | null;

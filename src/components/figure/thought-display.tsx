@@ -179,25 +179,34 @@ export function ThoughtDisplay({
     };
 
     const handleSaveToggle = async () => {
-        if (!firestore || !user || isSaving) return;
+        if (!firestore || !user || isSaving || !savedRef) return;
         setIsSaving(true);
         try {
-            if (isSaved) {
-                await deleteDoc(savedRef!);
-                toast({ title: 'Eliminado de guardados' });
-            } else {
-                await runTransaction(firestore, async (transaction) => {
+            const thoughtPath = isReply
+                ? `figures/${figureId}/thoughts/${thought.parentId}/replies/${thought.id}`
+                : `figures/${figureId}/thoughts/${thought.id}`;
+            const itemRef = doc(firestore, thoughtPath);
+
+            await runTransaction(firestore, async (transaction) => {
+                const savedDocSnap = await transaction.get(savedRef!);
+                const isAlreadySaved = savedDocSnap.exists();
+
+                if (isAlreadySaved) {
+                    transaction.delete(savedRef!);
+                    transaction.update(itemRef, { saveCount: increment(-1) });
+                } else {
                     transaction.set(savedRef!, {
                         figureId: figureId,
                         thoughtId: thought.id,
                         createdAt: serverTimestamp(),
                     });
-                });
-                toast({ title: 'Pensamiento guardado' });
-            }
+                    transaction.update(itemRef, { saveCount: increment(1) });
+                }
+            });
+            toast({ title: isSaved ? 'Eliminado de guardados' : 'Pensamiento guardado' });
         } catch (error) {
             console.error(error);
-            toast({ title: 'Error al guardar', variant: 'destructive' });
+            toast({ title: 'Error al procesar guardado', variant: 'destructive' });
         } finally {
             setIsSaving(false);
         }
