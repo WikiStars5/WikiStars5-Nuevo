@@ -1,4 +1,3 @@
-
 {
   "Footer": {
     "rules": "Règles",
@@ -10,12 +9,12 @@
     "welcome": {
       "title": {
         "part1": "Bienvenue sur",
-        "part2": "WikiStars5"
+        "part2": "Starryz5"
       },
       "searchHint": "Tapez un nom et appuyez sur Entrée ou cliquez sur rechercher."
     },
     "howItWorks": {
-      "title": "Comment fonctionne WikiStars5"
+      "title": "Comment fonctionne Starryz5"
     },
     "features": {
       "discover": {
@@ -90,7 +89,7 @@
       "accountLinkedDescription": "Vous avez connecté votre compte Google. Votre activité a été enregistrée.",
       "linkErrorTitle": "Erreur de liaison",
       "linkErrorDescription": "Impossible de lier le compte. Veuillez réessayer.",
-      "linkErrorInUse": "Ce compte Google est déjà associé à un autre utilisateur de WikiStars5."
+      "linkErrorInUse": "Ce compte Google est déjà associé à un autre utilisateur de Starryz5."
     },
     "validation": {
       "usernameMin": "Le nom d'utilisateur doit comporter au moins 3 caractères.",
@@ -110,7 +109,7 @@
       "welcomeBackDescription": "Vous vous êtes connecté avec succès.",
       "usernameInUseTitle": "Nom d'utilisateur utilisé",
       "usernameInUseDescription": "Le nom Google « {displayName} » est déjà utilisé. Un nom temporaire vous a été attribué. Vous pouvez le modifier dans votre profil.",
-      "welcomeTitle": "Bienvenue sur WikiStars5 !",
+      "welcomeTitle": "Bienvenue sur Starryz5 !",
       "welcomeDescription": "Votre compte a été créé.",
       "profileErrorTitle": "Erreur de profil",
       "profileErrorDescription": "Impossible de créer votre profil utilisateur.",
@@ -519,14 +518,14 @@
     "title": "Avis de non-responsabilité",
     "paragraphs": {
       "1_strong": "Nature du site :",
-      "1": " WikiStars5 est une plateforme d'opinion et de divertissement. Nous croyons fermement en la liberté d'expression, et notre objectif est de permettre aux utilisateurs d'exprimer et de discuter librement de leurs perceptions des personnalités publiques. Le contenu de ce site, y compris les évaluations, les votes et les commentaires, représente les opinions subjectives de nos utilisateurs et ne doit pas être interprété comme une déclaration de fait.",
+      "1": " Starryz5 est une plateforme d'opinion et de divertissement. Nous croyons fermement en la liberté d'expression, et notre objectif est de permettre aux utilisateurs d'exprimer et de discuter librement de leurs perceptions des personnalités publiques. Le contenu de ce site, y compris les évaluations, les votes et les commentaires, représente les opinions subjectives de nos utilisateurs et ne doit pas être interprété comme une déclaration de fait.",
       "2_strong": "Reflet de la perception publique :",
-      "2": " Les perceptions, qu'elles soient d'admiration ou de haine, reflétées sur cette plateforme sont le résultat des actions et de la réputation des personnalités publiques elles-mêmes. WikiStars5 ne crée ni ne contrôle ces opinions ; il agit simplement comme un forum pour leur expression. La responsabilité de l'image publique incombe entièrement à la personnalité publique, et non à la plateforme qui permet la discussion à son sujet. En bref : ce n'est pas de notre faute si vous vous faites aimer ou détester ; cette responsabilité vous incombe entièrement et n'est pas sous notre contrôle.",
+      "2": " Les perceptions, qu'elles soient d'admiration ou de haine, reflétées sur cette plateforme sont le résultat des actions et de la réputation des personnalités publiques elles-mêmes. Starryz5 ne crée ni ne contrôle ces opinions ; il agit simplement comme un forum pour leur expression. La responsabilité de l'image publique incombe entièrement à la personnalité publique, et non à la plateforme qui permet la discussion à son sujet. En bref : ce n'est pas de notre faute si vous vous faites aimer ou détester ; cette responsabilité vous incombe entièrement et n'est pas sous notre contrôle.",
       "3_strong": "Aucune affiliation ni approbation :",
       "3": " Ce site web n'est pas affilié, associé, autorisé, approuvé par, ni officiellement lié de quelque manière que ce soit à l'une des personnalités publiques mentionnées, ni à l'une de leurs filiales ou sociétés affiliées.",
       "4": "Les noms, ainsi que toutes les images, marques commerciales et droits d'auteur connexes, sont la propriété de leurs propriétaires respectifs. L'utilisation de ces noms et images est à des fins d'identification, de commentaire et de critique, dans le cadre du droit à la liberté d'expression.",
       "5_strong": "Contenu généré par l'utilisateur :",
-      "5": " Tout le contenu généré par les utilisateurs, tel que les commentaires et les votes, relève de la seule responsabilité de la personne qui le publie. WikiStars5 n'est pas responsable de l'exactitude, de la véracité ou de la légalité de ce contenu. Nous nous réservons le droit de modérer ou de supprimer le contenu qui enfreint nos politiques, mais nous n'avons aucune obligation de le faire.",
+      "5": " Tout le contenu généré par les utilisateurs, tel que les commentaires et les votes, relève de la seule responsabilité de la personne qui le publie. Starryz5 n'est pas responsable de l'exactitude, de la véracité ou de la légalité de ce contenu. Nous nous réservons le droit de modérer ou de supprimer le contenu qui enfreint nos politiques, mais nous n'avons aucune obligation de le faire.",
       "6_strong": "Aucun profit direct de l'image :",
       "6": " La plateforme n'utilise pas l'image ou le nom des personnalités publiques pour la vente directe de produits ou de services. Le but est de favoriser la discussion et le débat publics."
     }
@@ -536,7 +535,7 @@
     "sections": {
       "1": {
         "title": "1. Introduction",
-        "content": "Bienvenue sur WikiStars5. Votre vie privée est de la plus haute importance pour nous. Cette politique de confidentialité explique quelles données nous collectons, pourquoi nous les collectons et comment vous pouvez consulter et gérer vos informations."
+        "content": "Bienvenue sur Starryz5. Votre vie privée est de la plus haute importance pour nous. Cette politique de confidentialité explique quelles données nous collectons, pourquoi nous les collectons et comment vous pouvez consulter et gérer vos informations."
       },
       "2": {
         "title": "2. Quelles informations nous collectons",
@@ -560,7 +559,7 @@
         "title": "3. Pourquoi nous collectons des données",
         "intro": "Nous utilisons les informations que nous collectons aux fins suivantes :",
         "points": [
-          "Pour fournir nos services : Pour faire fonctionner les fonctions principales de WikiStars5, telles que l'affichage de votre profil public, de vos commentaires, de vos votes et de vos séries.",
+          "Pour fournir nos services : Pour faire fonctionner les fonctions principales de Starryz5, telles que l'affichage de votre profil public, de vos commentaires, de vos votes et de vos séries.",
           "Pour maintenir et améliorer nos services : Pour comprendre comment notre plateforme est utilisée afin de l'améliorer.",
           "Pour communiquer avec vous : Pour vous envoyer des notifications importantes, telles que des réponses à vos commentaires.",
           "Pour protéger notre plateforme et nos utilisateurs : Nous utilisons les informations pour aider à améliorer la sécurité et la fiabilité de nos services."
@@ -568,7 +567,7 @@
       },
       "4": {
         "title": "4. Partage de vos informations",
-        "intro": "Nous ne partageons pas vos informations personnelles avec des sociétés, des organisations ou des individus en dehors de WikiStars5, sauf dans les cas suivants :",
+        "intro": "Nous ne partageons pas vos informations personnelles avec des sociétés, des organisations ou des individus en dehors de Starryz5, sauf dans les cas suivants :",
         "points": [
           {
             "strong": "Contenu public :",
@@ -803,7 +802,7 @@
     "papua_new_guinea": "Papouasie-Nouvelle-Guinée",
     "paraguay": "Paraguay",
     "peru": "Pérou",
-    "french_polynesia": "Polynésie française",
+    "french_polynesia": "Polinésie française",
     "poland": "Pologne",
     "portugal": "Portugal",
     "puerto_rico": "Porto Rico",
@@ -813,7 +812,7 @@
     "democratic_republic_of_the_congo": "République démocratique du Congo",
     "dominican_republic": "République dominicaine",
     "reunion": "La Réunion",
-    "rwanda": "Rwanda",
+    "rwanda": "Ruanda",
     "romania": "Roumanie",
     "russia": "Russie",
     "western_sahara": "Sahara occidental",

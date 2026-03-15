@@ -1,4 +1,3 @@
-
 {
   "Footer": {
     "rules": "Regole",
@@ -10,12 +9,12 @@
     "welcome": {
       "title": {
         "part1": "Benvenuti in",
-        "part2": "WikiStars5"
+        "part2": "Starryz5"
       },
       "searchHint": "Digita un nome e premi invio o clicca su cerca."
     },
     "howItWorks": {
-      "title": "Come funziona WikiStars5"
+      "title": "Come funziona Starryz5"
     },
     "features": {
       "discover": {
@@ -90,7 +89,7 @@
       "accountLinkedDescription": "Hai collegato il tuo account Google. La tua attività è stata salvata.",
       "linkErrorTitle": "Errore di Collegamento",
       "linkErrorDescription": "Impossibile collegare l'account. Riprova.",
-      "linkErrorInUse": "Questo account Google è già associato a un altro utente WikiStars5."
+      "linkErrorInUse": "Questo account Google è già associato a un altro utente Starryz5."
     },
     "validation": {
       "usernameMin": "Il nome utente deve contenere almeno 3 caratteri.",
@@ -110,7 +109,7 @@
       "welcomeBackDescription": "Hai effettuato l'accesso con successo.",
       "usernameInUseTitle": "Nome utente in uso",
       "usernameInUseDescription": "Il nome Google \"{displayName}\" è già in uso. Ti è stato assegnato un nome temporaneo. Puoi cambiarlo nel tuo profilo.",
-      "welcomeTitle": "Benvenuto in WikiStars5!",
+      "welcomeTitle": "Benvenuto in Starryz5!",
       "welcomeDescription": "Il tuo account è stato creato.",
       "profileErrorTitle": "Errore Profilo",
       "profileErrorDescription": "Impossibile creare il tuo profilo utente.",
@@ -471,7 +470,7 @@
       "placeholder": "https://www.famousbirthdays.com/people/...",
       "verifyButton": "Verifica con URL",
       "toast": {
-        "noNameError": "Per favore, inserisci prima un nome nel campo di Wikipedia.",
+        "noNameError": "Per favore, inserisci prima un nombre nel campo di Wikipedia.",
         "invalidUrlError": "Impossibile verificare l'URL. Assicurati che sia corretto.",
         "verifyError": "Si è verificato un errore durante la verifica su Famous Birthdays. Riprova."
       }
@@ -512,21 +511,21 @@
       "createSuccessTitle": "Profilo Creato!",
       "createSuccessDescription": "Il profilo per {name} è stato aggiunto.",
       "createErrorTitle": "Errore nella Creazione",
-      "createErrorDescription": "Impossibile creare il profilo. Riprova."
+      "createErrorDescription": "Impossibile creare il perfil. Riprova."
     }
   },
   "DisclaimerPage": {
     "title": "Disclaimer",
     "paragraphs": {
       "1_strong": "Natura del Sito:",
-      "1": " WikiStars5 è una piattaforma di opinione e intrattenimento. Crediamo fermamente nella libertà di espressione, e il nostro scopo è permettere agli utenti di esprimere e discutere liberamente le loro percezioni sui personaggi pubblici. Il contenuto di questo sito, incluse valutazioni, voti e commenti, rappresenta le opinioni soggettive dei nostri utenti e non deve essere interpretato come una dichiarazione di fatto.",
+      "1": " Starryz5 è una piattaforma di opinione e intrattenimento. Crediamo fermamente nella libertà di espressione, e il nostro scopo è permettere agli utenti di esprimere e discutere liberamente le loro percezioni sui personaggi pubblici. Il contenuto di questo sito, incluse valutazioni, voti e commenti, rappresenta le opinioni soggettive dei nostri utenti e non deve essere interpretato come una dichiarazione di fatto.",
       "2_strong": "Riflesso della Percezione Pubblica:",
-      "2": " Le percezioni, sia di ammirazione che di odio, riflesse su questa piattaforma sono il risultato delle azioni e della reputazione dei personaggi pubblici stessi. WikiStars5 non crea né controlla queste opinioni; agisce semplicemente come un forum per la loro espressione. La responsabilità dell'immagine pubblica ricade interamente sul personaggio pubblico, non sulla piattaforma che consente la discussione su di esso. In breve: non è colpa nostra se ti fai amare o odiare; tale responsabilità è interamente tua e non sotto il nostro controllo.",
+      "2": " Le percezioni, sia di ammirazione che di odio, riflesse su questa piattaforma sono il risultato delle azioni e della reputazione dei personaggi pubblici stessi. Starryz5 non crea né controlla queste opinioni; agisce semplicemente come un forum per la loro espressione. La responsabilità dell'immagine pubblica ricade interamente sul personaggio pubblico, non sulla piattaforma che consente la discussione su di esso. In breve: non è colpa nostra se ti fai amare o odiare; tale responsabilità è interamente tua e non sotto il nostro controllo.",
       "3_strong": "Nessuna Affiliazione o Approvazione:",
       "3": " Questo sito web non è affiliato, associato, autorizzato, approvato da, o in alcun modo ufficialmente collegato a nessuno dei personaggi pubblici menzionati, né a nessuna delle loro sussidiarie o affiliate.",
       "4": "I nomi, così come qualsiasi immagine, marchio e diritto d'autore correlato, sono di proprietà dei rispettivi proprietari. L'uso di questi nomi e immagini è a scopo di identificazione, commento e critica, nel quadro del diritto alla libertà di espressione.",
       "5_strong": "Contenuto Generato dagli Utenti:",
-      "5": " Tutto il contenuto generato dagli utenti, come commenti e voti, è di esclusiva responsabilità della persona che lo pubblica. WikiStars5 non è responsabile dell'accuratezza, veridicità o legalità di tale contenuto. Ci riserviamo il diritto di moderare o rimuovere i contenuti che violano le nostre politiche, ma non siamo obbligati a farlo.",
+      "5": " Tutto il contenuto generato dagli utenti, como commenti e voti, è di esclusiva responsabilità della persona che lo pubblica. Starryz5 non è responsabile dell'accuratezza, veridicità o legalità di tale contenuto. Ci riserviamo il diritto di moderare o rimuovere i contenuti che violano le nostre politiche, ma non siamo obbligati a farlo.",
       "6_strong": "Nessun Profitto Diretto dall'Immagine:",
       "6": " La piattaforma non utilizza l'immagine o il nome dei personaggi pubblici per la vendita diretta di prodotti o servizi. Lo scopo è promuovere la discussione e il dibattito pubblico."
     }
@@ -536,7 +535,7 @@
     "sections": {
       "1": {
         "title": "1. Introduzione",
-        "content": "Benvenuti in WikiStars5. La vostra privacy è di massima importanza per noi. Questa Informativa sulla Privacy spiega quali dati raccogliamo, perché li raccogliamo e come potete visualizzare e gestire le vostre informazioni."
+        "content": "Benvenuti in Starryz5. La vostra privacy è di massima importanza per noi. Questa Informativa sulla Privacy spiega quali dati raccogliamo, perché li raccogliamo e come potete visualizzare e gestire le vostre informazioni."
       },
       "2": {
         "title": "2. Quali Informazioni Raccogliamo",
@@ -560,7 +559,7 @@
         "title": "3. Perché Raccogliamo i Dati",
         "intro": "Utilizziamo le informazioni che raccogliamo per i seguenti scopi:",
         "points": [
-          "Per fornire i nostri servizi: Per operare le funzioni principali di WikiStars5, come la visualizzazione del vostro profilo pubblico, commenti, voti e serie.",
+          "Per fornire i nostri servizi: Per operare le funzioni principali di Starryz5, come la visualizzazione del vostro profilo pubblico, commenti, voti e serie.",
           "Per mantenere e migliorare i nostri servizi: Per capire come viene utilizzata la nostra piattaforma in modo da poterla migliorare.",
           "Per comunicare con voi: Per inviarvi notifiche importanti, come risposte ai vostri commenti.",
           "Per proteggere la nostra piattaforma e i nostri utenti: Utilizziamo le informazioni per contribuire a migliorare la sicurezza e l'affidabilità dei nostri servizi."
@@ -568,7 +567,7 @@
       },
       "4": {
         "title": "4. Condivisione delle Vostre Informazioni",
-        "intro": "Non condividiamo le vostre informazioni personali con aziende, organizzazioni o individui al di fuori di WikiStars5, tranne nei seguenti casi:",
+        "intro": "Non condividiamo le vostre informazioni personali con aziende, organizzazioni o individui al di fuori di Starryz5, tranne nei seguenti casi:",
         "points": [
           {
             "strong": "Contenuti pubblici:",
@@ -580,7 +579,7 @@
           },
           {
             "strong": "Per motivi legali:",
-            "text": " Condivideremo le informazioni personali se riterremo in buona fede che l'accesso, l'uso, la conservazione o la divulgazione delle informazioni siano ragionevolmente necessari per conformarsi a leggi, regolamenti, procedimenti legali o richieste governative applicabili."
+            "text": " Condivideremo le informazioni personali si riterremo in buona fede che l'accesso, l'uso, la conservazione o la divulgazione delle informazioni siano ragionevolmente necessari per conformarsi a leggi, regolamenti, procedimenti legali o richieste governative applicabili."
           }
         ]
       },
@@ -789,7 +788,7 @@
     "nepal": "Nepal",
     "nicaragua": "Nicaragua",
     "niger": "Niger",
-    "nigeria": "Nigeria",
+    "nigeria": "Nigéria",
     "niue": "Niue",
     "norway": "Norvegia",
     "new_caledonia": "Nuova Caledonia",

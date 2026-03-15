@@ -1,4 +1,3 @@
-
 {
   "Footer": {
     "rules": "Regeln",
@@ -10,12 +9,12 @@
     "welcome": {
       "title": {
         "part1": "Willkommen bei",
-        "part2": "WikiStars5"
+        "part2": "Starryz5"
       },
       "searchHint": "Geben Sie einen Namen ein und drücken Sie die Eingabetaste oder klicken Sie auf Suchen."
     },
     "howItWorks": {
-      "title": "Wie WikiStars5 funktioniert"
+      "title": "Wie Starryz5 funktioniert"
     },
     "features": {
       "discover": {
@@ -90,7 +89,7 @@
       "accountLinkedDescription": "Sie haben Ihr Google-Konto verbunden. Ihre Aktivität wurde gespeichert.",
       "linkErrorTitle": "Fehler beim Verknüpfen",
       "linkErrorDescription": "Das Konto konnte nicht verknüpft werden. Bitte versuchen Sie es erneut.",
-      "linkErrorInUse": "Dieses Google-Konto ist bereits mit einem anderen WikiStars5-Benutzer verknüpft."
+      "linkErrorInUse": "Dieses Google-Konto ist bereits mit einem anderen Starryz5-Benutzer verknüpft."
     },
     "validation": {
       "usernameMin": "Der Benutzername muss mindestens 3 Zeichen lang sein.",
@@ -110,7 +109,7 @@
       "welcomeBackDescription": "Sie haben sich erfolgreich angemeldet.",
       "usernameInUseTitle": "Benutzername wird verwendet",
       "usernameInUseDescription": "Der Google-Name „{displayName}“ wird bereits verwendet. Ihnen wurde ein temporärer Name zugewiesen. Sie können ihn in Ihrem Profil ändern.",
-      "welcomeTitle": "Willkommen bei WikiStars5!",
+      "welcomeTitle": "Willkommen bei Starryz5!",
       "welcomeDescription": "Ihr Konto wurde erstellt.",
       "profileErrorTitle": "Profilfehler",
       "profileErrorDescription": "Ihr Benutzerprofil konnte nicht erstellt werden.",
@@ -193,7 +192,7 @@
         "description": "Suchen und wählen Sie ein Profil aus, um es mit {name} zu verknüpfen.",
         "selfRelationError": "Sie können ein Profil nicht mit sich selbst verknüpfen.",
         "addSuccessTitle": "Beziehung hinzugefügt",
-        "addSuccessDescription": "{sourceName} und {targetName} sind jetzt verknüpft.",
+        "addSuccessDescription": "{sourceName} y {targetName} sind jetzt verknüpft.",
         "addErrorTitle": "Fehler beim Hinzufügen",
         "addErrorDescription": "Die Beziehung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
         "cancelButton": "Abbrechen",
@@ -519,14 +518,14 @@
     "title": "Haftungsausschluss",
     "paragraphs": {
       "1_strong": "Art der Website:",
-      "1": " WikiStars5 ist eine Meinungs- und Unterhaltungsplattform. Wir glauben fest an die Meinungsfreiheit, und unser Ziel ist es, den Nutzern zu ermöglichen, ihre Wahrnehmungen von Persönlichkeiten des öffentlichen Lebens frei zu äußern und zu diskutieren. Der Inhalt dieser Website, einschließlich Bewertungen, Abstimmungen und Kommentare, stellt die subjektiven Meinungen unserer Nutzer dar und sollte nicht als Tatsachenbehauptung interpretiert werden.",
+      "1": " Starryz5 ist eine Meinungs- und Unterhaltungsplattform. Wir glauben fest an die Meinungsfreiheit, und unser Ziel ist es, den Nutzern zu ermöglichen, ihre Wahrnehmungen von Persönlichkeiten des öffentlichen Lebens frei zu äußern und zu diskutieren. Der Inhalt dieser Website, einschließlich Bewertungen, Abstimmungen und Kommentare, stellt die subjektiven Meinungen unserer Nutzer dar und sollte nicht als Tatsachenbehauptung interpretiert werden.",
       "2_strong": "Spiegelbild der öffentlichen Wahrnehmung:",
-      "2": " Die auf dieser Plattform wiedergegebenen Wahrnehmungen, ob Bewunderung oder Hass, sind das Ergebnis der eigenen Handlungen und des Rufs der Persönlichkeiten des öffentlichen Lebens. WikiStars5 erstellt oder kontrolliert diese Meinungen nicht; es fungiert lediglich als Forum für deren Äußerung. Die Verantwortung für das öffentliche Image liegt allein bei der Persönlichkeit des öffentlichen Lebens, nicht bei der Plattform, die die Diskussion darüber ermöglicht. Kurz gesagt: Es ist nicht unsere Schuld, wenn Sie sich beliebt oder unbeliebt machen; diese Verantwortung liegt allein bei Ihnen und nicht unter unserer Kontrolle.",
+      "2": " Die auf dieser Plattform wiedergegebenen Wahrnehmungen, ob Bewunderung oder Hass, sind das Ergebnis der eigenen Handlungen und des Rufs der Persönlichkeiten des öffentlichen Lebens. Starryz5 erstellt oder kontrolliert diese Meinungen nicht; es fungiert lediglich als Forum für deren Äußerung. Die Verantwortung für das öffentliche Image liegt allein bei der Persönlichkeit des öffentlichen Lebens, nicht bei der Plattform, die die Diskussion darüber ermöglicht. Kurz gesagt: Es ist nicht unsere Schuld, wenn Sie sich beliebt oder unbeliebt machen; diese Verantwortung liegt allein bei Ihnen und nicht unter unserer Kontrolle.",
       "3_strong": "Keine Zugehörigkeit oder Befürwortung:",
       "3": " Diese Website ist nicht mit einer der genannten Persönlichkeiten des öffentlichen Lebens oder deren Tochtergesellschaften oder verbundenen Unternehmen verbunden, assoziiert, autorisiert, befürwortet oder in irgendeiner Weise offiziell verbunden.",
       "4": "Die Namen sowie alle zugehörigen Bilder, Marken und Urheberrechte sind Eigentum ihrer jeweiligen Inhaber. Die Verwendung dieser Namen und Bilder dient zu Identifikations-, Kommentar- und Kritikzwecken im Rahmen des Rechts auf freie Meinungsäußerung.",
       "5_strong": "Nutzergenerierte Inhalte:",
-      "5": " Alle nutzergenerierten Inhalte wie Kommentare und Abstimmungen liegen in der alleinigen Verantwortung der Person, die sie veröffentlicht. WikiStars5 ist nicht für die Richtigkeit, Wahrhaftigkeit oder Rechtmäßigkeit solcher Inhalte verantwortlich. Wir behalten uns das Recht vor, Inhalte zu moderieren oder zu entfernen, die gegen unsere Richtlinien verstoßen, sind jedoch nicht dazu verpflichtet.",
+      "5": " Alle nutzergenerierten Inhalte wie Kommentare und Abstimmungen liegen in der alleinigen Verantwortung der Person, die sie veröffentlicht. Starryz5 ist nicht für die Richtigkeit, Wahrhaftigkeit oder Rechtmäßigkeit solcher Inhalte verantwortlich. Wir behalten uns das Recht vor, Inhalte zu moderieren oder zu entfernen, die gegen unsere Richtlinien verstoßen, sind jedoch nicht dazu verpflichtet.",
       "6_strong": "Kein direkter Gewinn aus dem Bild:",
       "6": " Die Plattform verwendet das Bild oder den Namen von Persönlichkeiten des öffentlichen Lebens nicht für den direkten Verkauf von Produkten oder Dienstleistungen. Der Zweck ist die Förderung der öffentlichen Diskussion und Debatte."
     }
@@ -536,7 +535,7 @@
     "sections": {
       "1": {
         "title": "1. Einleitung",
-        "content": "Willkommen bei WikiStars5. Ihre Privatsphäre ist für uns von größter Bedeutung. Diese Datenschutzerklärung erläutert, welche Daten wir sammeln, warum wir sie sammeln und wie Sie Ihre Informationen einsehen und verwalten können."
+        "content": "Willkommen bei Starryz5. Ihre Privatsphäre ist für uns von größter Bedeutung. Diese Datenschutzerklärung erläutert, welche Daten wir sammeln, warum wir sie sammeln und wie Sie Ihre Informationen einsehen und verwalten können."
       },
       "2": {
         "title": "2. Welche Informationen wir sammeln",
@@ -560,15 +559,15 @@
         "title": "3. Warum wir Daten sammeln",
         "intro": "Wir verwenden die von uns gesammelten Informationen für folgende Zwecke:",
         "points": [
-          "Um unsere Dienste bereitzustellen: Um die Kernfunktionen von WikiStars5 zu betreiben, wie z. B. die Anzeige Ihres öffentlichen Profils, Ihrer Kommentare, Abstimmungen und Serien.",
+          "Um unsere Dienste bereitzustellen: Um die Kernfunktionen von Starryz5 zu betreiben, wie z. B. die Anzeige Ihres öffentlichen Profils, Ihrer Kommentare, Abstimmungen und Serien.",
           "Um unsere Dienste zu pflegen und zu verbessern: Um zu verstehen, wie unsere Plattform genutzt wird, damit wir sie verbessern können.",
           "Um mit Ihnen zu kommunizieren: Um Ihnen wichtige Benachrichtigungen zu senden, z. B. Antworten auf Ihre Kommentare.",
           "Um unsere Plattform und unsere Benutzer zu schützen: Wir verwenden die Informationen, um die Sicherheit und Zuverlässigkeit unserer Dienste zu verbessern."
         ]
       },
       "4": {
-        "title": "4. Weitergabe Ihrer Informationen",
-        "intro": "Wir geben Ihre personenbezogenen Daten nicht an Unternehmen, Organisationen oder Einzelpersonen außerhalb von WikiStars5 weiter, außer in den folgenden Fällen:",
+        "title": "4. Compartir tu Información",
+        "intro": "Wir geben Ihre personenbezogenen Daten nicht an Unternehmen, Organisationen oder Einzelpersonen außerhalb von Starryz5 weiter, außer in den folgenden Fällen:",
         "points": [
           {
             "strong": "Öffentliche Inhalte:",
@@ -724,7 +723,7 @@
     "ireland": "Irland",
     "bouvet_island": "Bouvetinsel",
     "isle_of_man": "Isle of Man",
-    "christmas_island": "Weihnachtsinsel",
+    "christmas_island": "Isla de Navidad",
     "norfolk_island": "Norfolkinsel",
     "iceland": "Island",
     "cayman_islands": "Kaimaninseln",
@@ -796,13 +795,13 @@
     "new_zealand": "Neuseeland",
     "oman": "Oman",
     "netherlands": "Niederlande",
-    "pakistan": "Pakistan",
+    "pakistan": "Pakistán",
     "palau": "Palau",
     "palestine": "Palästina",
     "panama": "Panama",
     "papua_new_guinea": "Papua-Neuguinea",
     "paraguay": "Paraguay",
-    "peru": "Peru",
+    "peru": "Perú",
     "french_polynesia": "Französisch-Polynesien",
     "poland": "Polen",
     "portugal": "Portugal",
@@ -846,7 +845,7 @@
     "svalbard_and_jan_mayen": "Svalbard und Jan Mayen",
     "thailand": "Thailand",
     "taiwan": "Taiwan",
-    "tanzania": "Tansania",
+    "tanzania": "Tanzania",
     "tajikistan": "Tadschikistan",
     "british_indian_ocean_territory": "Britisches Territorium im Indischen Ozean",
     "french_southern_territories": "Französische Süd- und Antarktisgebiete",

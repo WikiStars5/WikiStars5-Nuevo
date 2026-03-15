@@ -12,7 +12,7 @@ export default function BetaPage() {
     <div className="container mx-auto max-w-3xl px-4 py-12">
       <Card>
         <CardHeader>
-          <CardTitle className="text-3xl font-headline">Versión Beta de WikiStars5</CardTitle>
+          <CardTitle className="text-3xl font-headline">Versión Beta de Starryz5</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-muted-foreground">
           <Alert>
@@ -24,7 +24,7 @@ export default function BetaPage() {
           </Alert>
           
           <p>
-            Estás utilizando una versión temprana de WikiStars5. Todas las características principales que ves están activas y funcionales, pero esto es solo el comienzo. Estar en fase "Beta" significa que:
+            Estás utilizando una versión temprana de Starryz5. Todas las características principales que ves están activas y funcionales, pero esto es solo el comienzo. Estar en fase "Beta" significa que:
           </p>
           <ul className="list-disc list-inside space-y-2 pl-4">
             <li><strong>Desarrollo Activo:</strong> Estamos trabajando constantemente para añadir nuevas funcionalidades, mejorar las existentes y pulir la experiencia general.</li>

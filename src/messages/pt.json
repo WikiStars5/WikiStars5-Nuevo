@@ -67,7 +67,7 @@
     "usernameLabel": "Nome de Usuário",
     "emailLabel": "E-mail",
     "descriptionLabel": "Descrição",
-    "descriptionPlaceholder": "Uma breve descrição sobre você.",
+    "descriptionPlaceholder": "Uma breve descripción sobre você.",
     "countryLabel": "País",
     "genderLabel": "Sexo",
     "genderPlaceholder": "Selecione seu sexo",
@@ -208,7 +208,7 @@
     "totalVotes": "Total de respostas: {count}",
     "voteToast": {
       "removed": "Voto removido",
-      "updated": "Voto atualizado!",
+      "updated": "Voto actualizado!",
       "registered": "Voto registrado!"
     },
     "errorToast": {
@@ -273,8 +273,8 @@
     "notStarted": "O evento não começou. Volte mais tarde.",
     "adminNotStarted": "O administrador ainda não iniciou a batalha.",
     "shareAlert": {
-      "messi": "Você vai apenas deixar seu voto? Traga reforços se você acha que Messi é o melhor.",
-      "ronaldo": "Você vai apenas votar? A batalha é vencida com números. Se você acha que Cristiano é o melhor, traga reforços."
+      "messi": "Você vai apenas deixar seu voto? Traga reforços si você acha que Messi é o melhor.",
+      "ronaldo": "Você vai apenas votar? A batalha é vencida com números. Si você acha que Cristiano é o melhor, traga reforços."
     },
     "toast": {
       "voted": "Você votou em {player}!"
@@ -450,7 +450,7 @@
       "successTitle": "Perfil Atualizado!",
       "successDescription": "As informações de {name} foram salvas.",
       "errorTitle": "Erro ao Salvar",
-      "errorDescription": "Não foi possível atualizar o perfil. Tente novamente."
+      "errorDescription": "Não foi posible atualizar o perfil. Tente novamente."
     }
   },
   "CreateProfile": {
@@ -473,7 +473,7 @@
       "verifyButton": "Verificar com URL",
       "toast": {
         "noNameError": "Por favor, insira um nome no campo da Wikipédia primeiro.",
-        "invalidUrlError": "Não foi possível verificar a URL. Certifique-se de que está correta.",
+        "invalidUrlError": "Não foi posible verificar a URL. Certifique-se de que está correta.",
         "verifyError": "Ocorreu um erro ao verificar no Famous Birthdays. Tente novamente."
       }
     },
@@ -485,7 +485,7 @@
       "verifyButton": "Verificar",
       "verificationFailedTitle": "Verificação Fallida",
       "verifiedTitle": "Dominio Verificado",
-      "confirmCreationDescription": "¿Deseas crear un perfil para el siguiente dominio?",
+      "confirmCreationDescription": "¿Deseas criar un perfil para el siguiente dominio?",
       "cancelButton": "Cancelar",
       "confirmAndCreateButton": "Confirmar y Crear",
       "validation": {
@@ -513,7 +513,7 @@
       "createSuccessTitle": "Perfil Criado!",
       "createSuccessDescription": "O perfil de {name} foi adicionado.",
       "createErrorTitle": "Erro ao Criar",
-      "createErrorDescription": "Não foi possível criar o perfil. Tente novamente."
+      "createErrorDescription": "Não foi posible criar o perfil. Tente novamente."
     }
   },
   "DisclaimerPage": {
@@ -524,7 +524,7 @@
       "2_strong": "Reflexo da Percepção Pública:",
       "2": " Las percepções, sejam de admiração ou ódio, refletidas nesta plataforma são resultado das próprias ações e reputação das figuras públicas. O Starryz5 não cria nem controla essas opiniões; simplesmente atua como um fórum para sua expressão. A responsabilidade pela imagem pública recai inteiramente sobre a figura pública, não sobre a plataforma que permite a discussão sobre ela. En resumo: não é nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.",
       "3_strong": "Sem Afiliação ou Endosso:",
-      "3": " Este site não é afiliado, associado, autorizado, endossado por, ou de qualquer forma oficialmente conectado a nenhuma das figuras públicas mencionadas nele, nem a nenhuma de suas subsidiárias ou afiliadas.",
+      "3": " Este site não é afiliado, associado, autorizado, endossado por, ou de qualquer forma oficialmente conectado a nenhuma das figuras públicas mencionadas nele, nem a nenhuma de suas subsidiarias ou afiliadas.",
       "4": "Os nomes, bem como quaisquer imagens, marcas registradas e direitos autorais relacionados, são propriedade de seus respectivos donos. O uso desses nomes e imagens é para fins de identificação, comentário e crítica, no âmbito do direito à liberdade de expressão.",
       "5_strong": "Conteúdo Gerado pelo Usuário:",
       "5": " Todo o conteúdo gerado pelo usuário, como comentários e votos, é de responsabilidade exclusiva da pessoa que o publica. O Starryz5 não se responsabiliza pela precisão, veracidade ou legalidade de tal conteúdo. Reservamo-nos o direito de moderar ou remover conteúdo que viole nossas políticas, mas não somos obrigados a fazê-lo.",
@@ -545,7 +545,7 @@
         "points": [
           {
             "strong": "Informações que você nos fornece:",
-            "text": " Ao se registrar com o Google, você nos fornece seu nome, endereço de e-mail e foto de perfil. Você também pode adicionar voluntariamente um nome de usuário, país, sexo e uma breve descrição ao seu perfil."
+            "text": " Ao se registrar com o Google, você nos fornece seu nome, endereço de e-mail e foto de perfil. Você também pode adicionar voluntariamente um nome de usuário, país, sexo e uma breve descripción ao seu perfil."
           },
           {
             "strong": "Conteúdo que você gera:",
@@ -589,7 +589,7 @@
         "title": "5. Seus Controles de Privacidade",
         "intro": "Você tem controle sobre as informações que fornece e sua atividade. Em sua página de perfil, você pode:",
         "points": [
-          "Visualizar e editar as informações do seu perfil, como seu nome de usuario, país, sexo e descrição.",
+          "Visualizar e editar as informações do seu perfil, como seu nome de usuario, país, sexo e descripción.",
           "Ver um resumo de sua atividade, incluindo seus votos e sequências."
         ],
         "outro": "Si você deseja excluir sua conta e todas as informações associadas, entre em contato conosco."
@@ -655,7 +655,7 @@
     "bosnia_and_herzegovina": "Bósnia e Herzegovina",
     "botswana": "Botsuana",
     "brazil": "Brasil",
-    "brunei": "Brunei",
+    "brunei": "Brunéi",
     "bulgaria": "Bulgária",
     "burkina_faso": "Burkina Faso",
     "burundi": "Burundi",
@@ -695,7 +695,7 @@
     "ethiopia": "Etiópia",
     "philippines": "Filipinas",
     "finland": "Finlândia",
-    "fiji": "Fiji",
+    "fiji": "Fiyi",
     "france": "França",
     "gabon": "Gabão",
     "gambia": "Gâmbia",
@@ -717,7 +717,7 @@
     "haiti": "Haiti",
     "honduras": "Honduras",
     "hong_kong": "Hong Kong",
-    "hungary": "Hungria",
+    "hungary": "Hungría",
     "india": "Índia",
     "indonesia": "Indonésia",
     "iraq": "Iraque",
@@ -745,7 +745,7 @@
     "us_virgin_islands": "Ilhas Virgens Americanas",
     "israel": "Israel",
     "italy": "Itália",
-    "jamaica": "Jamaica",
+    "jamaica": "Giamaica",
     "japan": "Japão",
     "jersey": "Jersey",
     "jordan": "Jordânia",
@@ -756,7 +756,7 @@
     "kuwait": "Kuwait",
     "laos": "Laos",
     "lesotho": "Lesoto",
-    "latvia": "Letônia",
+    "latvia": "Letónia",
     "lebanon": "Libano",
     "liberia": "Libéria",
     "libya": "Líbia",
@@ -764,7 +764,7 @@
     "lithuania": "Lituânia",
     "luxembourg": "Luxemburgo",
     "macao": "Macau",
-    "north_macedonia": "Macedônia do Norte",
+    "north_macedonia": "Macedónia do Norte",
     "madagascar": "Madagáscar",
     "malaysia": "Malásia",
     "malawi": "Malawi",
@@ -779,7 +779,7 @@
     "mexico": "México",
     "micronesia": "Micronésia",
     "moldova": "Moldávia",
-    "monaco": "Mônaco",
+    "monaco": "Mónaco",
     "mongolia": "Mongólia",
     "montenegro": "Montenegro",
     "montserrat": "Montserrat",
@@ -793,19 +793,19 @@
     "nigeria": "Nigéria",
     "niue": "Niue",
     "norway": "Noruega",
-    "new_caledonia": "Nova Caledônia",
+    "new_caledonia": "Nova Caledónia",
     "new_zealand": "Nova Zelândia",
     "oman": "Omã",
     "netherlands": "Países Baixos",
     "pakistan": "Paquistão",
-    "palau": "Palau",
+    "palau": "Palaus",
     "palestine": "Palestina",
     "panama": "Panamá",
     "papua_new_guinea": "Papua-Nova Guiné",
     "paraguay": "Paraguai",
     "peru": "Peru",
     "french_polynesia": "Polinésia Francesa",
-    "poland": "Polônia",
+    "poland": "Polónia",
     "portugal": "Portugal",
     "puerto_rico": "Porto Rico",
     "united_kingdom": "Reino Unido",
@@ -815,13 +815,13 @@
     "dominican_republic": "República Dominicana",
     "reunion": "Reunião",
     "rwanda": "Ruanda",
-    "romania": "Romênia",
+    "romania": "Roménia",
     "russia": "Rússia",
-    "western_sahara": "Saara Ocidental",
+    "western_sahara": "Sara Ocidental",
     "samoa": "Samoa",
     "american_samoa": "Samoa Americana",
     "saint_barthelemy": "São Bartolomeu",
-    "saint_kitts_and_nevis": "São Cristóvão e Nevis",
+    "saint_kitts_and_nevis": "São Cristóvão e Neves",
     "san_marino": "San Marino",
     "saint_martin": "São Martinho",
     "saint_pierre_and_miquelon": "São Pedro e Miquelão",
@@ -831,10 +831,10 @@
     "sao_tome_and_principe": "São Tomé e Príncipe",
     "senegal": "Senegal",
     "serbia": "Sérvia",
-    "seychelles": "Seychelles",
+    "seychelles": "Seicheles",
     "sierra_leone": "Serra Leoa",
     "singapore": "Singapura",
-    "sint_maarten": "Sint Maarten",
+    "sint_maarten": "São Martinho",
     "syria": "Síria",
     "somalia": "Somália",
     "sri_lanka": "Sri Lanka",
@@ -848,30 +848,30 @@
     "thailand": "Tailândia",
     "taiwan": "Taiwan",
     "tanzania": "Tanzânia",
-    "tajikistan": "Tadjiquistão",
+    "tajikistan": "Tajiquistão",
     "british_indian_ocean_territory": "Território Britânico do Oceano Índico",
     "french_southern_territories": "Territórios Austrais Franceses",
     "timor_leste": "Timor-Leste",
     "togo": "Togo",
-    "tokelau": "Tokelau",
+    "tokelau": "Toquelau",
     "tonga": "Tonga",
-    "trinidad_and_tobago": "Trinidad e Tobago",
+    "trinidad_and_tobago": "Trindade e Tobago",
     "tunisia": "Tunísia",
-    "turkmenistan": "Turcomenistão",
+    "turkmenistan": "Turquemenistão",
     "turkey": "Turquia",
     "tuvalu": "Tuvalu",
     "ukraine": "Ucrânia",
     "uganda": "Uganda",
     "uruguay": "Uruguai",
-    "uzbekistan": "Uzbequistão",
+    "uzbekistan": "Usbequistão",
     "vanuatu": "Vanuatu",
     "vatican_city": "Vaticano",
     "venezuela": "Venezuela",
-    "vietnam": "Vietnã",
+    "vietnam": "Vietname",
     "wallis_and_futuna": "Wallis e Futuna",
-    "yemen": "Iêmen",
+    "yemen": "Iémen",
     "djibouti": "Djibuti",
     "zambia": "Zâmbia",
-    "zimbabwe": "Zimbábue"
+    "zimbabwe": "Zimbabué"
   }
 }

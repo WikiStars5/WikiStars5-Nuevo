@@ -48,7 +48,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
             </Alert>
             <div className="text-sm text-muted-foreground space-y-4 leading-relaxed">
               <p>
-                Estás utilizando una versión temprana de WikiStars5. Todas las características principales que ves están activas y funcionales, pero esto es solo el comienzo. Estar en fase "Beta" significa que:
+                Estás utilizando una versión temprana de Starryz5. Todas las características principales que ves están activas y funcionales, pero esto es solo el comienzo. Estar en fase "Beta" significa que:
               </p>
               <ul className="list-disc list-inside space-y-2 pl-2">
                 <li><strong>Desarrollo Activo:</strong> Estamos trabajando constantemente para añadir nuevas funcionalidades, mejorar las existentes y pulir la experiencia general.</li>
@@ -85,7 +85,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
           <div className="space-y-6 text-sm text-muted-foreground leading-relaxed">
             <section>
               <h3 className="font-bold text-foreground text-base mb-2">1. Introducción</h3>
-              <p>Bienvenido a WikiStars5. Tu privacidad es de suma importancia para nosotros. Esta Política de Privacidad explica qué datos recopilamos, por qué los recopilamos y cómo puedes ver y gestionar tu información.</p>
+              <p>Bienvenido a Starryz5. Tu privacidad es de suma importancia para nosotros. Esta Política de Privacidad explica qué datos recopilamos, por qué los recopilamos y cómo puedes ver y gestionar tu información.</p>
             </section>
 
             <section>
@@ -102,7 +102,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
               <h3 className="font-bold text-foreground text-base mb-2">3. Por Qué Recopilamos Datos</h3>
               <p className="mb-2">Utilizamos la información que recopilamos para los siguientes propósitos:</p>
               <ul className="list-disc pl-5 space-y-2">
-                <li>Proporcionar nuestros servicios: Para operar las funciones principales de WikiStars5, como mostrar tu perfil público, tus comentarios, votos y rachas.</li>
+                <li>Proporcionar nuestros servicios: Para operar las funciones principales de Starryz5, como mostrar tu perfil público, tus comentarios, votos y rachas.</li>
                 <li>Mantener y mejorar nuestros servicios: Para entender cómo se utiliza nuestra plataforma y poder mejorarla.</li>
                 <li>Comunicarnos contigo: Para enviarte notificaciones importantes, como respuestas a tus comentarios.</li>
                 <li>Proteger nuestra plataforma y a nuestros usuarios: Usamos la información para ayudar a mejorar la seguridad y fiabilidad de nuestros servicios.</li>
@@ -111,7 +111,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
 
             <section>
               <h3 className="font-bold text-foreground text-base mb-2">4. Compartir tu Información</h3>
-              <p className="mb-2">No compartimos tu información personal con empresas, organizaciones o individuos fuera de WikiStars5, excepto en los siguientes casos:</p>
+              <p className="mb-2">No compartimos tu información personal con empresas, organizaciones o individuos fuera de Starryz5, excepto en los siguientes casos:</p>
               <ul className="list-disc pl-5 space-y-2">
                 <li><strong>Contenido público:</strong> Tu nombre de usuario, tu foto de perfil (si la tienes) e todo el contenido que generas (comentarios, votos, etc.) son visibles públicamente para otros usuarios de la plataforma.</li>
                 <li><strong>Proveedores de servicios:</strong> Utilizamos Google Firebase para la autenticación, base de datos y alojamiento. Google tiene sus propias políticas de privacidad que rigen cómo procesan los datos.</li>
@@ -135,12 +135,12 @@ export default function InfoDialog({ section }: InfoDialogProps) {
           <div className="space-y-6 text-sm text-muted-foreground leading-relaxed">
             <section>
               <h3 className="font-bold text-foreground text-base mb-2">Naturaleza del Sitio</h3>
-              <p>WikiStars5 es una plataforma de opinión y entretenimiento. Creemos firmemente en la libertad de expresión y nuestro propósito es permitir que los usuarios expresen y discutan libremente sus percepciones sobre figuras públicas. El contenido de este sitio, incluyendo las calificaciones, votos, y comentarios, representa las opiniones subjetivas de nuestros usuarios y no debe ser interpretado como una declaración de hechos.</p>
+              <p>Starryz5 es una plataforma de opinión y entretenimiento. Creemos firmemente en la libertad de expresión y nuestro propósito es permitir que los usuarios expresen y discutan libremente sus percepciones sobre figuras públicas. El contenido de este sitio, incluyendo las calificaciones, votos, y comentarios, representa las opiniones subjetivas de nuestros usuarios y no debe ser interpretado como una declaración de hechos.</p>
             </section>
 
             <section>
               <h3 className="font-bold text-foreground text-base mb-2">Reflejo de la Percepción Pública</h3>
-              <p>Las percepciones, ya sean de admiración u odio, que se reflejan en esta plataforma son el resultado de las acciones y la reputación de las propias figuras públicas. WikiStars5 no crea ni controla estas opiniones; simplemente actúa como un foro para su expresión. La responsabilidad de la imagen pública recae enteramente en la figura pública, no en la plataforma que permite la discusión sobre ella. En resumen: <strong>no es nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.</strong></p>
+              <p>Las percepciones, ya sean de admiración u odio, que se reflejan en esta plataforma son el resultado de las acciones y la reputación de las propias figuras públicas. Starryz5 no crea ni controla estas opiniones; simplemente actúa como un foro para su expresión. La responsabilidad de la imagen pública recae enteramente en la figura pública, no en la plataforma que permite la discusión sobre ella. En resumen: <strong>no es nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.</strong></p>
             </section>
 
             <section>
@@ -151,7 +151,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
 
             <section>
               <h3 className="font-bold text-foreground text-base mb-2">Contenido Generado por el Usuario</h3>
-              <p>Todo el contenido generado por los usuarios, como comentarios y votos, es responsabilidad exclusiva de la persona que lo publica. WikiStars5 no se hace responsable de la exactitud, veracidad o legalidad de dicho contenido. Nos reservamos el derecho de moderar o eliminar contenido que viole nuestras políticas, pero no tenemos la obligación de hacerlo.</p>
+              <p>Todo el contenido generado por los usuarios, como comentarios y votos, es responsabilidad exclusiva de la persona que lo publica. Starryz5 no se hace responsable de la exactitud, veracidad o legalidad de dicho contenido. Nos reservamos el derecho de moderar o eliminar contenido que viole nuestras políticas, pero no tenemos la obligación de hacerlo.</p>
             </section>
 
             <section>
@@ -165,7 +165,7 @@ export default function InfoDialog({ section }: InfoDialogProps) {
 
   const getTitle = () => {
     switch (section) {
-      case 'beta': return 'Versión Beta de WikiStars5';
+      case 'beta': return 'Versión Beta de Starryz5';
       case 'rules': return 'Reglas de la Comunidad';
       case 'privacy': return 'Política de Privacidad';
       case 'disclaimer': return 'Aviso Legal';
