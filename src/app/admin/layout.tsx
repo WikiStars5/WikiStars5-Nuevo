@@ -93,8 +93,8 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
             <div className="flex items-center gap-6">
                 <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-                    <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528" alt="WikiStars5 Logo" width={24} height={24} className="h-6 w-6" />
-                    <span className="font-headline text-primary">WikiStars5</span>
+                    <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Festrellados%20(3).jpg?alt=media&token=4c5ff945-b737-4bd6-bb41-98b609c654c9" alt="Starryz5 Logo" width={24} height={24} className="h-6 w-6 rounded-full" />
+                    <span className="font-headline text-primary">Starryz5</span>
                 </Link>
                  <div className="hidden md:block w-96">
                     <SearchBar />

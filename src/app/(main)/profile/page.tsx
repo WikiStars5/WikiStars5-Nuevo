@@ -29,7 +29,7 @@ import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import UserStarPosts from '@/components/profile/user-starposts';
 import UserThoughts from '@/components/profile/user-thoughts';
-import UserSavedThoughts from '@/components/profile/user-saved-thoughts';
+import UserSavedContent from '@/components/profile/user-saved-content';
 import { useTheme } from 'next-themes';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import FollowListDialog from '@/components/shared/follow-list-dialog';
@@ -539,7 +539,7 @@ function ProfilePageContent() {
                                     <Megaphone />
                                     Panel de Anuncios
                                 </CardTitle>
-                                <CardDescription>Crea y gestiona tus campañas publicitarias en WikiStars5.</CardDescription>
+                                <CardDescription>Crea y gestiona tus campañas publicitarias en Starryz5.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <Button asChild className="w-full">
@@ -561,7 +561,7 @@ function ProfilePageContent() {
                         <UserThoughts userId={user.uid} />
                     </TabsContent>
                     <TabsContent value="saved" className="mt-4">
-                        <UserSavedThoughts userId={user.uid} />
+                        <UserSavedContent userId={user.uid} />
                     </TabsContent>
                  </Tabs>
             </div>

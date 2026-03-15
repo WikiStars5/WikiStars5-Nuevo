@@ -131,11 +131,6 @@ export interface Figure {
   blackpinkBiasVoteCount?: number;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
-  // Temporary fields for security rules, not stored in DB.
-  __oldVote?: string | null;
-  __newVote?: string | null;
-  __ratingCount_delta?: number;
-  __totalRating_delta?: number;
 }
 
 export interface FeaturedFigure {
@@ -236,18 +231,17 @@ export interface Comment {
   figureName: string;
   figureImageUrl?: string;
   text: string;
-  rating: number; // Star rating from 0-5 associated with the comment. -1 for replies or when ratings are disabled.
+  rating: number; 
   tag?: CommentTagId | null;
-  instagramImageUrl?: string; // Added field for Instagram images
-  isFeatured?: boolean; // New field for admin to feature a comment
+  instagramImageUrl?: string; 
+  isFeatured?: boolean; 
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   likes?: number;
   dislikes?: number;
   parentId: string | null;
-  replyCount?: number; // Number of direct replies to this comment
-  threadId?: string; // ID of the root comment in the thread
-  // Denormalized user data for display
+  replyCount?: number; 
+  threadId?: string; 
   userDisplayName: string;
   userPhotoURL: string | null;
   userCountry?: string | null;
@@ -289,7 +283,7 @@ export interface Notification {
   id: string;
   userId: string;
   type: 'comment_reply';
-  message: string; // Legacy, will be deprecated
+  message: string; 
   data: {
     commenterName: string;
     figureName: string;
@@ -300,10 +294,10 @@ export interface Notification {
 }
 
 export interface Streak {
-  id: string; // The ID will now be the figureId
+  id: string; 
   userId: string;
-  figureId: string; // Denormalized for querying
-  isActive: boolean; // True if the streak is current (today/yesterday)
+  figureId: string; 
+  isActive: boolean; 
   currentStreak: number;
   lives?: number;
   lastCommentDate: Timestamp;
@@ -312,7 +306,6 @@ export interface Streak {
   userPhotoURL?: string | null;
   userCountry?: string | null;
   userGender?: string | null;
-  // Denormalized figure data
   figureName?: string;
   figureImageUrl?: string;
 }
@@ -328,7 +321,7 @@ export interface GoatBattle {
 }
 
 export interface GoatVote {
-    id: string; // userId
+    id: string; 
     userId: string;
     vote: 'messi' | 'ronaldo';
     createdAt: Timestamp;

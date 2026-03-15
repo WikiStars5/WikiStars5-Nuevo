@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
@@ -7,14 +8,14 @@ import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { StarRating } from '@/components/shared/star-rating';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame, ChevronDown, Trash2, FilePenLine, X, Send } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame, ChevronDown, Trash2, FilePenLine, X, Send, Bookmark, BookmarkCheck } from 'lucide-react';
 import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth, signInAnonymously } from '@/firebase';
-import { doc, runTransaction, increment, serverTimestamp, getDoc, getDocs, collection as firestoreCollection, updateDoc } from 'firebase/firestore';
+import { doc, runTransaction, increment, serverTimestamp, getDoc, getDocs, collection as firestoreCollection, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
 import { isDateActive } from '@/lib/streaks';
@@ -60,7 +61,8 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   const firestore = useFirestore();
   const { toast } = useToast();
   const { theme } = useTheme();
-  const { showStreakAnimation } = useContext(StreakAnimationContext);
+  const streakContext = useContext(StreakAnimationContext);
+  const showStreakAnimation = streakContext?.showStreakAnimation;
   
   const [post, setPost] = useState(initialPost);
   const [authorData, setAuthorData] = useState({
@@ -74,6 +76,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(initialPost.text);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isSavingContent, setIsSavingContent] = useState(false);
 
   const isOwner = user && user.uid === initialPost.userId;
 
@@ -81,6 +84,15 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
     if (!firestore || !initialPost.figureId || !initialPost.id) return null;
     return doc(firestore, 'figures', initialPost.figureId, 'comments', initialPost.id);
   }, [firestore, initialPost.figureId, initialPost.id]);
+
+  // Save functionality
+  const savedRef = useMemoFirebase(() => {
+    if (!firestore || !user || !initialPost.id) return null;
+    return doc(firestore, `users/${user.uid}/saved_starposts`, initialPost.id);
+  }, [firestore, user, initialPost.id]);
+
+  const { data: savedDoc } = useDoc(savedRef, { enabled: !!user, realtime: true });
+  const isSaved = !!savedDoc;
 
   useEffect(() => {
     if (!firestore || !post.userId) return;
@@ -134,6 +146,31 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   }, [firestore, post.userId, post.figureId]);
 
   const { data: userStreak } = useDoc<Streak>(userStreakRef, {realtime: true});
+
+  const handleSaveToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!firestore || !user || isSavingContent) return;
+    setIsSavingContent(true);
+    try {
+        if (isSaved) {
+            await deleteDoc(savedRef!);
+            toast({ title: 'Eliminado de guardados' });
+        } else {
+            await setDoc(savedRef!, {
+                figureId: post.figureId,
+                commentId: post.id,
+                createdAt: serverTimestamp(),
+            });
+            toast({ title: 'Reseña guardada' });
+        }
+    } catch (error) {
+        console.error(error);
+        toast({ title: 'Error al guardar', variant: 'destructive' });
+    } finally {
+        setIsSavingContent(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!firestore || !isOwner) return;
@@ -236,22 +273,6 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
     const commentRef = doc(firestore, 'figures', post.figureId, 'comments', post.id);
     const voteRef = doc(firestore, votePath, currentUser.uid);
 
-    setPost(currentPost => {
-        const newPost = { ...currentPost };
-        const existingVote = userVote?.vote;
-
-        if (existingVote === voteType) {
-            newPost[`${voteType}s`] = (newPost[`${voteType}s`] ?? 1) - 1;
-        } else if (existingVote) {
-            const otherVoteType = voteType === 'like' ? 'dislike' : 'like';
-            newPost[`${voteType}s`] = (newPost[`${voteType}s`] ?? 0) + 1;
-            newPost[`${otherVoteType}s`] = (newPost[`${otherVoteType}s`] ?? 1) - 1;
-        } else {
-            newPost[`${voteType}s`] = (newPost[`${voteType}s`] ?? 0) + 1;
-        }
-        return newPost;
-    });
-
     try {
         await runTransaction(firestore, async (transaction) => {
             const voteDoc = await transaction.get(voteRef);
@@ -275,27 +296,28 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
             transaction.update(commentRef, updates);
         });
 
-        const streakResult = await updateStreak({
-            firestore,
-            figureId: post.figureId,
-            figureName: post.figureName,
-            userId: currentUser.uid,
-            isAnonymous: currentUser.isAnonymous,
-            userPhotoURL: currentUser.photoURL
-        });
-
-        if (streakResult?.streakGained) {
-            showStreakAnimation(streakResult.newStreakCount, { 
-                showPrompt: true,
+        if (showStreakAnimation) {
+            const streakResult = await updateStreak({
+                firestore,
                 figureId: post.figureId,
-                figureName: post.figureName
+                figureName: post.figureName,
+                userId: currentUser.uid,
+                isAnonymous: currentUser.isAnonymous,
+                userPhotoURL: currentUser.photoURL
             });
+
+            if (streakResult?.streakGained) {
+                showStreakAnimation(streakResult.newStreakCount, { 
+                    showPrompt: true,
+                    figureId: post.figureId,
+                    figureName: post.figureName
+                });
+            }
         }
 
         refetchVote();
     } catch (error: any) {
         console.error("Error al votar:", error);
-        setPost(initialPost);
         toast({
             title: t("CommentThread.toast.voteErrorTitle"),
             description: error.message || t("CommentThread.toast.voteErrorDescription"),
@@ -429,6 +451,15 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                                     showText={false}
                                     className="h-8 w-8"
                                 />
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className={cn("h-8 w-8", isSaved ? "text-primary" : "text-muted-foreground")}
+                                    onClick={handleSaveToggle}
+                                    disabled={isSavingContent || !user}
+                                >
+                                    {isSavingContent ? <Loader2 className="h-4 w-4 animate-spin" /> : isSaved ? <BookmarkCheck className="h-4 w-4 fill-current" /> : <Bookmark className="h-4 w-4" />}
+                                </Button>
                             </div>
 
                             <div className="flex items-center">

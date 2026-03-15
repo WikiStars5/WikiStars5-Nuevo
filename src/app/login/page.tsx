@@ -141,8 +141,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
          <div className="flex justify-center mb-6">
             <Link href="/" className="flex items-center gap-2 font-bold text-2xl">
-                <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Flogodia%20(2).png?alt=media&token=7cdac6ec-4db8-4bda-a104-fa636e201528" alt="WikiStars5 Logo" width={32} height={32} className="h-8 w-8" />
-                <span className="font-headline">WikiStars5</span>
+                <Image src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Festrellados%20(3).jpg?alt=media&token=4c5ff945-b737-4bd6-bb41-98b609c654c9" alt="Starryz5 Logo" width={32} height={32} className="h-8 w-8 rounded-full" />
+                <span className="font-headline">Starryz5</span>
             </Link>
         </div>
         <Card>
