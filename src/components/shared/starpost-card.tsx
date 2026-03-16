@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useContext, useRef } from 'react';
@@ -8,13 +7,13 @@ import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { StarRating } from '@/components/shared/star-rating';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame, ChevronDown, Trash2, FilePenLine, X, Send, Bookmark, BookmarkCheck } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, Flame, ChevronDown, Trash2, FilePenLine, X, Send, Bookmark, BookmarkCheck, Save } from 'lucide-react';
 import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
 import { useLanguage } from '@/context/LanguageContext';
 import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth, signInAnonymously } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth, signInAnonymously, useAdmin } from '@/firebase';
 import { doc, runTransaction, increment, serverTimestamp, getDoc, getDocs, collection as firestoreCollection, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
@@ -27,11 +26,10 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
+  AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '../ui/textarea';
 import { ShareButton } from './ShareButton';
@@ -60,6 +58,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   const { user } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { isAdmin } = useAdmin();
   const { toast } = useToast();
   const { theme } = useTheme();
   const streakContext = useContext(StreakAnimationContext);
@@ -202,7 +201,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
   };
 
   const handleDelete = async () => {
-    if (!firestore || !isOwner) return;
+    if (!firestore || !(isOwner || isAdmin)) return;
     setIsDeleting(true);
 
     const commentRef = doc(firestore, 'figures', post.figureId, 'comments', post.id);
@@ -419,7 +418,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                                         <X className="mr-1.5 h-4 w-4" /> {t("ReplyForm.cancelButton")}
                                     </Button>
                                     <Button size="sm" onClick={handleUpdate} disabled={isSavingEdit}>
-                                        {isSavingEdit ? <Loader2 className="animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />} {t("EditFigure.buttons.save")}
+                                        {isSavingEdit ? <Loader2 className="animate-spin" /> : <Save className="mr-1.5 h-4 w-4" />} {t("EditFigure.buttons.save")}
                                     </Button>
                                 </div>
                             </div>
@@ -447,30 +446,30 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                             
                             <div className="flex items-center gap-1">
                                 {isOwner && (
-                                    <>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
-                                            <FilePenLine className="h-4 w-4" />
-                                        </Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" disabled={isDeleting}>
-                                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>{t('CommentThread.confirmDelete.title')}</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    {t('CommentThread.confirmDelete.description')}
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>{t("ReplyForm.cancelButton")}</AlertDialogCancel>
-                                                <AlertDialogAction onClick={handleDelete}>{t('CommentThread.confirmDelete.continue')}</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
+                                        <FilePenLine className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                {(isOwner || isAdmin) && (
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" disabled={isDeleting}>
+                                                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>{t('CommentThread.confirmDelete.title')}</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                {t('CommentThread.confirmDelete.description')}
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>{t("ReplyForm.cancelButton")}</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleDelete}>{t('CommentThread.confirmDelete.continue')}</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 )}
                                  <ShareButton
                                     figureId={post.figureId}

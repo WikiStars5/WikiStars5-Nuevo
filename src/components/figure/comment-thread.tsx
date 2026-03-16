@@ -6,7 +6,7 @@ import type { Comment as CommentType, CommentVote, GlobalSettings, Streak } from
 import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn, formatDateDistance, formatCompactNumber } from '@/lib/utils';
-import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp, Share2, Lock, Flame, Pin, PinOff } from 'lucide-react';
+import { MessageSquare, ThumbsUp, ThumbsDown, Loader2, FilePenLine, Trash2, Send, X, CornerDownRight, ChevronDown, ChevronUp, Share2, Lock, Flame, Pin, PinOff, Save } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState, useEffect, useMemo, useRef, useCallback, useContext } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -63,7 +63,8 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     const { isAdmin } = useAdmin();
     const { toast } = useToast();
     const { t, language } = useLanguage();
-    const { showStreakAnimation } = useContext(StreakAnimationContext);
+    const streakContext = useContext(StreakAnimationContext);
+    const showStreakAnimation = streakContext?.showStreakAnimation;
     const [isVoting, setIsVoting] = useState<'like' | 'dislike' | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -161,7 +162,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                 userPhotoURL: currentUser.photoURL
             });
 
-            if (streakResult?.streakGained) {
+            if (streakResult?.streakGained && showStreakAnimation) {
                 showStreakAnimation(streakResult.newStreakCount, { showPrompt: true });
             }
             // No need for refetch, realtime listener will update UI.
@@ -178,7 +179,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
     };
 
     const handleDelete = async () => {
-        if (!firestore || !isOwner) return;
+        if (!firestore || !(isOwner || isAdmin)) return;
         setIsDeleting(true);
 
         const commentPath = isReply
@@ -198,7 +199,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
 
                 let repliesSnapshot;
                 if (!isReply) {
-                    const repliesRef = collection(firestore, commentRef.path, 'replies');
+                    const repliesRef = firestoreCollection(firestore, commentRef.path, 'replies');
                     repliesSnapshot = await getDocs(repliesRef);
                 }
 
@@ -437,10 +438,11 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                         
                         <div className="flex items-center gap-1">
                             {isOwner && (
-                                <>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditing(true)}>
                                     <FilePenLine className="h-4 w-4" />
                                 </Button>
+                            )}
+                            {(isOwner || isAdmin) && (
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" disabled={isDeleting}>
@@ -460,17 +462,16 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-                                {comment.rating > 0 && !isReply && (
-                                    <ShareButton
-                                        figureId={figureId}
-                                        figureName={figureName}
-                                        isRatingShare={true}
-                                        rating={comment.rating}
-                                        showText={false}
-                                        className="h-8 w-8"
-                                    />
-                                )}
-                                </>
+                            )}
+                            {isOwner && comment.rating > 0 && !isReply && (
+                                <ShareButton
+                                    figureId={figureId}
+                                    figureName={figureName}
+                                    isRatingShare={true}
+                                    rating={comment.rating}
+                                    showText={false}
+                                    className="h-8 w-8"
+                                />
                             )}
                              {isAdmin && (
                                 <Button

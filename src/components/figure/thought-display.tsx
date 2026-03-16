@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useContext, useEffect, useRef } from 'react';
@@ -11,7 +10,7 @@ import {
   updateDoc 
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
-import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useAuth, useFirestore, useUser, useDoc, useMemoFirebase, useAdmin } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -76,6 +75,7 @@ export function ThoughtDisplay({
     const { user } = useUser();
     const firestore = useFirestore();
     const auth = useAuth();
+    const { isAdmin } = useAdmin();
     const { toast } = useToast();
     const { language } = useLanguage();
     const streakContext = useContext(StreakAnimationContext);
@@ -239,7 +239,7 @@ export function ThoughtDisplay({
     };
 
     const handleDelete = async () => {
-        if (!firestore || !isOwner) return;
+        if (!firestore || !(isOwner || isAdmin)) return;
         setIsDeleting(true);
         try {
             await runTransaction(firestore, async (transaction) => {
@@ -397,11 +397,13 @@ export function ThoughtDisplay({
                         </Button>
                     )}
                     
-                    {isOwner && (
-                        <div className="flex items-center gap-1 ml-auto">
+                    <div className="flex items-center gap-1 ml-auto">
+                        {isOwner && (
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditing(true)}>
                                 <FilePenLine className="h-3 w-3" />
                             </Button>
+                        )}
+                        {(isOwner || isAdmin) && (
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
@@ -419,8 +421,8 @@ export function ThoughtDisplay({
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
