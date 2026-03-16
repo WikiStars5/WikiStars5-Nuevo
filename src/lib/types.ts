@@ -277,6 +277,18 @@ export interface Thought {
     parentId?: string | null;
 }
 
+export interface NewsItem {
+  id: string;
+  figureId: string;
+  title: string;
+  description: string;
+  image: string | null;
+  url: string;
+  domain: string;
+  publisher: string;
+  createdAt: Timestamp;
+}
+
 export interface CommentVote {
   id: string;
   userId: string;

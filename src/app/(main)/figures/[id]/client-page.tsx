@@ -14,7 +14,7 @@ import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import ThoughtsSection from '@/components/figure/thoughts-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Trophy, Star, MessageCircle, Cloud } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Trophy, Star, MessageCircle, Cloud, Newspaper } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import BtsBiasVoting from '@/components/figure/bts-bias-voting';
 import BlackpinkBiasVoting from '@/components/figure/blackpink-bias-voting';
 import { trackView } from '@/lib/view-tracker';
+import FigureNewsSection from '@/components/figure/news-section';
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
 
@@ -159,6 +160,7 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                   <TabsTrigger value="bias-bts"><Heart className="mr-2 h-4 w-4" />Bias BTS</TabsTrigger>
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
+                  <TabsTrigger value="noticias"><Newspaper className="mr-2 h-4 w-4" />Noticias</TabsTrigger>
                   <TabsTrigger value="logros"><Trophy className="mr-2 h-4 w-4" />Logros</TabsTrigger>
                   <TabsTrigger value="wiki"><InfoIcon className="mr-2 h-4 w-4" />Wiki</TabsTrigger>
                 </>
@@ -170,6 +172,7 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   {isBlackpinkMember && <TabsTrigger value="bias-blackpink"><Heart className="mr-2 h-4 w-4" />Bias Blackpink</TabsTrigger>}
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
+                  <TabsTrigger value="noticias"><Newspaper className="mr-2 h-4 w-4" />Noticias</TabsTrigger>
                   <TabsTrigger value="logros"><Trophy className="mr-2 h-4 w-4" />Logros</TabsTrigger>
                 </>
               )}
@@ -236,6 +239,9 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
           </TabsContent>
           <TabsContent value="rachas" className="mt-4">
             {activeTab === 'rachas' && <TopStreaks figure={figure} />}
+          </TabsContent>
+          <TabsContent value="noticias" className="mt-4">
+            {activeTab === 'noticias' && <FigureNewsSection figureId={figure.id} figureName={figure.name} />}
           </TabsContent>
           <TabsContent value="logros" className="mt-4">
             <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>

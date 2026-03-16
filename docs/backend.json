@@ -25,6 +25,21 @@
       },
       "required": ["id"]
     },
+    "NewsItem": {
+      "title": "NewsItem",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "figureId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string", "format": "uri" },
+        "url": { "type": "string", "format": "uri" },
+        "domain": { "type": "string" },
+        "publisher": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "Follower": {
       "title": "Follower",
       "type": "object",
@@ -70,6 +85,10 @@
       {
         "path": "/users/{userId}",
         "definition": { "entityName": "User", "description": "Stores user profiles." }
+      },
+      {
+        "path": "/figures/{figureId}/news/{newsId}",
+        "definition": { "entityName": "NewsItem", "description": "Stores news related to a public figure." }
       },
       {
         "path": "/users/{userId}/followers/{followerId}",
