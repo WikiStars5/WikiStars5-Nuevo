@@ -691,7 +691,7 @@ export default function GlobalStarPostForm() {
           )}
 
           {selectedFigure && !isCheckingExisting && (
-            <>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               <div className="space-y-3">
                   <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">¿Cuál es tu actitud hacia él/ella?</Label>
                   <div className="grid grid-cols-4 gap-2">
@@ -897,7 +897,7 @@ export default function GlobalStarPostForm() {
                       )}
                   </TabsContent>
               </Tabs>
-            </>
+            </form>
           )}
         </Form>
       </CardContent>
