@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from 'next-themes';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { StreakAnimationProvider } from '@/context/StreakAnimationContext';
+import { StreakAnimationProvider } from '@/context/StreakAnimationProvider';
 import StreakAnimationOverlay from '@/components/streaks/StreakAnimationOverlay';
 import Script from 'next/script';
 import { LanguageProvider } from '@/context/LanguageContext';

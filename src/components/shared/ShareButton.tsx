@@ -162,7 +162,7 @@ export function ShareButton({
                 figureName,
                 userId: currentUser.uid,
                 isAnonymous: currentUser.isAnonymous,
-                userPhotoURL: currentUser.photoURL // Enviamos la foto actual
+                userPhotoURL: currentUser.photoURL 
             });
 
             if (streakResult?.streakGained) {
@@ -213,29 +213,29 @@ export function ShareButton({
       }
       return `Batalla del GOAT: Messi vs Ronaldo. Vota y decide.`;
     }
-    return `¡Únete a la conversación sobre ${figureName} en WikiStars5! Vota, comenta y mira lo que otros piensan.`;
+    return `¡Únete a la conversación sobre ${figureName} en Starryz5! Vota, comenta y mira lo que otros piensan.`;
   };
 
   const getShareTitle = () => {
      if (isBtsBiasShare) {
-      return `Mi Bias de BTS es ${biasName} | WikiStars5`;
+      return `Mi Bias de BTS es ${biasName} | Starryz5`;
     }
     if (isBlackpinkBiasShare) {
-        return `Mi Bias de BLACKPINK es ${biasName} | WikiStars5`;
+        return `Mi Bias de BLACKPINK es ${biasName} | Starryz5`;
     }
     if (isEmotionShare) {
-        return `Mi Emoción sobre ${figureName} en WikiStars5`;
+        return `Mi Emoción sobre ${figureName} en Starryz5`;
     }
     if (isAttitudeShare) {
-        return `Mi Actitud hacia ${figureName} en WikiStars5`;
+        return `Mi Actitud hacia ${figureName} en Starryz5`;
     }
     if (isRatingShare) {
-      return `Mi calificación para ${figureName} en WikiStars5`;
+      return `Mi calificación para ${figureName} en Starryz5`;
     }
     if (isGoatShare) {
       return `Batalla del GOAT: Messi vs Ronaldo`;
     }
-    return `¡Echa un vistazo a ${figureName} en WikiStars5!`;
+    return `¡Echa un vistazo a ${figureName} en Starryz5!`;
   };
 
 

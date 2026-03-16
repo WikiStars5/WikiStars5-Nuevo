@@ -132,7 +132,7 @@ export default function KonamiCodeListener() {
             <Heart className="h-16 w-16 text-pink-500 animate-pulse" />
             <DialogTitle className="text-2xl font-bold">¡Felicidades!</DialogTitle>
             <DialogDescription>
-              Has descubierto un mensaje oculto en el corazón de WikiStars5.
+              Has descubierto un mensaje oculto en el corazón de Starryz5.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 text-muted-foreground italic">
