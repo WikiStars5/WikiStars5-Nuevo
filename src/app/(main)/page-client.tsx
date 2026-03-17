@@ -1,9 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import type { Comment, AttitudeVote } from '@/lib/types';
+import type { Comment, AttitudeVote, NewsItem, GalleryItem, Figure } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import FeaturedFigures from '@/components/shared/featured-figures';
+import NewsFeedCard from '@/components/shared/news-feed-card';
+import GalleryFeedCard from '@/components/shared/gallery-feed-card';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { 
   collection, 
@@ -11,21 +13,29 @@ import {
   orderBy, 
   limit, 
   getDocs, 
-  Timestamp 
+  doc,
+  getDoc,
+  where
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Sparkles } from 'lucide-react';
 import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
 import GlobalStarPostForm from '@/components/shared/global-starpost-form';
 
-// CONFIGURACIÓN DE RENTABILIDAD Y VARIEDAD
-const MAX_FIGURES_TO_CONSULT = 10; // Consultamos 10 figuras al azar
-const POSTS_PER_FIGURE = 10;       // Traemos un búfer de 10 posts por figura para tener de donde elegir sin repetir
-const MAX_POSTS_TO_SHOW_PER_BATCH = 10; // Cuántos posts nuevos queremos añadir realmente por clic
+// CONFIGURACIÓN DE RENDIMIENTO Y VARIEDAD
+const MAX_FIGURES_TO_CONSULT = 8;
+const POSTS_PER_FIGURE = 5;
+const NEWS_PER_FIGURE = 3;
+const PHOTOS_PER_FIGURE = 3;
+const MAX_BATCH_TO_SHOW = 12;
 
-// LISTA POR DEFECTO: Miembros de BTS (Bias BTS)
 const DEFAULT_FEED_IDS = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
+
+type FeedItem = 
+  | (Comment & { feedType: 'starpost' })
+  | (NewsItem & { feedType: 'news'; figureName: string })
+  | (GalleryItem & { feedType: 'gallery'; figureId: string; figureName: string; figureImageUrl: string });
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -39,14 +49,12 @@ function shuffleArray<T>(array: T[]): T[] {
 export default function HomePageContent({ initialFeaturedFigures }: any) {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
-  const [feedComments, setFeedComments] = React.useState<Comment[]>([]);
+  const [feedItems, setFeedItems] = React.useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isAppending, setIsAppending] = React.useState(false);
 
-  // Mantenemos un registro de IDs vistos para evitar duplicados en la sesión
-  const seenPostIdsRef = React.useRef<Set<string>>(new Set());
+  const seenItemIdsRef = React.useRef<Set<string>>(new Set());
 
-  // 1. Obtener IDs de figuras votadas por el usuario
   const attitudeVotesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return collection(firestore, 'users', user.uid, 'attitudeVotes');
@@ -62,15 +70,13 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     return attitudeVotes.map(vote => vote.id); 
   }, [attitudeVotes]);
   
-  // Determinamos qué IDs vamos a usar para el feed: Favoritos o BTS por defecto
   const activeFeedIds = React.useMemo(() => {
     return votedFigureIds.length > 0 ? votedFigureIds : DEFAULT_FEED_IDS;
   }, [votedFigureIds]);
 
-  // 2. Función de carga: Filtra por IDs vistos
   const fetchFeed = React.useCallback(async (figureIds: string[], append = false) => {
     if (!firestore || figureIds.length === 0) {
-      if (!append) setFeedComments([]);
+      if (!append) setFeedItems([]);
       setIsLoading(false);
       return;
     }
@@ -78,62 +84,69 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     if (append) setIsAppending(true);
     else {
       setIsLoading(true);
-      seenPostIdsRef.current.clear(); // Reset al recargar de cero
+      seenItemIdsRef.current.clear();
     }
 
     try {
-      // Elegimos figuras al azar de la lista
-      const randomFigures = shuffleArray(figureIds).slice(0, MAX_FIGURES_TO_CONSULT);
-
-      const postPromises = randomFigures.map(figureId => {
-        const commentsRef = collection(firestore, 'figures', figureId, 'comments');
-        // Traemos un búfer de posts para evitar que se acaben rápido si el usuario sigue a poca gente
-        const q = query(commentsRef, orderBy('createdAt', 'desc'), limit(POSTS_PER_FIGURE));
-        return getDocs(q);
+      const selectedIds = shuffleArray(figureIds).slice(0, MAX_FIGURES_TO_CONSULT);
+      
+      // 1. Obtener datos de los personajes para nombres e imágenes
+      const figuresRef = collection(firestore, 'figures');
+      const qFigures = query(figuresRef, where('__name__', 'in', selectedIds));
+      const figuresSnap = await getDocs(qFigures);
+      const figuresMap = new Map<string, { name: string; imageUrl: string }>();
+      figuresSnap.docs.forEach(d => {
+        const data = d.data();
+        figuresMap.set(d.id, { name: data.name, imageUrl: data.imageUrl });
       });
 
-      const snapshots = await Promise.all(postPromises);
-      
-      let newPostsPool: Comment[] = [];
-      
-      snapshots.forEach(snapshot => {
-        snapshot.docs.forEach(doc => {
-          const id = doc.id;
-          // SOLO añadimos si no ha sido visto antes
-          if (!seenPostIdsRef.current.has(id)) {
-            const data = doc.data();
-            newPostsPool.push({
-              ...data,
-              id: id,
-              createdAt: data.createdAt,
-            } as unknown as Comment);
-          }
-        });
-      });
-      
-      // Mezclamos los posts únicos encontrados
-      const shuffledPool = shuffleArray(newPostsPool);
-      
-      // Tomamos solo la cantidad deseada para este lote
-      const batchToShow = shuffledPool.slice(0, MAX_POSTS_TO_SHOW_PER_BATCH);
+      // 2. Lanzar todas las promesas de contenido en paralelo
+      const contentPromises = selectedIds.flatMap(id => {
+        const fInfo = figuresMap.get(id) || { name: 'Figura pública', imageUrl: '' };
+        
+        const starpostsRef = collection(firestore, 'figures', id, 'comments');
+        const newsRef = collection(firestore, 'figures', id, 'news');
+        const galleryRef = collection(firestore, 'figures', id, 'gallery');
 
-      // Registramos los nuevos como vistos
-      batchToShow.forEach(post => seenPostIdsRef.current.add(post.id));
+        return [
+          getDocs(query(starpostsRef, orderBy('createdAt', 'desc'), limit(POSTS_PER_FIGURE))).then(snap => 
+            snap.docs.map(d => ({ ...d.data(), id: d.id, feedType: 'starpost' } as FeedItem))
+          ),
+          getDocs(query(newsRef, orderBy('createdAt', 'desc'), limit(NEWS_PER_FIGURE))).then(snap => 
+            snap.docs.map(d => ({ ...d.data(), id: d.id, feedType: 'news', figureName: fInfo.name } as FeedItem))
+          ),
+          getDocs(query(galleryRef, orderBy('createdAt', 'desc'), limit(PHOTOS_PER_FIGURE))).then(snap => 
+            snap.docs.map(d => ({ 
+              ...d.data(), 
+              id: d.id, 
+              feedType: 'gallery', 
+              figureId: id, 
+              figureName: fInfo.name, 
+              figureImageUrl: fInfo.imageUrl 
+            } as FeedItem))
+          )
+        ];
+      });
+
+      const results = await Promise.all(contentPromises);
+      const allNewItems = results.flat().filter(item => !seenItemIdsRef.current.has(item.id));
+      
+      const shuffledBatch = shuffleArray(allNewItems).slice(0, MAX_BATCH_TO_SHOW);
+      shuffledBatch.forEach(item => seenItemIdsRef.current.add(item.id));
 
       if (append) {
-        setFeedComments(prev => [...prev, ...batchToShow]);
+        setFeedItems(prev => [...prev, ...shuffledBatch]);
       } else {
-        setFeedComments(batchToShow);
+        setFeedItems(shuffledBatch);
       }
     } catch (error) {
-      console.error("Error al armar el feed:", error);
+      console.error("Error al armar el feed dinámico:", error);
     } finally {
       setIsLoading(false);
       setIsAppending(false);
     }
   }, [firestore]);
 
-  // 3. Efecto de carga inicial
   React.useEffect(() => {
     if (!isLoadingVotes) {
       fetchFeed(activeFeedIds);
@@ -143,51 +156,56 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
   const renderContent = () => {
     const isReadyForFeed = !isUserLoading && !isLoadingVotes;
     
-    if (isLoading && feedComments.length === 0) {
+    if (isLoading && feedItems.length === 0) {
       return Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="p-4 border rounded-lg space-y-3 animate-pulse mb-4">
+        <div key={i} className="p-4 border rounded-xl space-y-3 animate-pulse mb-4">
           <div className="flex items-center space-x-3">
             <Skeleton className="h-10 w-10 rounded-full" />
             <Skeleton className="h-4 w-[150px]" />
           </div>
           <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-40 w-full rounded-md" />
         </div>
       ));
     }
 
     if (!isReadyForFeed) return null;
     
-    if (feedComments.length > 0) {
+    if (feedItems.length > 0) {
       return (
         <>
-            <div className="space-y-6">
-                {feedComments.map((post, index) => (
-                    <StarPostCard key={`${post.id}-${index}`} post={post} />
-                ))}
+            <div className="space-y-8">
+                {feedItems.map((item, index) => {
+                    if (item.feedType === 'starpost') return <StarPostCard key={`${item.id}-${index}`} post={item as Comment} />;
+                    if (item.feedType === 'news') return <NewsFeedCard key={`${item.id}-${index}`} item={item as any} />;
+                    if (item.feedType === 'gallery') return <GalleryFeedCard key={`${item.id}-${index}`} item={item as any} />;
+                    return null;
+                })}
             </div>
             
-            <div className="mt-8 flex flex-col items-center">
+            <div className="mt-12 flex flex-col items-center">
                 <Button 
                     variant="outline" 
-                    className="w-full py-6 flex gap-2 text-lg font-medium border-primary/20 hover:bg-primary/5"
+                    className="w-full py-8 flex gap-3 text-lg font-bold border-primary/20 hover:bg-primary/5 rounded-2xl shadow-sm"
                     onClick={() => fetchFeed(activeFeedIds, true)} 
                     disabled={isAppending}
                 >
-                    <RefreshCw className={`h-5 w-5 ${isAppending ? 'animate-spin' : ''}`} />
-                    {isAppending ? 'Buscando contenido nuevo...' : 'Ver más StarPosts'}
+                    {isAppending ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
+                    {isAppending ? 'Descubriendo novedades...' : 'Explorar más contenido'}
                 </Button>
-                <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest">
-                  {votedFigureIds.length > 0 ? 'Mezclando tus favoritos sin repeticiones' : 'Mostrando contenido recomendado para ti'}
-                </p>
+                <div className="flex items-center gap-2 mt-4 text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black">
+                  <Sparkles className="h-3 w-3 text-primary" />
+                  {votedFigureIds.length > 0 ? 'Mezclando tus favoritos' : 'Recomendaciones para ti'}
+                </div>
             </div>
         </>
       );
     }
 
     return (
-      <div className="text-center py-20 bg-slate-50 dark:bg-card/50 rounded-2xl border-2 border-dashed">
+      <div className="text-center py-20 bg-muted/20 rounded-3xl border-2 border-dashed">
         <p className="text-lg font-medium text-muted-foreground">Tu feed está tranquilo por ahora</p>
-        <p className="text-sm text-muted-foreground mb-6">¡Vota por tus figuras favoritas para ver sus StarPosts!</p>
+        <p className="text-sm text-muted-foreground mb-6">¡Vota por tus figuras favoritas para ver sus novedades!</p>
       </div>
     );
   };
@@ -200,4 +218,8 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
       <CookieConsentBanner />
     </div>
   );
+}
+
+function Loader2({ className }: { className?: string }) {
+    return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
 }
