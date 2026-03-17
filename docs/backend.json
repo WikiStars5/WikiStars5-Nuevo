@@ -5,7 +5,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the WikiStars5 platform, whether registered or anonymous.",
+      "description": "Represents a user of the Starryz5 platform, whether registered or anonymous.",
       "properties": {
         "id": { "type": "string" },
         "username": { "type": "string" },
@@ -18,12 +18,20 @@
         "role": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "referralCount": { "type": "number" },
-        "followerCount": { "type": "number", "description": "Number of users following this user." },
-        "followingCount": { "type": "number", "description": "Number of users this user follows." },
+        "viewCount": { "type": "number" },
         "visitCount": { "type": "number" },
         "lastVisit": { "type": "string", "format": "date-time" }
       },
       "required": ["id"]
+    },
+    "PublicFigure": {
+      "title": "PublicFigure",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "viewCount": { "type": "number" }
+      }
     },
     "NewsItem": {
       "title": "NewsItem",
@@ -38,6 +46,32 @@
         "domain": { "type": "string" },
         "publisher": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "imageUrl": { "type": "string", "format": "uri" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Comment": {
+      "title": "Comment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "viewCount": { "type": "number" }
+      }
+    },
+    "Thought": {
+      "title": "Thought",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "viewCount": { "type": "number" }
       }
     },
     "Follower": {
@@ -87,8 +121,24 @@
         "definition": { "entityName": "User", "description": "Stores user profiles." }
       },
       {
+        "path": "/figures/{figureId}",
+        "definition": { "entityName": "PublicFigure", "description": "Stores character profiles." }
+      },
+      {
         "path": "/figures/{figureId}/news/{newsId}",
         "definition": { "entityName": "NewsItem", "description": "Stores news related to a public figure." }
+      },
+      {
+        "path": "/figures/{figureId}/gallery/{photoId}",
+        "definition": { "entityName": "GalleryItem", "description": "Stores gallery photos for a public figure." }
+      },
+      {
+        "path": "/figures/{figureId}/comments/{commentId}",
+        "definition": { "entityName": "Comment", "description": "Stores StarPosts/Reviews." }
+      },
+      {
+        "path": "/figures/{figureId}/thoughts/{thoughtId}",
+        "definition": { "entityName": "Thought", "description": "Stores Thoughts/Posts." }
       },
       {
         "path": "/users/{userId}/followers/{followerId}",

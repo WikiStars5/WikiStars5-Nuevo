@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, Suspense, useCallback, useMemo, useEffect } from 'react';
@@ -14,7 +13,7 @@ import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
 import ThoughtsSection from '@/components/figure/thoughts-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Trophy, Star, MessageCircle, Cloud, Newspaper } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Trophy, Star, MessageCircle, Cloud, Newspaper, Image as LucideImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -30,8 +29,7 @@ import BtsBiasVoting from '@/components/figure/bts-bias-voting';
 import BlackpinkBiasVoting from '@/components/figure/blackpink-bias-voting';
 import { trackView } from '@/lib/view-tracker';
 import FigureNewsSection from '@/components/figure/news-section';
-
-type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
+import FigureGallery from '@/components/figure/figure-gallery';
 
 const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
     website: { label: 'Web' },
@@ -157,6 +155,7 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                 <>
                   <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
                   <TabsTrigger value="pensamientos"><Cloud className="mr-2 h-4 w-4" />Pensamientos</TabsTrigger>
+                  <TabsTrigger value="galeria"><LucideImageIcon className="mr-2 h-4 w-4" />Galeria</TabsTrigger>
                   <TabsTrigger value="bias-bts"><Heart className="mr-2 h-4 w-4" />Bias BTS</TabsTrigger>
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
@@ -230,6 +229,11 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
           <TabsContent value="pensamientos" className="mt-4">
             {activeTab === 'pensamientos' && <ThoughtsSection figureId={figure.id} figureName={figure.name} />}
           </TabsContent>
+          {isBtsMember && (
+            <TabsContent value="galeria" className="mt-4">
+              {activeTab === 'galeria' && <FigureGallery figureId={figure.id} figureName={figure.name} />}
+            </TabsContent>
+          )}
           <TabsContent value="emocion" className="mt-4">
             <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
               <CardContent className="p-6">

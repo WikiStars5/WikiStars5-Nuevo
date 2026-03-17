@@ -289,6 +289,13 @@ export interface NewsItem {
   createdAt: Timestamp;
 }
 
+export interface GalleryItem {
+  id: string;
+  url: string;
+  imageUrl: string;
+  createdAt: Timestamp;
+}
+
 export interface CommentVote {
   id: string;
   userId: string;

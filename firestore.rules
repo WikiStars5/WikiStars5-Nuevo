@@ -14,19 +14,38 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return request.auth.uid == userId; }
     function isAdmin() { return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)); }
-    function isIncrement(field, count) { return (resource.data[field] == null && request.resource.data[field] == count) || (request.resource.data[field] == resource.data[field] + count); }
-    function isDecrement(field, count) { return request.resource.data[field] == resource.data[field] - count; }
     
     // --- Reglas de Colecciones ---
 
     match /users/{userId} {
-      allow get: if (isSignedIn() && isOwner(userId)) || isAdmin();
+      allow get: if true;
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      allow update: if isSignedIn(); // Allow anyone to update follower counts via transaction
       allow delete: if isOwner(userId) || isAdmin();
 
-      match /starposts/{postId} { allow read, write, delete: if isOwner(userId); }
+      match /followers/{followerId} {
+        allow read: if true;
+        allow write: if isSignedIn() && request.auth.uid == followerId;
+      }
+      match /following/{followedId} {
+        allow read: if true;
+        allow write: if isOwner(userId);
+      }
+      match /starposts/{postId} { 
+        allow read: if true; 
+        allow write, delete: if isOwner(userId) || isAdmin(); 
+      }
+      match /thoughts/{thoughtId} { 
+        allow read: if true; 
+        allow write, delete: if isOwner(userId) || isAdmin(); 
+      }
+      match /saved_thoughts/{thoughtId} { 
+        allow read, write, delete: if isOwner(userId); 
+      }
+      match /saved_starposts/{postId} { 
+        allow read, write, delete: if isOwner(userId); 
+      }
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
@@ -62,12 +81,33 @@ service cloud.firestore {
           match /votes/{userId} { allow get, write: if isOwner(userId); }
         }
       }
+      match /thoughts/{thoughtId} {
+        allow get, list: if true;
+        allow create: if request.resource.data.userId == request.auth.uid;
+        allow update: if isSignedIn();
+        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+        match /votes/{userId} { allow get, write: if isOwner(userId); }
+        match /replies/{replyId} {
+          allow get, list: if true;
+          allow create: if isSignedIn();
+          allow update: if isSignedIn();
+          allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+          match /votes/{userId} { allow get, write: if isOwner(userId); }
+        }
+      }
+      match /news/{newsId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+      match /gallery/{photoId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
     }
     
     match /stats/notifications {
       allow read: if true;
-      // Allow users to increment totalSubscribers when they add their first token via transaction
       allow update: if isSignedIn() || isAdmin();
       allow create: if isSignedIn() || isAdmin();
     }
