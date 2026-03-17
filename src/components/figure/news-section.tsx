@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import type { NewsItem } from '@/lib/types';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 
@@ -158,9 +157,14 @@ export default function FigureNewsSection({ figureId, figureName }: FigureNewsSe
 
             {preview && (
               <div className="mt-6 border rounded-lg overflow-hidden bg-muted/30">
-                <div className="relative aspect-[1.91/1] w-full bg-muted">
+                <div className="relative aspect-[1.91/1] w-full bg-muted flex items-center justify-center overflow-hidden">
                   {preview.image ? (
-                    <Image src={preview.image} alt="Preview" fill className="object-cover" />
+                    <img 
+                      src={preview.image} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x315?text=Imagen+No+Disponible'; }}
+                    />
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                       <Globe className="h-12 w-12 opacity-20" />
@@ -211,9 +215,14 @@ export default function FigureNewsSection({ figureId, figureName }: FigureNewsSe
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-12">
             {news.map((item) => (
               <Card key={item.id} className={cn("group overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1", (theme === 'dark' || theme === 'army') && "bg-black border-border/40")}>
-                <div className="relative aspect-[1.91/1] w-full bg-muted">
+                <div className="relative aspect-[1.91/1] w-full bg-muted flex items-center justify-center overflow-hidden">
                   {item.image ? (
-                    <Image src={item.image} alt={item.title} fill className="object-cover" />
+                    <img 
+                      src={item.image} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/600x315?text=Imagen+No+Disponible'; }}
+                    />
                   ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
                       <Globe className="h-12 w-12 opacity-10" />
