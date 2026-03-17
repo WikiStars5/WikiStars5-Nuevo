@@ -122,7 +122,7 @@ export default function FigureGallery({ figureId, figureName }: { figureId: stri
             {previewUrl && (
               <div className="mt-4 space-y-4 animate-in fade-in zoom-in duration-300">
                 <div className="relative aspect-square max-w-[300px] mx-auto rounded-lg overflow-hidden border-2 border-primary/20 bg-muted">
-                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
                 </div>
                 <div className="flex justify-center gap-2">
                   <Button variant="ghost" onClick={() => setPreviewUrl(null)}>Cancelar</Button>
@@ -148,7 +148,7 @@ export default function FigureGallery({ figureId, figureName }: { figureId: stri
               <img 
                 src={photo.imageUrl} 
                 alt="Gallery item" 
-                className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700 ease-out" 
+                className="w-full h-full object-contain transition-transform group-hover:scale-105 duration-700 ease-out" 
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                  <Instagram className="h-8 w-8 text-white opacity-50" />
