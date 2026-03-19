@@ -25,9 +25,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Tag, XCircle, AlertCircle, Trash2, Pencil, Save, X, Instagram, Image as ImageIcon, MessageSquare, Cloud } from 'lucide-react';
+import { Loader2, Send, Tag, XCircle, AlertCircle, Trash2, Pencil, Save, Instagram, Image as ImageIcon, MessageSquare } from 'lucide-react';
 import StarInput from '@/components/figure/star-input';
-import { Figure, User as AppUser, Comment, AttitudeVote, Thought } from '@/lib/types';
+import { Figure, User as AppUser, Comment, AttitudeVote } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
 import { StreakAnimationContext } from '@/context/StreakAnimationContext';
 import { normalizeText } from '@/lib/keywords';
@@ -50,9 +50,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ShareButton } from './ShareButton';
 import Image from 'next/image';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const attitudeOptions: {
   id: 'neutral' | 'fan' | 'simp' | 'hater';
@@ -97,14 +95,12 @@ export default function GlobalStarPostForm() {
   const showStreakAnimation = streakContext?.showStreakAnimation;
 
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
-  const [contentType, setContentType] = useState<'starpost' | 'thought'>('starpost');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   
   const [existingComment, setExistingComment] = useState<Comment | null>(null);
-  const [existingThought, setExistingThought] = useState<Thought | null>(null);
   const [existingAttitude, setExistingAttitude] = useState<string | null>(null);
   
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
@@ -140,7 +136,6 @@ export default function GlobalStarPostForm() {
     const fetchExistingData = async () => {
       if (!firestore || !user || !selectedFigure) {
         setExistingComment(null);
-        setExistingThought(null);
         setExistingAttitude(null);
         setIsEditing(false);
         setInstaImageUrl(null);
@@ -152,32 +147,19 @@ export default function GlobalStarPostForm() {
       try {
         const commentsRef = collection(firestore, 'figures', selectedFigure.id, 'comments');
         const qComment = query(commentsRef, where('userId', '==', user.uid), limit(1));
-        
-        const thoughtsRef = collection(firestore, 'figures', selectedFigure.id, 'thoughts');
-        const qThought = query(thoughtsRef, where('userId', '==', user.uid), limit(1));
-
         const attitudeRef = doc(firestore, `users/${user.uid}/attitudeVotes`, selectedFigure.id);
 
-        const [commentSnap, thoughtSnap, attitudeSnap] = await Promise.all([
+        const [commentSnap, attitudeSnap] = await Promise.all([
           getDocs(qComment),
-          getDocs(qThought),
           getDoc(attitudeRef)
         ]);
         
         if (!commentSnap.empty) {
           const comment = { id: commentSnap.docs[0].id, ...commentSnap.docs[0].data() } as Comment;
           setExistingComment(comment);
-          if (contentType === 'starpost') setInstaImageUrl(comment.instagramImageUrl || null);
+          setInstaImageUrl(comment.instagramImageUrl || null);
         } else {
           setExistingComment(null);
-        }
-
-        if (!thoughtSnap.empty) {
-          const thought = { id: thoughtSnap.docs[0].id, ...thoughtSnap.docs[0].data() } as Thought;
-          setExistingThought(thought);
-          if (contentType === 'thought') setInstaImageUrl(thought.instagramImageUrl || null);
-        } else {
-          setExistingThought(null);
         }
 
         if (attitudeSnap.exists()) {
@@ -196,7 +178,7 @@ export default function GlobalStarPostForm() {
     };
 
     fetchExistingData();
-  }, [selectedFigure, user, firestore, form, contentType]);
+  }, [selectedFigure, user, firestore, form]);
 
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
@@ -317,50 +299,41 @@ export default function GlobalStarPostForm() {
   };
 
   const handleDeleteExisting = async () => {
-    if (!firestore || !user || !selectedFigure) return;
+    if (!firestore || !user || !selectedFigure || !existingComment) return;
     
     setIsDeleting(true);
     try {
       await runTransaction(firestore, async (transaction) => {
         const figureRef = doc(firestore, 'figures', selectedFigure.id);
-        
-        if (contentType === 'starpost' && existingComment) {
-            const commentRef = doc(firestore, 'figures', selectedFigure.id, 'comments', existingComment.id);
-            const starpostRef = doc(firestore, 'users', user.uid, 'starposts', existingComment.id);
+        const commentRef = doc(firestore, 'figures', selectedFigure.id, 'comments', existingComment.id);
+        const starpostRef = doc(firestore, 'users', user.uid, 'starposts', existingComment.id);
 
-            if (typeof existingComment.rating === 'number' && existingComment.rating >= 0) {
-                transaction.update(figureRef, {
-                    ratingCount: increment(-1),
-                    totalRating: increment(-existingComment.rating),
-                    [`ratingsBreakdown.${existingComment.rating}`]: increment(-1),
-                    updatedAt: serverTimestamp()
-                });
-            }
-            transaction.delete(commentRef);
-            transaction.delete(starpostRef);
-            setExistingComment(null);
-        } else if (contentType === 'thought' && existingThought) {
-            const thoughtRef = doc(firestore, 'figures', selectedFigure.id, 'thoughts', existingThought.id);
-            const userThoughtRef = doc(firestore, 'users', user.uid, 'thoughts', existingThought.id);
-            transaction.delete(thoughtRef);
-            transaction.delete(userThoughtRef);
-            setExistingThought(null);
+        if (typeof existingComment.rating === 'number' && existingComment.rating >= 0) {
+            transaction.update(figureRef, {
+                ratingCount: increment(-1),
+                totalRating: increment(-existingComment.rating),
+                [`ratingsBreakdown.${existingComment.rating}`]: increment(-1),
+                updatedAt: serverTimestamp()
+            });
         }
+        transaction.delete(commentRef);
+        transaction.delete(starpostRef);
       });
 
-      toast({ title: 'Eliminado con éxito', description: 'Ahora puedes publicar de nuevo.' });
+      toast({ title: 'Eliminado con éxito', description: 'Ahora puedes calificar de nuevo.' });
+      setExistingComment(null);
       setInstaImageUrl(null);
       setIsEditing(false);
     } catch (error: any) {
       console.error("Error deleting existing content:", error);
-      toast({ title: 'Error', description: 'No se pudo eliminar el contenido.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'No se pudo eliminar la reseña.', variant: 'destructive' });
     } finally {
       setIsDeleting(false);
     }
   };
 
   const handleEditClick = () => {
-    if (contentType === 'starpost' && existingComment) {
+    if (existingComment) {
         form.reset({
             rating: existingComment.rating,
             attitude: (existingAttitude as any) || undefined,
@@ -368,13 +341,8 @@ export default function GlobalStarPostForm() {
             tag: existingComment.tag || undefined,
             username: userProfile?.username || '',
         });
-    } else if (contentType === 'thought' && existingThought) {
-        form.reset({
-            text: existingThought.text || '',
-            username: userProfile?.username || '',
-        });
+        setIsEditing(true);
     }
-    setIsEditing(true);
   };
 
   const handleSubmit = async (data: FormValues) => {
@@ -383,7 +351,7 @@ export default function GlobalStarPostForm() {
       return;
     }
 
-    if (contentType === 'starpost' && (data.rating === null || data.rating === undefined)) {
+    if (data.rating === null || data.rating === undefined) {
         toast({ title: 'Calificación requerida', description: 'Por favor selecciona cuántas estrellas le das.', variant: 'destructive' });
         return;
     }
@@ -444,108 +412,68 @@ export default function GlobalStarPostForm() {
         const country = userProfileData.country || null;
         const gender = userProfileData.gender || null;
 
-        if (contentType === 'starpost') {
-            if (existingComment && isEditing) {
-                const oldRating = existingComment.rating;
-                const newRating = data.rating!;
-                const ratingDelta = newRating - oldRating;
+        if (existingComment && isEditing) {
+            const oldRating = existingComment.rating;
+            const newRating = data.rating!;
+            const ratingDelta = newRating - oldRating;
 
-                const figureUpdates: any = { updatedAt: serverTimestamp() };
-                if (ratingDelta !== 0) {
-                    figureUpdates.totalRating = increment(ratingDelta);
-                    figureUpdates[`ratingsBreakdown.${oldRating}`] = increment(-1);
-                    figureUpdates[`ratingsBreakdown.${newRating}`] = increment(1);
-                }
-                transaction.update(figureRef, figureUpdates);
-
-                const commentRef = doc(firestore, 'figures', selectedFigure.id, 'comments', existingComment.id);
-                transaction.update(commentRef, {
-                    text: data.text || '',
-                    tag: data.tag || null,
-                    rating: newRating,
-                    instagramImageUrl: instaImageUrl || null,
-                    updatedAt: serverTimestamp(),
-                    userDisplayName: finalDisplayName,
-                    userAttitude: existingAttitude,
-                });
-            } else {
-                transaction.update(figureRef, {
-                    ratingCount: increment(1),
-                    totalRating: increment(data.rating!),
-                    [`ratingsBreakdown.${data.rating}`]: increment(1),
-                    updatedAt: serverTimestamp()
-                });
-
-                const commentRef = doc(collection(firestore, 'figures', selectedFigure.id, 'comments'));
-                const commentData = {
-                    userId: currentUser!.uid,
-                    figureId: selectedFigure.id,
-                    figureName: selectedFigure.name,
-                    figureImageUrl: selectedFigure.imageUrl,
-                    text: data.text || '',
-                    tag: data.tag || null,
-                    rating: data.rating,
-                    instagramImageUrl: instaImageUrl || null,
-                    createdAt: serverTimestamp(),
-                    userDisplayName: finalDisplayName,
-                    userPhotoURL: userProfileData.profilePhotoUrl || currentUser!.photoURL,
-                    userCountry: country,
-                    userGender: gender,
-                    userAttitude: existingAttitude,
-                    likes: 0,
-                    dislikes: 0,
-                    parentId: null,
-                    replyCount: 0,
-                    threadId: commentRef.id,
-                };
-                transaction.set(commentRef, commentData);
-
-                const userStarpostColRef = collection(firestore, 'users', currentUser!.uid, 'starposts');
-                const starpostRef = doc(userStarpostColRef, commentRef.id);
-                transaction.set(starpostRef, {
-                    figureId: selectedFigure.id,
-                    commentId: commentRef.id,
-                    createdAt: serverTimestamp(),
-                });
+            const figureUpdates: any = { updatedAt: serverTimestamp() };
+            if (ratingDelta !== 0) {
+                figureUpdates.totalRating = increment(ratingDelta);
+                figureUpdates[`ratingsBreakdown.${oldRating}`] = increment(-1);
+                figureUpdates[`ratingsBreakdown.${newRating}`] = increment(1);
             }
-        } else if (contentType === 'thought') {
-            if (existingThought && isEditing) {
-                const thoughtRef = doc(firestore, 'figures', selectedFigure.id, 'thoughts', existingThought.id);
-                transaction.update(thoughtRef, {
-                    text: data.text || '',
-                    instagramImageUrl: instaImageUrl || null,
-                    updatedAt: serverTimestamp(),
-                    userDisplayName: finalDisplayName,
-                    userAttitude: existingAttitude,
-                });
-            } else {
-                const thoughtRef = doc(collection(firestore, 'figures', selectedFigure.id, 'thoughts'));
-                const thoughtData = {
-                    userId: currentUser!.uid,
-                    text: data.text || '',
-                    figureId: selectedFigure.id,
-                    figureName: selectedFigure.name,
-                    figureImageUrl: selectedFigure.imageUrl,
-                    instagramImageUrl: instaImageUrl || null,
-                    createdAt: serverTimestamp(),
-                    userDisplayName: finalDisplayName,
-                    userPhotoURL: userProfileData.profilePhotoUrl || currentUser!.photoURL,
-                    userCountry: country,
-                    userGender: gender,
-                    userAttitude: existingAttitude,
-                    likes: 0,
-                    dislikes: 0,
-                    replyCount: 0,
-                };
-                transaction.set(thoughtRef, thoughtData);
+            transaction.update(figureRef, figureUpdates);
 
-                const userThoughtRef = doc(firestore, 'users', currentUser!.uid, 'thoughts', thoughtRef.id);
-                transaction.set(userThoughtRef, {
-                    figureId: selectedFigure.id,
-                    thoughtId: thoughtRef.id,
-                    createdAt: serverTimestamp(),
-                });
-            }
+            const commentRef = doc(firestore, 'figures', selectedFigure.id, 'comments', existingComment.id);
+            transaction.update(commentRef, {
+                text: data.text || '',
+                tag: data.tag || null,
+                rating: newRating,
+                instagramImageUrl: instaImageUrl || null,
+                updatedAt: serverTimestamp(),
+                userDisplayName: finalDisplayName,
+                userAttitude: existingAttitude,
+            });
+        } else {
+            transaction.update(figureRef, {
+                ratingCount: increment(1),
+                totalRating: increment(data.rating!),
+                [`ratingsBreakdown.${data.rating}`]: increment(1),
+                updatedAt: serverTimestamp()
+            });
+
+            const commentRef = doc(collection(firestore, 'figures', selectedFigure.id, 'comments'));
+            const commentData = {
+                userId: currentUser!.uid,
+                figureId: selectedFigure.id,
+                figureName: selectedFigure.name,
+                figureImageUrl: selectedFigure.imageUrl,
+                text: data.text || '',
+                tag: data.tag || null,
+                rating: data.rating,
+                instagramImageUrl: instaImageUrl || null,
+                createdAt: serverTimestamp(),
+                userDisplayName: finalDisplayName,
+                userPhotoURL: userProfileData.profilePhotoUrl || currentUser!.photoURL,
+                userCountry: country,
+                userGender: gender,
+                userAttitude: existingAttitude,
+                likes: 0,
+                dislikes: 0,
+                parentId: null,
+                replyCount: 0,
+                threadId: commentRef.id,
+            };
+            transaction.set(commentRef, commentData);
+
+            const userStarpostColRef = collection(firestore, 'users', currentUser!.uid, 'starposts');
+            const starpostRef = doc(userStarpostColRef, commentRef.id);
+            transaction.set(starpostRef, {
+                figureId: selectedFigure.id,
+                commentId: commentRef.id,
+                createdAt: serverTimestamp(),
+            });
         }
       });
 
@@ -561,20 +489,19 @@ export default function GlobalStarPostForm() {
         });
       }
 
-      if (contentType === 'starpost' && typeof data.rating === 'number' && ratingSounds[data.rating]) {
+      if (typeof data.rating === 'number' && ratingSounds[data.rating]) {
           const audio = new Audio(ratingSounds[data.rating]);
           audio.play().catch(e => console.error("Error playing sound", e));
       }
 
       toast({ 
         title: isEditing ? '¡Actualizado!' : '¡Publicado!', 
-        description: isEditing ? 'Tu contenido ha sido modificado.' : `Has publicado en el perfil de ${selectedFigure.name}.` 
+        description: isEditing ? 'Tu reseña ha sido modificada.' : `Has calificado a ${selectedFigure.name}.` 
       });
       
       form.reset({ text: '', rating: 5, attitude: undefined, tag: undefined });
       setSelectedFigure(null);
       setExistingComment(null);
-      setExistingThought(null);
       setExistingAttitude(null);
       setInstaImageUrl(null);
       setInstaUrl('');
@@ -588,70 +515,14 @@ export default function GlobalStarPostForm() {
     }
   };
 
-  const renderSharedFields = () => {
-    return (
-        <div className="space-y-6">
-            {needsIdentity && (
-                <FormField
-                    control={form.control}
-                    name="username"
-                    render={({ field }) => (
-                        <FormItem>
-                            <Label className="text-xs">Nombre de usuario para tu post</Label>
-                            <FormControl>
-                                <Input {...field} placeholder="Ej: FanReal_99" className="h-9" />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            )}
-
-            <div className="space-y-3">
-                <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                    <Instagram className="h-4 w-4 text-pink-500" /> Imagen de Instagram (opcional)
-                </Label>
-                
-                {instaImageUrl ? (
-                    <div className="relative group w-full rounded-xl overflow-hidden border-2 border-primary/20 bg-muted flex items-center justify-center min-h-[250px] max-h-[600px]">
-                        <Image src={instaImageUrl} alt="Instagram preview" fill className="object-contain" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Button type="button" variant="destructive" size="sm" className="h-8" onClick={() => setInstaImageUrl(null)}>
-                                <Trash2 className="h-4 w-4 mr-1" /> Quitar
-                            </Button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex gap-2">
-                        <Input value={instaUrl} onChange={(e) => setInstaUrl(e.target.value)} placeholder="Link: https://www.instagram.com/p/..." className="h-9 text-sm" />
-                        <Button type="button" variant="secondary" size="sm" className="h-9 whitespace-nowrap" disabled={isFetchingInsta || !instaUrl.trim()} onClick={handleFetchInstaImage}>
-                            {isFetchingInsta ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ImageIcon className="h-4 w-4 mr-1" /> Ver Imagen</>}
-                        </Button>
-                    </div>
-                )}
-            </div>
-
-            <div className="flex justify-end gap-2">
-                {isEditing && (
-                    <Button type="button" variant="ghost" onClick={() => setIsEditing(false)}>Cancelar</Button>
-                )}
-                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {isEditing ? 'Actualizar' : '¡Publicar!'}
-                </Button>
-            </div>
-        </div>
-    );
-  }
-
   return (
     <Card className={cn("mb-8 border-primary/20", (theme === 'dark' || theme === 'army') && "bg-black border-primary/40")}>
       <CardHeader className="pb-4">
         <CardTitle className="text-xl flex items-center gap-2">
-          <Send className="text-primary h-5 w-5" />
-          ¿Qué quieres compartir hoy?
+          <MessageSquare className="text-primary h-5 w-5" />
+          Publicar StarPost
         </CardTitle>
-        <CardDescription>Publica un StarPost o un pensamiento rápido al instante.</CardDescription>
+        <CardDescription>Califica y comparte tu opinión sobre cualquier figura pública.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Form {...form}>
@@ -672,7 +543,6 @@ export default function GlobalStarPostForm() {
               <Button variant="ghost" size="icon" onClick={() => {
                 setSelectedFigure(null);
                 setExistingComment(null);
-                setExistingThought(null);
                 setExistingAttitude(null);
                 setIsEditing(false);
                 setInstaImageUrl(null);
@@ -686,7 +556,7 @@ export default function GlobalStarPostForm() {
           {selectedFigure && isCheckingExisting && (
             <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
-              <p className="text-sm">Sincronizando con el servidor...</p>
+              <p className="text-sm">Sincronizando...</p>
             </div>
           )}
 
@@ -723,180 +593,168 @@ export default function GlobalStarPostForm() {
                   </div>
               </div>
 
-              <Tabs value={contentType} onValueChange={(v) => { setContentType(v as any); setIsEditing(false); }} className="w-full">
-                  <TabsList className={cn("grid w-full grid-cols-2", (theme === 'dark' || theme === 'army') && "bg-black")}>
-                      <TabsTrigger value="starpost" className="gap-2">
-                          <MessageSquare className="h-4 w-4" /> StarPost
-                      </TabsTrigger>
-                      <TabsTrigger value="thought" className="gap-2">
-                          <Cloud className="h-4 w-4" /> Post
-                      </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="starpost" className="pt-4">
-                      {existingComment && !isEditing ? (
-                          <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
-                              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                                  <AlertCircle className="text-primary h-6 w-6" />
-                              </div>
-                              <h3 className="font-bold text-lg mb-2">Ya has calificado a {selectedFigure.name}</h3>
-                              <div className="flex flex-col items-center gap-3 mb-6">
-                                  <div className="flex items-center gap-4">
-                                      <StarRating rating={existingComment.rating} />
-                                  </div>
-                                  {existingComment.tag && (
-                                      <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/20">
-                                          {commentTags.find(t => t.id === existingComment.tag)?.emoji} {commentTags.find(t => t.id === existingComment.tag)?.label}
-                                      </div>
-                                  )}
-                                  {existingComment.text && (
-                                      <p className="text-sm text-muted-foreground italic max-w-xs line-clamp-2">
-                                          "{existingComment.text}"
-                                      </p>
-                                  )}
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-                                  <Button variant="outline" className="w-full" onClick={handleEditClick}>
-                                      <Pencil className="mr-2 h-4 w-4" /> Editar Reseña
-                                  </Button>
-                                  <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                          <Button variant="destructive" className="w-full" disabled={isDeleting}>
-                                              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                                          </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                              <AlertDialogTitle>¿Eliminar tu StarPost?</AlertDialogTitle>
-                                              <AlertDialogDescription>Se borrarán tus estrellas y tu opinión sobre {selectedFigure.name}.</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                              <AlertDialogAction onClick={handleDeleteExisting}>Eliminar permanentemente</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                  </AlertDialog>
-                              </div>
+              {existingComment && !isEditing ? (
+                  <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
+                      <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <AlertCircle className="text-primary h-6 w-6" />
+                      </div>
+                      <h3 className="font-bold text-lg mb-2">Ya has calificado a {selectedFigure.name}</h3>
+                      <div className="flex flex-col items-center gap-3 mb-6">
+                          <div className="flex items-center gap-4">
+                              <StarRating rating={existingComment.rating} />
                           </div>
-                      ) : (
-                          <div className="space-y-6">
-                              <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-                                  <FormField
-                                      control={form.control}
-                                      name="rating"
-                                      render={({ field }) => (
-                                          <FormItem>
-                                              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Calificación</Label>
-                                              <FormControl>
-                                                  <StarInput value={field.value!} onChange={field.onChange} />
-                                              </FormControl>
-                                              <FormMessage />
-                                          </FormItem>
-                                      )}
-                                  />
-                                  <FormField
-                                      control={form.control}
-                                      name="tag"
-                                      render={({ field }) => (
-                                          <FormItem>
-                                              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Etiqueta</Label>
-                                              <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
-                                                  <PopoverTrigger asChild>
-                                                      <Button variant="outline" size="sm" className={cn("h-9 min-w-[100px]", !field.value && "text-muted-foreground")}>
-                                                          {selectedTag ? `${selectedTag.emoji} ${selectedTag.label}` : <><Tag className="mr-2 h-4 w-4" /> Etiqueta</>}
+                          {existingComment.tag && (
+                              <div className="inline-flex items-center gap-2 text-xs font-bold px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/20">
+                                  {commentTags.find(t => t.id === existingComment.tag)?.emoji} {commentTags.find(t => t.id === existingComment.tag)?.label}
+                              </div>
+                          )}
+                          {existingComment.text && (
+                              <p className="text-sm text-muted-foreground italic max-w-xs line-clamp-2">
+                                  "{existingComment.text}"
+                              </p>
+                          )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+                          <Button type="button" variant="outline" className="w-full" onClick={handleEditClick}>
+                              <Pencil className="mr-2 h-4 w-4" /> Editar Reseña
+                          </Button>
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <Button type="button" variant="destructive" className="w-full" disabled={isDeleting}>
+                                      <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                                  </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Eliminar tu StarPost?</AlertDialogTitle>
+                                      <AlertDialogDescription>Se borrarán tus estrellas y tu opinión sobre {selectedFigure.name}.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleDeleteExisting}>Eliminar permanentemente</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                      </div>
+                  </div>
+              ) : (
+                  <div className="space-y-6">
+                      <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                          <FormField
+                              control={form.control}
+                              name="rating"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Calificación</Label>
+                                      <FormControl>
+                                          <StarInput value={field.value!} onChange={field.onChange} />
+                                      </FormControl>
+                                      <FormMessage />
+                                  </FormItem>
+                              )}
+                          />
+                          <FormField
+                              control={form.control}
+                              name="tag"
+                              render={({ field }) => (
+                                  <FormItem>
+                                      <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest block mb-2">Etiqueta</Label>
+                                      <Popover open={isTagPopoverOpen} onOpenChange={setIsTagPopoverOpen}>
+                                          <PopoverTrigger asChild>
+                                              <Button variant="outline" size="sm" className={cn("h-9 min-w-[100px]", !field.value && "text-muted-foreground")}>
+                                                  {selectedTag ? `${selectedTag.emoji} ${selectedTag.label}` : <><Tag className="mr-2 h-4 w-4" /> Etiqueta</>}
+                                              </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent className="w-[300px] p-2" align="end">
+                                              <div className="grid grid-cols-2 gap-2">
+                                                  {commentTags.map(tag => (
+                                                      <Button
+                                                          key={tag.id}
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="sm"
+                                                          className={cn("justify-start h-9 text-xs", selectedTagId === tag.id && "bg-muted")}
+                                                          onClick={() => {
+                                                              form.setValue('tag', selectedTagId === tag.id ? undefined : tag.id);
+                                                              setIsTagPopoverOpen(false);
+                                                          }}
+                                                      >
+                                                          <span className="mr-2">{tag.emoji}</span> {tag.label}
                                                       </Button>
-                                                  </PopoverTrigger>
-                                                  <PopoverContent className="w-[300px] p-2" align="end">
-                                                      <div className="grid grid-cols-2 gap-2">
-                                                          {commentTags.map(tag => (
-                                                              <Button
-                                                                  key={tag.id}
-                                                                  type="button"
-                                                                  variant="ghost"
-                                                                  size="sm"
-                                                                  className={cn("justify-start h-9 text-xs", selectedTagId === tag.id && "bg-muted")}
-                                                                  onClick={() => {
-                                                                      form.setValue('tag', selectedTagId === tag.id ? undefined : tag.id);
-                                                                      setIsTagPopoverOpen(false);
-                                                                  }}
-                                                              >
-                                                                  <span className="mr-2">{tag.emoji}</span> {tag.label}
-                                                              </Button>
-                                                          ))}
-                                                      </div>
-                                                  </PopoverContent>
-                                              </Popover>
-                                          </FormItem>
-                                      )}
-                                  />
-                              </div>
+                                                  ))}
+                                              </div>
+                                          </PopoverContent>
+                                      </Popover>
+                                  </FormItem>
+                              )}
+                          />
+                      </div>
+                      <FormField
+                          control={form.control}
+                          name="text"
+                          render={({ field }) => (
+                              <FormItem>
+                                  <FormControl>
+                                      <Textarea {...field} placeholder={`¿Qué tienes que decir sobre ${selectedFigure?.name}?`} className="resize-none min-h-[80px]" />
+                                  </FormControl>
+                                  <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                      
+                      <div className="space-y-6">
+                          {needsIdentity && (
                               <FormField
                                   control={form.control}
-                                  name="text"
+                                  name="username"
                                   render={({ field }) => (
                                       <FormItem>
+                                          <Label className="text-xs">Nombre de usuario para tu post</Label>
                                           <FormControl>
-                                              <Textarea {...field} placeholder={`¿Qué tienes que decir sobre ${selectedFigure?.name}?`} className="resize-none min-h-[80px]" />
+                                              <Input {...field} placeholder="Ej: FanReal_99" className="h-9" />
                                           </FormControl>
                                           <FormMessage />
                                       </FormItem>
                                   )}
                               />
-                              {renderSharedFields()}
-                          </div>
-                      )}
-                  </TabsContent>
+                          )}
 
-                  <TabsContent value="thought" className="pt-4">
-                      {existingThought && !isEditing ? (
-                          <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
-                              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                                  <Cloud className="text-primary h-6 w-6" />
-                              </div>
-                              <h3 className="font-bold text-lg mb-2">Ya has publicado un pensamiento</h3>
-                              <p className="text-sm text-muted-foreground italic max-w-xs mx-auto mb-6">"{existingThought.text}"</p>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-                                  <Button variant="outline" className="w-full" onClick={handleEditClick}>
-                                      <Pencil className="mr-2 h-4 w-4" /> Editar Post
-                                  </Button>
-                                  <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                          <Button variant="destructive" className="w-full" disabled={isDeleting}>
-                                              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                          <div className="space-y-3">
+                              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                  <Instagram className="h-4 w-4 text-pink-500" /> Imagen de Instagram (opcional)
+                              </Label>
+                              
+                              {instaImageUrl ? (
+                                  <div className="relative group w-full rounded-xl overflow-hidden border-2 border-primary/20 bg-muted flex items-center justify-center min-h-[250px] max-h-[600px]">
+                                      <Image src={instaImageUrl} alt="Instagram preview" fill className="object-contain" />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <Button type="button" variant="destructive" size="sm" className="h-8" onClick={() => setInstaImageUrl(null)}>
+                                              <Trash2 className="h-4 w-4 mr-1" /> Quitar
                                           </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                              <AlertDialogTitle>¿Eliminar tu pensamiento?</AlertDialogTitle>
-                                              <AlertDialogDescription>Esta acción es permanente.</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                              <AlertDialogAction onClick={handleDeleteExisting}>Eliminar permanentemente</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                  </AlertDialog>
-                              </div>
+                                      </div>
+                                  </div>
+                              ) : (
+                                  <div className="flex gap-2">
+                                      <Input value={instaUrl} onChange={(e) => setInstaUrl(e.target.value)} placeholder="Link: https://www.instagram.com/p/..." className="h-9 text-sm" />
+                                      <Button type="button" variant="secondary" size="sm" className="h-9 whitespace-nowrap" disabled={isFetchingInsta || !instaUrl.trim()} onClick={handleFetchInstaImage}>
+                                          {isFetchingInsta ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ImageIcon className="h-4 w-4 mr-1" /> Ver Imagen</>}
+                                      </Button>
+                                  </div>
+                              )}
                           </div>
-                      ) : (
-                          <div className="space-y-6">
-                              <FormField
-                                  control={form.control}
-                                  name="text"
-                                  render={({ field }) => (
-                                      <FormItem>
-                                          <FormControl>
-                                              <Textarea {...field} placeholder={`Comparte un pensamiento rápido sobre ${selectedFigure?.name}...`} className="resize-none min-h-[100px]" />
-                                          </FormControl>
-                                          <FormMessage />
-                                      </FormItem>
-                                  )}
-                              />
-                              {renderSharedFields()}
+
+                          <div className="flex justify-end gap-2">
+                              {isEditing && (
+                                  <Button type="button" variant="ghost" onClick={() => setIsEditing(false)}>Cancelar</Button>
+                              )}
+                              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                  {isEditing ? 'Actualizar' : '¡Publicar!'}
+                              </Button>
                           </div>
-                      )}
-                  </TabsContent>
-              </Tabs>
+                      </div>
+                  </div>
+              )}
             </form>
           )}
         </Form>
