@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useContext } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useAdmin } from '@/firebase';
-import { collection, query, orderBy, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/dialog"
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -91,26 +93,48 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
 
     const handleToggleProtection = async (streak: Streak) => {
         if (!firestore || !isAdmin) return;
-        setIsUpdating(streak.userId);
+        
+        // Identificar el ID del usuario correctamente (ya sea de la propiedad o del ID del doc)
+        const targetUserId = streak.userId || streak.id;
+        setIsUpdating(targetUserId);
         
         const newStatus = !streak.isProtected;
-        
+        const updateData = { isProtected: newStatus };
+
+        const privateRef = doc(firestore, `users/${targetUserId}/streaks`, figure.id);
+        const publicRef = doc(firestore, `figures/${figure.id}/streaks`, targetUserId);
+
         try {
-            const batch = writeBatch(firestore);
-            const privateRef = doc(firestore, `users/${streak.userId}/streaks`, figure.id);
-            const publicRef = doc(firestore, `figures/${figure.id}/streaks`, streak.userId);
+            // Usamos setDoc con merge en lugar de update para evitar errores si el documento no existe
+            // y seguimos el patrón de capturar errores para el emisor global.
             
-            batch.update(privateRef, { isProtected: newStatus });
-            batch.update(publicRef, { isProtected: newStatus });
-            
-            await batch.commit();
+            const p1 = setDoc(privateRef, updateData, { merge: true }).catch(async (err) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: privateRef.path,
+                    operation: 'update',
+                    requestResourceData: updateData,
+                }));
+                throw err;
+            });
+
+            const p2 = setDoc(publicRef, updateData, { merge: true }).catch(async (err) => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: publicRef.path,
+                    operation: 'update',
+                    requestResourceData: updateData,
+                }));
+                throw err;
+            });
+
+            await Promise.all([p1, p2]);
+
             toast({ 
                 title: newStatus ? "Racha protegida" : "Protección removida",
-                description: `El usuario ${streak.userDisplayName} ahora ${newStatus ? 'tiene' : 'no tiene'} racha inmortal.`
+                description: `El usuario ${streak.userDisplayName} ahora ${newStatus ? 'tiene' : 'ya no tiene'} racha inmortal.`
             });
         } catch (err) {
-            console.error(err);
-            toast({ title: "Error", variant: "destructive" });
+            console.error("Error al actualizar protección:", err);
+            // El emisor de errores ya se encargó de lanzar la pantalla de debug si fue un error de permisos
         } finally {
             setIsUpdating(null);
         }
@@ -168,7 +192,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                              const countryData = streak.userCountry ? countries.find(c => c.key === streak.userCountry.toLowerCase().replace(/ /g, '_')) : null;
                              const attitudeStyle = streak.attitude ? attitudeStyles[streak.attitude as AttitudeOption] : null;
                             return (
-                                <div key={streak.userId} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
+                                <div key={streak.userId || streak.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                                     <div className="flex items-center gap-3">
                                         <Trophy className={cn("h-5 w-5", getTrophyColor(index))} />
                                         <Link href={`/u/${streak.userDisplayName}`} className="flex items-center gap-3 group">
@@ -226,9 +250,9 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                                                 size="icon" 
                                                 className={cn("h-8 w-8", streak.isProtected ? "text-yellow-500" : "text-muted-foreground")}
                                                 onClick={() => handleToggleProtection(streak)}
-                                                disabled={isUpdating === streak.userId}
+                                                disabled={isUpdating === (streak.userId || streak.id)}
                                             >
-                                                {isUpdating === streak.userId ? (
+                                                {isUpdating === (streak.userId || streak.id) ? (
                                                     <Loader2 className="h-4 w-4 animate-spin" />
                                                 ) : streak.isProtected ? (
                                                     <ShieldCheck className="h-4 w-4 fill-yellow-500/10" />
