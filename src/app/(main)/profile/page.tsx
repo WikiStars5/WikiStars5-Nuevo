@@ -28,8 +28,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, Dialog
 import Image from 'next/image';
 import { useLanguage } from '@/context/LanguageContext';
 import UserStarPosts from '@/components/profile/user-starposts';
-import UserThoughts from '@/components/profile/user-thoughts';
-import UserSavedContent from '@/components/profile/user-saved-content';
+import UserSavedStarPosts from '@/components/profile/user-saved-starposts';
 import { useTheme } from 'next-themes';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import FollowListDialog from '@/components/shared/follow-list-dialog';
@@ -364,7 +363,6 @@ function ProfilePageContent() {
                             <TabsTrigger value="info" className="flex-1"><Info className="mr-2 h-4 w-4"/>{t('ProfilePage.infoTab')}</TabsTrigger>
                             <TabsTrigger value="activity" className="flex-1"><Activity className="mr-2 h-4 w-4"/>{t('ProfilePage.activityTab')}</TabsTrigger>
                             <TabsTrigger value="starposts" className="flex-1"><MessagesSquare className="mr-2 h-4 w-4" />Mis Starposts</TabsTrigger>
-                            <TabsTrigger value="thoughts" className="flex-1"><Cloud className="mr-2 h-4 w-4" />Mis Pensamientos</TabsTrigger>
                             <TabsTrigger value="saved" className="flex-1"><Bookmark className="mr-2 h-4 w-4" />Guardados</TabsTrigger>
                         </TabsList>
                         <ScrollBar orientation="horizontal" className="h-1.5" />
@@ -557,11 +555,8 @@ function ProfilePageContent() {
                     <TabsContent value="starposts" className="mt-4">
                         <UserStarPosts userId={user.uid} />
                     </TabsContent>
-                    <TabsContent value="thoughts" className="mt-4">
-                        <UserThoughts userId={user.uid} />
-                    </TabsContent>
                     <TabsContent value="saved" className="mt-4">
-                        <UserSavedContent userId={user.uid} />
+                        <UserSavedStarPosts userId={user.uid} />
                     </TabsContent>
                  </Tabs>
             </div>
