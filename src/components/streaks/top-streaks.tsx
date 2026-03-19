@@ -1,12 +1,13 @@
+
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useFirestore } from '@/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { useFirestore, useCollection, useMemoFirebase, useAdmin } from '@/firebase';
+import { collection, query, orderBy, doc, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Flame, Trophy, HelpCircle, Heart } from 'lucide-react';
+import { Flame, Trophy, HelpCircle, Heart, ShieldCheck, Shield, Loader2 } from 'lucide-react';
 import { Streak, Figure } from '@/lib/types';
 import { cn, formatCompactNumber } from '@/lib/utils';
 import Image from 'next/image';
@@ -24,6 +25,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useTheme } from 'next-themes';
+import { useToast } from '@/hooks/use-toast';
 
 
 type AttitudeOption = 'neutral' | 'fan' | 'simp' | 'hater';
@@ -64,42 +66,55 @@ const StreakItemSkeleton = () => (
 export default function TopStreaks({ figure }: TopStreaksProps) {
     const firestore = useFirestore();
     const { t } = useLanguage();
-    const [allActiveStreaks, setAllActiveStreaks] = useState<Streak[]>([]);
-    const [activeStreaksCount, setActiveStreaksCount] = useState(0);
-    const [isLoading, setIsLoading] = useState(true);
-    const [visibleCount, setVisibleCount] = useState(10);
+    const { isAdmin } = useAdmin();
+    const { toast } = useToast();
     const { theme } = useTheme();
+    const [visibleCount, setVisibleCount] = useState(10);
+    const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchStreaks = async () => {
-            if (!firestore) return;
-            setIsLoading(true);
-            try {
-                const streaksQuery = query(
-                    collection(firestore, `figures/${figure.id}/streaks`),
-                    orderBy('currentStreak', 'desc')
-                );
-                
-                const snapshot = await getDocs(streaksQuery);
-                const allStreaks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Streak));
-
-                const activeStreaks = allStreaks
-                    .filter(streak => isDateActive(streak.lastCommentDate));
-                
-                setActiveStreaksCount(activeStreaks.length);
-                setAllActiveStreaks(activeStreaks);
-
-            } catch (error) {
-                console.error("Failed to fetch top streaks:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchStreaks();
+    const streaksQuery = useMemoFirebase(() => {
+        if (!firestore || !figure.id) return null;
+        return query(
+            collection(firestore, `figures/${figure.id}/streaks`),
+            orderBy('currentStreak', 'desc')
+        );
     }, [firestore, figure.id]);
 
-    const visibleStreaks = useMemo(() => allActiveStreaks.slice(0, visibleCount), [allActiveStreaks, visibleCount]);
+    const { data: allStreaks, isLoading } = useCollection<Streak>(streaksQuery, { realtime: true });
+
+    const activeStreaks = useMemo(() => {
+        if (!allStreaks) return [];
+        return allStreaks.filter(streak => streak.isProtected || isDateActive(streak.lastCommentDate));
+    }, [allStreaks]);
+
+    const visibleStreaks = useMemo(() => activeStreaks.slice(0, visibleCount), [activeStreaks, visibleCount]);
+
+    const handleToggleProtection = async (streak: Streak) => {
+        if (!firestore || !isAdmin) return;
+        setIsUpdating(streak.userId);
+        
+        const newStatus = !streak.isProtected;
+        
+        try {
+            const batch = writeBatch(firestore);
+            const privateRef = doc(firestore, `users/${streak.userId}/streaks`, figure.id);
+            const publicRef = doc(firestore, `figures/${figure.id}/streaks`, streak.userId);
+            
+            batch.update(privateRef, { isProtected: newStatus });
+            batch.update(publicRef, { isProtected: newStatus });
+            
+            await batch.commit();
+            toast({ 
+                title: newStatus ? "Racha protegida" : "Protección removida",
+                description: `El usuario ${streak.userDisplayName} ahora ${newStatus ? 'tiene' : 'no tiene'} racha inmortal.`
+            });
+        } catch (err) {
+            console.error(err);
+            toast({ title: "Error", variant: "destructive" });
+        } finally {
+            setIsUpdating(null);
+        }
+    };
 
     return (
         <Card className={cn((theme === 'dark' || theme === 'army') && 'bg-black')}>
@@ -108,7 +123,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                     <div>
                         <CardTitle className="flex items-center gap-2">
                             {t('TopStreaks.title')}
-                            <span className="text-sm font-normal text-muted-foreground">({formatCompactNumber(activeStreaksCount)})</span>
+                            <span className="text-sm font-normal text-muted-foreground">({formatCompactNumber(activeStreaks.length)})</span>
                         </CardTitle>
                         <CardDescription className="text-muted-foreground">{t('TopStreaks.description')}</CardDescription>
                     </div>
@@ -147,7 +162,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                     <div className="space-y-2">
                         {Array.from({ length: 3 }).map((_, i) => <StreakItemSkeleton key={i} />)}
                     </div>
-                ) : allActiveStreaks.length > 0 ? (
+                ) : activeStreaks.length > 0 ? (
                     <div className="space-y-1">
                         {visibleStreaks.map((streak, index) => {
                              const countryData = streak.userCountry ? countries.find(c => c.key === streak.userCountry.toLowerCase().replace(/ /g, '_')) : null;
@@ -163,7 +178,10 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                                             </Avatar>
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <p className="font-semibold text-sm group-hover:underline">{streak.userDisplayName}</p>
+                                                    <p className="font-semibold text-sm group-hover:underline flex items-center gap-1.5">
+                                                        {streak.userDisplayName}
+                                                        {streak.isProtected && <ShieldCheck className="h-3 w-3 text-yellow-500 fill-yellow-500/20" />}
+                                                    </p>
                                                     {streak.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
                                                     {streak.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}
                                                     {countryData && (
@@ -183,29 +201,48 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                                             </div>
                                         </Link>
                                     </div>
-                                    <div className="flex items-center gap-2 font-bold text-lg">
-                                        <div className="flex items-center gap-1 text-orange-500">
-                                            <span>{streak.currentStreak}</span>
-                                            <Image
-                                                src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
-                                                alt="Streak flame"
-                                                width={24}
-                                                height={24}
-                                                unoptimized
-                                            />
-                                        </div>
-                                         {typeof streak.lives === 'number' && streak.lives > 0 && (
-                                            <div className="flex items-center gap-1 text-red-500" title={`${streak.lives} vidas restantes`}>
-                                                <Heart className="h-4 w-4 fill-current" />
-                                                <span className="text-base">{streak.lives}</span>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2 font-bold text-lg">
+                                            <div className="flex items-center gap-1 text-orange-500">
+                                                <span>{streak.currentStreak}</span>
+                                                <Image
+                                                    src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
+                                                    alt="Streak flame"
+                                                    width={24}
+                                                    height={24}
+                                                    unoptimized
+                                                />
                                             </div>
+                                            {typeof streak.lives === 'number' && streak.lives > 0 && (
+                                                <div className="flex items-center gap-1 text-red-500" title={`${streak.lives} vidas restantes`}>
+                                                    <Heart className="h-4 w-4 fill-current" />
+                                                    <span className="text-base">{streak.lives}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {isAdmin && (
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className={cn("h-8 w-8", streak.isProtected ? "text-yellow-500" : "text-muted-foreground")}
+                                                onClick={() => handleToggleProtection(streak)}
+                                                disabled={isUpdating === streak.userId}
+                                            >
+                                                {isUpdating === streak.userId ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : streak.isProtected ? (
+                                                    <ShieldCheck className="h-4 w-4 fill-yellow-500/10" />
+                                                ) : (
+                                                    <Shield className="h-4 w-4" />
+                                                )}
+                                            </Button>
                                         )}
                                     </div>
                                 </div>
                             );
                         })}
 
-                        {allActiveStreaks.length > visibleCount && (
+                        {activeStreaks.length > visibleCount && (
                             <div className="pt-4 flex justify-center">
                                 <Button 
                                     variant="outline" 

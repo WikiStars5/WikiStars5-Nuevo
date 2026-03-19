@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -87,9 +88,9 @@ export async function updateStreak({
 
             const now = new Date();
             
-            // Determinar si el usuario ya contaba como "activo" en el sistema
             const oldStreakData = privateStreakDoc.exists() ? privateStreakDoc.data() as Streak : null;
-            const wasActive = oldStreakData ? isDateActive(oldStreakData.lastCommentDate) : false;
+            const isProtected = oldStreakData?.isProtected || false;
+            const wasActive = oldStreakData ? (isProtected || isDateActive(oldStreakData.lastCommentDate)) : false;
 
             if (!oldStreakData) {
                 finalStreakCount = 1;
@@ -110,7 +111,11 @@ export async function updateStreak({
                         livesChange = 1;
                     }
                 } else {
-                    if (finalLivesCount > 0) {
+                    if (isProtected) {
+                        // Protected streaks never reset to 1. They just increment from wherever they were.
+                        finalStreakCount = (oldStreakData.currentStreak || 0) + 1;
+                        streakGained = true;
+                    } else if (finalLivesCount > 0) {
                         finalLivesCount -= 1;
                         livesChange = -1;
                         finalStreakCount = oldStreakData.currentStreak; 
@@ -122,7 +127,6 @@ export async function updateStreak({
                 }
             }
             
-            // Si el usuario no estaba activo (es nuevo o su racha expiró), incrementamos el contador global
             if (!wasActive) {
                 transaction.update(figureRef, { activeStreakCount: increment(1) });
             }
@@ -134,6 +138,7 @@ export async function updateStreak({
                 isActive: true,
                 currentStreak: finalStreakCount,
                 lives: finalLivesCount,
+                isProtected: isProtected,
                 lastCommentDate: Timestamp.now(),
                 attitude: attitude,
                 userDisplayName: userDisplayName,

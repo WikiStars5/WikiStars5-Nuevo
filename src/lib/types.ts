@@ -325,6 +325,7 @@ export interface Streak {
   isActive: boolean; 
   currentStreak: number;
   lives?: number;
+  isProtected?: boolean; // New field for immortal streaks
   lastCommentDate: Timestamp;
   attitude?: 'neutral' | 'fan' | 'simp' | 'hater' | null;
   userDisplayName: string;

@@ -5,7 +5,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 import type { Streak } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-import { Flame, Heart } from 'lucide-react';
+import { Flame, Heart, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import { Separator } from '../ui/separator';
 
@@ -42,7 +42,7 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
         return doc(firestore, `users/${user.uid}/streaks`, figureId);
     }, [firestore, user, figureId]);
 
-    const { data: streak, isLoading: isStreakLoading } = useDoc<Streak>(streakDocRef);
+    const { data: streak, isLoading: isStreakLoading } = useDoc<Streak>(streakDocRef, { realtime: true });
     
     const isLoading = isUserLoading || (user && isStreakLoading);
 
@@ -50,7 +50,9 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
         return <Skeleton className="h-10 w-24 rounded-full" />;
     }
 
-    if (!streak || !isStreakActive(streak.lastCommentDate) || streak.currentStreak === 0) {
+    const isActive = streak && (streak.isProtected || isStreakActive(streak.lastCommentDate));
+
+    if (!streak || !isActive || streak.currentStreak === 0) {
         return null; // Don't show anything if there's no active streak
     }
 
@@ -73,6 +75,12 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
                     <Separator orientation="vertical" className="h-4 bg-border mx-1" />
                     <Heart className="h-4 w-4 fill-current" />
                     <span>{streak.lives}</span>
+                </div>
+            )}
+            {streak.isProtected && (
+                <div className="flex items-center gap-1 text-yellow-500 font-bold" title="Racha protegida (Inmortal)">
+                    <Separator orientation="vertical" className="h-4 bg-border mx-1" />
+                    <ShieldCheck className="h-4 w-4 fill-current" />
                 </div>
             )}
         </div>
