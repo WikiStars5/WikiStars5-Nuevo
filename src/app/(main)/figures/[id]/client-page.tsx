@@ -155,11 +155,11 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                 <>
                   <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
                   <TabsTrigger value="pensamientos"><Cloud className="mr-2 h-4 w-4" />Pensamientos</TabsTrigger>
-                  <TabsTrigger value="galeria"><LucideImageIcon className="mr-2 h-4 w-4" />Galeria</TabsTrigger>
                   <TabsTrigger value="bias-bts"><Heart className="mr-2 h-4 w-4" />Bias BTS</TabsTrigger>
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
                   <TabsTrigger value="noticias"><Newspaper className="mr-2 h-4 w-4" />Noticias</TabsTrigger>
+                  <TabsTrigger value="galeria"><LucideImageIcon className="mr-2 h-4 w-4" />Galeria</TabsTrigger>
                   <TabsTrigger value="logros"><Trophy className="mr-2 h-4 w-4" />Logros</TabsTrigger>
                   <TabsTrigger value="wiki"><InfoIcon className="mr-2 h-4 w-4" />Wiki</TabsTrigger>
                 </>
