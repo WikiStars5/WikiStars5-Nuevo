@@ -11,9 +11,8 @@ import ProfileHeader from '@/components/figure/ProfileHeader';
 import EmotionVoting from '@/components/figure/emotion-voting';
 import EditInformationForm from '@/components/figure/edit-information-form';
 import CommentSection from '@/components/figure/comment-section';
-import ThoughtsSection from '@/components/figure/thoughts-section';
 import { Button } from '@/components/ui/button';
-import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Trophy, Star, MessageCircle, Cloud, Newspaper, Image as LucideImageIcon } from 'lucide-react';
+import { Pencil, User, Users, Briefcase, Globe, Heart, CalendarDays, Ruler, Link as LinkIcon, Trophy, Star, Newspaper, Image as LucideImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -40,6 +39,9 @@ const SOCIAL_MEDIA_CONFIG: Record<string, { label: string }> = {
     linkedin: { label: 'LinkedIn' },
     wikipedia: { label: 'Wikipedia' },
 };
+
+const btsMemberIds = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
+const blackpinkMemberIds = ["jennie", "lalisa-manobal", "rose", "jisoo"];
 
 const SocialLink = ({ platform, url }: { platform: string; url: string }) => {
     try {
@@ -103,8 +105,6 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
   const achievementRef = useMemoFirebase(() => (!firestore || !user) ? null : doc(firestore, `users/${user.uid}/achievements`, figureId), [firestore, user, figureId]);
   const { data: userAchievements } = useDoc<Achievement>(achievementRef);
 
-  const btsMemberIds = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
-  const blackpinkMemberIds = ["jennie", "lalisa-manobal", "rose", "jisoo"];
   const isBtsMember = figureId && btsMemberIds.includes(figureId.toLowerCase());
   const isBlackpinkMember = figureId && blackpinkMemberIds.includes(figureId.toLowerCase());
 
@@ -153,7 +153,6 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
               {isBtsMember ? (
                 <>
                   <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
-                  <TabsTrigger value="pensamientos"><Cloud className="mr-2 h-4 w-4" />Pensamientos</TabsTrigger>
                   <TabsTrigger value="bias-bts"><Heart className="mr-2 h-4 w-4" />Bias BTS</TabsTrigger>
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
@@ -166,7 +165,6 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                 <>
                   <TabsTrigger value="wiki"><InfoIcon className="mr-2 h-4 w-4" />Wiki</TabsTrigger>
                   <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
-                  <TabsTrigger value="pensamientos"><Cloud className="mr-2 h-4 w-4" />Pensamientos</TabsTrigger>
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   {isBlackpinkMember && <TabsTrigger value="bias-blackpink"><Heart className="mr-2 h-4 w-4" />Bias Blackpink</TabsTrigger>}
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
@@ -223,9 +221,6 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                 <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={null} />
               </>
             )}
-          </TabsContent>
-          <TabsContent value="pensamientos" className="mt-4">
-            {activeTab === 'pensamientos' && <ThoughtsSection figureId={figure.id} figureName={figure.name} />}
           </TabsContent>
           {isBtsMember && (
             <TabsContent value="galeria" className="mt-4">
