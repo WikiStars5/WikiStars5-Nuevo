@@ -20,7 +20,6 @@ import { Separator } from '@/components/ui/separator';
 import CommunityRatings from '@/components/figure/community-ratings';
 import RelatedFigures from '@/components/figure/related-figures';
 import TopStreaks from '@/components/streaks/top-streaks';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from 'next-themes';
@@ -149,8 +148,8 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
 
       <div className="mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <ScrollArea className="w-full whitespace-nowrap">
-            <TabsList className={cn("inline-flex h-auto", (theme === 'dark' || theme === 'army') && 'bg-black')}>
+          <div className="w-full overflow-x-auto whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className={cn("inline-flex h-auto w-max min-w-full justify-start", (theme === 'dark' || theme === 'army') && 'bg-black')}>
               {isBtsMember ? (
                 <>
                   <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
@@ -176,8 +175,7 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                 </>
               )}
             </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          </div>
           
           <TabsContent value="wiki" className="mt-4">
               {isEditing ? <EditInformationForm figure={figure} onFormClose={() => setIsEditing(false)} /> : (
