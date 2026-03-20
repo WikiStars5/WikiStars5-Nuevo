@@ -131,13 +131,30 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
       const results = await Promise.all(contentPromises);
       const allNewItems = results.flat().filter(item => !seenItemIdsRef.current.has(item.id));
       
-      const shuffledBatch = shuffleArray(allNewItems).slice(0, MAX_BATCH_TO_SHOW);
-      shuffledBatch.forEach(item => seenItemIdsRef.current.add(item.id));
+      // --- Lógica de prioridad de StarPosts ---
+      const starposts = allNewItems.filter(item => item.feedType === 'starpost');
+      const otherContent = allNewItems.filter(item => item.feedType !== 'starpost');
+
+      // Mezclamos ambos grupos por separado
+      const shuffledStarposts = shuffleArray(starposts);
+      const shuffledOthers = shuffleArray(otherContent);
+
+      // Tomamos los primeros 3 starposts para liderar el feed
+      const leadStarposts = shuffledStarposts.slice(0, 3);
+      const remainingStarposts = shuffledStarposts.slice(3);
+
+      // Mezclamos el resto de starposts con las noticias y galería
+      const remainingMixed = shuffleArray([...remainingStarposts, ...shuffledOthers]);
+
+      // Unimos todo respetando el límite por lote
+      const finalBatch = [...leadStarposts, ...remainingMixed].slice(0, MAX_BATCH_TO_SHOW);
+      
+      finalBatch.forEach(item => seenItemIdsRef.current.add(item.id));
 
       if (append) {
-        setFeedItems(prev => [...prev, ...shuffledBatch]);
+        setFeedItems(prev => [...prev, ...finalBatch]);
       } else {
-        setFeedItems(shuffledBatch);
+        setFeedItems(finalBatch);
       }
     } catch (error) {
       console.error("Error al armar el feed dinámico:", error);
