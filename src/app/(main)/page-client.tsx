@@ -13,8 +13,6 @@ import {
   orderBy, 
   limit, 
   getDocs, 
-  doc,
-  getDoc,
   where
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -132,21 +130,22 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
       const allNewItems = results.flat().filter(item => !seenItemIdsRef.current.has(item.id));
       
       // --- Lógica de prioridad de StarPosts ---
+      // Separamos StarPosts de otros contenidos
       const starposts = allNewItems.filter(item => item.feedType === 'starpost');
       const otherContent = allNewItems.filter(item => item.feedType !== 'starpost');
 
-      // Mezclamos ambos grupos por separado
+      // Mezclamos ambos grupos por separado para garantizar azar
       const shuffledStarposts = shuffleArray(starposts);
       const shuffledOthers = shuffleArray(otherContent);
 
-      // Tomamos los primeros 3 starposts para liderar el feed
+      // Tomamos los primeros 3 starposts OBLIGATORIAMENTE para liderar el feed
       const leadStarposts = shuffledStarposts.slice(0, 3);
       const remainingStarposts = shuffledStarposts.slice(3);
 
-      // Mezclamos el resto de starposts con las noticias y galería
+      // Mezclamos el resto de starposts con las noticias y galería para que salgan aleatorios
       const remainingMixed = shuffleArray([...remainingStarposts, ...shuffledOthers]);
 
-      // Unimos todo respetando el límite por lote
+      // Unimos todo respetando el límite por lote (los 3 prioritarios + el resto mezclado)
       const finalBatch = [...leadStarposts, ...remainingMixed].slice(0, MAX_BATCH_TO_SHOW);
       
       finalBatch.forEach(item => seenItemIdsRef.current.add(item.id));
