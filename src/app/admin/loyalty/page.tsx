@@ -63,22 +63,36 @@ export default function LoyaltyDashboardPage() {
         const snap = await getDocs(streaksRef);
         
         let activeCount = 0;
-        const batch = writeBatch(firestore);
         let deletedCount = 0;
+        let batch = writeBatch(firestore);
+        let operationsInBatch = 0;
 
-        snap.docs.forEach(sDoc => {
+        for (const sDoc of snap.docs) {
             const data = sDoc.data() as Streak;
-            if (isDateActive(data.lastCommentDate)) {
+            const isActive = data.isProtected || isDateActive(data.lastCommentDate);
+
+            if (isActive) {
                 activeCount++;
             } else {
-                // Eliminar registro vencido de ambos lugares para limpiar la DB
+                // Preparar eliminaciones (pública y privada)
+                const targetUserId = data.userId || sDoc.id;
                 batch.delete(sDoc.ref);
-                batch.delete(doc(firestore, `users/${data.userId}/streaks`, figure.id));
+                batch.delete(doc(firestore, `users/${targetUserId}/streaks`, figure.id));
+                
                 deletedCount++;
+                operationsInBatch += 2; // Dos eliminaciones por usuario inactivo
+
+                // Si superamos el límite seguro de 400 operaciones (límite real 500), commiteamos y reiniciamos
+                if (operationsInBatch >= 400) {
+                    await batch.commit();
+                    batch = writeBatch(firestore);
+                    operationsInBatch = 0;
+                }
             }
-        });
+        }
 
         // 2. Actualizar el contador real en el documento del personaje
+        // Usamos el lote actual o creamos uno nuevo si el anterior se cerró justo antes
         batch.update(doc(firestore, 'figures', figure.id), {
             activeStreakCount: activeCount
         });
@@ -86,13 +100,14 @@ export default function LoyaltyDashboardPage() {
         await batch.commit();
         
         toast({
-            title: "Base de datos limpia",
-            description: `Se eliminaron ${deletedCount} registros vencidos para ${figure.name}.`,
+            title: "Limpieza profunda completada",
+            description: `Se procesaron todas las rachas. Se eliminaron ${deletedCount} registros inactivos y ${activeCount} permanecen activos.`,
         });
     } catch (error) {
-        console.error("Error en limpieza:", error);
+        console.error("Error en limpieza fragmentada:", error);
         toast({
             title: "Error en la limpieza",
+            description: "Hubo un fallo técnico al procesar los lotes de datos.",
             variant: "destructive"
         });
     } finally {
@@ -110,7 +125,7 @@ export default function LoyaltyDashboardPage() {
               Panel de Lealtad
             </CardTitle>
             <CardDescription>
-              Gestiona los registros de rachas y mantén la base de datos limpia de usuarios inactivos.
+              Gestiona los registros de rachas y mantén la base de datos limpia de usuarios inactivos. Soporta limpiezas masivas automáticas.
             </CardDescription>
           </div>
           <Button variant="outline" asChild>
