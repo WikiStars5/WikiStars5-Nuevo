@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useContext } from 'react';
@@ -206,7 +207,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                                                 <div className="flex items-center gap-2">
                                                     <p className="font-semibold text-sm group-hover:underline flex items-center gap-1.5">
                                                         {streak.userDisplayName}
-                                                        {streak.isProtected && <ShieldCheck className="h-3 w-3 text-yellow-500 fill-yellow-500/20" />}
+                                                        {isAdmin && streak.isProtected && <ShieldCheck className="h-3 w-3 text-yellow-500 fill-yellow-500/20" />}
                                                     </p>
                                                     {streak.userGender === 'Masculino' && <span className="text-blue-400 font-bold" title="Masculino">♂</span>}
                                                     {streak.userGender === 'Femenino' && <span className="text-pink-400 font-bold" title="Femenino">♀</span>}

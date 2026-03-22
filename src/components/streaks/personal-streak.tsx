@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useAdmin } from '@/firebase';
 import { doc, Timestamp } from 'firebase/firestore';
 import type { Streak } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
@@ -34,6 +35,7 @@ function isStreakActive(timestamp?: Timestamp): boolean {
 
 export default function PersonalStreak({ figureId }: PersonalStreakProps) {
     const { user, isUserLoading } = useUser();
+    const { isAdmin } = useAdmin();
     const firestore = useFirestore();
 
     const streakDocRef = useMemoFirebase(() => {
@@ -80,7 +82,7 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
                     <span>{streak.lives}</span>
                 </div>
             )}
-            {streak.isProtected && (
+            {isAdmin && streak.isProtected && (
                 <div className="flex items-center gap-1 text-yellow-500 font-bold" title="Racha protegida (Inmortal)">
                     <Separator orientation="vertical" className="h-4 bg-border mx-1" />
                     <ShieldCheck className="h-4 w-4 fill-current" />
