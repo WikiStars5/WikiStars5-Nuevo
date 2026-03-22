@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -8,6 +7,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Flame, Heart, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import { Separator } from '../ui/separator';
+import { getDaysPassed } from '@/lib/streaks';
 
 interface PersonalStreakProps {
     figureId: string;
@@ -38,7 +38,6 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
 
     const streakDocRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
-        // New path: users/{userId}/streaks/{figureId}
         return doc(firestore, `users/${user.uid}/streaks`, figureId);
     }, [firestore, user, figureId]);
 
@@ -56,7 +55,11 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
         return null; // Don't show anything if there's no active streak
     }
 
-    const streakText = streak.currentStreak === 1 ? 'día' : 'días';
+    // Projected value for the user
+    const daysPassed = streak.lastCommentDate ? getDaysPassed(streak.lastCommentDate.toDate(), new Date()) : 0;
+    const finalVal = streak.isProtected ? (streak.currentStreak + (daysPassed > 0 ? daysPassed : 0)) : streak.currentStreak;
+
+    const streakText = finalVal === 1 ? 'día' : 'días';
 
     return (
         <div className="flex items-center gap-2 rounded-full bg-card border px-3 py-1.5 shadow-sm">
@@ -68,7 +71,7 @@ export default function PersonalStreak({ figureId }: PersonalStreakProps) {
                 unoptimized
             />
             <span className="font-bold text-orange-500">
-                {streak.currentStreak} {streakText}
+                {finalVal} {streakText}
             </span>
              {typeof streak.lives === 'number' && streak.lives > 0 && (
                 <div className="flex items-center gap-1 text-red-500 font-bold" title={`${streak.lives} vidas restantes`}>

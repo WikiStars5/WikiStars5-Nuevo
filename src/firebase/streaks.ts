@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -10,7 +9,7 @@ import {
     Timestamp,
 } from 'firebase/firestore';
 import type { Streak, User, AttitudeVote } from '@/lib/types';
-import { isDateActive } from '@/lib/streaks';
+import { isDateActive, getDaysPassed } from '@/lib/streaks';
 
 interface UpdateStreakParams {
     firestore: Firestore;
@@ -99,11 +98,12 @@ export async function updateStreak({
             } else {
                 finalLivesCount = oldStreakData.lives || 0;
                 const lastCommentDate = oldStreakData.lastCommentDate.toDate();
+                const daysPassed = getDaysPassed(lastCommentDate, now);
 
-                if (isSameDay(lastCommentDate, now)) {
+                if (daysPassed === 0) {
                     finalStreakCount = oldStreakData.currentStreak;
                     streakGained = false;
-                } else if (isYesterday(lastCommentDate, now)) {
+                } else if (daysPassed === 1) {
                     finalStreakCount = (oldStreakData.currentStreak || 0) + 1;
                     streakGained = true;
                     if (finalStreakCount > 0 && finalStreakCount % 10 === 0) {
@@ -112,9 +112,18 @@ export async function updateStreak({
                     }
                 } else {
                     if (isProtected) {
-                        // Protected streaks never reset to 1. They just increment from wherever they were.
-                        finalStreakCount = (oldStreakData.currentStreak || 0) + 1;
+                        // Catch up! Auto-advance the day for protected users
+                        finalStreakCount = (oldStreakData.currentStreak || 0) + daysPassed;
                         streakGained = true;
+                        
+                        // Check if they passed any 10-day milestones during the jump
+                        const oldMilestones = Math.floor((oldStreakData.currentStreak || 0) / 10);
+                        const newMilestones = Math.floor(finalStreakCount / 10);
+                        if (newMilestones > oldMilestones) {
+                            const milestoneGains = newMilestones - oldMilestones;
+                            finalLivesCount += milestoneGains;
+                            livesChange = milestoneGains;
+                        }
                     } else if (finalLivesCount > 0) {
                         finalLivesCount -= 1;
                         livesChange = -1;

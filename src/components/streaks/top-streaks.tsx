@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useContext } from 'react';
@@ -13,7 +12,7 @@ import { cn, formatCompactNumber } from '@/lib/utils';
 import Image from 'next/image';
 import { countries } from '@/lib/countries';
 import Link from 'next/link';
-import { isDateActive } from '@/lib/streaks';
+import { isDateActive, getDaysPassed } from '@/lib/streaks';
 import { useLanguage } from '@/context/LanguageContext';
 import { Button } from '../ui/button';
 import {
@@ -94,7 +93,6 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
     const handleToggleProtection = async (streak: Streak) => {
         if (!firestore || !isAdmin) return;
         
-        // Identificar el ID del usuario correctamente (ya sea de la propiedad o del ID del doc)
         const targetUserId = streak.userId || streak.id;
         setIsUpdating(targetUserId);
         
@@ -105,9 +103,6 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
         const publicRef = doc(firestore, `figures/${figure.id}/streaks`, targetUserId);
 
         try {
-            // Usamos setDoc con merge en lugar de update para evitar errores si el documento no existe
-            // y seguimos el patrón de capturar errores para el emisor global.
-            
             const p1 = setDoc(privateRef, updateData, { merge: true }).catch(async (err) => {
                 errorEmitter.emit('permission-error', new FirestorePermissionError({
                     path: privateRef.path,
@@ -134,10 +129,16 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
             });
         } catch (err) {
             console.error("Error al actualizar protección:", err);
-            // El emisor de errores ya se encargó de lanzar la pantalla de debug si fue un error de permisos
         } finally {
             setIsUpdating(null);
         }
+    };
+
+    // Helper to calculate the displayed streak (real or projected)
+    const getDisplayedStreak = (streak: Streak) => {
+        if (!streak.isProtected || !streak.lastCommentDate) return streak.currentStreak;
+        const days = getDaysPassed(streak.lastCommentDate.toDate(), new Date());
+        return streak.currentStreak + (days > 0 ? days : 0);
     };
 
     return (
@@ -191,6 +192,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                         {visibleStreaks.map((streak, index) => {
                              const countryData = streak.userCountry ? countries.find(c => c.key === streak.userCountry.toLowerCase().replace(/ /g, '_')) : null;
                              const attitudeStyle = streak.attitude ? attitudeStyles[streak.attitude as AttitudeOption] : null;
+                             const currentVal = getDisplayedStreak(streak);
                             return (
                                 <div key={streak.userId || streak.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/50">
                                     <div className="flex items-center gap-3">
@@ -228,7 +230,7 @@ export default function TopStreaks({ figure }: TopStreaksProps) {
                                     <div className="flex items-center gap-4">
                                         <div className="flex items-center gap-2 font-bold text-lg">
                                             <div className="flex items-center gap-1 text-orange-500">
-                                                <span>{streak.currentStreak}</span>
+                                                <span>{currentVal}</span>
                                                 <Image
                                                     src="https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/racha%2Ffire.gif?alt=media&token=c6eefbb1-b51c-48a4-ae20-7ca8bef2cf63"
                                                     alt="Streak flame"
