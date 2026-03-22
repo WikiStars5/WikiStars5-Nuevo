@@ -57,12 +57,40 @@ export default function FigureSearchInput({ onFigureSelect, className, initialQu
         const figuresQuery = firestoreQuery(
             collection(firestore, 'figures'),
             where('nameKeywords', 'array-contains', normalizedSearchTerm),
-            limit(10)
+            limit(15) // Aumentamos un poco el límite para filtrar mejor en cliente
         );
         const figuresSnapshot = await getDocs(figuresQuery);
         const figures = figuresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
-        figures.sort((a, b) => a.name.localeCompare(b.name));
-        return figures;
+        
+        // --- Algoritmo de Relevancia (Priority Sorting) ---
+        figures.sort((a, b) => {
+            const aName = a.name.toLowerCase();
+            const bName = b.name.toLowerCase();
+            const term = normalizedSearchTerm.toLowerCase();
+
+            // 1. Prioridad por ID exacto (Caso específico para "V" -> "v-cantante")
+            const aIsPriorityId = a.id === 'v-cantante';
+            const bIsPriorityId = b.id === 'v-cantante';
+            if (aIsPriorityId && !bIsPriorityId) return -1;
+            if (!aIsPriorityId && bIsPriorityId) return 1;
+
+            // 2. Coincidencia exacta de nombre
+            const aIsExact = aName === term;
+            const bIsExact = bName === term;
+            if (aIsExact && !bIsExact) return -1;
+            if (!aIsExact && bIsExact) return 1;
+
+            // 3. Comienza con el término de búsqueda
+            const aStartsWith = aName.startsWith(term);
+            const bStartsWith = bName.startsWith(term);
+            if (aStartsWith && !bStartsWith) return -1;
+            if (!aStartsWith && bStartsWith) return 1;
+
+            // 4. Orden alfabético para el resto
+            return a.name.localeCompare(b.name);
+        });
+
+        return figures.slice(0, 10); // Retornamos los 10 más relevantes
     } catch (error) {
         console.error('Error during search:', error);
         return [];
@@ -211,4 +239,3 @@ export default function FigureSearchInput({ onFigureSelect, className, initialQu
     </div>
   );
 }
-
