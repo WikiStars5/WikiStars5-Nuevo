@@ -34,6 +34,9 @@ interface FigureSearchInputProps {
   initialQuery?: string | null;
 }
 
+// Lista de IDs de miembros de BTS para priorización
+const BTS_MEMBER_IDS = ["jimin", "jungkook", "v-cantante", "rm", "kim-seok-jin", "suga-agust-d", "j-hope"];
+
 export default function FigureSearchInput({ onFigureSelect, className, initialQuery = null }: FigureSearchInputProps) {
   const [currentQuery, setCurrentQuery] = useState(initialQuery || '');
   const [figureResults, setFigureResults] = useState<Figure[]>([]);
@@ -57,7 +60,7 @@ export default function FigureSearchInput({ onFigureSelect, className, initialQu
         const figuresQuery = firestoreQuery(
             collection(firestore, 'figures'),
             where('nameKeywords', 'array-contains', normalizedSearchTerm),
-            limit(15) // Aumentamos un poco el límite para filtrar mejor en cliente
+            limit(15) 
         );
         const figuresSnapshot = await getDocs(figuresQuery);
         const figures = figuresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
@@ -68,11 +71,12 @@ export default function FigureSearchInput({ onFigureSelect, className, initialQu
             const bName = b.name.toLowerCase();
             const term = normalizedSearchTerm.toLowerCase();
 
-            // 1. Prioridad por ID exacto (Caso específico para "V" -> "v-cantante")
-            const aIsPriorityId = a.id === 'v-cantante';
-            const bIsPriorityId = b.id === 'v-cantante';
-            if (aIsPriorityId && !bIsPriorityId) return -1;
-            if (!aIsPriorityId && bIsPriorityId) return 1;
+            // 1. Prioridad Máxima: Miembros de BTS si hay coincidencia parcial
+            const aIsBts = BTS_MEMBER_IDS.includes(a.id) && (aName.startsWith(term) || a.id.startsWith(term));
+            const bIsBts = BTS_MEMBER_IDS.includes(b.id) && (bName.startsWith(term) || b.id.startsWith(term));
+            
+            if (aIsBts && !bIsBts) return -1;
+            if (!aIsBts && bIsBts) return 1;
 
             // 2. Coincidencia exacta de nombre
             const aIsExact = aName === term;
@@ -90,7 +94,7 @@ export default function FigureSearchInput({ onFigureSelect, className, initialQu
             return a.name.localeCompare(b.name);
         });
 
-        return figures.slice(0, 10); // Retornamos los 10 más relevantes
+        return figures.slice(0, 10);
     } catch (error) {
         console.error('Error during search:', error);
         return [];

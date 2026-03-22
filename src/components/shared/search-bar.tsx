@@ -43,6 +43,8 @@ interface SearchBarProps {
   onResultClick?: () => void;
 }
 
+// Lista de IDs de miembros de BTS para priorización
+const BTS_MEMBER_IDS = ["jimin", "jungkook", "v-cantante", "rm", "kim-seok-jin", "suga-agust-d", "j-hope"];
 
 export default function SearchBar({ 
   initialQuery = '', 
@@ -74,7 +76,35 @@ export default function SearchBar({
         );
         const figuresSnapshot = await getDocs(figuresQuery);
         const figures = figuresSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Figure));
-        figures.sort((a, b) => a.name.localeCompare(b.name));
+        
+        // --- Algoritmo de Relevancia Mejorado ---
+        figures.sort((a, b) => {
+            const aName = a.name.toLowerCase();
+            const bName = b.name.toLowerCase();
+            const term = normalizedSearchTerm.toLowerCase();
+
+            // 1. Prioridad: Miembros de BTS
+            const aIsBts = BTS_MEMBER_IDS.includes(a.id) && (aName.startsWith(term) || a.id.startsWith(term));
+            const bIsBts = BTS_MEMBER_IDS.includes(b.id) && (bName.startsWith(term) || b.id.startsWith(term));
+            
+            if (aIsBts && !bIsBts) return -1;
+            if (!aIsBts && bIsBts) return 1;
+
+            // 2. Coincidencia exacta de nombre
+            const aIsExact = aName === term;
+            const bIsExact = bName === term;
+            if (aIsExact && !bIsExact) return -1;
+            if (!aIsExact && bIsExact) return 1;
+
+            // 3. Comienza con el término de búsqueda
+            const aStartsWith = aName.startsWith(term);
+            const bStartsWith = bName.startsWith(term);
+            if (aStartsWith && !bStartsWith) return -1;
+            if (!aStartsWith && bStartsWith) return 1;
+
+            return a.name.localeCompare(b.name);
+        });
+
         return figures;
     } catch (error) {
         console.error('Error during search:', error);
