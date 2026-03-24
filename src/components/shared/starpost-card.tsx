@@ -14,7 +14,7 @@ import { countries } from '@/lib/countries';
 import { commentTags } from '@/lib/tags';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth, signInAnonymously, useAdmin } from '@/firebase';
-import { doc, runTransaction, increment, serverTimestamp, getDoc, getDocs, collection as firestoreCollection, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { doc, runTransaction, increment, serverTimestamp, getDoc, getDocs, collection, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import ReplyForm from '../figure/reply-form';
 import { isDateActive } from '@/lib/streaks';
@@ -107,7 +107,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
           observer.disconnect();
         }
       },
-      { threshold: 0.5 } // Track when at least 50% of the card is visible
+      { threshold: 0.5 }
     );
 
     if (containerRef.current) {
@@ -214,7 +214,7 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
             const figureSnap = await transaction.get(figureRef);
             if (!figureSnap.exists()) throw new Error("Figure not found.");
 
-            const repliesRef = firestoreCollection(firestore, commentRef.path, 'replies');
+            const repliesRef = collection(firestore, 'figures', post.figureId, 'comments', post.id, 'replies');
             const repliesSnapshot = await getDocs(repliesRef);
             repliesSnapshot.forEach(replyDoc => transaction.delete(replyDoc.ref));
 

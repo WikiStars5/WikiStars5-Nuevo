@@ -199,7 +199,7 @@ function CommentItem({ comment, figureId, figureName, isReply = false, onReplySu
 
                 let repliesSnapshot;
                 if (!isReply) {
-                    const repliesRef = firestoreCollection(firestore, commentRef.path, 'replies');
+                    const repliesRef = collection(firestore, 'figures', figureId, 'comments', comment.id, 'replies');
                     repliesSnapshot = await getDocs(repliesRef);
                 }
 
@@ -593,7 +593,7 @@ export default function CommentThread({ comment, figureId, figureName, onDeleteS
     <div className={cn("space-y-4 rounded-lg border bg-card text-card-foreground p-4", (theme === 'dark' || theme === 'army') && 'bg-black')}>
       <CommentItem 
         comment={comment} 
-        figureId={figureId}
+        figureId={figureId} 
         figureName={figureName}
         onReplySuccess={handleLocalReplySuccess}
         onDeleteSuccess={onDeleteSuccess}
