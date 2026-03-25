@@ -1,3 +1,4 @@
+
 {
   "Footer": {
     "rules": "Reglas",
@@ -281,9 +282,9 @@
     }
   },
   "CommunityRatings": {
-    "title": "Calificaciones de la Comunidad",
+    "title": "Reseñas de la Comunidad",
     "rating": "calificación",
-    "ratings": "calificaciones"
+    "ratings": "reseñas"
   },
   "CommentForm": {
     "title": "¡Califica y Gana Rachas!",
@@ -527,7 +528,7 @@
       "1_strong": "Naturaleza del Sitio:",
       "1": " Starryz5 es una plataforma de opinión y entretenimiento. Creemos firmemente en la libertad de expresión y nuestro propósito es permitir que los usuarios expresen y discutan libremente sus percepciones sobre figuras públicas. El contenido de este sitio, incluyendo las calificaciones, votos, y comentarios, representa las opiniones subjetivas de nuestros usuarios y no debe ser interpretado como una declaración de hechos.",
       "2_strong": "Reflejo de la Percepción Pública:",
-      "2": " Las percepciones, ya sean de admiración u odio, que se reflejan en esta plataforma son el resultado de las acciones y la reputación de las propias figuras públicas. Starryz5 no crea ni controla estas opiniones; simplemente actúa como un foro para su expresión. La responsabilidad de la imagen pública recae enteramente en la figura pública, no en la plataforma que permite la discusión sobre ella. En resumen: no es nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.",
+      "2": " Las percepciones, ya sean de admiración u odio, reflejan en esta plataforma son el resultado de las acciones y la reputación de las propias figuras públicas. Starryz5 no crea ni controla estas opiniones; simplemente actúa como un foro para su expresión. La responsabilidad de la imagen pública recae enteramente en la figura pública, no en la plataforma que permite la discusión sobre ella. En resumen: no es nuestra culpa si te haces odiar o amar; esa responsabilidad es completamente tuya y no está bajo nuestro control.",
       "3_strong": "Sin Afiliación ni Respaldo:",
       "3": " Este sitio web no está afiliado, asociado, autorizado, respaldado por, ni de ninguna manera conectado oficialmente con ninguna de las figuras públicas mencionadas en él, ni con ninguna de sus subsidiarias o afiliadas.",
       "4": "Los nombres, así como cualquier imagen, marca registrada y derecho de autor relacionados, son propiedad de sus respectivos dueños. El uso de estos nombres e imágenes tiene fines de identificación, comentario y crítica, en el marco del derecho a la libertad de expresión.",
