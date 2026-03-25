@@ -52,9 +52,10 @@ const attitudeStyles: Record<AttitudeOption, { text: string; color: string }> = 
 interface StarPostCardProps {
   post: Comment;
   onDeleteSuccess?: () => void;
+  showTimestamp?: boolean;
 }
 
-export default function StarPostCard({ post: initialPost, onDeleteSuccess }: StarPostCardProps) {
+export default function StarPostCard({ post: initialPost, onDeleteSuccess, showTimestamp = false }: StarPostCardProps) {
   const { language, t } = useLanguage();
   const { user } = useUser();
   const auth = useAuth();
@@ -397,6 +398,12 @@ export default function StarPostCard({ post: initialPost, onDeleteSuccess }: Sta
                               targetUsername={post.userDisplayName}
                               targetPhotoUrl={post.userPhotoURL}
                             />
+
+                            {showTimestamp && (
+                                <span className="text-[10px] text-muted-foreground ml-auto">
+                                    {post.createdAt?.toDate ? formatDateDistance(post.createdAt.toDate(), language) : ''}
+                                </span>
+                            )}
                         </div>
                     </div>
 

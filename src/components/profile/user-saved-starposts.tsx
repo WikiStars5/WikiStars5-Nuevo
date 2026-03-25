@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, getDoc, limit } from 'firebase/firestore';
 import type { Comment, StarPostReference } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,7 +38,7 @@ function SavedStarPostWrapper({ refData }: { refData: any }) {
     if (isLoading) return <Skeleton className="h-32 w-full rounded-xl mb-4" />;
     if (!post) return null;
 
-    return <StarPostCard post={post} />;
+    return <StarPostCard post={post} showTimestamp={true} />;
 }
 
 export default function UserSavedStarPosts({ userId }: UserSavedStarPostsProps) {

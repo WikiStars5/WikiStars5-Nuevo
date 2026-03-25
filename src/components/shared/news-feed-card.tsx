@@ -28,9 +28,6 @@ export default function NewsFeedCard({ item }: NewsFeedCardProps) {
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Noticia sobre <Link href={`/figures/${item.figureId}`} className="text-primary hover:underline">{item.figureName}</Link>
           </p>
-          <p className="text-[10px] text-muted-foreground">
-            {item.createdAt?.toDate ? formatDateDistance(item.createdAt.toDate(), language) : ''}
-          </p>
         </div>
       </div>
       

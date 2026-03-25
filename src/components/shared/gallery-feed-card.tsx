@@ -30,9 +30,6 @@ export default function GalleryFeedCard({ item }: GalleryFeedCardProps) {
             <Link href={`/figures/${item.figureId}`} className="hover:underline">{item.figureName}</Link>
             <span className="text-muted-foreground font-normal ml-1">añadió una foto</span>
           </p>
-          <p className="text-[10px] text-muted-foreground">
-            {item.createdAt?.toDate ? formatDateDistance(item.createdAt.toDate(), language) : ''}
-          </p>
         </div>
         <Instagram className="h-4 w-4 text-pink-500 opacity-50" />
       </div>

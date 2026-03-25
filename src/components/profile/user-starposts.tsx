@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc, getDoc, Timestamp } from 'firebase/firestore';
 import type { Comment, StarPostReference } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
@@ -94,7 +94,7 @@ export default function UserStarPosts({ userId }: UserStarPostsProps) {
     return (
         <div className="space-y-4">
             {starposts.map(post => (
-                <StarPostCard key={post.id} post={post} onDeleteSuccess={() => handlePostDeleted(post.id)} />
+                <StarPostCard key={post.id} post={post} onDeleteSuccess={() => handlePostDeleted(post.id)} showTimestamp={true} />
             ))}
         </div>
     );
