@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import type { Comment, AttitudeVote, NewsItem, GalleryItem, Figure } from '@/lib/types';
+import type { Comment, AttitudeVote, NewsItem, GalleryItem, Figure, FeaturedFigure } from '@/lib/types';
 import StarPostCard from '@/components/shared/starpost-card';
 import FeaturedFigures from '@/components/shared/featured-figures';
 import NewsFeedCard from '@/components/shared/news-feed-card';
@@ -21,7 +21,7 @@ import { RefreshCw, Sparkles, Loader2 } from 'lucide-react';
 import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
 import GlobalStarPostForm from '@/components/shared/global-starpost-form';
 
-// CONFIGURACIÓN DE RENDIMIENTO Y VARIEDAD
+// PERFORMANCE AND VARIETY CONFIG
 const MAX_FIGURES_TO_CONSULT = 8;
 const POSTS_PER_FIGURE = 5;
 const NEWS_PER_FIGURE = 3;
@@ -44,7 +44,7 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-export default function HomePageContent({ initialFeaturedFigures }: any) {
+export default function HomePageContent({ initialFeaturedFigures }: { initialFeaturedFigures: FeaturedFigure[] }) {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const [feedItems, setFeedItems] = React.useState<FeedItem[]>([]);
@@ -88,7 +88,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     try {
       const selectedIds = shuffleArray(figureIds).slice(0, MAX_FIGURES_TO_CONSULT);
       
-      // 1. Obtener datos de los personajes para nombres e imágenes
+      // 1. Get figure data for names and images
       const figuresRef = collection(firestore, 'figures');
       const qFigures = query(figuresRef, where('__name__', 'in', selectedIds));
       const figuresSnap = await getDocs(qFigures);
@@ -98,7 +98,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
         figuresMap.set(d.id, { name: data.name, imageUrl: data.imageUrl });
       });
 
-      // 2. Lanzar todas las promesas de contenido en paralelo
+      // 2. Launch content promises in parallel
       const contentPromises = selectedIds.flatMap(id => {
         const fInfo = figuresMap.get(id) || { name: 'Figura pública', imageUrl: '' };
         
@@ -129,7 +129,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
       const results = await Promise.all(resultsPromises(contentPromises));
       const allNewItems = results.flat().filter(item => item && !seenItemIdsRef.current.has(item.id));
       
-      // --- Lógica de prioridad de StarPosts ---
+      // --- StarPosts Priority Logic ---
       const starposts = allNewItems.filter(item => item.feedType === 'starpost');
       const otherContent = allNewItems.filter(item => item.feedType !== 'starpost');
 
@@ -151,7 +151,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
         setFeedItems(finalBatch);
       }
     } catch (error) {
-      console.error("Error al armar el feed dinámico:", error);
+      console.error("Error building dynamic feed:", error);
     } finally {
       setIsLoading(false);
       setIsAppending(false);
@@ -179,7 +179,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
       return (
         <div className="space-y-8">
             {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="p-4 border rounded-xl space-y-3 animate-pulse mb-4">
+                <div key={i} className="p-4 border rounded-xl space-y-3 animate-pulse mb-4 bg-muted/10">
                 <div className="flex items-center space-x-3">
                     <Skeleton className="h-10 w-10 rounded-full" />
                     <Skeleton className="h-4 w-[150px]" />
@@ -207,15 +207,14 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
             </div>
             
             <div className="mt-12 flex flex-col items-center">
-                <Button 
-                    variant="outline" 
-                    className="w-full py-8 flex gap-3 text-lg font-bold border-primary/20 hover:bg-primary/5 rounded-2xl shadow-sm"
+                <button 
+                    className="w-full py-6 flex items-center justify-center gap-3 text-lg font-bold border border-primary/20 hover:bg-primary/5 rounded-2xl shadow-sm transition-colors"
                     onClick={() => fetchFeed(activeFeedIds, true)} 
                     disabled={isAppending}
                 >
                     {isAppending ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
                     {isAppending ? 'Descubriendo novedades...' : 'Explorar más contenido'}
-                </Button>
+                </button>
                 <div className="flex items-center gap-2 mt-4 text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black">
                   <Sparkles className="h-3 w-3 text-primary" />
                   {votedFigureIds.length > 0 ? 'Mezclando tus favoritos' : 'Recomendaciones para ti'}
@@ -235,7 +234,7 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
-      <FeaturedFigures />
+      <FeaturedFigures initialData={initialFeaturedFigures} />
       <GlobalStarPostForm />
       {/* CLS Mitigation: Min-height for the feed section */}
       <div className="min-h-[600px]">

@@ -66,13 +66,15 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
         <link rel="manifest" href="/manifest.json" />
-        {/* Preconnect to external assets */}
+        {/* Preconnect to external assets for performance */}
         <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://connect.facebook.net" />
         <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
         <link rel="preconnect" href="https://images.unsplash.com" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
-        {/* Meta Pixel (noscript) - Optimization: using a standard Next.js approach */}
+        {/* Meta Pixel (noscript) */}
         <noscript>
           <img 
             height="1" 
@@ -101,7 +103,7 @@ export default function RootLayout({
           </FirebaseClientProvider>
         </ThemeProvider>
          
-        {/* Google Analytics - Strategy optimized to lazyOnload to improve FCP/LCP */}
+        {/* Google Analytics - Loaded with lazyOnload to prioritize LCP */}
         <Script
             async
             src="https://www.googletagmanager.com/gtag/js?id=G-JPZ1R12H4D"
@@ -116,7 +118,7 @@ export default function RootLayout({
           `}
         </Script>
 
-        {/* Meta Pixel Code - Strategy optimized to lazyOnload */}
+        {/* Meta Pixel Code - Loaded with lazyOnload to prioritize LCP */}
         <Script id="meta-pixel" strategy="lazyOnload">
           {`
             !function(f,b,e,v,n,t,s)

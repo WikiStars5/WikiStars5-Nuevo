@@ -54,7 +54,7 @@ function FeaturedFigureCard({ featuredFigure, onRemove, isPriority = false }: { 
     if (isLoading) {
         return (
             <div className="space-y-2">
-                <Skeleton className="aspect-[4/5] w-full" />
+                <Skeleton className="aspect-[4/5] w-full rounded-xl" />
                 <Skeleton className="h-5 w-3/4" />
             </div>
         );
@@ -64,7 +64,6 @@ function FeaturedFigureCard({ featuredFigure, onRemove, isPriority = false }: { 
 
     return (
         <div className="group relative">
-            {/* We pass isPriority to the FigureCard to handle LCP optimization */}
             <FigureCard figure={figure} isPriority={isPriority} />
              {isAdmin && (
                 <AlertDialog>
@@ -72,7 +71,7 @@ function FeaturedFigureCard({ featuredFigure, onRemove, isPriority = false }: { 
                          <Button
                             variant="destructive"
                             size="icon"
-                            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                             disabled={isDeleting}
                         >
                             {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -153,7 +152,7 @@ function AddFeaturedDialog({ onAdd, existingIds }: { onAdd: (figure: Figure) => 
     );
 }
 
-export default function FeaturedFigures() {
+export default function FeaturedFigures({ initialData }: { initialData?: FeaturedFigure[] }) {
     const firestore = useFirestore();
     const { isAdmin } = useAdmin();
     const { toast } = useToast();
@@ -164,8 +163,12 @@ export default function FeaturedFigures() {
         return query(collection(firestore, 'featured_figures'), orderBy('order'));
     }, [firestore]);
 
-    const { data: featured, isLoading: areFeaturedLoading, refetch } = useCollection<FeaturedFigure>(featuredQuery);
+    const { data: fetchedFeatured, isLoading: areFeaturedLoading, refetch } = useCollection<FeaturedFigure>(featuredQuery, {
+        enabled: !initialData || initialData.length === 0
+    });
     
+    const featured = initialData && initialData.length > 0 ? initialData : fetchedFeatured;
+
     const handleRemove = async (docId: string) => {
         if (!firestore) return;
         
@@ -223,14 +226,14 @@ export default function FeaturedFigures() {
             <div className="flex items-center justify-between gap-2 mb-4">
                 <div className="flex items-center gap-2">
                     <Star className="h-6 w-6 text-yellow-400" fill="currentColor" />
-                    <h2 className="text-2xl font-bold tracking-tight font-headline">
+                    <h2 className="text-2xl font-bold tracking-tight font-headline uppercase italic">
                         Figuras Destacadas
                     </h2>
                 </div>
                  {showAddButton && (
                     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline">
+                            <Button variant="outline" size="sm" className="rounded-full">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Añadir
                             </Button>
@@ -240,42 +243,38 @@ export default function FeaturedFigures() {
                 )}
             </div>
             
-            {/* CLS Mitigation: Added min-height to the carousel container */}
-            <div className="min-h-[280px] w-full">
-                {areFeaturedLoading && (
+            {/* CLS Mitigation and LCP optimization */}
+            <div className="min-h-[220px] w-full">
+                {(areFeaturedLoading && (!featured || featured.length === 0)) ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                         {Array.from({length: 5}).map((_, i) => (
                             <div key={i}>
-                                <Skeleton className="aspect-[4/5] w-full" />
+                                <Skeleton className="aspect-[4/5] w-full rounded-xl" />
                                 <Skeleton className="h-5 w-3/4 mt-2" />
                             </div>
                         ))}
                     </div>
-                )}
-
-                {!areFeaturedLoading && featured && featured.length > 0 ? (
+                ) : featured && featured.length > 0 ? (
                     <Carousel
                         opts={{ align: "start", loop: featured.length > 2 }}
                         className="w-full"
                     >
-                        <CarouselContent>
+                        <CarouselContent className="-ml-2 md:-ml-4">
                             {featured.map((figure, index) => (
-                            <CarouselItem key={figure.id} className="basis-[45%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
-                               {/* The first 2 items are priority for LCP on mobile/desktop */}
-                               <FeaturedFigureCard featuredFigure={figure} onRemove={handleRemove} isPriority={index < 2} />
+                            <CarouselItem key={figure.id} className="pl-2 basis-[45%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
+                               {/* The first items are priority for LCP on mobile/desktop */}
+                               <FeaturedFigureCard featuredFigure={figure} onRemove={handleRemove} isPriority={index < 3} />
                             </CarouselItem>
                             ))}
                         </CarouselContent>
-                        <CarouselPrevious className="hidden sm:flex" />
-                        <CarouselNext className="hidden sm:flex" />
+                        <CarouselPrevious className="hidden md:flex -left-4" />
+                        <CarouselNext className="hidden md:flex -right-4" />
                     </Carousel>
                 ) : (
-                    !areFeaturedLoading && (
-                        <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">Aún no se han añadido perfiles destacados.</p>
-                            {isAdmin && <p className="text-sm text-muted-foreground">Haz clic en "Añadir" para empezar.</p>}
-                        </div>
-                    )
+                    <div className="text-center py-10 border-2 border-dashed rounded-3xl bg-muted/10">
+                        <p className="text-muted-foreground font-medium">No hay perfiles destacados todavía.</p>
+                        {isAdmin && <p className="text-xs text-muted-foreground mt-1">Usa el botón "Añadir" para llenar esta sección.</p>}
+                    </div>
                 )}
             </div>
         </section>
