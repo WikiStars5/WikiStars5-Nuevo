@@ -9,6 +9,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInAnonymously,
+  Auth,
 } from 'firebase/auth';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore, FirestoreSettings } from 'firebase/firestore';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
@@ -16,59 +17,55 @@ import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 // --- Singleton Pattern for Firebase Initialization ---
 
-// 1. Initialize the App
 const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-
-// 2. Initialize Auth
 const auth: Auth = getAuth(app);
 
-// 3. Initialize App Check
+// Defer App Check to prevent blocking the main thread during initial load
 if (typeof window !== 'undefined') {
-  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-  if (siteKey) {
-    try {
-      initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(siteKey),
-        // Set to true for local testing with reCAPTCHA keys.
-        // In a real production environment, you might want this to be false.
-        isTokenAutoRefreshEnabled: true
-      });
-      console.log("Firebase App Check initialized successfully.");
-    } catch (error) {
-      console.error("Error initializing Firebase App Check:", error);
+  const initAppCheck = () => {
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    if (siteKey) {
+      try {
+        initializeAppCheck(app, {
+          provider: new ReCaptchaV3Provider(siteKey),
+          isTokenAutoRefreshEnabled: true
+        });
+        console.log("Firebase App Check initialized deferred.");
+      } catch (error) {
+        console.error("Error initializing Firebase App Check:", error);
+      }
     }
+  };
+
+  // Run after the page is fully loaded and main execution is finished
+  if (document.readyState === 'complete') {
+    setTimeout(initAppCheck, 2000);
   } else {
-    console.warn("NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set. Firebase App Check is not enabled.");
+    window.addEventListener('load', () => setTimeout(initAppCheck, 2000));
   }
 }
 
-// 4. Initialize Firestore with Modern Cache (Singleton)
 let firestore: Firestore;
 
 try {
-  // Try to initialize with multi-tab persistence
   firestore = initializeFirestore(app, {
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()
     })
   });
 } catch (error: any) {
-  // This error means it's already initialized, so we can just grab the existing instance
   if (error.code === 'failed-precondition') {
      console.warn(
-      "Firebase (Firestore): Firestore has already been initialized. This is normal in development with Hot-Reload."
+      "Firebase (Firestore): Firestore has already been initialized."
     );
   }
   firestore = getFirestore(app);
 }
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  // This function now simply returns the singleton instances.
   return { firebaseApp: app, auth, firestore };
 }
 
-// Deprecated, but kept for compatibility with any old code.
 export function getSdks(firebaseApp: FirebaseApp, firestoreSettings?: FirestoreSettings) {
   return {
     firebaseApp,
@@ -77,17 +74,9 @@ export function getSdks(firebaseApp: FirebaseApp, firestoreSettings?: FirestoreS
   };
 }
 
-
-/**
- * Sends a verification email to the given user.
- * This is a non-blocking operation.
- * @param user The user to send the verification email to.
- */
 export async function sendVerificationEmail(user: User): Promise<void> {
-  // We don't await this promise. The email is sent in the background.
   return firebaseSendEmailVerification(user);
 }
-
 
 export * from './provider';
 export * from './client-provider';

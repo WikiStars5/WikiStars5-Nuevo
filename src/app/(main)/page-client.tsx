@@ -1,9 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import type { Comment, AttitudeVote, NewsItem, GalleryItem, Figure, FeaturedFigure } from '@/lib/types';
-import StarPostCard from '@/components/shared/starpost-card';
+import dynamic from 'next/dynamic';
+import type { Comment, AttitudeVote, NewsItem, GalleryItem, FeaturedFigure } from '@/lib/types';
 import FeaturedFigures from '@/components/shared/featured-figures';
+import StarPostCard from '@/components/shared/starpost-card';
 import NewsFeedCard from '@/components/shared/news-feed-card';
 import GalleryFeedCard from '@/components/shared/gallery-feed-card';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
@@ -16,12 +17,16 @@ import {
   where
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { RefreshCw, Sparkles, Loader2 } from 'lucide-react';
-import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
-import GlobalStarPostForm from '@/components/shared/global-starpost-form';
 
-// PERFORMANCE AND VARIETY CONFIG
+// LAZY LOAD NON-CRITICAL COMPONENTS
+const GlobalStarPostForm = dynamic(() => import('@/components/shared/global-starpost-form'), { 
+  ssr: false,
+  loading: () => <Skeleton className="h-40 w-full mb-8 rounded-xl" />
+});
+const CookieConsentBanner = dynamic(() => import('@/components/shared/cookie-consent-banner'), { ssr: false });
+
+// PERFORMANCE CONFIG
 const MAX_FIGURES_TO_CONSULT = 8;
 const POSTS_PER_FIGURE = 5;
 const NEWS_PER_FIGURE = 3;
@@ -88,7 +93,6 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
     try {
       const selectedIds = shuffleArray(figureIds).slice(0, MAX_FIGURES_TO_CONSULT);
       
-      // 1. Get figure data for names and images
       const figuresRef = collection(firestore, 'figures');
       const qFigures = query(figuresRef, where('__name__', 'in', selectedIds));
       const figuresSnap = await getDocs(qFigures);
@@ -98,7 +102,6 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
         figuresMap.set(d.id, { name: data.name, imageUrl: data.imageUrl });
       });
 
-      // 2. Launch content promises in parallel
       const contentPromises = selectedIds.flatMap(id => {
         const fInfo = figuresMap.get(id) || { name: 'Figura pública', imageUrl: '' };
         
@@ -126,23 +129,18 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
         ];
       });
 
-      const results = await Promise.all(resultsPromises(contentPromises));
+      const results = await Promise.all(contentPromises.map(p => p.catch(() => [])));
       const allNewItems = results.flat().filter(item => item && !seenItemIdsRef.current.has(item.id));
       
-      // --- StarPosts Priority Logic ---
       const starposts = allNewItems.filter(item => item.feedType === 'starpost');
       const otherContent = allNewItems.filter(item => item.feedType !== 'starpost');
 
       const shuffledStarposts = shuffleArray(starposts);
-      const shuffledOthers = shuffleArray(otherContent);
-
       const leadStarposts = shuffledStarposts.slice(0, 3);
       const remainingStarposts = shuffledStarposts.slice(3);
-
-      const remainingMixed = shuffleArray([...remainingStarposts, ...shuffledOthers]);
+      const remainingMixed = shuffleArray([...remainingStarposts, ...shuffleArray(otherContent)]);
 
       const finalBatch = [...leadStarposts, ...remainingMixed].slice(0, MAX_BATCH_TO_SHOW);
-      
       finalBatch.forEach(item => seenItemIdsRef.current.add(item.id));
 
       if (append) {
@@ -158,28 +156,22 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
     }
   }, [firestore]);
 
-  // Helper to handle promise errors in parallel fetches
-  function resultsPromises(promises: any[]) {
-    return promises.map(p => p.catch((e: any) => {
-        console.warn("Feed chunk failed:", e);
-        return [];
-    }));
-  }
-
   React.useEffect(() => {
     if (!isLoadingVotes) {
-      fetchFeed(activeFeedIds);
+      // Defer feed fetching to prioritize LCP rendering
+      const timer = setTimeout(() => {
+        fetchFeed(activeFeedIds);
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [activeFeedIds, isLoadingVotes, fetchFeed]);
 
   const renderContent = () => {
-    const isReadyForFeed = !isUserLoading && !isLoadingVotes;
-    
     if (isLoading && feedItems.length === 0) {
       return (
         <div className="space-y-8">
             {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="p-4 border rounded-xl space-y-3 animate-pulse mb-4 bg-muted/10">
+                <div key={i} className="p-4 border rounded-xl space-y-3 animate-pulse bg-muted/10">
                 <div className="flex items-center space-x-3">
                     <Skeleton className="h-10 w-10 rounded-full" />
                     <Skeleton className="h-4 w-[150px]" />
@@ -192,20 +184,17 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
       );
     }
 
-    if (!isReadyForFeed) return null;
-    
     if (feedItems.length > 0) {
       return (
         <>
             <div className="space-y-8">
                 {feedItems.map((item, index) => {
-                    if (item.feedType === 'starpost') return <StarPostCard key={`${item.id}-${index}`} post={item as Comment} />;
+                    if (item.feedType === 'starpost') return <StarPostCard key={`${item.id}-${index}`} post={item as any} />;
                     if (item.feedType === 'news') return <NewsFeedCard key={`${item.id}-${index}`} item={item as any} />;
                     if (item.feedType === 'gallery') return <GalleryFeedCard key={`${item.id}-${index}`} item={item as any} />;
                     return null;
                 })}
             </div>
-            
             <div className="mt-12 flex flex-col items-center">
                 <button 
                     className="w-full py-6 flex items-center justify-center gap-3 text-lg font-bold border border-primary/20 hover:bg-primary/5 rounded-2xl shadow-sm transition-colors"
@@ -215,28 +204,18 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
                     {isAppending ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
                     {isAppending ? 'Descubriendo novedades...' : 'Explorar más contenido'}
                 </button>
-                <div className="flex items-center gap-2 mt-4 text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black">
-                  <Sparkles className="h-3 w-3 text-primary" />
-                  {votedFigureIds.length > 0 ? 'Mezclando tus favoritos' : 'Recomendaciones para ti'}
-                </div>
             </div>
         </>
       );
     }
 
-    return (
-      <div className="text-center py-20 bg-muted/20 rounded-3xl border-2 border-dashed">
-        <p className="text-lg font-medium text-muted-foreground">Tu feed está tranquilo por ahora</p>
-        <p className="text-sm text-muted-foreground mb-6">¡Vota por tus figuras favoritas para ver sus novedades!</p>
-      </div>
-    );
+    return null;
   };
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8">
       <FeaturedFigures initialData={initialFeaturedFigures} />
       <GlobalStarPostForm />
-      {/* CLS Mitigation: Min-height for the feed section */}
       <div className="min-h-[600px]">
         {renderContent()}
       </div>

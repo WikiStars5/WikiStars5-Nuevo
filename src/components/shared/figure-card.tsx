@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { Figure } from '@/lib/types';
 import { StarRating } from './star-rating';
 
@@ -19,14 +18,13 @@ export default function FigureCard({ figure, isPriority = false }: FigureCardPro
     <Link href={`/figures/${figure.id}`} scroll={true}>
       <Card className="h-full overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 duration-300 ease-in-out flex flex-col dark:bg-black">
         <CardHeader className="p-0">
-          {/* Next.js Image optimization with priority for LCP elements */}
           <div className="relative aspect-[4/5] w-full bg-muted">
             <Image
               src={figure.imageUrl}
               alt={figure.name}
               fill
               className="object-cover"
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              sizes="(max-width: 640px) 40vw, (max-width: 1024px) 25vw, 200px"
               data-ai-hint={figure.imageHint}
               priority={isPriority}
               loading={isPriority ? "eager" : "lazy"}
