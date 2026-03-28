@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Figure } from '@/lib/types';
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 12;
 
 export default function ExplorePage() {
   const firestore = useFirestore();
@@ -72,10 +72,10 @@ export default function ExplorePage() {
         <p className="text-muted-foreground mt-2">Navega a través de la colección de figuras públicas.</p>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
         {displayIsLoading && Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
             <div key={i} className="space-y-4">
-                <Skeleton className="h-[350px] w-full" />
+                <Skeleton className="aspect-[4/5] w-full" />
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
             </div>

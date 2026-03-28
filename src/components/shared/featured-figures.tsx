@@ -243,8 +243,8 @@ export default function FeaturedFigures() {
             {/* CLS Mitigation: Added min-height to the carousel container */}
             <div className="min-h-[280px] w-full">
                 {areFeaturedLoading && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {Array.from({length: 4}).map((_, i) => (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {Array.from({length: 5}).map((_, i) => (
                             <div key={i}>
                                 <Skeleton className="aspect-[4/5] w-full" />
                                 <Skeleton className="h-5 w-3/4 mt-2" />
@@ -260,7 +260,7 @@ export default function FeaturedFigures() {
                     >
                         <CarouselContent>
                             {featured.map((figure, index) => (
-                            <CarouselItem key={figure.id} className="basis-1/2 md:basis-1/3 lg:basis-1/4">
+                            <CarouselItem key={figure.id} className="basis-[45%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
                                {/* The first 2 items are priority for LCP on mobile/desktop */}
                                <FeaturedFigureCard featuredFigure={figure} onRemove={handleRemove} isPriority={index < 2} />
                             </CarouselItem>

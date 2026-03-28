@@ -33,11 +33,11 @@ export default function FigureCard({ figure, isPriority = false }: FigureCardPro
             />
           </div>
         </CardHeader>
-        <CardContent className="p-4 flex-grow">
-          <h3 className="font-bold text-lg font-headline truncate">{figure.name}</h3>
-           <div className="flex items-center gap-2 mt-1">
-              <StarRating rating={averageRating} starClassName="h-4 w-4" />
-              <span className="text-sm font-bold text-muted-foreground">{averageRating.toFixed(1)}</span>
+        <CardContent className="p-3 flex-grow">
+          <h3 className="font-bold text-sm md:text-base font-headline truncate">{figure.name}</h3>
+           <div className="flex items-center gap-1.5 mt-1">
+              <StarRating rating={averageRating} starClassName="h-3 w-3 md:h-4 md:w-4" />
+              <span className="text-xs md:text-sm font-bold text-muted-foreground">{averageRating.toFixed(1)}</span>
           </div>
         </CardContent>
       </Card>
