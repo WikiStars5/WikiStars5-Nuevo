@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { RefreshCw, Sparkles, Loader2 } from 'lucide-react';
 import CookieConsentBanner from '@/components/shared/cookie-consent-banner';
 import GlobalStarPostForm from '@/components/shared/global-starpost-form';
 
@@ -126,26 +126,21 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
         ];
       });
 
-      const results = await Promise.all(contentPromises);
-      const allNewItems = results.flat().filter(item => !seenItemIdsRef.current.has(item.id));
+      const results = await Promise.all(resultsPromises(contentPromises));
+      const allNewItems = results.flat().filter(item => item && !seenItemIdsRef.current.has(item.id));
       
       // --- Lógica de prioridad de StarPosts ---
-      // Separamos StarPosts de otros contenidos
       const starposts = allNewItems.filter(item => item.feedType === 'starpost');
       const otherContent = allNewItems.filter(item => item.feedType !== 'starpost');
 
-      // Mezclamos ambos grupos por separado para garantizar azar
       const shuffledStarposts = shuffleArray(starposts);
       const shuffledOthers = shuffleArray(otherContent);
 
-      // Tomamos los primeros 3 starposts OBLIGATORIAMENTE para liderar el feed
       const leadStarposts = shuffledStarposts.slice(0, 3);
       const remainingStarposts = shuffledStarposts.slice(3);
 
-      // Mezclamos el resto de starposts con las noticias y galería para que salgan aleatorios
       const remainingMixed = shuffleArray([...remainingStarposts, ...shuffledOthers]);
 
-      // Unimos todo respetando el límite por lote (los 3 prioritarios + el resto mezclado)
       const finalBatch = [...leadStarposts, ...remainingMixed].slice(0, MAX_BATCH_TO_SHOW);
       
       finalBatch.forEach(item => seenItemIdsRef.current.add(item.id));
@@ -163,6 +158,14 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     }
   }, [firestore]);
 
+  // Helper to handle promise errors in parallel fetches
+  function resultsPromises(promises: any[]) {
+    return promises.map(p => p.catch((e: any) => {
+        console.warn("Feed chunk failed:", e);
+        return [];
+    }));
+  }
+
   React.useEffect(() => {
     if (!isLoadingVotes) {
       fetchFeed(activeFeedIds);
@@ -173,16 +176,20 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     const isReadyForFeed = !isUserLoading && !isLoadingVotes;
     
     if (isLoading && feedItems.length === 0) {
-      return Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="p-4 border rounded-xl space-y-3 animate-pulse mb-4">
-          <div className="flex items-center space-x-3">
-            <Skeleton className="h-10 w-10 rounded-full" />
-            <Skeleton className="h-4 w-[150px]" />
-          </div>
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-40 w-full rounded-md" />
+      return (
+        <div className="space-y-8">
+            {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-4 border rounded-xl space-y-3 animate-pulse mb-4">
+                <div className="flex items-center space-x-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <Skeleton className="h-4 w-[150px]" />
+                </div>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-40 w-full rounded-md" />
+                </div>
+            ))}
         </div>
-      ));
+      );
     }
 
     if (!isReadyForFeed) return null;
@@ -230,12 +237,11 @@ export default function HomePageContent({ initialFeaturedFigures }: any) {
     <div className="container mx-auto max-w-2xl px-4 py-8">
       <FeaturedFigures />
       <GlobalStarPostForm />
-      {renderContent()}
+      {/* CLS Mitigation: Min-height for the feed section */}
+      <div className="min-h-[600px]">
+        {renderContent()}
+      </div>
       <CookieConsentBanner />
     </div>
   );
-}
-
-function Loader2({ className }: { className?: string }) {
-    return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
 }

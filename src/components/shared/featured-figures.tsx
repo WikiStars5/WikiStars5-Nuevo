@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -29,13 +28,13 @@ import {
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
+  AlertDialogFooter,
 } from "@/components/ui/alert-dialog"
 
-function FeaturedFigureCard({ featuredFigure, onRemove }: { featuredFigure: FeaturedFigure, onRemove: (id: string) => void }) {
+function FeaturedFigureCard({ featuredFigure, onRemove, isPriority = false }: { featuredFigure: FeaturedFigure, onRemove: (id: string) => void, isPriority?: boolean }) {
     const { isAdmin } = useAdmin();
     const [isDeleting, setIsDeleting] = useState(false);
     const firestore = useFirestore();
@@ -50,7 +49,6 @@ function FeaturedFigureCard({ featuredFigure, onRemove }: { featuredFigure: Feat
     const handleDelete = async () => {
         setIsDeleting(true);
         await onRemove(featuredFigure.id);
-        // Component will unmount, no need to setIsDeleting(false)
     };
 
     if (isLoading) {
@@ -66,7 +64,8 @@ function FeaturedFigureCard({ featuredFigure, onRemove }: { featuredFigure: Feat
 
     return (
         <div className="group relative">
-            <FigureCard figure={figure} />
+            {/* We pass isPriority to the FigureCard to handle LCP optimization */}
+            <FigureCard figure={figure} isPriority={isPriority} />
              {isAdmin && (
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -205,7 +204,7 @@ export default function FeaturedFigures() {
                 title: "Figura añadida",
                 description: `${figure.name} ahora está en destacados.`
             });
-            refetch(); // Refetch the list after adding
+            refetch(); 
         } catch (error) {
              console.error("Error adding featured figure: ", error);
              toast({
@@ -241,40 +240,44 @@ export default function FeaturedFigures() {
                 )}
             </div>
             
-            {areFeaturedLoading && (
-                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {Array.from({length: 4}).map((_, i) => (
-                        <div key={i}>
-                            <Skeleton className="aspect-[4/5] w-full" />
-                            <Skeleton className="h-5 w-3/4 mt-2" />
-                        </div>
-                    ))}
-                 </div>
-            )}
-
-            {!areFeaturedLoading && featured && featured.length > 0 ? (
-                <Carousel
-                    opts={{ align: "start", loop: featured.length > 2 }}
-                    className="w-full"
-                >
-                    <CarouselContent>
-                        {featured.map((figure) => (
-                        <CarouselItem key={figure.id} className="basis-1/2 md:basis-1/3 lg:basis-1/4">
-                           <FeaturedFigureCard featuredFigure={figure} onRemove={handleRemove} />
-                        </CarouselItem>
+            {/* CLS Mitigation: Added min-height to the carousel container */}
+            <div className="min-h-[280px] w-full">
+                {areFeaturedLoading && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {Array.from({length: 4}).map((_, i) => (
+                            <div key={i}>
+                                <Skeleton className="aspect-[4/5] w-full" />
+                                <Skeleton className="h-5 w-3/4 mt-2" />
+                            </div>
                         ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="hidden sm:flex" />
-                    <CarouselNext className="hidden sm:flex" />
-                </Carousel>
-            ) : (
-                !areFeaturedLoading && (
-                    <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                        <p className="text-muted-foreground">Aún no se han añadido perfiles destacados.</p>
-                        {isAdmin && <p className="text-sm text-muted-foreground">Haz clic en "Añadir" para empezar.</p>}
                     </div>
-                )
-            )}
+                )}
+
+                {!areFeaturedLoading && featured && featured.length > 0 ? (
+                    <Carousel
+                        opts={{ align: "start", loop: featured.length > 2 }}
+                        className="w-full"
+                    >
+                        <CarouselContent>
+                            {featured.map((figure, index) => (
+                            <CarouselItem key={figure.id} className="basis-1/2 md:basis-1/3 lg:basis-1/4">
+                               {/* The first 2 items are priority for LCP on mobile/desktop */}
+                               <FeaturedFigureCard featuredFigure={figure} onRemove={handleRemove} isPriority={index < 2} />
+                            </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                        <CarouselPrevious className="hidden sm:flex" />
+                        <CarouselNext className="hidden sm:flex" />
+                    </Carousel>
+                ) : (
+                    !areFeaturedLoading && (
+                        <div className="text-center py-10 border-2 border-dashed rounded-lg">
+                            <p className="text-muted-foreground">Aún no se han añadido perfiles destacados.</p>
+                            {isAdmin && <p className="text-sm text-muted-foreground">Haz clic en "Añadir" para empezar.</p>}
+                        </div>
+                    )
+                )}
+            </div>
         </section>
     );
 }

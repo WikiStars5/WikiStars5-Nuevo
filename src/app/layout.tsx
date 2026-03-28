@@ -15,6 +15,7 @@ const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
+  adjustFontFallback: true,
 });
 
 const sourceCodePro = Source_Code_Pro({
@@ -65,9 +66,13 @@ export default function RootLayout({
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
         <link rel="manifest" href="/manifest.json" />
+        {/* Preconnect to external assets */}
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+        <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable, sourceCodePro.variable)}>
-        {/* Meta Pixel (noscript) */}
+        {/* Meta Pixel (noscript) - Optimization: using a standard Next.js approach */}
         <noscript>
           <img 
             height="1" 
@@ -96,13 +101,13 @@ export default function RootLayout({
           </FirebaseClientProvider>
         </ThemeProvider>
          
-        {/* Google Analytics */}
+        {/* Google Analytics - Strategy optimized to lazyOnload to improve FCP/LCP */}
         <Script
             async
             src="https://www.googletagmanager.com/gtag/js?id=G-JPZ1R12H4D"
-            strategy="afterInteractive"
+            strategy="lazyOnload"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
@@ -111,8 +116,8 @@ export default function RootLayout({
           `}
         </Script>
 
-        {/* Meta Pixel Code */}
-        <Script id="meta-pixel" strategy="afterInteractive">
+        {/* Meta Pixel Code - Strategy optimized to lazyOnload */}
+        <Script id="meta-pixel" strategy="lazyOnload">
           {`
             !function(f,b,e,v,n,t,s)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
