@@ -1,3 +1,4 @@
+
 import { Suspense } from 'react';
 import FigureDetailClient from './client-page';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,7 +13,7 @@ type FigurePageProps = {
 };
 
 /**
- * Función para serializar datos de Firestore Admin para componentes de cliente.
+ * Serializes Firestore Admin data for client components.
  */
 function serializeFigure(id: string, data: any): Figure {
   return {
@@ -25,13 +26,12 @@ function serializeFigure(id: string, data: any): Figure {
 
 /**
  * Cached function to get figure data using Firebase Admin SDK.
- * This is optimized for Server Components and SEO.
+ * Wraps Admin SDK calls in cache to reduce Firestore reads on high traffic.
  */
 const getFigureData = cache(
   async (figureId: string): Promise<Figure | null> => {
     try {
       const { firestore } = getSdks();
-      // Usar sintaxis correcta de Admin SDK
       const docSnap = await firestore.collection('figures').doc(figureId).get();
       
       if (docSnap.exists) {
@@ -43,7 +43,7 @@ const getFigureData = cache(
       return null;
     }
   },
-  ['figure-data'],
+  ['figure-data-single'],
   { revalidate: 300 } // Cache for 5 minutes
 );
 
@@ -68,11 +68,9 @@ export async function generateMetadata({ params, searchParams }: FigurePageProps
   // Default Starryz5 logo for fallback
   const defaultImageUrl = 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/logo%2Festrellados%20(3).jpg?alt=media&token=4c5ff945-b737-4bd6-bb41-98b609c654c9';
   
-  // Crucial: Extract the actual profile image URL
   let imageUrl = figure?.imageUrl || defaultImageUrl;
   let imageAlt = figure?.name || 'Starryz5';
 
-  // Customize title and description based on share intent
   if (shareType === 'emotion' && emotion) {
       const emotionText = emotion.charAt(0).toUpperCase() + emotion.slice(1);
       title = `${figureName} me genera ${emotionText}. ¿Y a ti?`;

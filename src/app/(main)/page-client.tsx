@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -26,12 +27,12 @@ const GlobalStarPostForm = dynamic(() => import('@/components/shared/global-star
 });
 const CookieConsentBanner = dynamic(() => import('@/components/shared/cookie-consent-banner'), { ssr: false });
 
-// PERFORMANCE CONFIG
-const MAX_FIGURES_TO_CONSULT = 8;
-const POSTS_PER_FIGURE = 5;
-const NEWS_PER_FIGURE = 3;
-const PHOTOS_PER_FIGURE = 3;
-const MAX_BATCH_TO_SHOW = 12;
+// PERFORMANCE & COST CONFIG
+const MAX_FIGURES_TO_CONSULT = 5; // Reduced from 8 to save reads
+const POSTS_PER_FIGURE = 4;       // Reduced from 5
+const NEWS_PER_FIGURE = 2;        // Reduced from 3
+const PHOTOS_PER_FIGURE = 2;      // Reduced from 3
+const MAX_BATCH_TO_SHOW = 10;     // Balanced for UX/Cost
 
 const DEFAULT_FEED_IDS = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
 
@@ -51,12 +52,13 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export default function HomePageContent({ initialFeaturedFigures }: { initialFeaturedFigures: FeaturedFigure[] }) {
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const [feedItems, setFeedItems] = React.useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isAppending, setIsAppending] = React.useState(false);
 
   const seenItemIdsRef = React.useRef<Set<string>>(new Set());
+  const initialFetchRequested = React.useRef(false);
 
   const attitudeVotesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -91,8 +93,10 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
     }
 
     try {
+      // Pick a random subset of figures to consult
       const selectedIds = shuffleArray(figureIds).slice(0, MAX_FIGURES_TO_CONSULT);
       
+      // Bulk fetch figure info to save individual doc reads
       const figuresRef = collection(firestore, 'figures');
       const qFigures = query(figuresRef, where('__name__', 'in', selectedIds));
       const figuresSnap = await getDocs(qFigures);
@@ -102,6 +106,7 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
         figuresMap.set(d.id, { name: data.name, imageUrl: data.imageUrl });
       });
 
+      // Prepare fetches for subcollections
       const contentPromises = selectedIds.flatMap(id => {
         const fInfo = figuresMap.get(id) || { name: 'Figura pública', imageUrl: '' };
         
@@ -129,6 +134,7 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
         ];
       });
 
+      // Resolve all promises concurrently
       const results = await Promise.all(contentPromises.map(p => p.catch(() => [])));
       const allNewItems = results.flat().filter(item => item && !seenItemIdsRef.current.has(item.id));
       
@@ -157,11 +163,13 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
   }, [firestore]);
 
   React.useEffect(() => {
-    if (!isLoadingVotes) {
-      // Defer feed fetching to prioritize LCP rendering
+    // Optimization: prevent double fetch on mount/hydration
+    if (!isLoadingVotes && !initialFetchRequested.current) {
+      initialFetchRequested.current = true;
+      // Small delay to ensure priority rendering finishes
       const timer = setTimeout(() => {
         fetchFeed(activeFeedIds);
-      }, 500);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [activeFeedIds, isLoadingVotes, fetchFeed]);
@@ -170,7 +178,7 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
     if (isLoading && feedItems.length === 0) {
       return (
         <div className="space-y-8">
-            {Array.from({ length: 3 }).map((_, i) => (
+            {Array.from({ length: 2 }).map((_, i) => (
                 <div key={i} className="p-4 border rounded-xl space-y-3 animate-pulse bg-muted/10">
                 <div className="flex items-center space-x-3">
                     <Skeleton className="h-10 w-10 rounded-full" />
@@ -216,7 +224,7 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
     <div className="container mx-auto max-w-2xl px-4 py-8">
       <FeaturedFigures initialData={initialFeaturedFigures} />
       <GlobalStarPostForm />
-      <div className="min-h-[600px]">
+      <div className="min-h-[400px]">
         {renderContent()}
       </div>
       <CookieConsentBanner />
