@@ -52,6 +52,11 @@ export default function Header() {
   const { setTheme, theme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const { isSnowing, toggleSnow } = useSnow();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const firebaseApp = useFirebaseApp();
 
@@ -219,9 +224,9 @@ export default function Header() {
 
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
-                        {theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
-                        {theme === 'dark' && <Moon className="mr-2 h-4 w-4" />}
-                        {theme === 'army' && <Heart className="mr-2 h-4 w-4" />}
+                        {mounted && theme === 'light' && <Sun className="mr-2 h-4 w-4" />}
+                        {mounted && theme === 'dark' && <Moon className="mr-2 h-4 w-4" />}
+                        {mounted && theme === 'army' && <Heart className="mr-2 h-4 w-4" />}
                         <span>Temas</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal>

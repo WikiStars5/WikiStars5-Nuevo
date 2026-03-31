@@ -78,6 +78,7 @@ const formatDate = (dateString?: string): string | null => {
     if (dateString.startsWith('-')) return `Año ${dateString.substring(1)} a. C.`;
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
+    // CRITICAL: We return a stable UTC-based date string or handle client formatting
     return new Date(date.getTime() + date.getTimezoneOffset() * 60000).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
@@ -89,6 +90,11 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
   const [isEditing, setIsEditing] = useState(false);
   const { t } = useLanguage();
   const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const figureDocRef = useMemoFirebase(() => (!firestore || !figureId) ? null : doc(firestore, 'figures', figureId), [firestore, figureId]);
   
@@ -183,7 +189,7 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                             <CardTitle>{t('FigurePage.detailedInfo.title')}</CardTitle>
                             <CardDescription className="text-muted-foreground">{t('FigurePage.detailedInfo.description').replace('{name}', figure.name)}</CardDescription>
                         </div>
-                        {user && !user.isAnonymous && <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Pencil className="mr-2 h-4 w-4" />{t('FigurePage.detailedInfo.editButton')}</Button>}
+                        {mounted && user && !user.isAnonymous && <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}><Pencil className="mr-2 h-4 w-4" />{t('FigurePage.detailedInfo.editButton')}</Button>}
                     </CardHeader>
                     <CardContent className="p-6">
                         {hasInfo ? (

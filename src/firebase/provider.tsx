@@ -55,9 +55,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   firestore,
   auth,
 }) => {
+  // CRITICAL: Initialize with null/true to match server render and prevent hydration mismatch
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
-    user: auth?.currentUser || null,
-    isUserLoading: !auth?.currentUser,
+    user: null,
+    isUserLoading: true,
     userError: null,
   });
 
