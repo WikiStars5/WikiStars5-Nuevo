@@ -180,6 +180,7 @@ export default function GlobalStarPostForm() {
     fetchExistingData();
   }, [selectedFigure, user, firestore, form]);
 
+  const textValue = form.watch('text', '');
   const selectedTagId = form.watch('tag');
   const selectedTag = selectedTagId ? commentTags.find(t => t.id === selectedTagId) : null;
   const selectedAttitude = form.watch('attitude');
@@ -695,9 +696,19 @@ export default function GlobalStarPostForm() {
                           render={({ field }) => (
                               <FormItem>
                                   <FormControl>
-                                      <Textarea {...field} placeholder={`¿Qué tienes que decir sobre ${selectedFigure?.name}?`} className="resize-none min-h-[80px]" />
+                                      <Textarea 
+                                        {...field} 
+                                        placeholder={`¿Qué tienes que decir sobre ${selectedFigure?.name}?`} 
+                                        className="resize-none min-h-[80px]" 
+                                        maxLength={500}
+                                      />
                                   </FormControl>
-                                  <FormMessage />
+                                  <div className="flex justify-between items-center pt-1">
+                                      <FormMessage />
+                                      <p className={cn("text-[10px] font-bold uppercase tracking-widest", textValue.length > 450 ? "text-orange-500" : "text-muted-foreground")}>
+                                          {textValue.length} / 500
+                                      </p>
+                                  </div>
                               </FormItem>
                           )}
                       />

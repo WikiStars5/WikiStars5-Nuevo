@@ -497,11 +497,11 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                               {...field}
                             />
                           </FormControl>
-                          <div className="flex justify-end items-center pt-1">
+                          <div className="flex justify-between items-center pt-1">
                             <FormMessage />
-                            <div className="text-xs text-muted-foreground ml-auto">
+                            <p className={cn("text-[10px] font-bold uppercase tracking-widest", textValue.length > 450 ? "text-orange-500" : "text-muted-foreground")}>
                               {textValue.length} / 500
-                            </div>
+                            </p>
                           </div>
                         </FormItem>
                       )}
