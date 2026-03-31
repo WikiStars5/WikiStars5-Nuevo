@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -18,7 +17,7 @@ import {
   where
 } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw, Sparkles, Loader2 } from 'lucide-react';
+import { RefreshCw, Loader2 } from 'lucide-react';
 
 // LAZY LOAD NON-CRITICAL COMPONENTS
 const GlobalStarPostForm = dynamic(() => import('@/components/shared/global-starpost-form'), { 
@@ -28,11 +27,11 @@ const GlobalStarPostForm = dynamic(() => import('@/components/shared/global-star
 const CookieConsentBanner = dynamic(() => import('@/components/shared/cookie-consent-banner'), { ssr: false });
 
 // PERFORMANCE & COST CONFIG
-const MAX_FIGURES_TO_CONSULT = 5; // Reduced from 8 to save reads
-const POSTS_PER_FIGURE = 4;       // Reduced from 5
-const NEWS_PER_FIGURE = 2;        // Reduced from 3
-const PHOTOS_PER_FIGURE = 2;      // Reduced from 3
-const MAX_BATCH_TO_SHOW = 10;     // Balanced for UX/Cost
+const MAX_FIGURES_TO_CONSULT = 5; 
+const POSTS_PER_FIGURE = 4;       
+const NEWS_PER_FIGURE = 2;        
+const PHOTOS_PER_FIGURE = 2;      
+const MAX_BATCH_TO_SHOW = 10;     
 
 const DEFAULT_FEED_IDS = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
 
@@ -93,10 +92,8 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
     }
 
     try {
-      // Pick a random subset of figures to consult
       const selectedIds = shuffleArray(figureIds).slice(0, MAX_FIGURES_TO_CONSULT);
       
-      // Bulk fetch figure info to save individual doc reads
       const figuresRef = collection(firestore, 'figures');
       const qFigures = query(figuresRef, where('__name__', 'in', selectedIds));
       const figuresSnap = await getDocs(qFigures);
@@ -106,7 +103,6 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
         figuresMap.set(d.id, { name: data.name, imageUrl: data.imageUrl });
       });
 
-      // Prepare fetches for subcollections
       const contentPromises = selectedIds.flatMap(id => {
         const fInfo = figuresMap.get(id) || { name: 'Figura pública', imageUrl: '' };
         
@@ -117,10 +113,10 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
         return [
           getDocs(query(starpostsRef, orderBy('createdAt', 'desc'), limit(POSTS_PER_FIGURE))).then(snap => 
             snap.docs.map(d => ({ ...d.data(), id: d.id, feedType: 'starpost' } as FeedItem))
-          ),
+          ).catch(() => []),
           getDocs(query(newsRef, orderBy('createdAt', 'desc'), limit(NEWS_PER_FIGURE))).then(snap => 
             snap.docs.map(d => ({ ...d.data(), id: d.id, feedType: 'news', figureName: fInfo.name } as FeedItem))
-          ),
+          ).catch(() => []),
           getDocs(query(galleryRef, orderBy('createdAt', 'desc'), limit(PHOTOS_PER_FIGURE))).then(snap => 
             snap.docs.map(d => ({ 
               ...d.data(), 
@@ -130,12 +126,11 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
               figureName: fInfo.name, 
               figureImageUrl: fInfo.imageUrl 
             } as FeedItem))
-          )
+          ).catch(() => [])
         ];
       });
 
-      // Resolve all promises concurrently
-      const results = await Promise.all(contentPromises.map(p => p.catch(() => [])));
+      const results = await Promise.all(contentPromises);
       const allNewItems = results.flat().filter(item => item && !seenItemIdsRef.current.has(item.id));
       
       const starposts = allNewItems.filter(item => item.feedType === 'starpost');
@@ -163,10 +158,8 @@ export default function HomePageContent({ initialFeaturedFigures }: { initialFea
   }, [firestore]);
 
   React.useEffect(() => {
-    // Optimization: prevent double fetch on mount/hydration
     if (!isLoadingVotes && !initialFetchRequested.current) {
       initialFetchRequested.current = true;
-      // Small delay to ensure priority rendering finishes
       const timer = setTimeout(() => {
         fetchFeed(activeFeedIds);
       }, 300);
