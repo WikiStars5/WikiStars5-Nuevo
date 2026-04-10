@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -66,14 +65,19 @@ function ArtificialCommentList({ figure }: { figure: Figure }) {
         
         const figureRef = doc(firestore, 'figures', figure.id);
         const commentRef = doc(firestore, 'figures', figure.id, 'comments', comment.id);
+        const ratingStatRef = doc(firestore, `figures/${figure.id}/ratingStats`, String(comment.rating));
 
         try {
             await runTransaction(firestore, async (transaction) => {
+                // READS FIRST
                 const figureDoc = await transaction.get(figureRef);
+                const statDoc = await transaction.get(ratingStatRef);
+
                 if (!figureDoc.exists()) {
                     throw new Error("El perfil de la figura ya no existe.");
                 }
 
+                // WRITES SECOND
                 if (typeof comment.rating === 'number' && comment.rating >= 0) {
                     const ratingUpdates = {
                         ratingCount: increment(-1),
@@ -81,9 +85,6 @@ function ArtificialCommentList({ figure }: { figure: Figure }) {
                         [`ratingsBreakdown.${comment.rating}`]: increment(-1),
                     };
                     transaction.update(figureRef, ratingUpdates);
-                    
-                    const ratingStatRef = doc(firestore, `figures/${figure.id}/ratingStats`, String(comment.rating));
-                    const statDoc = await transaction.get(ratingStatRef);
                     
                     if (statDoc.exists()) {
                         const country = comment.userCountry || 'unknown';
@@ -208,6 +209,13 @@ export default function ActivitySimulatorPage() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const commentRef = doc(collection(firestore, `figures/${selectedFigure.id}/comments`));
+            const figureRef = doc(firestore, 'figures', selectedFigure.id);
+            const ratingStatRef = doc(firestore, `figures/${selectedFigure.id}/ratingStats`, String(data.rating));
+
+            // READS FIRST
+            const statDoc = await transaction.get(ratingStatRef);
+
+            // WRITES SECOND
             const newComment: Omit<Comment, 'id'> = {
                 userId: virtualUserId,
                 figureId: selectedFigure.id,
@@ -227,7 +235,6 @@ export default function ActivitySimulatorPage() {
             };
             transaction.set(commentRef, newComment);
 
-            const figureRef = doc(firestore, 'figures', selectedFigure.id);
             if (typeof data.rating === 'number' && data.rating >= 0) {
                 const ratingUpdates = {
                     ratingCount: increment(1),
@@ -236,8 +243,6 @@ export default function ActivitySimulatorPage() {
                 };
                 transaction.update(figureRef, ratingUpdates);
 
-                const ratingStatRef = doc(firestore, `figures/${selectedFigure.id}/ratingStats`, String(data.rating));
-                const statDoc = await transaction.get(ratingStatRef);
                 const statData = statDoc.exists() ? statDoc.data() : {};
                 
                 const country = 'unknown'; 

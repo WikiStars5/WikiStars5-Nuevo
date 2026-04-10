@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -17,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, writeBatch, serverTimestamp, increment, query, where, runTransaction, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, increment, query, where, runTransaction } from 'firebase/firestore';
 import { Loader2, ArrowLeft, Bot, User, Image as ImageIcon, Send, XCircle, Trash2 } from 'lucide-react';
 import type { Figure, Comment } from '@/lib/types';
 import FigureSearchInput from '@/components/figure/figure-search-input';
@@ -61,15 +60,19 @@ function ArtificialCommentList({ figure }: { figure: Figure }) {
         
         const figureRef = doc(firestore, 'figures', figure.id);
         const commentRef = doc(firestore, 'figures', figure.id, 'comments', comment.id);
+        const ratingStatRef = doc(firestore, `figures/${figure.id}/ratingStats`, String(comment.rating));
 
         try {
             await runTransaction(firestore, async (transaction) => {
+                // READS FIRST
                 const figureDoc = await transaction.get(figureRef);
+                const statDoc = await transaction.get(ratingStatRef);
+
                 if (!figureDoc.exists()) {
                     throw new Error("El perfil de la figura ya no existe.");
                 }
 
-                // Prepare rating updates to revert the comment's contribution
+                // WRITES SECOND
                 if (typeof comment.rating === 'number' && comment.rating >= 0) {
                     const ratingUpdates = {
                         ratingCount: increment(-1),
@@ -78,17 +81,23 @@ function ArtificialCommentList({ figure }: { figure: Figure }) {
                     };
                     transaction.update(figureRef, ratingUpdates);
                     
-                    // Also decrement ratingStats
-                    const country = comment.userCountry || 'unknown';
-                    const gender = comment.userGender || 'unknown';
-                    const ratingStatRef = doc(firestore, `figures/${figure.id}/ratingStats`, String(comment.rating));
-                    const statUpdates: {[key: string]: any} = {};
-                    statUpdates[`${country}.total`] = increment(-1);
-                    statUpdates[`${country}.${gender}`] = increment(-1);
-                    transaction.set(ratingStatRef, statUpdates, { merge: true });
+                    if (statDoc.exists()) {
+                        const country = comment.userCountry || 'unknown';
+                        const gender = comment.userGender || 'unknown';
+                        const statData = statDoc.data();
+                        
+                        if (statData[country]) {
+                            statData[country].total = (statData[country].total || 1) - 1;
+                            statData[country][gender] = (statData[country][gender] || 1) - 1;
+                            
+                            if(statData[country].total < 0) statData[country].total = 0;
+                            if(statData[country][gender] < 0) statData[country][gender] = 0;
+
+                            transaction.set(ratingStatRef, statData);
+                        }
+                    }
                 }
                 
-                // Delete the comment
                 transaction.delete(commentRef);
             });
             
@@ -96,7 +105,7 @@ function ArtificialCommentList({ figure }: { figure: Figure }) {
                 title: "Comentario Eliminado",
                 description: "El comentario artificial ha sido eliminado y las estadísticas han sido ajustadas.",
             });
-            refetch(); // Refreshes the list after deletion
+            refetch();
 
         } catch (error: any) {
             console.error("Error deleting artificial comment:", error);
@@ -187,47 +196,55 @@ export default function ActivitySimulatorPage() {
     const virtualUserId = `virtual_${uuidv4()}`;
 
     try {
-        const batch = writeBatch(firestore);
-        
-        const commentRef = doc(collection(firestore, `figures/${selectedFigure.id}/comments`));
-        const newComment: Omit<Comment, 'id'> = {
-            userId: virtualUserId,
-            figureId: selectedFigure.id,
-            text: data.commentText,
-            rating: data.rating,
-            createdAt: serverTimestamp() as any,
-            userDisplayName: data.virtualUsername,
-            userPhotoURL: data.virtualAvatarUrl || null,
-            likes: Math.floor(Math.random() * 25),
-            dislikes: Math.floor(Math.random() * 5),
-            parentId: null,
-            replyCount: 0,
-            threadId: commentRef.id,
-        };
-        batch.set(commentRef, newComment);
-
-        const figureRef = doc(firestore, 'figures', selectedFigure.id);
-        if (typeof data.rating === 'number' && data.rating >= 0) {
-            const ratingUpdates = {
-                ratingCount: increment(1),
-                totalRating: increment(data.rating),
-                [`ratingsBreakdown.${data.rating}`]: increment(1),
-            };
-            batch.update(figureRef, ratingUpdates);
-
-            // Also update ratingStats, assuming a default for now.
-            const country = 'unknown';
-            const gender = 'unknown';
+        await runTransaction(firestore, async (transaction) => {
+            const commentRef = doc(collection(firestore, `figures/${selectedFigure.id}/comments`));
+            const figureRef = doc(firestore, 'figures', selectedFigure.id);
             const ratingStatRef = doc(firestore, `figures/${selectedFigure.id}/ratingStats`, String(data.rating));
-            const statUpdates: {[key: string]: any} = {};
-            statUpdates[`${country}.total`] = increment(1);
-            statUpdates[`${country}.${gender}`] = increment(1);
-            batch.set(ratingStatRef, statUpdates, { merge: true });
-        }
-        
-        await batch.commit();
 
-        // After comment is created, update the streak for the virtual user.
+            // READS FIRST
+            const statDoc = await transaction.get(ratingStatRef);
+
+            // WRITES SECOND
+            const newComment: Omit<Comment, 'id'> = {
+                userId: virtualUserId,
+                figureId: selectedFigure.id,
+                figureName: selectedFigure.name,
+                figureImageUrl: selectedFigure.imageUrl,
+                text: data.commentText,
+                rating: data.rating,
+                createdAt: serverTimestamp() as any,
+                userDisplayName: data.virtualUsername,
+                userPhotoURL: data.virtualAvatarUrl || null,
+                likes: Math.floor(Math.random() * 25),
+                dislikes: Math.floor(Math.random() * 5),
+                parentId: null,
+                replyCount: 0,
+                threadId: commentRef.id,
+            };
+            transaction.set(commentRef, newComment);
+
+            if (typeof data.rating === 'number' && data.rating >= 0) {
+                const ratingUpdates = {
+                    ratingCount: increment(1),
+                    totalRating: increment(data.rating),
+                    [`ratingsBreakdown.${data.rating}`]: increment(1),
+                };
+                transaction.update(figureRef, ratingUpdates);
+
+                const statData = statDoc.exists() ? statDoc.data() : {};
+                const country = 'unknown';
+                const gender = 'unknown';
+                const statUpdates: {[key: string]: any} = {};
+                
+                const countryData = statData[country] || { total: 0 };
+                countryData.total = (countryData.total || 0) + 1;
+                countryData[gender] = (countryData[gender] || 0) + 1;
+                
+                statData[country] = countryData;
+                transaction.set(ratingStatRef, statData);
+            }
+        });
+
         await updateStreak({
           firestore,
           figureId: selectedFigure.id,
@@ -235,9 +252,8 @@ export default function ActivitySimulatorPage() {
           userId: virtualUserId,
           userDisplayName: data.virtualUsername,
           userPhotoURL: data.virtualAvatarUrl || null,
-          isAnonymous: true, // Virtual users are treated as anonymous for streak purposes
+          isAnonymous: true,
         });
-
 
         toast({
             title: '¡Comentario Publicado!',
