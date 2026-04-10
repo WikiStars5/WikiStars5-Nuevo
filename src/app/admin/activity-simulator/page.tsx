@@ -257,13 +257,14 @@ export default function ActivitySimulatorPage() {
             }
         });
 
+        // ACTUALIZACIÓN DE RACHA CON NOMBRE EXPLÍCITO
         await updateStreak({
           firestore,
           figureId: selectedFigure.id,
           figureName: selectedFigure.name,
           userId: virtualUserId,
-          userDisplayName: data.virtualUsername,
-          userPhotoURL: data.virtualAvatarUrl || null, // Enviamos la URL del avatar virtual
+          userDisplayName: data.virtualUsername, // Pasamos el nombre virtual
+          userPhotoURL: data.virtualAvatarUrl || null, 
           isAnonymous: true,
         });
 

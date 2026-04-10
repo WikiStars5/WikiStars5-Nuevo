@@ -18,6 +18,7 @@ interface UpdateStreakParams {
     userId: string;
     isAnonymous: boolean;
     userPhotoURL?: string | null;
+    userDisplayName?: string | null; // Nuevo parámetro opcional
 }
 
 interface StreakUpdateResult {
@@ -46,6 +47,7 @@ export async function updateStreak({
     userId,
     isAnonymous,
     userPhotoURL,
+    userDisplayName, // Destructuramos el nuevo parámetro
 }: UpdateStreakParams): Promise<StreakUpdateResult | null> {
     
     const privateStreakRef = doc(firestore, `users/${userId}/streaks`, figureId);
@@ -69,7 +71,12 @@ export async function updateStreak({
             ]);
 
             if (!userDoc.exists()) {
-                transaction.set(userRef, { id: userId, createdAt: serverTimestamp() });
+                // Si es un usuario virtual o nuevo, creamos el perfil básico
+                transaction.set(userRef, { 
+                    id: userId, 
+                    username: userDisplayName || null,
+                    createdAt: serverTimestamp() 
+                });
             }
             if (!figureDoc.exists()) {
                 throw new Error("Figure document does not exist.");
@@ -78,7 +85,9 @@ export async function updateStreak({
             const userData = userDoc.data() as User | undefined || {};
             const userCountry = userData.country || 'unknown';
             const userGender = userData.gender || 'unknown';
-            const userDisplayName = userData.username || (isAnonymous ? `Invitado_${userId.substring(0, 4)}` : 'Invitado');
+            
+            // PRIORIDAD DE NOMBRE: 1. Parámetro pasado, 2. Base de datos, 3. Genérico
+            const finalDisplayName = userDisplayName || userData.username || (isAnonymous ? `Invitado_${userId.substring(0, 4)}` : 'Invitado');
             
             const finalPhotoURL = userPhotoURL || userData.profilePhotoUrl || null;
             const figureImageUrl = figureDoc.data()?.imageUrl || null;
@@ -112,11 +121,9 @@ export async function updateStreak({
                     }
                 } else {
                     if (isProtected) {
-                        // Catch up! Auto-advance the day for protected users
                         finalStreakCount = (oldStreakData.currentStreak || 0) + daysPassed;
                         streakGained = true;
                         
-                        // Check if they passed any 10-day milestones during the jump
                         const oldMilestones = Math.floor((oldStreakData.currentStreak || 0) / 10);
                         const newMilestones = Math.floor(finalStreakCount / 10);
                         if (newMilestones > oldMilestones) {
@@ -150,7 +157,7 @@ export async function updateStreak({
                 isProtected: isProtected,
                 lastCommentDate: Timestamp.now(),
                 attitude: attitude,
-                userDisplayName: userDisplayName,
+                userDisplayName: finalDisplayName,
                 userPhotoURL: finalPhotoURL,
                 userCountry: userCountry,
                 userGender: userGender,

@@ -239,6 +239,8 @@ export default function GlobalStarPostForm() {
     const isRetracting = oldAttitude === newAttitude;
 
     try {
+        let currentDisplayName = userProfile?.username || currentUser.displayName || `Invitado_${currentUser.uid.substring(0, 4)}`;
+
         await runTransaction(firestore, async (transaction) => {
             const figureRef = doc(firestore, 'figures', selectedFigure.id);
             const userRef = doc(firestore, 'users', currentUser!.uid);
@@ -252,6 +254,8 @@ export default function GlobalStarPostForm() {
             if (!figureSnap.exists()) throw new Error("Personaje no encontrado.");
             if (!userSnap.exists()) {
                 transaction.set(userRef, { id: currentUser!.uid, createdAt: serverTimestamp() });
+            } else {
+                currentDisplayName = userSnap.data()?.username || currentDisplayName;
             }
 
             if (isRetracting) {
@@ -278,7 +282,8 @@ export default function GlobalStarPostForm() {
         const streakResult = await updateStreak({
             firestore, figureId: selectedFigure.id, figureName: selectedFigure.name,
             userId: currentUser.uid, isAnonymous: currentUser.isAnonymous,
-            userPhotoURL: currentUser.photoURL
+            userPhotoURL: currentUser.photoURL,
+            userDisplayName: currentDisplayName
         });
 
         if (streakResult?.streakGained && showStreakAnimation) {
@@ -378,6 +383,8 @@ export default function GlobalStarPostForm() {
     }
 
     try {
+      let finalDisplayName = '';
+
       await runTransaction(firestore, async (transaction) => {
         const figureRef = doc(firestore, 'figures', selectedFigure.id);
         const userRef = doc(firestore, 'users', currentUser!.uid);
@@ -409,7 +416,7 @@ export default function GlobalStarPostForm() {
           transaction.set(usernameRef, { userId: currentUser!.uid });
         }
 
-        const finalDisplayName = data.username || userProfileData.username || currentUser!.displayName || `${t('ProfilePage.guestUser')}_${currentUser!.uid.substring(0,4)}`;
+        finalDisplayName = data.username || userProfileData.username || currentUser!.displayName || `${t('ProfilePage.guestUser')}_${currentUser!.uid.substring(0,4)}`;
         const country = userProfileData.country || null;
         const gender = userProfileData.gender || null;
 
@@ -481,7 +488,8 @@ export default function GlobalStarPostForm() {
       const streakResult = await updateStreak({
         firestore, figureId: selectedFigure.id, figureName: selectedFigure.name,
         userId: currentUser.uid, isAnonymous: currentUser.isAnonymous,
-        userPhotoURL: currentUser.photoURL
+        userPhotoURL: currentUser.photoURL,
+        userDisplayName: finalDisplayName
       });
 
       if (streakResult?.streakGained && showStreakAnimation) {

@@ -188,6 +188,8 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
         return;
     }
 
+    let finalDisplayName = '';
+
     try {
         await runTransaction(firestore, async (transaction) => {
             const figureRef = doc(firestore, 'figures', figureId);
@@ -244,7 +246,7 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 transaction.set(usernameRef, { userId: currentUser.uid });
             }
 
-            const finalDisplayName = data.username || userProfileData.username || currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
+            finalDisplayName = data.username || userProfileData.username || currentUser.displayName || `${t('ProfilePage.guestUser')}_${currentUser.uid.substring(0,4)}`;
             const country = userProfileData.country || null;
             const gender = userProfileData.gender || null;
             const attitude = attitudeVoteSnap.exists() ? (attitudeVoteSnap.data() as AttitudeVote).vote : null;
@@ -310,7 +312,8 @@ export default function CommentForm({ figureId, figureName, hasUserCommented, on
                 firestore, figureId, figureName,
                 userId: currentUser.uid,
                 isAnonymous: currentUser.isAnonymous,
-                userPhotoURL: currentUser.photoURL // Enviamos la foto actual
+                userPhotoURL: currentUser.photoURL,
+                userDisplayName: finalDisplayName // Pasamos el nombre calculado
             });
 
             if (streakResult?.streakGained) {
