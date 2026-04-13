@@ -25,7 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send, Tag, XCircle, AlertCircle, Trash2, Pencil, Save, Instagram, Image as ImageIcon, MessageSquare } from 'lucide-react';
+import { Loader2, Send, Tag, XCircle, AlertCircle, Trash2, Pencil, Save, Instagram, Image as ImageIcon, MessageSquare, Heart, Check } from 'lucide-react';
 import StarInput from '@/components/figure/star-input';
 import { Figure, User as AppUser, Comment, AttitudeVote } from '@/lib/types';
 import { updateStreak } from '@/firebase/streaks';
@@ -51,6 +51,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const attitudeOptions: {
   id: 'neutral' | 'fan' | 'simp' | 'hater';
@@ -63,6 +64,9 @@ const attitudeOptions: {
   { id: 'simp', label: 'Simp', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fsimp.png?alt=media&token=2575cc73-9b85-4571-9983-3681c7741be3', selectedClass: 'border-pink-300 bg-pink-300/10' },
   { id: 'hater', label: 'Hater', gifUrl: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/actitud%2Fhater2.png?alt=media&token=141e1c39-fbf2-4a35-b1ae-570dbed48d81', selectedClass: 'border-red-400 bg-red-400/10' },
 ];
+
+const btsMemberIds = ["rm", "kim-seok-jin", "suga-agust-d", "j-hope", "jimin", "v-cantante", "jungkook"];
+const blackpinkMemberIds = ["jennie", "lalisa-manobal", "rose", "jisoo"];
 
 const ratingSounds: { [key: number]: string } = {
     1: 'https://firebasestorage.googleapis.com/v0/b/wikistars5-nuevo.firebasestorage.app/o/star%20sound%2Fstar1.mp3?alt=media&token=c867fe4c-a39f-49a1-ab99-b6fdac84b2e8',
@@ -88,6 +92,8 @@ export default function GlobalStarPostForm() {
   const { user, reloadUser } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { t } = useLanguage();
   const { theme } = useTheme();
@@ -105,6 +111,9 @@ export default function GlobalStarPostForm() {
   
   const [isCheckingExisting, setIsCheckingExisting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  const [biasConfirmType, setBiasConfirmType] = useState<'bts' | 'blackpink' | null>(null);
+  const [isConfirmingBias, setIsConfirmingBias] = useState(false);
 
   // Instagram Image Integration
   const [instaUrl, setInstaUrl] = useState('');
@@ -140,6 +149,7 @@ export default function GlobalStarPostForm() {
         setIsEditing(false);
         setInstaImageUrl(null);
         setInstaUrl('');
+        setBiasConfirmType(null);
         return;
       }
 
@@ -292,6 +302,22 @@ export default function GlobalStarPostForm() {
             });
         }
 
+        const isBts = btsMemberIds.includes(selectedFigure.id.toLowerCase());
+        const isBlackpink = blackpinkMemberIds.includes(selectedFigure.id.toLowerCase());
+        
+        if ((isBts || isBlackpink) && (newAttitude === 'fan' || newAttitude === 'simp') && !isRetracting) {
+            const battleKey = isBts ? 'btsBiasVote' : 'blackpinkBiasVote';
+            const battleId = isBts ? 'bts-bias-battle' : 'blackpink-bias-battle';
+            const userBiasVoteRef = doc(firestore, `users/${currentUser.uid}/${battleKey}`, battleId);
+            const userBiasVoteSnap = await getDoc(userBiasVoteRef);
+            
+            if (!userBiasVoteSnap.exists()) {
+                setBiasConfirmType(isBts ? 'bts' : 'blackpink');
+            }
+        } else if (isRetracting || (newAttitude !== 'fan' && newAttitude !== 'simp')) {
+            setBiasConfirmType(null);
+        }
+
         setExistingAttitude(isRetracting ? null : newAttitude);
         form.setValue('attitude', isRetracting ? undefined : newAttitude);
         toast({ title: isRetracting ? 'Voto eliminado' : '¡Voto registrado!' });
@@ -302,6 +328,38 @@ export default function GlobalStarPostForm() {
     } finally {
         setIsVoting(false);
     }
+  };
+
+  const handleConfirmBias = async () => {
+    if (!firestore || !user || !biasConfirmType || !selectedFigure) return;
+    setIsConfirmingBias(true);
+
+    const battleKey = biasConfirmType === 'bts' ? 'btsBiasVote' : 'blackpinkBiasVote';
+    const battleId = biasConfirmType === 'bts' ? 'bts-bias-battle' : 'blackpink-bias-battle';
+    const voteCountKey = biasConfirmType === 'bts' ? 'btsBiasVoteCount' : 'blackpinkBiasVoteCount';
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const privateVoteRef = doc(firestore, `users/${user.uid}/${battleKey}`, battleId);
+            const figureRef = doc(firestore, 'figures', selectedFigure.id);
+            transaction.update(figureRef, { [voteCountKey]: increment(1) });
+            transaction.set(privateVoteRef, { figureId: selectedFigure.id, createdAt: serverTimestamp() });
+        });
+        toast({ title: '¡Bias Confirmado!', description: `Has votado por ${selectedFigure.name}.` });
+        setBiasConfirmType(null);
+    } catch (error) {
+        console.error("Bias error:", error);
+        toast({ title: "Error", variant: 'destructive' });
+    } finally {
+        setIsConfirmingBias(false);
+    }
+  };
+
+  const handleRedirectToBias = () => {
+    if (!selectedFigure) return;
+    const tab = biasConfirmType === 'bts' ? 'bias-bts' : 'bias-blackpink';
+    setBiasConfirmType(null);
+    router.push(`/figures/${selectedFigure.id}?tab=${tab}`);
   };
 
   const handleDeleteExisting = async () => {
@@ -515,6 +573,7 @@ export default function GlobalStarPostForm() {
       setInstaImageUrl(null);
       setInstaUrl('');
       setIsEditing(false);
+      setBiasConfirmType(null);
 
     } catch (error: any) {
       console.error(error);
@@ -556,6 +615,7 @@ export default function GlobalStarPostForm() {
                 setIsEditing(false);
                 setInstaImageUrl(null);
                 setInstaUrl('');
+                setBiasConfirmType(null);
               }}>
                 <XCircle className="h-5 w-5" />
               </Button>
@@ -601,6 +661,27 @@ export default function GlobalStarPostForm() {
                     })}
                   </div>
               </div>
+
+              {biasConfirmType && (
+                <Card className="border-2 border-primary/50 bg-primary/5 overflow-hidden animate-border-blink animate-in slide-in-from-top duration-500">
+                    <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-primary/20 p-2 rounded-full animate-pulse">
+                                <Heart className="h-5 w-5 text-primary fill-primary" />
+                            </div>
+                            <p className="text-sm font-bold">¿Es {selectedFigure.name} tu bias de {biasConfirmType.toUpperCase()}?</p>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Button size="sm" variant="outline" className="flex-1 sm:flex-none" onClick={handleRedirectToBias}>
+                                No, buscar mi bias
+                            </Button>
+                            <Button size="sm" className="flex-1 sm:flex-none" onClick={handleConfirmBias} disabled={isConfirmingBias}>
+                                {isConfirmingBias ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="mr-1 h-4 w-4"/> Sí</>}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+              )}
 
               {existingComment && !isEditing ? (
                   <div className="p-6 border-2 border-dashed rounded-xl bg-muted/30 text-center animate-in fade-in zoom-in duration-300">
