@@ -121,8 +121,9 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
     if (shareType === 'emotion') return 'emocion';
     if (shareType === 'bias-bts') return 'bias-bts';
     if (shareType === 'bias-blackpink') return 'bias-blackpink';
-    return isBtsMember ? 'reseñas' : 'wiki';
-  }, [searchParams, isBtsMember]);
+    // Se cambia el fallback predeterminado a 'reseñas' para todos los perfiles
+    return 'reseñas';
+  }, [searchParams]);
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -162,15 +163,15 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                   <TabsTrigger value="bias-bts"><Heart className="mr-2 h-4 w-4" />Bias BTS</TabsTrigger>
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
-                  <TabsTrigger value="noticias"><Newspaper className="mr-2 h-4 w-4" />Noticias</TabsTrigger>
+                  <TabsTrigger value="noticias">< Newspaper className="mr-2 h-4 w-4" />Noticias</TabsTrigger>
                   <TabsTrigger value="galeria"><LucideImageIcon className="mr-2 h-4 w-4" />Galeria</TabsTrigger>
                   <TabsTrigger value="logros"><Trophy className="mr-2 h-4 w-4" />Logros</TabsTrigger>
                   <TabsTrigger value="wiki"><InfoIcon className="mr-2 h-4 w-4" />Wiki</TabsTrigger>
                 </>
               ) : (
                 <>
-                  <TabsTrigger value="wiki"><InfoIcon className="mr-2 h-4 w-4" />Wiki</TabsTrigger>
                   <TabsTrigger value="reseñas"><Star className="mr-2 h-4 w-4" />Reseñas</TabsTrigger>
+                  <TabsTrigger value="wiki"><InfoIcon className="mr-2 h-4 w-4" />Wiki</TabsTrigger>
                   <TabsTrigger value="emocion"><SmileIcon className="mr-2 h-4 w-4" />{t('FigurePage.tabs.emotion')}</TabsTrigger>
                   {isBlackpinkMember && <TabsTrigger value="bias-blackpink"><Heart className="mr-2 h-4 w-4" />Bias Blackpink</TabsTrigger>}
                   <TabsTrigger value="rachas"><FlameGifIcon />{t('FigurePage.tabs.streaks')}</TabsTrigger>
@@ -180,6 +181,15 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
               )}
             </TabsList>
           </div>
+          
+          <TabsContent value="reseñas" className="mt-4 space-y-8">
+            {activeTab === 'reseñas' && (
+              <>
+                <CommunityRatings figure={figure} />
+                <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={null} />
+              </>
+            )}
+          </TabsContent>
           
           <TabsContent value="wiki" className="mt-4">
               {isEditing ? <EditInformationForm figure={figure} onFormClose={() => setIsEditing(false)} /> : (
@@ -219,14 +229,6 @@ function FigureDetailContent({ figureId, initialFigure }: { figureId: string, in
                     </CardContent>
                 </Card>
               )}
-          </TabsContent>
-          <TabsContent value="reseñas" className="mt-4 space-y-8">
-            {activeTab === 'reseñas' && (
-              <>
-                <CommunityRatings figure={figure} />
-                <CommentSection figureId={figure.id} figureName={figure.name} sortPreference={null} />
-              </>
-            )}
           </TabsContent>
           {isBtsMember && (
             <TabsContent value="galeria" className="mt-4">
