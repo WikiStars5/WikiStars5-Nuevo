@@ -20,10 +20,15 @@ import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const auth: Auth = getAuth(app);
 
+// Clave de reCAPTCHA v3 proporcionada por el usuario
+const RECAPTCHA_SITE_KEY = "6Lf-LrYsAAAAAEzg8L-isibfw5UFJutEaUQJxDZ6";
+
 // Defer App Check to prevent blocking the main thread during initial load
 if (typeof window !== 'undefined') {
   const initAppCheck = () => {
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    // Intentamos usar la variable de entorno o el hardcode como fallback
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || RECAPTCHA_SITE_KEY;
+    
     if (siteKey) {
       try {
         initializeAppCheck(app, {
