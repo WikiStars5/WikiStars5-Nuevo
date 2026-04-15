@@ -23,30 +23,22 @@ const auth: Auth = getAuth(app);
 // Clave de reCAPTCHA v3 proporcionada por el usuario
 const RECAPTCHA_SITE_KEY = "6Lf-LrYsAAAAAEzg8L-isibfw5UFJutEaUQJxDZ6";
 
-// Defer App Check to prevent blocking the main thread during initial load
+// Initialize App Check immediately on the client to avoid permission errors when enforcement is ON
 if (typeof window !== 'undefined') {
-  const initAppCheck = () => {
-    // Intentamos usar la variable de entorno o el hardcode como fallback
-    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || RECAPTCHA_SITE_KEY;
-    
-    if (siteKey) {
-      try {
-        initializeAppCheck(app, {
-          provider: new ReCaptchaV3Provider(siteKey),
-          isTokenAutoRefreshEnabled: true
-        });
-        console.log("Firebase App Check initialized deferred.");
-      } catch (error) {
-        console.error("Error initializing Firebase App Check:", error);
-      }
+  // Intentamos usar la variable de entorno o el hardcode como fallback
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || RECAPTCHA_SITE_KEY;
+  
+  if (siteKey) {
+    try {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(siteKey),
+        isTokenAutoRefreshEnabled: true
+      });
+      console.log("Firebase App Check initialized immediately.");
+    } catch (error) {
+      // Capturamos el error para evitar roturas en modo desarrollo (HMR)
+      console.warn("Firebase App Check already initialized or failed:", error);
     }
-  };
-
-  // Run after the page is fully loaded and main execution is finished
-  if (document.readyState === 'complete') {
-    setTimeout(initAppCheck, 2000);
-  } else {
-    window.addEventListener('load', () => setTimeout(initAppCheck, 2000));
   }
 }
 
