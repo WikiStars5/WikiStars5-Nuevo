@@ -1,116 +1,194 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-      // --- App Check Enforcement ---
-    match /{path=**} {
-      allow read: if true;
-      allow write: if request.app.token.app_id != null;
+
+    // --- Utility Functions ---
+    
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // --- Funciones de Utilidad Reutilizables ---
-    function isSignedIn() { return request.auth != null; }
-    function isOwner(userId) { return request.auth.uid == userId; }
-    function isAdmin() { return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)); }
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    function isIncrement(field, count) {
+      return (resource == null && request.resource.data[field] == count) || 
+             (request.resource.data[field] == resource.data[field] + count);
+    }
+
+    function isDecrement(field, count) {
+      return request.resource.data[field] == resource.data[field] - count;
+    }
     
-    // --- Reglas de Colecciones ---
+    function getGlobalSettings() {
+      return get(/databases/$(database)/documents/settings/global).data;
+    }
+
+    function areCommentsEnabled() {
+      return getGlobalSettings().isCommentingEnabled == true;
+    }
+    
+    function areRepliesEnabled() {
+      return getGlobalSettings().isReplyEnabled == true;
+    }
+    
+    function areRatingsEnabled() {
+      return getGlobalSettings().isRatingEnabled == true;
+    }
+    
+    // --- Collection Rules ---
 
     match /users/{userId} {
-      allow get: if true;
+      // Basic profile reading
+      allow get: if isSignedIn(); // Allow reading any profile if signed in (needed for follow/etc)
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isSignedIn(); // Allow anyone to update follower counts via transaction
-      allow delete: if isOwner(userId) || isAdmin();
+      allow update: if isSignedIn() && (
+        isOwner(userId) || 
+        isAdmin() ||
+        // Allow updating follower/following counts via transaction from other users
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followerCount', 'followingCount', 'visitCount', 'lastVisit'])
+      );
+      allow delete: if isAdmin();
 
-      match /followers/{followerId} {
+      // Achievements
+      match /achievements/{figureId} {
         allow read: if true;
-        allow write: if isSignedIn() && request.auth.uid == followerId;
+        allow write: if isOwner(userId) || isAdmin();
       }
-      match /following/{followedId} {
-        allow read: if true;
-        allow write: if isOwner(userId);
-      }
-      match /starposts/{postId} { 
-        allow read: if true; 
-        allow write, delete: if isOwner(userId); 
-      }
-      match /thoughts/{thoughtId} { 
-        allow read: if true; 
-        allow write, delete: if isOwner(userId); 
-      }
-      match /saved_thoughts/{thoughtId} { 
-        allow read, write, delete: if isOwner(userId); 
-      }
-      match /saved_starposts/{postId} { 
-        allow read, write, delete: if isOwner(userId); 
-      }
+
+      // Votes
       match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
       match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
-      match /streaks/{streakId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
+      match /btsBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
+      match /blackpinkBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
+      
+      // Streaks
+      match /streaks/{figureId} { allow get, write: if isOwner(userId) || isAdmin(); allow list: if isOwner(userId) || isAdmin(); }
+      
+      // Notifications
       match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
+      
+      // Referrals
       match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+      
+      // Ad Campaigns
       match /adCampaigns/{campaignId} { allow read, write: if isOwner(userId) || isAdmin(); }
-      match /achievements/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
+
+      // Followers and Following (People following YOU, and people YOU follow)
+      match /followers/{followerId} {
+        allow read: if true;
+        allow write: if isSignedIn() && (request.auth.uid == followerId || isAdmin());
+      }
+
+      match /following/{followedId} {
+        allow read: if true;
+        allow write: if isOwner(userId) || isAdmin();
+      }
+      
+      // Starposts / Thoughts references
+      match /starposts/{postId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      match /thoughts/{thoughtId} { allow read, write: if isOwner(userId) || isAdmin(); }
     }
 
     match /usernames/{username} {
       allow get: if true; 
       allow create: if isSignedIn(); 
-      allow delete: if get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && get(/databases/$(database)/documents/usernames/$(username)).data.userId == request.auth.uid;
     }
 
     match /figures/{figureId} {
       allow get, list: if true;
       allow create: if isAdmin();
       allow delete: if isAdmin();
-      allow update: if isAdmin() || isSignedIn();
+      
+      allow update: if isAdmin() || (
+        isSignedIn() && (
+          // Update basic info
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'imageUrl', 'imageHint', 'coverPhotoUrl', 'nationality', 'description', 'gender', 'birthDate', 'deathDate', 'occupation', 'maritalStatus', 'height', 'socialLinks', 'nameKeywords', 'updatedAt'])) ||
+          
+          // Vote updates
+          (request.resource.data.diff(resource.data).affectedKeys().hasAny(['attitude', 'emotion', 'ratingCount', 'totalRating', 'ratingsBreakdown', 'activeStreakCount', 'btsBiasVoteCount', 'blackpinkBiasVoteCount', 'shareCounts']))
+        )
+      );
+      
+      match /attitudeStats/{statId} { allow read: if true; allow write: if isSignedIn(); }
+      match /emotionStats/{statId} { allow read: if true; allow write: if isSignedIn(); }
+      match /ratingStats/{rating} { allow read: if true; allow write: if isSignedIn(); }
+      match /streakStats/{day} { allow read: if true; allow write: if isSignedIn(); }
       
       match /comments/{commentId} {
         allow get, list: if true;
-        allow create: if request.resource.data.userId == request.auth.uid;
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
         allow update: if isSignedIn();
-        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+        allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
         match /votes/{userId} { allow get, write: if isOwner(userId); }
+
         match /replies/{replyId} {
           allow get, list: if true;
-          allow create: if isSignedIn();
+          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
           allow update: if isSignedIn();
-          allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+          allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
           match /votes/{userId} { allow get, write: if isOwner(userId); }
         }
       }
+
       match /thoughts/{thoughtId} {
         allow get, list: if true;
-        allow create: if request.resource.data.userId == request.auth.uid;
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
         allow update: if isSignedIn();
-        allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+        allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
         match /votes/{userId} { allow get, write: if isOwner(userId); }
         match /replies/{replyId} {
           allow get, list: if true;
-          allow create: if isSignedIn();
+          allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
           allow update: if isSignedIn();
-          allow delete: if resource.data.userId == request.auth.uid || isAdmin();
+          allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
           match /votes/{userId} { allow get, write: if isOwner(userId); }
         }
       }
+
       match /streaks/{userId} { allow read, list: if true; allow write: if isOwner(userId) || isAdmin(); }
+      match /news/{newsId} { allow read: if true; allow write: if isAdmin(); }
+      match /gallery/{photoId} { allow read: if true; allow write: if isAdmin(); }
     }
     
-    match /stats/notifications {
-      allow read: if true;
-      allow update: if isSignedIn() || isAdmin();
-      allow create: if isSignedIn() || isAdmin();
+    match /achievements/{achievementId} { allow get, list: if true; allow write: if isAdmin(); }
+    
+    match /related_figures/{relatedFigureId} { 
+      allow get, list: if true; 
+      allow create, delete: if isSignedIn();
+      allow update: if false; 
     }
 
-    match /stats/{statId} { allow read: if true; allow write: if isAdmin(); }
-    match /roles_admin/{userId} { allow get: if isOwner(userId) || isAdmin(); allow write, list: if isAdmin(); }
-    match /settings/{settingId} { allow read: if true; allow write: if isAdmin(); }
     match /goat_battles/{battleId} {
         allow get, list: if true;
         allow create, delete, update: if isAdmin();
-        match /votes/{userId} { allow get: if isOwner(userId) || isAdmin(); allow write: if isOwner(userId); }
+        
+        match /votes/{userId} { 
+          allow get: if isOwner(userId) || isAdmin(); 
+          allow write: if isOwner(userId); 
+        }
     }
+    
+    match /roles_admin/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow write, list: if isAdmin();
+    }
+    
+    match /settings/{settingId} { allow read: if true; allow write: if isAdmin(); }
+    match /stats/{statId} { allow read: if true; allow write: if isAdmin(); }
+    match /user_stats/{statId} { allow read, write: if true; }
+    match /featured_figures/{figureId} { allow read: if true; allow write: if isAdmin(); }
+    match /election_candidates_2026/{candidateId} { allow read: if true; allow write: if isAdmin(); }
+    match /bts_bias_members/{figureId} { allow read: if true; allow write: if isAdmin(); }
+    match /blackpink_bias_members/{figureId} { allow read: if true; allow write: if isAdmin(); }
   }
 }

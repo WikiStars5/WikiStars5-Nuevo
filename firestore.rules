@@ -3,14 +3,6 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-      // --- App Check Enforcement ---
-    // Require a valid App Check token for any write operation.
-    // Allow reads to be public. This is a broad rule, specific rules below will be more restrictive.
-    match /{path=**} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
 
     // --- Funciones de Utilidad Reutilizables ---
     
@@ -225,6 +217,18 @@ match /achievements/{figureId} {
       allow create, delete: if isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
       allow update: if false; 
     }
+
+   // Colección de seguidores (Gente que te sigue)
+      match /followers/{followerId} {
+        allow read: if true;
+        allow write: if isSignedIn(); 
+      }
+
+      // Colección de seguidos (Gente a la que sigues) - ¡ESTA FALTABA!
+      match /following/{followedId} {
+        allow read: if true;
+        allow write: if isOwner(userId);
+      }
 
     match /goat_battles/{battleId} {
         allow get, list: if true;
