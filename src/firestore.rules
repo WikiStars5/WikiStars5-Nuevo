@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -79,14 +80,18 @@ match /users/{userId} {
     isAdmin() || 
     request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followerCount', 'followingCount', 'visitCount', 'lastVisit'])
   );
-  allow delete: if isAdmin();
+  allow delete: if isAdmin() || isOwner(userId);
   
   // 2. REGLA MAESTRA PARA SUB-COLECCIONES PROPIAS
+  // Esta regla permite que el dueño lea/escriba en CUALQUIER sub-colección dentro de su usuario
+  // como 'starposts', 'saved_starposts', 'following', etc.
   match /{allSubcollections=**} {
     allow read, write: if isOwner(userId) || isAdmin();
   }
 
-  // 3. EXCEPCIONES PÚBLICAS
+  // 3. EXCEPCIONES PÚBLICAS (Cosas que otros deben poder ver)
+  // Aunque la regla de arriba protege lo privado, estas sub-colecciones necesitan ser públicas
+  
   match /achievements/{figureId} {
     allow read: if true; 
   }
@@ -95,23 +100,27 @@ match /users/{userId} {
     allow read: if true; 
   }
   
-  match /followers/{followerId} {
-    allow read: if true; 
-    // Permitir que cualquier usuario logueado se añada/elimine de la lista de seguidores de otro
-    allow write: if isSignedIn() && (request.auth.uid == followerId || isAdmin()); 
-  }
+      match /followers/{followerId} {
+        allow read: if true; 
+        // Permitir que el usuario logueado se añada/elimine de la lista de seguidores de otro
+        allow write: if isSignedIn() && (request.auth.uid == followerId || isAdmin()); 
+      }
 
-  match /following/{followedId} {
-    allow read: if true; 
-    // Solo el dueño gestiona a quién sigue
-    allow write: if isOwner(userId) || isAdmin(); 
-  }
+      match /following/{followedId} {
+        allow read: if true; 
+        // Solo el dueño gestiona a quién sigue
+        allow write: if isOwner(userId) || isAdmin(); 
+      }
 
-  // Resto de sub-colecciones
+  // Resto de sub-colecciones (Votos, Streaks, etc.)
   match /attitudeVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
   match /emotionVotes/{figureId} { allow get, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
   match /btsBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
   match /blackpinkBiasVote/{battleId} { allow get, write: if isOwner(userId); allow list: if false; }
+  match /streaks/{streakId} { 
+    allow read: if true; // Permite que cualquiera vea los streaks de este usuario
+    allow write: if isOwner(userId) || isAdmin(); // Solo el dueño o admin puede modificarlos
+  }
   match /notifications/{notificationId} { allow read, update, delete: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); allow create: if isSignedIn(); }
   match /referrals/{referredUserId} { allow read, write: if isOwner(userId); allow list: if isOwner(userId) || isAdmin(); }
   match /adCampaigns/{campaignId} { allow read, write: if isOwner(userId) || isAdmin(); }
